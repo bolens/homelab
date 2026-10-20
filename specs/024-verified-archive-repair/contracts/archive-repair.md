@@ -73,3 +73,53 @@ examined by policy, including their original content hashes and full signatures.
 A consumer must carry the original vectors across later report, custody and
 watch callbacks and close them again before acknowledgement. These facts do not
 construct adoption, authorize replay or prove reader indexing or ordinary import.
+
+## Prospective NFS rename/link purpose
+
+Plan13 and action input v3 explicitly select `rename-link-v1` before any pending
+marker. This is not an exchange-errno fallback. Source/stage share one actual
+writable NFS4 mount ID and original export/device geometry. The sole transient
+common-root bind G→G contains exactly direct children library L and retention R;
+G/L/R are distinct UID/GID1000 mode0700 directories held by original FDs. G
+full9 and exact `{L,R}` namespace never refresh; only descendant L/R effects are
+expected. Extra entries, nested binds, aliases, role overlaps or mount shadows
+refuse. Native/reader configuration, DATA, scratch and operation output remain
+outside G. The canary owns an absent child below R and cleans it before retention
+admission; it cannot use G as the neutral grandparent.
+
+Original NFS-ready facts travel over the existing bound Parent pipe before
+Writer. They remain sealed separately from ordinary native observation fields.
+The one-use typed selection joins original owner/operation/configured paths,
+actual mountinfo, retained source/stage identities and stopped-reader custody.
+A ready receipt never sets `actual_library_platform_verified` or grants mutation.
+
+Under stopped reader, inactive worker and exclusive original Writer, each
+install/reverse records intent then completion for retain-displaced hardlink,
+source unlink, no-clobber publication hardlink, stage unlink, original-retention
+hardlink and displaced unlink. Full source/stage FDs, streaming hashes with
+monotonic deadlines, attributes and finite nlink1→2→1 transitions remain bound.
+After all callbacks, inline original file/FD/ancestor/namespace/absence CAS
+immediately precedes each syscall. Original and repaired revisions remain held
+through every uncertain boundary. No unknown outcome triggers replay, automatic
+restoration, cleanup or reader restart.
+
+This requires no independent actor writing the selected names throughout the
+operation. Writer excludes cooperating applications; UID1000/mode0700 do not
+exclude another same-UID process or root. NFS offers no inode-conditional unlink.
+Replacement observed before the final syscall boundary refuses with the foreign
+file retained. Preservation against a non-cooperating post-CAS actor is outside
+this explicit exclusion contract; tests demonstrate that limit.
+
+Baseline v2 records the selected protocol and original geometry; the independent
+verifier requires the exact twelve install phase receipts and, for rollback,
+twelve reverse phase receipts, original G full9, both displaced absences, complete
+native preimage/sole-size transition and all reader tables/pages. Baseline v1 and
+legacy local exchange retain their exact schemas and direct NFS readiness
+function body. Exact parent plan 13 alone selects `nfs_ready_archive_v13` and
+admits private request v2 with `terminal=forward|rollback`; rollback reverses the same successfully installed
+live capability before typed rollback completion. It is not recovery of an
+uncertain operation and adds no public API or generic placement permission.
+
+This transient mount-policy successor adds no permanent Compose mount, setting,
+port, privilege or service lifecycle action. Genuine installed factories and
+actual NFS/native/reader/worker terminal/ACK acceptance remain separate gates.

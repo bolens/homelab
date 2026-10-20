@@ -88,16 +88,40 @@ class WorkerProfile(unittest.TestCase):
                 replacement=self.root/'replacement';replacement.write_bytes(self.metadata.read_bytes());replacement.chmod(0o600);os.replace(replacement,self.metadata)
             return value
         with patch.object(json,'loads',changed),self.assertRaisesRegex(installer.Held,'original9-final'):installer.worker_original_inputs(self.profile)
-    def test_parent_rejects_v12_before_any_operation_for_default_or_foreign_originals(self):
+    def test_parent_rejects_v12_v13_before_any_operation_for_default_or_foreign_originals(self):
         node=next(x for x in ast.parse((HERE/'comic_reader_lifecycle_parent.py').read_bytes()).body if isinstance(x,ast.ClassDef) and x.name=='LifecycleParent')
         init=next(x for x in node.body if isinstance(x,ast.FunctionDef) and x.name=='__init__')
-        block=next(x for x in init.body if isinstance(x,ast.If) and ast.unparse(x.test)=="plan.get('version') == 12")
-        code=compile(ast.Module(body=[block],type_ignores=[]),'<actual-v12-admission>','exec');plan={'version':12,'worker_observation':{k:self.profile[k] for k in ('mode','source','image_sources')}}
-        env=dict(plan=plan,need=p.need,WORKER_OBSERVATION_ENABLED=False,WORKER_OBSERVATION_ORIGINALS=plan['worker_observation'])
-        with self.assertRaisesRegex(p.Held,'default-disabled'):exec(code,env)
-        env.update(WORKER_OBSERVATION_ENABLED=True,WORKER_OBSERVATION_ORIGINALS=copy.deepcopy(plan['worker_observation']));exec(code,env)
-        plan['worker_observation']['image_sources']['sha256']='b'*64
-        with self.assertRaisesRegex(p.Held,'reviewed-original-profile'):exec(code,env)
+        expected=ast.dump(ast.parse("plan.get('version') in (12, 13)",mode='eval').body,include_attributes=False)
+        blocks=[x for x in init.body if isinstance(x,ast.If) and ast.dump(x.test,include_attributes=False)==expected and any(isinstance(value,ast.Constant) and value.value=='worker-observation-default-disabled' for value in ast.walk(x))]
+        self.assertEqual(len(blocks),1)
+        code=compile(ast.Module(body=blocks,type_ignores=[]),'<actual-v12-v13-admission>','exec')
+        for version in (12,13):
+            with self.subTest(version=version):
+                plan={'version':version,'worker_observation':copy.deepcopy({k:self.profile[k] for k in ('mode','source','image_sources')})}
+                env=dict(plan=plan,need=p.need,WORKER_OBSERVATION_ENABLED=False,WORKER_OBSERVATION_ORIGINALS=copy.deepcopy(plan['worker_observation']))
+                with self.assertRaisesRegex(p.Held,'default-disabled'):exec(code,env)
+                env.update(WORKER_OBSERVATION_ENABLED=True);exec(code,env)
+                plan['worker_observation']['image_sources']['sha256']='b'*64
+                with self.assertRaisesRegex(p.Held,'reviewed-original-profile'):exec(code,env)
+
+    def test_actual_v12_v13_constructor_refusals_create_no_operation_or_engine_calls(self):
+        source=self.root/'parent.py';source.write_bytes(Path(p.__file__).read_bytes());source.chmod(0o600)
+        original=copy.deepcopy({k:self.profile[k] for k in ('mode','source','image_sources')})
+        class NoEngine:
+            def __getattr__(self,name):raise AssertionError('No engine access before worker admission: '+name)
+        for version in (12,13):
+            for enabled in (False,True):
+                with self.subTest(version=version,worker_enabled=enabled):
+                    operation=self.root/('operation-'+str(version)+'-'+str(enabled))
+                    plan={key:{} for key in ('reader','held_native','held_worker','provider','producer','observer','sdk_map','native','producer_inputs','scope_projection','bounds','nfs','backup_provider')}
+                    plan.update(version=version,kind='reviewed-archive-one-lifecycle-protocol',nonce='a'*64,seconds=60,operation=str(operation),selected_image='sha256:'+'b'*64,mounts=[],birth_source_sha256='c'*64,action='archive-one',terminal_mode='same-child-v1',worker_observation=copy.deepcopy(original))
+                    if version==13:plan['publication_geometry']={}
+                    if enabled:plan['worker_observation']['image_sources']['sha256']='b'*64
+                    path=self.root/('plan-'+str(version)+'-'+str(enabled)+'.json');path.write_bytes(p.encode(plan));path.chmod(0o600)
+                    names=frozenset(self.root.iterdir())
+                    with patch.object(p,'WORKER_OBSERVATION_ENABLED',enabled),patch.object(p,'WORKER_OBSERVATION_ORIGINALS',copy.deepcopy(original)),self.assertRaisesRegex(p.Held,'reviewed-original-profile' if enabled else 'default-disabled'):
+                        p.LifecycleParent(reference(path),reference(source),NoEngine())
+                    self.assertFalse(operation.exists());self.assertEqual(frozenset(self.root.iterdir()),names)
 
     def test_actual_parent_worker_image_binding_refuses_other_image(self):
         cls=next(n for n in ast.parse((HERE/'comic_reader_lifecycle_parent.py').read_bytes()).body if isinstance(n,ast.ClassDef) and n.name=='LifecycleParent')

@@ -134,7 +134,7 @@ def merge(target,values,reason):
   need(p not in target or target[p]==value,reason);target[p]=value
 
 def owner_request(value):
- need(type(value) is dict and set(value)=={'version','owner','operation_id'} and type(value['version']) is int and value['version']==1,'repair-request-shape')
+ need(type(value) is dict and type(value.get('version')) is int and (value['version']==1 and set(value)=={'version','owner','operation_id'} or value['version']==2 and set(value)=={'version','owner','operation_id','terminal'} and value['terminal'] in ('forward','rollback')),'repair-request-shape')
  owner=value['owner'];need(type(owner) is dict and set(owner)=={'table','issueid','parentcomicid','releasecomicid'} and owner['table'] in ('issues','annuals'),'repair-owner-shape')
  need(all(type(owner[k]) is str and re.fullmatch('[1-9][0-9]{0,15}',owner[k]) for k in ('issueid','parentcomicid','releasecomicid')),'repair-owner-keys')
  need(owner['table']!='issues' or owner['parentcomicid']==owner['releasecomicid'],'repair-issue-parent')
@@ -173,7 +173,7 @@ def control_join(plan,custody):
  for name,ref in plan['controls'].items():need(custody.proofs.get(name)==ref,'repair-parent-original-control')
  need(plan['controls']['backup_manifest']==custody.backup_manifest and plan['controls']['backup_acceptance']==custody.backup_acceptance,'repair-neutral-full-backup-joins')
  raw,_,_=checked(plan['controls']['archive_request']);request=owner_request(decode(raw))
- need(request==owner_request({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']}),'repair-original-request')
+ need(request['owner']==plan['owner'] and request['operation_id']==plan['operation_id'] and request.get('terminal','forward')==plan.get('terminal','forward'),'repair-original-request')
  # The dedicated lease independently compares all current/restore reader tables;
  # no five-row plan/timestamp semantics are imported here.
  return request
@@ -241,7 +241,7 @@ def rollback_owned(cap,modules):
  close_vectors(vectors)
  return result,vectors
 
-def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention):
+def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,publication=None):
  core=modules['publication_archive_owned'];request=control_join(plan,custody)
  owner=modules['publication_guard'].exact_owner(request['owner']);need(owner==request['owner'],'repair-exact-owner')
  stage=controller.root/('archive-repair-'+request['operation_id'])
@@ -256,7 +256,7 @@ def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention):
  # The actual catalog-derived source is the sole input; no caller path or URL.
  lease=modules['publication_archive_reader'].from_stopped(custody,source,scratch)
  need(type(lease) is modules['publication_archive_reader'].RepairReaderLease and lease.custody is custody and lease.source==source,'repair-exact-reader-lease')
- cap=modules['publication_archive_adoption'].prepare_existing(prep,lease,retention)
+ cap=modules['publication_archive_adoption'].prepare_existing(prep,lease,retention,**({'publication':publication} if publication is not None else {}))
  need(type(cap) is modules['publication_archive_adoption'].RepairAdoption and cap.preparation is prep and cap.reader is lease,'repair-exact-owning-adoption')
  return cap
 
@@ -371,9 +371,11 @@ def require_terminal_observers(modules):
 
 def validate_plan(plan,args,argv):
  base={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}
- same=type(plan) is dict and type(plan.get('version')) is int and plan['version']==2
+ same=type(plan) is dict and type(plan.get('version')) is int and plan['version'] in (2,3)
+ if type(plan) is dict and plan.get('version')==3:base|={'terminal','publication_protocol'}
  expected=base|({'execution_originals'} if args.phase=='verify-terminal' else set())|({'terminal_mode'} if same else set())
- need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2) and plan['action']=='archive-one','repair-exact-action-input')
+ need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2,3) and plan['action']=='archive-one','repair-exact-action-input')
+ if type(plan) is dict and plan.get('version')==3:need(plan['terminal'] in ('forward','rollback') and plan['publication_protocol']=='rename-link-v1','repair-finite-explicit-terminal')
  if same:need(args.phase=='execute' and plan['terminal_mode']=='same-child-v1','repair-exact-same-child-mode')
  need(args.phase in ('execute','verify-terminal'),'repair-finite-action-phase');owner_request({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']})
  need(type(plan['nonce']) is str and re.fullmatch('[0-9a-f]{64}',plan['nonce']) and type(plan['parent_sha256']) is str and re.fullmatch('[0-9a-f]{64}',plan['parent_sha256']) and re.fullmatch('sha256:[0-9a-f]{64}',plan['selected_image']),'repair-parent-identities')
@@ -517,7 +519,7 @@ def same_child_ack(modules,custody,scope,cap,witness,reference,vectors,source_fi
   raise life.Held('archive-terminal-final-original-custody')
  if type(channel) is not life.ParentPipe or life._PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
   raise life.Held('archive-terminal-final-original-channel')
- logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+ logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
  pending=[logical];projection=[]
  while pending:
      value=pending.pop();kind=type(value)
@@ -548,17 +550,22 @@ def same_child_ack(modules,custody,scope,cap,witness,reference,vectors,source_fi
  if written!=len(frame):raise Held('repair-final-ACK-partial-no-replay')
 
 def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args):
- need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version')==2,'repair-same-child-default-disabled')
+ need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version') in (2,3),'repair-same-child-default-disabled')
  controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
+ publication=modules['publication_archive_adoption'].nfs_publication(custody,scope) if plan['version']==3 else None
  with scope.writer_session(controller,writer):
   modules['publication_archive_history'].directory(controller,writer)
-  scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention)
+  scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,*((publication,) if publication is not None else ()))
   baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
   original={'version':1,'kind':'archive-one-original-custody','owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'baseline':{'path':str(baseline),'signature9':list(cap._files[baseline]),'sha256':cap._contents[baseline]},'preparation':{'path':str(prep_path),'signature9':list(cap.preparation._files[prep_path]['signature9']),'sha256':cap.preparation._files[prep_path]['sha256']},'preparation_directory9':list(cap.preparation._directory),'reader':cap.reader.binding,'publication_acceptance':False,'mutation_authority':False}
   originals=emit(operation,'execution-originals.json',original,());cap.close()
-  cap.install();cap.complete();execute_history=modules['publication_archive_history'].executed(cap)
+  cap.install()
+  if plan.get('terminal','forward')=='rollback':
+   cap.reverse();consumer=modules['publication_archive_rollback'].from_reversed(cap);consumer.clear()
+  else:cap.complete()
+  execute_history=modules['publication_archive_history'].executed(cap)
   observed,vectors=same_child_observation(cap,modules,custody,scope,scratch)
   vectors['files']+=((originals['path'],tuple(originals['signature9'])),)
   vectors['nodes']+=tuple((str(p),tuple(v)) for p,v in opnodes.items())

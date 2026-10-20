@@ -81,6 +81,7 @@ The automation can adopt a supported repaired copy through its existing coordina
 - **FR-013**: Keep decoder compatibility and document conversion separate from archive structural repair; do not classify an error message alone as corruption proof.
 - **FR-014**: Keep diagnostic output free of private paths, archive content and credentials, and preserve existing release filename preferences during later normalization.
 - **FR-015**: Verify matching application and worker behavior before rollout and keep unfinished writer holds until their owning library acceptance succeeds.
+- **FR-016**: For the dedicated prospective NFS purpose, select a source-bound no-clobber link/unlink protocol before dispatch, using a single narrowly admitted private common-root bind containing only scanned library and disjoint private retention. Require actual same-mount identity, original common-root custody, stopped reader, inactive worker and exclusive cooperating Writer with no independent actor writing the selected names. Preserve originals and durable finite phase evidence on uncertainty; never fall back from failed exchange, retry an unknown mutation or infer stronger post-CAS unlink guarantees. See the [owning protocol contract](contracts/archive-repair.md#prospective-nfs-renamelink-purpose).
 
 ### Key Entities
 

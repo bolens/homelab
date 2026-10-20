@@ -27,6 +27,34 @@ def decode(raw):
         return result
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(o.Held('verifier-json-number')))
 
+def verify_nfs_receipts(root,publication,observed,rollback,deadline):
+    """All phase receipts are immutable observations, never recovery grants."""
+    baseline=decode(o.read_checked(root/'journal'/'baseline.json',observed[root/'journal'/'baseline.json']['signature9'],MAX,deadline))
+    old=baseline['preparation']['source']['signature9'];new=baseline['swap_before']['signature9']
+    source=Path(baseline['preparation']['source']['path']);stage=root/'swap.arc'
+    for reverse in ((False,True) if rollback else (False,)):
+        direction='reverse' if reverse else 'install';displaced=root/(direction+'-displaced.arc')
+        o.check(not os.path.lexists(displaced),'verifier-nfs-displaced-must-be-absent')
+        identities={'old':new if reverse else old,'new':old if reverse else new}
+        states={source:'old',stage:'new',displaced:None}
+        for number,step in enumerate(adoption.NFS_STEPS,1):
+            for edge in ('intent','done'):
+                if edge=='done':
+                    if step=='retain-displaced':states[displaced]='old'
+                    elif step=='detach-source':states[source]=None
+                    elif step=='publish':states[source]='new'
+                    elif step=='detach-stage':states[stage]=None
+                    elif step=='retain-original':states[stage]='old'
+                    else:states[displaced]=None
+                path=root/'journal'/(direction+'-nfs-'+str(number).zfill(2)+'-'+step+'-'+edge+'.json')
+                value=decode(o.read_checked(path,observed[path]['signature9'],1024**2,deadline))
+                o.check(type(value) is dict and set(value)=={'version','protocol','direction','step','edge','source','stage','displaced','locations','publication_acceptance'} and value['version']==1 and value['protocol']=='rename-link-v1' and value['direction']==direction and value['step']==step and value['edge']==edge and value['source']==str(source) and value['stage']==str(stage) and value['displaced']==str(displaced) and value['publication_acceptance'] is False and set(value['locations'])==set(map(str,states)),'verifier-nfs-exact-phase-receipt')
+                for target,key in states.items():
+                    actual=value['locations'][str(target)]
+                    if key is None:o.check(actual is None,'verifier-nfs-exact-phase-absence');continue
+                    expected=identities[key]
+                    o.check(type(actual) is list and len(actual)==9 and all(type(x) is int for x in actual) and [actual[i] for i in (0,1,2,3,5,6,7)]==[expected[i] for i in (0,1,2,3,5,6,7)] and actual[8]==sum(v==key for v in states.values()),'verifier-nfs-exact-phase-inode-and-links')
+
 def _verify(controller,writer,custody,baseline_path,scratch,seconds=120,*,rollback,with_vectors=False):
     """The checked parent must carry the exact baseline file in custody vectors.
 
@@ -42,7 +70,9 @@ def _verify(controller,writer,custody,baseline_path,scratch,seconds=120,*,rollba
     o.check(files.get(baseline)==initial['signature9'],'verifier-parent-bound-baseline')
     raw=o.read_checked(baseline,initial['signature9'],MAX,deadline);o.check(hashlib.sha256(raw).hexdigest()==initial['sha256'],'verifier-baseline-bytes')
     b=decode(raw)
-    o.check(set(b)=={'version','kind','preparation','reader','native_before','native_after_sha256','adoption_root','swap_before','swap_attributes','mutation_authority','publication_acceptance'} and type(b['version']) is int and b['version']==1 and b['kind']=='repair-local-preimage-observation' and b['mutation_authority'] is False and b['publication_acceptance'] is False,'verifier-baseline-schema')
+    base_keys={'version','kind','preparation','reader','native_before','native_after_sha256','adoption_root','swap_before','swap_attributes','mutation_authority','publication_acceptance'}
+    nfs=type(b.get('version')) is int and b['version']==2
+    o.check(set(b)==base_keys|({'publication'} if nfs else set()) and type(b['version']) is int and b['version'] in (1,2) and b['kind']=='repair-local-preimage-observation' and b['mutation_authority'] is False and b['publication_acceptance'] is False,'verifier-baseline-schema')
     prep=b['preparation'];owner=prep['owner'];opid=prep['operation_id']
     initial_declared=[controller.root,controller.database,controller.native_database,writer.root,*map(Path,controller.roots),Path(prep['source']['path']),Path(b['adoption_root']),Path(b['native_before']['path']),*[Path(prep['custody'][k]['path']) for k in ('original','restore')],Path(prep['derivative']['path'])]
     o.merge_nodes(nodes,o.ancestors(initial_declared))
@@ -60,13 +90,20 @@ def _verify(controller,writer,custody,baseline_path,scratch,seconds=120,*,rollba
     o.merge_nodes(nodes,o.ancestors(declared));o.check(Path(b['native_before']['path'])==root/'native-before.sqlite','verifier-preimage-path')
     for p in (root,root/'journal',stage_root):o.check(stat.S_ISDIR(os.lstat(p).st_mode) and stat.S_IMODE(os.lstat(p).st_mode)==0o700 and os.lstat(p).st_uid==os.geteuid(),'verifier-private-directory')
     expected_root={'swap.arc','native-before.sqlite','journal'};expected_journal=({'baseline.json','install-intent.json','installed.json','reverse-intent.json','reversed.json','rollback-complete-intent.json','rollback-complete.json'} if rollback else {'baseline.json','install-intent.json','installed.json','complete-intent.json','complete.json'})
+    if nfs:
+        publication=b['publication'];o.check(type(publication) is dict and publication.get('protocol')=='rename-link-v1' and publication['owner']==owner and publication['operation_id']==opid,'verifier-nfs-original-purpose')
+        adoption.nfs_child_geometry(publication,source,root.parent)
+        expected_journal|=adoption.nfs_receipt_names(False)
+        if rollback:expected_journal|=adoption.nfs_receipt_names(True)
     o.check(set(os.listdir(root))==expected_root and set(os.listdir(root/'journal'))==expected_journal and set(os.listdir(stage_root))=={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'},'verifier-closed-census')
     dirs={p:o.signature(p) for p in (root,root/'journal',stage_root,source.parent,controller.root,writer.root,Path(custody.config_root),Path(custody.restore_root))}
+    if nfs:dirs[Path(publication['geometry']['common_root']['path'])]=list(publication['geometry']['common_root']['signature9'])
     original_names=tuple((str(p),tuple(sorted(names))) for p,names in ((root,expected_root),(root/'journal',expected_journal),(stage_root,{'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'}),(source.parent,os.listdir(source.parent)),(controller.root,os.listdir(controller.root)),(writer.root,os.listdir(writer.root)),(Path(custody.config_root),os.listdir(custody.config_root)),(Path(custody.restore_root),os.listdir(custody.restore_root))))
     controls=[Path(__file__),Path(reader.__file__),Path(adoption.__file__),Path(o.__file__),controller.database,controller.native_database,writer.lock,writer.root/'publication-v1.json']
     o.merge_nodes(nodes,o.ancestors(controls))
     observed={p:o.fact(p,MAX,deadline) for p in [*controls,*[root/'journal'/n for n in sorted(expected_journal)],root/'swap.arc',root/'native-before.sqlite',*[stage_root/n for n in sorted(os.listdir(stage_root))],source]}
     files.update({p:f['signature9'] for p,f in observed.items()})
+    if nfs:verify_nfs_receipts(root,publication,observed,rollback,deadline)
     for key in ('original','restore'):
         expected=prep['custody'][key];p=Path(expected['path']);o.check(observed[p]==expected and o.attributes(p)==prep['source_attributes'],'verifier-original-restored-custody')
     raw_original=o.read_checked(Path(prep['custody']['original']['path']),prep['custody']['original']['signature9'],MAX,deadline)

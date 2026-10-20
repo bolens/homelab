@@ -15,3 +15,24 @@ Version/kind, current exact owner, full catalog/correction census, writer/thread
 ## Owned transition and terminal record
 
 A dedicated native typed consumer joins current preparation, allowed owner/correction policy, reader continuity and durable custody under Writer. Exceptional inventory applies only to that captured original. Exact finite predecessors bind prepared/uncertain/accepted/rollback phases. Unknown or mixed state retains evidence and cannot replay or fabricate completion.
+
+## Prospective NFS selection and phase records
+
+Plan13's private common-root geometry binds three original directory references:
+common root, scanned library and outside-library retention. Each reference has a
+canonical path and original full signature; held descriptors retain the three
+physical nodes. The common root's original signature and exact two-child census
+remain unchanged. Actual child mount ID, export and device join source and
+retention before the one-use typed selection is consumed. Serialized facts alone
+cannot reconstruct that selection or stopped-reader custody.
+
+The sealed adoption capability includes its selected publication protocol and
+original geometry. A version 2 baseline records these facts; legacy version 1
+retains its exact exchange schema. Each of six forward or reverse transitions
+has a durable intent and completion with original inode locations and finite
+link counts. Unknown outcomes retain pending state and both revisions; phase
+records supply no replay or reader-resume permission.
+
+Private request version 2 selects forward or rollback only with plan13/action
+input version 3. Explicit rollback consumes the same successfully installed live
+capability. It cannot recover an uncertain capability from a saved receipt.

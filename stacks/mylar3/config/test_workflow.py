@@ -1,5 +1,6 @@
 """Workflow ownership, admission, security and native integration regressions."""
 import ast
+import hashlib
 import os
 import importlib
 import json
@@ -360,6 +361,102 @@ class WorkflowTest(unittest.TestCase):
         self.assertTrue(workflow.intake()['paused'])
         app.PP_QUEUE.get();workflow.store().set('intake','current',{'paused':True,'checked_at':0})
         self.assertFalse(workflow.intake()['paused'])
+    def test_health_refresh_observes_intake_without_database_or_event_writes(self):
+        self.passive_health_check(existing_only=False)
+
+    def test_health_refresh_preserves_existing_publication_store(self):
+        self.passive_health_check(existing_only=True)
+
+    def passive_health_check(self,*,existing_only):
+        workflow.set_policy({'queue_high':3,'queue_low':1})
+        workflow.store().set('intake','current',{'paused':False,'checked_at':0})
+        for _ in range(3):app.PP_QUEUE.put({})
+        workflow._STORE=Store(self.tmp.name,existing_only=existing_only)
+        path=workflow.store().path
+        def signature():
+            z=path.stat();root=Path(self.tmp.name).stat()
+            return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,
+                    z.st_mode,z.st_uid,z.st_gid,z.st_nlink,hashlib.sha256(path.read_bytes()).hexdigest(),
+                    (root.st_dev,root.st_ino,root.st_size,root.st_mtime_ns,root.st_ctime_ns,
+                     root.st_mode,root.st_uid,root.st_gid,root.st_nlink),
+                    sorted(Path(self.tmp.name).iterdir()))
+        before=signature()
+        result=workflow.state_health()
+        self.assertTrue(result['valid'])
+        self.assertTrue(result['intake']['paused'])
+        self.assertEqual(signature(),before)
+        self.assertFalse(workflow.store().get('intake','current')['paused'])
+        before_events=workflow.store().events(stage='intake')
+        value=workflow.intake()
+        self.assertTrue(value['paused'])
+        self.assertEqual(workflow.store().get('intake','current'),value)
+        self.assertEqual(len(workflow.store().events(stage='intake')),len(before_events)+1)
+        self.assertNotEqual(signature(),before)
+        self.assertEqual(workflow.intake(),value)
+
+    def test_activity_snapshot_refresh_keeps_current_database_and_namespace_exact(self):
+        self.passive_snapshot_check(existing_only=False)
+
+    def test_activity_snapshot_refresh_preserves_existing_only_store(self):
+        self.passive_snapshot_check(existing_only=True)
+
+    def passive_snapshot_check(self,*,existing_only):
+        workflow.set_policy({'queue_high':3,'queue_low':1})
+        old={'paused':False,'checked_at':0}
+        workflow.store().set('intake','current',old)
+        for _ in range(3):app.PP_QUEUE.put({})
+        workflow._STORE=Store(self.tmp.name,existing_only=existing_only)
+        def namespace():
+            root=Path(self.tmp.name);result={}
+            for path in (root,*sorted(root.rglob('*'))):
+                z=path.lstat()
+                result[str(path.relative_to(root))]=((z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink),hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None)
+            return result
+        before=namespace();events=workflow.store().events(stage='intake')
+        cp=SimpleNamespace(request=SimpleNamespace(login='fixture-user'),session={'workflow_user':'fixture-user','workflow_csrf':'fixture-token'})
+        with patch.dict(sys.modules,{'cherrypy':cp}):
+            for _ in range(2):
+                value=web.snapshot()
+                self.assertTrue(value['intake']['paused'])
+                self.assertEqual(value['intake']['depth'],3)
+                self.assertEqual(value['csrf'],'fixture-token')
+                self.assertEqual(namespace(),before)
+        self.assertEqual(workflow.store().get('intake','current'),old)
+        self.assertEqual(workflow.store().events(stage='intake'),events)
+        current=workflow.intake()
+        self.assertTrue(current['paused'])
+        self.assertEqual(workflow.store().get('intake','current'),current)
+        self.assertEqual(len(workflow.store().events(stage='intake')),len(events)+1)
+        self.assertNotEqual(namespace(),before)
+        self.assertEqual(workflow.intake(),current)
+
+    def test_activity_snapshot_uses_persisted_hysteresis_without_updating_it(self):
+        workflow.set_policy({'queue_high':3,'queue_low':1})
+        old={'paused':True,'checked_at':0};workflow.store().set('intake','current',old)
+        cp=SimpleNamespace(request=SimpleNamespace(login='fixture-user'),session={'workflow_user':'fixture-user','workflow_csrf':'fixture-token'})
+        for _ in range(2):app.PP_QUEUE.put({})
+        with patch.dict(sys.modules,{'cherrypy':cp}):
+            self.assertTrue(web.snapshot()['intake']['paused'])
+            app.PP_QUEUE.get()
+            self.assertFalse(web.snapshot()['intake']['paused'])
+            app.CONFIG.DESTINATION_DIR=self.tmp.name+'/missing'
+            self.assertTrue(web.snapshot()['intake']['paused'])
+        self.assertFalse(Path(app.CONFIG.DESTINATION_DIR).exists())
+        self.assertEqual(workflow.store().get('intake','current'),old)
+
+    def test_passive_intake_preserves_persisted_hysteresis_and_missing_storage(self):
+        workflow.set_policy({'queue_high':3,'queue_low':1})
+        old={'paused':True,'checked_at':0}
+        workflow.store().set('intake','current',old)
+        for _ in range(2):app.PP_QUEUE.put({})
+        self.assertTrue(workflow.intake(persist=False)['paused'])
+        app.PP_QUEUE.get()
+        self.assertFalse(workflow.intake(persist=False)['paused'])
+        app.CONFIG.DESTINATION_DIR=self.tmp.name+'/missing'
+        self.assertTrue(workflow.intake(persist=False)['paused'])
+        self.assertFalse(Path(app.CONFIG.DESTINATION_DIR).exists())
+        self.assertEqual(workflow.store().get('intake','current'),old)
+
     def test_disk_hysteresis_and_missing_root(self):
         with patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=4*1024**3)):
             self.assertTrue(workflow.intake()['paused'])
