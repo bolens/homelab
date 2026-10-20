@@ -200,7 +200,6 @@ class BootstrapTests(unittest.TestCase):
     def test_real_entry_cannot_claim_success_without_actual_native_schema(self):
         session, engine = self.session()
         # execute owns its handles; remove our cleanup to avoid closing twice.
-        original_close = b.p.close_common_root
         with patch.object(b.p, 'close_common_root') as closed, self.assertRaisesRegex(b.Held, 'catalog-not-stable'):
             session.execute()
         closed.assert_called_once_with(session.geometry)

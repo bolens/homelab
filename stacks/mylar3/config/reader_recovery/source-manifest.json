@@ -490,7 +490,7 @@
       "sha256": "b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c"
     },
     "genuine_application_bootstrap.py": {
-      "sha256": "b89720313fd585629f5b070c5f5742790087f64ea0cb647b58607c374a991aaf"
+      "sha256": "d60101697205e246339d66206a3a97385da525042bd738f9d03d5b2950b26540"
     },
     "genuine_archive_fixture.py": {
       "sha256": "b2aebd9bb7388fb80d877b898b8b52a86a1d4f2c783d2544c23e641d6f0b3da3"
@@ -502,7 +502,7 @@
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
     },
     "genuine_native_catalog_helper.py": {
-      "sha256": "2529071ccf183ac86d5807630fbef1f2206cb069d35d45582d87661ce8c52011"
+      "sha256": "f72c1c507c287701344cdf305d81d71878d3fca1596e936de4564b28b59bb3e7"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
@@ -604,13 +604,13 @@
       "sha256": "4aaa575b6589c5077e673e4ec051510c390c5011bb3a04571e4166db1977a831"
     },
     "test_genuine_application_bootstrap.py": {
-      "sha256": "e5a0e7da33f42360ca391f03ca9276f196bd414d1622a2f3bac319bd4aaad078"
+      "sha256": "fdda7920a6bfc12c02119c274075d2464740fcbd4a12a4ac8c2a54bd81012e54"
     },
     "test_genuine_archive_fixture.py": {
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
     },
     "test_genuine_native_catalog.py": {
-      "sha256": "4d93dd0653c87733473bfd26e917c0c9a391398f69462c20bede63e0b486e873"
+      "sha256": "09061d57d5a26a16a98d257b291ae159a1cc5271c0b9a2c62c597ebd39cf9668"
     },
     "test_hardlink_nfs_probe.py": {
       "sha256": "388f7ab2c6147b13457e9d9356848c40c19f290032fe2c9348eaba1d80df727d"

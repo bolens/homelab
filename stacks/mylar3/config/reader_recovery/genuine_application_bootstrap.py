@@ -250,7 +250,7 @@ class Bootstrap:
         try:
             raw = self.engine.run(['exec', '--interactive', '--user', '1000:1000', self.plan['roles']['native']['id'],
                                    '/lsiopy/bin/python3', '-I', '-B', '-c', self.program, '--owning-disposable-bootstrap-http-v1', self.plan['nonce'], self.plan['roles']['native']['id']], self.seconds(), p.encode(request))
-        except Held as error:
+        except Held:
             if kind=='native' and operation=='health':raise ApplicationNotReady('native-read-only-health-not-ready') from None
             raise
         value = p.decode(raw); need(type(value) is dict and set(value) == {'result'}, 'original-http-result')
