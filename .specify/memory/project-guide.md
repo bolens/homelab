@@ -88,6 +88,7 @@ health programs too: a new top-level image receipt can still invoke an older
 embedded module hash. Prepare an exact source-bound supplier successor, preserve
 the predecessor, and verify old-source refusal and new-source acceptance before
 rollout.
+Before publishing maintained Python changes, run the exact Source lint Python rules from the pinned fleet tooling: `ruff check --isolated --select E9,F` over the paths selected by `.github/source-lint.json`, using the pinned workflow runtime. Local `make ci-local` does not replace this separate hosted gate. An unused import or binding still changes a pinned source file when removed, so refresh its owning hash and verify downstream consumers.
 Preserve unchanged source-map formatting. API/auth source hashes can be
 misclassified as credentials after reserialization; verify their source
 provenance and keep secret scanning enabled.
@@ -182,9 +183,12 @@ health. Older images may rewrite identical telemetry on status reads. Check the
 installed source before relying on read-only observations; deliver the correction
 rather than relax full filesystem witnesses. Keep immutable backup/source
 witnesses strict and reject unexplained queue state changes.
-Trace every health callee: workflow intake refresh can also emit an event and
-write its cache after ten seconds. Keep health's intake computation passive while
-ordinary intake retains persistence and hysteresis. Default Store reads must not
+Trace every health and read-only Activity snapshot callee: workflow intake
+refresh can emit an event and write its cache after ten seconds. Pass
+`persist=False` from both observers while ordinary intake retains persistence
+and hysteresis. Test stale reads against the actual initialized database hash,
+full file signature and directory namespace, including admitted existing-only
+stores and a subsequent genuine mutating intake check. Default Store reads must not
 repeat chmod on an already private database, since that alone changes ctime.
 Check both initialized default and admitted existing-only stores; missing-store
 initialization is a separate write boundary.
@@ -227,6 +231,20 @@ Build schema fixtures from the actual owning creator or migration and confirm th
 against retained metadata before live verification. A later `CREATE TABLE IF NOT
 EXISTS` declaration may differ from the existing startup-created schema; deriving
 both the verifier and its fixture from that declaration can hide the same error.
+For explicit disposable catalog fixtures, use the real startup-created full schema.
+A fresh exec importing `native_writers` has no daemon startup or publication
+admission. Never set its private readiness globals or reconstruct startup to
+claim that authority. A finite fixture-data seed may use the installed existing
+raw Writer with default pending refusals and original media snapshots, but must
+identify itself as fixture seeding. Provider metadata import, daemon processing
+and ordinary import acknowledgement require their own observed results.
+Keep archive metadata, catalog identities and filenames coherent for discovery;
+reader page verification alone does not prove native issue matching.
+The installed DB connection returns `sqlite3.Row`; normalize integrity-query
+results without changing its row factory. Acquire the original raw Writer and
+verify the existing catalog, held descriptor and companion namespace before
+constructing that connection, which can otherwise create a missing database or
+recover a journal outside custody.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from

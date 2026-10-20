@@ -222,7 +222,7 @@ def snapshot(issueid='',stage='',before=0):
     proposals=[store.get('proposal',k) for k in store.get('meta','current_proposals',[])]
     candidates=database.select("SELECT id,series,issueid FROM ddl_info WHERE status='Queued' AND (pack IS NULL OR pack IN ('0','False','false')) ORDER BY updated_date LIMIT 100")
     return {'checked_at':time.time(),'csrf':csrf(),'events':store.events(issueid,stage,before),
-            'packs':pack_intake.snapshot(),'policy':workflow.policy(),'intake':workflow.intake(),'cooldown':cooldown_health.snapshot(database),
+            'packs':pack_intake.snapshot(),'policy':workflow.policy(),'intake':workflow.intake(persist=False),'cooldown':cooldown_health.snapshot(database),
             'dispatches':store.active('dispatch',workflow.DISPATCH_HELD),'handoffs':store.active('handoff',workflow.HELD)+[r for r in store.all('handoff',100) if r['phase'] not in workflow.HELD],'ddl_candidates':[{'id':str(r['id']),'name':label(r['series']),'issueid':identifier(r['issueid'])} for r in candidates],
             'proposals':[r for r in proposals if r],'commands':store.active('command',workflow.IMPORT_HELD)+[r for r in store.all('command',100) if r['phase'] not in workflow.IMPORT_HELD],'aliases':store.all('alias',200),
             'observer_errors':workflow._OBSERVER_ERRORS}

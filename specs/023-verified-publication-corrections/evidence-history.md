@@ -393,6 +393,21 @@ PR [#405](https://github.com/bolens/homelab/pull/405) combines passive health/st
 
 ## Evidence compaction and current delivery boundary — 2026-10-20
 
-The complete earlier history is retained byte-for-byte in [the dated archive](evidence-history-through-20261020-4164dd6.md). This index preserves all 92 existing heading anchors, including duplicate headings, and the four current-day evidence sections verbatim. The archive SHA-256 is `19a7e58e8fe325ba8a30ec2461654a2b1487e5f1954eceebe09bc98a59b847c3`. Link checks cover 101 local targets and 48 incoming references; independent review and negative controls pass. No acceptance claim changes through this compaction.
+The complete earlier history is retained byte-for-byte in [the dated archive](evidence-history-through-20261020-4164dd6.md). The initial compaction preserved all 92 existing heading anchors, including duplicate headings, and its four current-day evidence sections verbatim. The refreshed index also preserves the later Activity section unchanged. The archive SHA-256 is `19a7e58e8fe325ba8a30ec2461654a2b1487e5f1954eceebe09bc98a59b847c3`. Initial link checks cover 101 local targets and 48 incoming references; independent review and negative controls pass. No acceptance claim changes through this compaction.
 
 The combined source candidate in PR #405 passes the owning native runner (769 controls) and the 1,004-control recovery collection with zero skips. The subsequent Docker-context correction admits the exact manifest-pinned scenario document; all 16 context-contract tests and the complete local CI gate pass. Required hosted checks, matching published-image verification and live rollout remain pending. Genuine installed factory, NFS publication, import/ACK, recurring recovery and bulk acceptance remain open.
+
+## Passive Activity snapshot correction — 2026-10-20
+
+Source review found a second status-read mutation: `workflow_web.snapshot()` used the default persistent intake refresh. Three regressions reproduce database hash, full file-signature and namespace changes on stale reads, including the admitted existing-only Store and an unintended persisted hysteresis sample. The snapshot now requests `intake(persist=False)`, matching health. Ordinary intake still persists its latch and transitions. The focused host run passes 106 controls with one explicitly unavailable native-fixture skip. Inspected snapshot callees show no additional durable writes; authenticated CSRF initialization remains in-memory.
+
+The current configured-base source pin, installer manifest pin, declared source manifest and both current copy maps are refreshed together. Historical preimages and the installed SDK cohort remain unchanged. PR #403 delivers compatible runtime tracks, available Jammy patch packages and the immutable NetExec dependency correction after all 41 hosted checks pass. The next PR #405 candidate incorporates that reviewed main. Hosted delivery, matching installed-image verification and the fresh no-payload/cache closure remain pending; this source result grants no configured growth, import, ACK or bulk acceptance.
+
+
+## Combined bootstrap integration and lint correction - 2026-10-20
+
+PR [#405](https://github.com/bolens/homelab/pull/405) now includes the disposable application bootstrap and native-catalog fixture source in one candidate. The combined `a9126c2` passes 769 native controls across 27 suites and 1,048 recovery controls across 65 suites with zero recovery skips and unchanged originals. Workflow coverage has 106 passes and one unavailable host-only native-fixture skip. All 18 image-context tests, full local CI and normal hooks pass. Independent security, contract and failure-path reviews find no actionable issue.
+
+Hosted Source lint catches five unused imports or bindings. The corrective `9bf4208` removes them without changing behavior or assertions and refreshes four owning source hashes. All 50 affected fixture tests, all 849 selected Python files under the exact Ruff E9/F rules, full local CI and normal hooks pass. Normal hosted checks are required on that current head. The original failure remains retained.
+
+Actual image/runtime, disposable creation, complete Parent/Birth/NFS execution, configured cache closure and live import/ACK acceptance remain pending. No live service, comic file, worker or task acceptance changes in this batch.

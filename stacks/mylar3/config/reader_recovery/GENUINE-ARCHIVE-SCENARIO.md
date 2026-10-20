@@ -87,12 +87,24 @@ remain false. It never modifies an application or library.
 `legacy_archive_exchange_probe.py` is an optional diagnostic for the historical
 exchange syscall. It is not the plan13 readiness gate or evidence for rename/link.
 
-The genuine bootstrap/plan producer remains unbuilt. It must initialize actual
-accepted Mylar/Komga images and their full schemas on fresh disposable state,
-perform real native catalog/bootstrap and reader imports, retain book IDs,
-ordered pages, user progress and unrelated records, capture original runtime
-profiles/source cohort/effective scope/NFS canary controls, and produce plan13.
-Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen fixtures do
-not satisfy this requirement. No actual NFS syscall or application operation
-was run for this source batch. Actual selected-image factory/terminal/worker/ACK
-execution remains a separate required gate.
+The explicit `genuine_application_bootstrap.py` producer requires original
+accepted disposable roles, private nonce-labelled profiles, exact images, source
+maps, configuration and the actual shared NFS mount instance. Its source route
+verifies a virgin configuration backup and independent restore, requests native
+fresh initialization and one original restart, checks the full startup-created
+schema, then requests reader scans, ordered-page checks and progress preservation.
+
+Its opt-in `genuine_native_catalog.py` stage seeds finite distinct Wanted fixture
+identities into that real empty schema under the installed raw Writer and current
+media snapshots. It requests actual native processing and requires completed
+catalog/file observations before reader scanning of those outputs. Queueing alone
+is insufficient. This fixture seed is not provider metadata import or ordinary
+import acknowledgement. Host tests explicitly double transport and grant no
+genuine daemon or connected-factory acceptance.
+
+The complete producer still needs original disposable container/account creation,
+task quiescence, actual source-cohort/effective-scope/NFS controls and plan13
+production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
+fixtures do not satisfy this requirement. No actual NFS syscall or application
+operation ran for this source batch. Actual selected-image factory, terminal,
+worker and ACK execution remain separate required gates.

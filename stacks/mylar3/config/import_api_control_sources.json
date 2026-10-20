@@ -677,11 +677,11 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "3f2b426d8700c24b8b0d7e68542045c5cbe4e7cbf61877341f5f292f63321373"
+    "sha256": "142ff86a1104a4c8c24cf3a7daf17370fd2fb2d2ad4617b7cabcc1d72898883a"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "e04515ea55d65919d0b1390f5cadaf010be1d6b4019ae82995f97fc36d865a66"
+    "sha256": "91be993e41a5d6ca7174faac6ad66aee53c56d9ba0da62684337573350641857"
   },
   {
     "path": "run_standalone_controls.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "89923d6b2207833e48079f38df954a68d23c9c0503c86550b43f5095a174bfb8"
+    "sha256": "b306cdc4e2a226515e7e6ec4b662c8994c919af4443ddf94c30b7b8de4398782"
   },
   {
     "path": "story_arc_search.py",
@@ -1369,7 +1369,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "3d4f460aabd1c3ccce7a5d33974876813f72165c0083549e438ac7ebc48f010b"
+    "sha256": "6ec5f1806ddbf9c8f27bddfa88156d23c8ec7a0200ea53d55a1cac0a40ce4ffc"
   },
   {
     "path": "test_publication_reader_softdelete.py",
@@ -1589,7 +1589,7 @@
   },
   {
     "path": "test_workflow.py",
-    "sha256": "9b8930c9f719bd3bc127570e6b58bde7e861e28d1b4963727a4cea72075594b2"
+    "sha256": "71c010078403d76da9113a3da9208fbf2ce96c65b0bfdf4e9f868e4d3adf82f3"
   },
   {
     "path": "test_workflow_nzb.py",
@@ -1633,7 +1633,7 @@
   },
   {
     "path": "workflow_web.py",
-    "sha256": "a7862ed59724b7578c23fcd335bd2a192d832d1da83242372e84935254299c85"
+    "sha256": "f5eaad1acfad03a201e29eb62a1f1f3d0c26cbab589f18c92f85bf09eb12615b"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",

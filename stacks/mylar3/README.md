@@ -1488,8 +1488,18 @@ permissions alone do not exclude same-UID/root actors, and NFS has no conditiona
 unlink-by-inode guarantee after the last CAS. Every link/unlink phase is durable;
 uncertainty retains both revisions and holds without automatic restoration or
 replay. This adds no permanent service mount, port, setting or privilege.
-The actual disposable application bootstrap/plan producer, installed connected
-factories and NFS/native/worker terminal acceptance remain unfinished. See the
+The explicit disposable application bootstrap can initialize original fresh Mylar
+state and request Komga library scans, ordered-page verification and progress
+checks. It requires original private nonce-labelled containers, accepted images,
+source/configuration bindings and the actual NFS mount instance. It does not
+create containers or accounts, produce plan13 or grant connected-factory
+admission. An explicit native-catalog helper can seed finite distinct fixture
+identities into the real startup-created empty schema under the installed
+Writer, then queue native processing. It requires actual completed catalog/file
+observations before the reader scans those outputs. This is disposable fixture
+seeding, not provider metadata import or ordinary import acknowledgement. No configured runtime acceptance is implied. The
+remaining full producer, installed connected factories and NFS/native/worker
+terminal acceptance remain unfinished. See the
 [owning protocol](../../specs/024-verified-archive-repair/contracts/archive-repair.md#prospective-nfs-renamelink-purpose)
 and [source checkpoint](config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md).
 
