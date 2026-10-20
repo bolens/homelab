@@ -10,7 +10,22 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1004 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Ten owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
+The private-copy runner executes 1199 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Thirteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+
+`genuine_plan13_producer.py` composes the existing plan13 contract from original
+bootstrap/catalog/reader records and an already checked installation. It closes
+original effective-scope, SourceCohort and NFS references, then explicitly calls
+the genuine configured Parent once. It does not install over captured originals
+or generate admission, ACK or backup authority. Unknown outcomes retain their
+intent and prohibit replay. Fresh genuine fact capture and connected execution
+remain required; see [the disposable scenario](GENUINE-ARCHIVE-SCENARIO.md).
+
+`genuine_current_roles.py` supplies the composer’s current role observation after
+bootstrap. It reuses the original profiles, epochs, network, installed-source
+checks and one bounded native probe. Configuration comes from the catalog’s
+post-startup original; the earlier bootstrap INI selects its path only. Output
+keeps its original parent and file identities through write and final closure.
+It does not restart applications or produce SourceCohort or execution authority.
 
 The distinct `comic_archive_repair_action.py` tool and pure protocol builder
 use eight archive-only control roles. One held Writer owns preparation, reader
@@ -170,3 +185,13 @@ work and grants no quiescence, stop, resume, publication, import or ACK authorit
 Actual stopped-reader state, the original Writer and final task-database checks
 remain separate Parent prerequisites. Focused transport/session fixtures do not
 prove genuine application or NFS execution.
+
+`genuine_source_cohort.py` captures causal source-readiness evidence from an
+already-running disposable selected-image fixture. It brackets the genuine
+installed cohort and complete owning recovery runner with full native-module
+hash probes and original profile/source closure. The exact image-declared
+`/config` volume is masked by private bounded tmpfs; the container runs only the
+explicit idle process with health checks disabled. The historical native map
+retains its name census, while the original current hashes and exact SDK join
+remain distinct. Test transports cannot emit operational readiness. Actual
+selected-image execution and connected Parent acceptance remain required.
