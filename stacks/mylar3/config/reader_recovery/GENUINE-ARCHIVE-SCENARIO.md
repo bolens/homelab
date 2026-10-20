@@ -123,9 +123,10 @@ production `/data` mapping remains exact for older plans; no synthetic aliases
 or additional binds make disposable roles resemble production. This is mapping
 compatibility, not actual NFS or installed-factory proof.
 
-The complete producer still needs genuine container startup/enrollment and
-processing, task quiescence, actual source-cohort/effective-scope/NFS controls
-and plan13 production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
+Genuine execution still needs container startup/enrollment and processing,
+actual source-cohort/effective-scope/NFS controls and final stopped-reader
+authority. The checked composer below consumes those original facts; it does
+not produce their authority. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
 fixtures do not satisfy this requirement. No actual NFS syscall or application
 operation ran for this source batch. Actual selected-image factory, terminal,
 worker and ACK execution remain separate required gates.
@@ -153,3 +154,63 @@ work and grants no quiescence, stop, resume, publication, import or ACK authorit
 Actual stopped-reader state, the original Writer and final task-database checks
 remain separate Parent prerequisites. Focused transport/session fixtures do not
 prove genuine application or NFS execution.
+
+
+## Checked original-reference composition
+
+`genuine_plan13_producer.py` accepts original bootstrap, catalog, reader and
+current-role records plus outputs from the existing checked installer. It
+rederives the installer artifacts and maps without reinstalling them after
+SourceCohort capture. Exact page hashes, process/role/image joins, the original
+reader queue bracket, seven effective-scope references, private base admission
+and eight NFS engine/session sources close before plan creation.
+
+Its explicit Root entry assembles plan13, writes one durable intent and calls
+the genuine configured Parent with its original engine and source arguments.
+The owning Parent still enforces Writer, SourceCohort, backup, stop, NFS and ACK
+admission. Refused or uncertain execution retains evidence and permits no replay.
+The tool is a public host dependency exercised in checked build fixtures, not
+an installed native SDK module or permanent worker hook.
+
+All 21 focused controls pass on host and Python 3.10; independent review accepts
+the source. The complete recovery suite passes 1,145 controls across 69 suites
+with zero skips and unchanged originals. Source fixtures and a genuine Parent
+constructor refusal prove composition and failure boundaries. They do not
+prove genuine configured factories, NFS, Birth, terminal execution or ACK.
+Capturing fresh owning facts and performing that connected execution remain
+separate required work.
+
+## Current role capture after bootstrap
+
+Use `genuine_current_roles.run` only with the original bootstrap plan/result,
+catalog and source references. Its explicit Root entry captures one bounded
+native readiness observation between unchanged role and installed-source checks.
+It returns the existing composer’s nonce, observation time, roles and native
+process shape. The post-startup catalog owns the current INI reference; the
+virgin plan’s old file signature is not reused after application startup.
+
+The source controls cover output-parent replacement, same-byte output-leaf
+replacement, original-input drift and replay refusal. They do not establish
+actual application startup, NFS bindability, SourceCohort readiness or connected
+Parent/Birth/terminal acceptance. Those original inputs remain required.
+
+
+## Causal source cohort capture
+
+The Root-only `genuine_source_cohort.run` consumes original fixture/image,
+executable, maps and readiness references. It records command intent, raw
+results and exit status before judging each stage. Installed-cohort and full
+owning recovery execution are bracketed by hashes of all 180 current native
+modules and independent container inspection. Its finite read-only source
+bundle is copied from explicit source paths, preserving missing, conflicting
+and changed-source refusal.
+
+The selected image's exact `/config` declaration requires private bounded tmpfs,
+an explicit idle process and disabled health checks. No anonymous volume or
+live application mount is accepted. Historical base-map names remain exact;
+current native hashes and the distinct 25-module SDK join remain original-bound.
+Independent review and 32 focused host/Python 3.10 controls pass. The complete
+recovery runner passes 1,199 controls across 71 suites with zero skips and
+unchanged originals. These are source and disposable-fixture checks; actual
+selected-image cohort execution, Parent/Birth, NFS and terminal acceptance
+remain open.
