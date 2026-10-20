@@ -22,26 +22,43 @@ services:
       retries: 5
       start_period: 30s
 
-  memcached:
+  redis:
     labels:
       logging: "true"
-    image: memcached:alpine
-    container_name: seafile-memcached
+    image: redis:8-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    container_name: seafile-redis
     restart: unless-stopped
+    user: "1000:1000"
+    # Mask the official image's /data volume with disposable memory storage.
+    tmpfs:
+      - /data:rw,nosuid,nodev,noexec,size=16m,mode=0700,uid=1000,gid=1000
+    # Disposable application cache: neither a persistent database nor a backup.
+    command:
+      - /bin/sh
+      - -ec
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD in stack.env}
     networks:
       - default
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -qx PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   seafile:
     labels:
       logging: "true"
-    image: seafileltd/seafile-mc:13.0-latest
+    image: seafileltd/seafile-mc:14.0-latest
     container_name: seafile
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-      memcached:
-        condition: service_started
+      redis:
+        condition: service_healthy
     env_file:
       - stack.env
     environment:
@@ -50,21 +67,33 @@ services:
       - SEAFILE_DB_NAME=${SEAFILE_DB_NAME:-seafile}
       - SEAFILE_DB_USER=${SEAFILE_DB_USER:-seafile}
       - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
-      # Seafile 12+ environment names.
+      # Preserve the existing database identities across the Seafile upgrade.
       - SEAFILE_MYSQL_DB_HOST=db
       - SEAFILE_MYSQL_DB_PORT=3306
       - SEAFILE_MYSQL_DB_USER=${SEAFILE_DB_USER:-seafile}
       - SEAFILE_MYSQL_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
-      - SEAFILE_MYSQL_DB_CCNET_DB_NAME=ccnet_db
-      - SEAFILE_MYSQL_DB_SEAFILE_DB_NAME=seafile_db
-      - SEAFILE_MYSQL_DB_SEAHUB_DB_NAME=seahub_db
+      - SEAFILE_MYSQL_DB_CCNET_DB_NAME=${SEAFILE_MYSQL_DB_CCNET_DB_NAME:-ccnet_db}
+      - SEAFILE_MYSQL_DB_SEAFILE_DB_NAME=${SEAFILE_MYSQL_DB_SEAFILE_DB_NAME:-seafile_db}
+      - SEAFILE_MYSQL_DB_SEAHUB_DB_NAME=${SEAFILE_MYSQL_DB_SEAHUB_DB_NAME:-seahub_db}
       - INIT_SEAFILE_MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME}
       - TIME_ZONE=${TIME_ZONE:-America/Denver}
       - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
-      - CACHE_PROVIDER=memcached
-      - MEMCACHED_HOST=memcached
-      - MEMCACHED_PORT=11211
+      - SEAFILE_SERVER_PROTOCOL=${SEAFILE_SERVER_PROTOCOL:-https}
+      - INIT_SEAFILE_ADMIN_EMAIL=${INIT_SEAFILE_ADMIN_EMAIL:-}
+      - INIT_SEAFILE_ADMIN_PASSWORD=${INIT_SEAFILE_ADMIN_PASSWORD:-}
+      - CACHE_PROVIDER=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD in stack.env}
+      - ENABLE_SEAFDAV=${ENABLE_SEAFDAV:-false}
+      - SEAFDAV_WORKERS=${SEAFDAV_WORKERS:-5}
+      - ENABLE_METADATA_MANAGEMENT=${ENABLE_METADATA_MANAGEMENT:-False}
+      - INNER_METADATA_SERVER_URL=${INNER_METADATA_SERVER_URL:-http://seafile-md-server:8084}
+      # These extension services are not included in this base stack.
+      - ENABLE_SEADOC=false
+      - ENABLE_NOTIFICATION_SERVER=false
+      - ENABLE_SEAFILE_AI=false
     volumes:
       - seafile_data:/shared
     networks:
