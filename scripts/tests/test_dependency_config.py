@@ -104,6 +104,20 @@ class SelectedRuntimePolicyTests(unittest.TestCase):
         self.assertIn("/stacks/hashcat", general["directories"])
 
 
+    def test_clark_node25_exclusion_is_local_and_preserves_other_images(self):
+        selected = [item for item in self.docker if any(rule.get("dependency-name") == "node" for rule in item.get("ignore", []))]
+        self.assertEqual(len(selected), 1)
+        clark = selected[0]
+        self.assertEqual(clark["directory"], "/stacks/clark-browser/build")
+        self.assertIn({"dependency-name": "node", "versions": [">=25, <26"]}, clark["ignore"])
+        general = next(item for item in self.docker if "/stacks/ail-framework" in item.get("directories", []))
+        def shared(item):
+            return {key: value for key, value in item.items() if key not in {"directory", "directories", "ignore"}}
+        self.assertEqual(shared(clark), shared(general))
+        self.assertEqual(clark["ignore"][:-1], general["ignore"])
+        CONFIG.validate_docker_coverage(self.config)
+
+
 class SelectedPipPolicyTests(unittest.TestCase):
     def setUp(self):
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text())
@@ -123,8 +137,17 @@ class SelectedPipPolicyTests(unittest.TestCase):
 
     def test_parent_constraints_are_scoped_without_pillow_or_global_exclusions(self):
         expected = {
-            "/stacks/mylar3": [{"dependency-name": "chardet", "versions": [">=6"]}],
-            "/stacks/ghunt": [{"dependency-name": "rich", "versions": [">=14"]}],
+            "/stacks/mylar3": [
+                {"dependency-name": "chardet", "versions": [">=6"]},
+                {"dependency-name": "isocodes", "versions": [">=2026.9.2"]},
+                {"dependency-name": "pyrate-limiter", "versions": [">=3"]},
+                {"dependency-name": "settngs", "versions": [">0.11.0"]},
+            ],
+            "/stacks/ghunt": [
+                {"dependency-name": "rich", "versions": [">=14"]},
+                {"dependency-name": "about-time", "versions": [">4.2.1"]},
+                {"dependency-name": "autoslot", "versions": [">=2023.0.0"]},
+            ],
         }
         scoped = [item for item in self.pip if item.get("ignore")]
         self.assertEqual(len(scoped), len(expected))
