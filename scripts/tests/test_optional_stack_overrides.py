@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -265,6 +266,145 @@ class OptionalStackOverrideTests(unittest.TestCase):
         self.assertEqual(runtime.stat().st_mode & 0o777, 0o600)
         self.assertNotIn(" up", trace.read_text())
         self.assertNotIn(" run", trace.read_text())
+
+
+class HarborInstallerContractTests(unittest.TestCase):
+    """Harbor remains an installer pointer; preparation never applies an upgrade."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.stack = self.root / "stacks/harbor"
+        self.stack.mkdir(parents=True)
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        shutil.copy2(ROOT / "scripts/prepare-stack-lib.sh", scripts)
+        for name in ("prepare-stack.sh", "stack.env.example",
+                     "docker-compose.override.yml.example", "caddy_snippet.conf.example"):
+            shutil.copy2(ROOT / "stacks/harbor" / name, self.stack)
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        self.log = self.root / "docker.log"
+        self.acl_log = self.root / "acl.log"
+        docker = self.bin / "docker"
+        docker.write_text(
+            '#!/bin/sh\nprintf "%s\\n" "$*" >> "$FIXTURE_DOCKER_LOG"\n'
+            'case "$*" in\n'
+            ' info) exit 0 ;;\n'
+            ' "network inspect ingress-admin") test -f "$FIXTURE_NETWORK" ;;\n'
+            ' "network create ingress-admin") : > "$FIXTURE_NETWORK" ;;\n'
+            ' *) exit 91 ;;\n'
+            'esac\n', encoding="utf-8")
+        docker.chmod(0o755)
+        acl = self.bin / "setfacl"
+        acl.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$FIXTURE_ACL_LOG"\n', encoding="utf-8")
+        acl.chmod(0o755)
+
+    def prepare(self):
+        result = subprocess.run(
+            ["bash", str(self.stack / "prepare-stack.sh")], cwd=self.stack,
+            env={"PATH": f"{self.bin}:/usr/bin:/bin", "HOME": str(self.root),
+                 "FIXTURE_DOCKER_LOG": str(self.log),
+                 "FIXTURE_NETWORK": str(self.root / "network-created"),
+                 "FIXTURE_ACL_LOG": str(self.acl_log)},
+            capture_output=True, text=True, check=False, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
+
+    def test_installer_and_proxy_versions_must_move_together(self):
+        override = (ROOT / "stacks/harbor/docker-compose.override.yml.example").read_text()
+        readme = (ROOT / "stacks/harbor/README.md").read_text()
+        version = re.search(r"image: goharbor/nginx-photon:v(\d+\.\d+\.\d+)\s", override).group(1)
+        installers = re.findall(r"harbor-offline-installer-v(\d+\.\d+\.\d+)\.tgz", readme)
+        self.assertTrue(installers)
+        self.assertEqual(set(installers), {version})
+        self.assertIn(f"The example targets **{version}**", readme)
+        self.assertIn(f"goharbor/nginx-photon:v{version}", readme)
+        self.assertIn("Updating only `proxy.image` is insufficient", readme)
+        self.assertIn("!reset []", override)
+        self.assertEqual(len(re.findall(r"^\s+image:", override, re.M)), 1)
+
+    def test_security_defaults_are_explicit_review_not_preparation_mutation(self):
+        readme = (ROOT / "stacks/harbor/README.md").read_text()
+        for option in ("network.allow_private_network_access",
+                       "content_trust.legacy_signer_pull_enabled"):
+            self.assertIn(option, readme)
+        self.assertIn("allow_private_network_access: false", readme)
+        self.assertIn("legacy_signer_pull_enabled: false", readme)
+        self.assertIn("User-Agent is spoofable", readme)
+        self.assertIn("private, loopback, link-local and cloud", readme)
+        self.assertIn("does not bypass the vulnerability-prevention policy", readme)
+        metadata = (ROOT / "stacks/harbor/stack.yaml").read_text()
+        self.assertIn("recommended_backup: true", metadata)
+        self.assertIn("priority: high", metadata)
+        env = (ROOT / "stacks/harbor/stack.env.example").read_text()
+        self.assertTrue(all(not line.strip() or line.lstrip().startswith("#")
+                            for line in env.splitlines()))
+        prepare = (ROOT / "stacks/harbor/prepare-stack.sh").read_text()
+        self.assertNotIn("allow_private_network_access", prepare)
+        self.assertNotIn("legacy_signer_pull_enabled", prepare)
+
+    def test_external_network_preparation_precedes_installer_start(self):
+        readme = (ROOT / "stacks/harbor/README.md").read_text()
+        fresh = readme.split("4. **Prepare**", 1)[1].split("6. **Caddy**", 1)[0]
+        wrapper = "(cd .. && ./prepare-stack.sh)"
+        self.assertEqual(fresh.count(wrapper), 2)
+        first, second = fresh.index(wrapper), fresh.rindex(wrapper)
+        self.assertLess(first, fresh.index("sudo ./prepare"))
+        self.assertLess(fresh.index("sudo ./prepare"), second)
+        self.assertLess(second, fresh.index("sudo ./install.sh"))
+        portainer = readme.split("### Deploying via Portainer", 1)[1].split("## Harbor behind Caddy", 1)[0]
+        self.assertLess(portainer.index("Before any start"), portainer.index("./install.sh"))
+
+    def test_fresh_preparation_copies_reference_without_starting_or_creating_install(self):
+        for _ in range(2):
+            self.prepare()
+        for target, source in (("stack.env", "stack.env.example"),
+                               (".env", "stack.env.example"),
+                               ("docker-compose.override.yml", "docker-compose.override.yml.example"),
+                               ("caddy_snippet.conf", "caddy_snippet.conf.example")):
+            self.assertEqual((self.stack / target).read_bytes(), (self.stack / source).read_bytes())
+        self.assertFalse((self.stack / "harbor").exists())
+        self.assertFalse(self.acl_log.exists())
+        calls = self.log.read_text().splitlines()
+        self.assertEqual(calls.count("network create ingress-admin"), 1)
+        self.assertEqual(calls, ["info", "network inspect ingress-admin", "network create ingress-admin",
+                                 "info", "network inspect ingress-admin"])
+
+    def test_existing_private_configuration_and_active_overrides_survive_repeat(self):
+        sentinel = "fixture-only-preserved-secret"
+        original = {"stack.env": f"HARBOR_FIXTURE_SECRET={sentinel}\n",
+                    "docker-compose.override.yml": "# existing reference override\n",
+                    "caddy_snippet.conf": "# existing ingress\n",
+                    "harbor/harbor.yml": f"harbor_admin_password: {sentinel}\n",
+                    "harbor/docker-compose.override.yml": "# installed operator override\n",
+                    "harbor/common/config/nginx/nginx.conf": "# generated nginx config\n"}
+        frames = {}
+        for relative, text in original.items():
+            path = self.stack / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+            frames[relative] = path.stat()
+        for _ in range(2):
+            result = self.prepare()
+            self.assertNotIn(sentinel, result.stdout + result.stderr)
+        for relative, text in original.items():
+            path = self.stack / relative
+            self.assertEqual(path.read_text(), text)
+            if relative.endswith("nginx.conf"):
+                # ACL calls are recorded, not executed; their real metadata effect
+                # is deliberately outside this no-permission-mutation fixture.
+                continue
+            before, after = frames[relative], path.stat()
+            for key in ("st_dev", "st_ino", "st_mode", "st_uid", "st_gid", "st_nlink",
+                        "st_size", "st_mtime_ns", "st_ctime_ns"):
+                self.assertEqual(getattr(before, key), getattr(after, key), (relative, key))
+        self.assertEqual((self.stack / ".env").read_text(), original["stack.env"])
+        self.assertEqual(self.acl_log.read_text().splitlines(),
+                         [f"-m u:10000:r {self.stack}/harbor/common/config/nginx/nginx.conf"] * 2)
+        self.assertTrue(all(line in ("info", "network inspect ingress-admin", "network create ingress-admin")
+                            for line in self.log.read_text().splitlines()))
 
 
 if __name__ == "__main__":

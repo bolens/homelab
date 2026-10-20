@@ -29,7 +29,7 @@ host_requirements:
 links:
   homepage: https://homarr.dev/
   docs: https://homarr.dev/docs/
-  repo: https://github.com/ajnart/homarr
+  repo: https://github.com/homarr-labs/homarr
 backup:
   priority: medium
   schedule_hint: weekly

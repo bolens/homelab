@@ -2,6 +2,7 @@
 # the real override is harbor/docker-compose.override.yml. Copy this file to your
 # Harbor install directory as docker-compose.override.yml if you install elsewhere.
 #
+# Match the whole v2.15.4 installer bundle; changing this proxy alone is not an upgrade.
 # Customizations:
 # - No host publication; Caddy reaches proxy:8080 on ingress-admin.
 # - restart: unless-stopped for all services (come back after host reboot).
@@ -10,7 +11,7 @@ version: "3.9"
 
 services:
   proxy:
-    image: goharbor/nginx-photon:v2.15.3
+    image: goharbor/nginx-photon:v2.15.4
     restart: unless-stopped
     ports: !reset []
     networks:
