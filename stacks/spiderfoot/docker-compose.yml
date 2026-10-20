@@ -4,7 +4,7 @@ services:
   spiderfoot:
     labels:
       logging: "true"
-    image: joshuapfritz/spiderfoot:latest@sha256:b7bf0e68d2d46a3976eeb2d9ce6a3d280dcc9d44417b37bbd2f739d2ea44ad9a
+    image: joshuapfritz/spiderfoot:latest@sha256:1e31c164cd73bb3482017e06357e72d1d4e529f7d0056e53d7579be1c73f9803
     container_name: spiderfoot
     restart: unless-stopped
     cpus: 2.0
