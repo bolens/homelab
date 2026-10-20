@@ -131,7 +131,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "5791087186acbb7abcaf293f139b9e5d95e2f5e76cc363aa83a425695097cd85",
+    "sha256": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9",
     "target": "fixtures/child/source/publication_archive_adoption.py"
   },
   {
@@ -151,7 +151,7 @@
   },
   {
     "path": "publication_archive_history.py",
-    "sha256": "16d37ff25299215b44ac0b13895babf3fd2dfc7e7b5badc822a8d2c93609134a",
+    "sha256": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456",
     "target": "fixtures/child/source/publication_archive_history.py"
   },
   {
@@ -191,7 +191,7 @@
   },
   {
     "path": "publication_archive_verifier.py",
-    "sha256": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666",
+    "sha256": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1",
     "target": "fixtures/child/source/publication_archive_verifier.py"
   },
   {
@@ -256,7 +256,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "9558032119aee25f3a717dcbe915b2c24705556abde6baa265818eaf26fc4c27",
+    "sha256": "b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2",
     "target": "fixtures/child/source/publication_reader_lifecycle.py"
   },
   {
@@ -566,7 +566,7 @@
   },
   {
     "path": "workflow.py",
-    "sha256": "bb4505d6d1dc2389c13c7dace8ca51d7a4776b94b7b290dfc31bf9e08ff61a26",
+    "sha256": "93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365",
     "target": "fixtures/child/source/workflow.py"
   },
   {
@@ -576,7 +576,7 @@
   },
   {
     "path": "workflow_store.py",
-    "sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f",
+    "sha256": "fa2e61abfb5f8174160ef9da6d41610e51e9984c097760963beb4cfb35fbd2a5",
     "target": "fixtures/child/source/workflow_store.py"
   }
 ]

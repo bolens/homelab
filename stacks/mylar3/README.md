@@ -209,6 +209,13 @@ supplies no publication admission. Health uses an existing zero-wait Writer
 before the full admitted snapshot so a concurrent writer cannot turn the status
 probe into a long operation wait.
 
+For an initialized workflow store, health computes fresh intake status without
+saving an intake record or emitting an intake-transition event. Ordinary intake
+still persists its decision and hysteresis, including a transition first observed
+by health. Reading an already private workflow database preserves its permissions
+and modification/change timestamps; normal store access still corrects a nonprivate mode to `0600`.
+This does not change the existing startup initialization of a missing store.
+
 For slow authenticated pages or queue preferences, distinguish a prompt
 `writer-busy` health response from time spent inside the admitted request.
 [`publication_http` and `operation`](config/native_writers.py) check current
@@ -1455,7 +1462,7 @@ reports `queued-review`; it grants no mutation, import or cleanup rights.
 The installed reader and adoption modules require a continuously checked owning
 child with the actual configured native roots and stopped reader custody. Saved
 queue receipts cannot reconstruct that custody. Their dedicated same-payload
-exchange retains the original, preserves every reader reference and limits the
+local exchange retains the original, preserves every reader reference and limits the
 catalog change to the owned archive size. Runtime installation, terminal recovery
 and live adoption must pass the feature 024 acceptance gates before use.
 
@@ -1470,6 +1477,21 @@ reader indexing, ordinary import or live repair acceptance.
 `publication_retained_delivery.py` is installed but disabled. It can create a fresh, bounded acceptance of a preserved existing target after an actual catalog event; it never creates a historical ordinary import acknowledgement. Current evidence is bound to the producing process. The source adds disabled primary-key POST `retainedDeliveryFinalize` and `retainedDeliveryStatus` hooks, with strict ordinary-purpose admission and typed response closure after serialization and writer release. Restart provenance, worker receipt consumption and matching installed semantic acceptance remain unfinished. It grants no placement, cleanup, Wanted-state or reader-index rights.
 
 The disabled archive terminal path preserves the original live adoption or rollback capability, preparation, catalog and writer facts through the last physical checks. The reviewed same-child path uses that capability for fresh forward or rollback verification and history, then joins the original parent pipe and its current conversation sequence before acknowledging. Saved receipts cannot recreate the capability or pipe custody. The separate read-only worker path retains both original pipes and its own image ancestry through observation and release. Matching installed CLI and runtime, actual bind geometry, NFS and live acceptance remain required.
+
+The prospective archive plan13 path uses an explicit NFS rename/link protocol,
+selected before any pending marker. Its transient child binds one private common
+root containing exactly the scanned library and a disjoint private retention
+directory. Actual mount-ID/export joins, original directory FDs/full signatures,
+stopped reader, inactive worker and exclusive cooperating Writer are required.
+No independent process may write the selected names during that interval; file
+permissions alone do not exclude same-UID/root actors, and NFS has no conditional
+unlink-by-inode guarantee after the last CAS. Every link/unlink phase is durable;
+uncertainty retains both revisions and holds without automatic restoration or
+replay. This adds no permanent service mount, port, setting or privilege.
+The actual disposable application bootstrap/plan producer, installed connected
+factories and NFS/native/worker terminal acceptance remain unfinished. See the
+[owning protocol](../../specs/024-verified-archive-repair/contracts/archive-repair.md#prospective-nfs-renamelink-purpose)
+and [source checkpoint](config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md).
 
 The image also installs the canonical negative-retirement reader cohort through
 `patch_publication_reader_cohort.py`. Build checks verify exact module bytes and

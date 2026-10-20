@@ -60,4 +60,49 @@ class Controls(unittest.TestCase):
    return value
   with patch.object(P.time,'monotonic',late),self.assertRaises((N.Held,P.Held)):self.ready(request)
   self.assertTrue(fired)
+class V13Controls(Controls):
+ """Explicit source-mode successor controls; inherited engine/NFS doubles remain."""
+ def setUp(self):
+  super().setUp();self.x.plan['version']=13;self.terminal='forward'
+  self.archive_request=base.ref(Path(self.archive_request['path']),P.encode(dict(version=2,owner=self.owner,operation_id=self.operation_id,terminal=self.terminal)))
+  self.x.plan['producer_inputs']['archive_request']=self.archive_request;self.reseal()
+ def request(self):
+  real=self.x.emit
+  def emit(name,doc):
+   if name=='execute-input.json':doc=dict(doc,terminal=self.terminal)
+   return real(name,doc)
+  with patch.object(self.x,'emit',side_effect=emit):return super().request()
+ def ready(self,request):return N.nfs_ready_archive_v13(self.x,request,watch=self.x.continuous)
+ def test_explicit_rollback_original_is_consumed(self):
+  self.terminal='rollback'
+  self.archive_request=base.ref(Path(self.archive_request['path']),P.encode(dict(version=2,owner=self.owner,operation_id=self.operation_id,terminal=self.terminal)))
+  self.x.plan['producer_inputs']['archive_request']=self.archive_request;self.reseal()
+  self.stopped();result=self.ready(self.request())
+  self.assertEqual(P.decode(P.read(result['evidence']['evidence']))['operation_id'],self.operation_id)
+ def test_original_terminal_mismatch_refuses_before_ready_output(self):
+  self.stopped();self.terminal='rollback'
+  with self.assertRaisesRegex(N.Held,'original-terminal-request'):self.ready(self.request())
+  self.assertFalse((self.x.op/'archive-nfs-ready.json').exists())
+ def test_successor_refuses_legacy_plan_before_factory_consumption(self):
+  self.x.plan['version']=12;self.reseal()
+  with self.assertRaisesRegex(N.Held,'v13-only'):self.ready({})
+ def test_legacy_direct_body_rejects_explicit_terminal_request(self):
+  self.stopped()
+  with self.assertRaisesRegex(N.Held,'original-owner-request'):N.nfs_ready_archive(self.x,self.request(),watch=self.x.continuous)
+ def test_parent_dispatch_keeps_all_legacy_archive_plans(self):
+  for version in (10,11,12):
+   with self.subTest(version=version):
+    fixture=Controls();fixture.setUp()
+    try:
+     fixture.x.plan['version']=version;fixture.reseal();fixture.stopped();request=fixture.request();P._NFS_ADAPTERS[fixture.x]=N
+     with patch.object(N,'nfs_ready_archive',wraps=N.nfs_ready_archive) as legacy,patch.object(N,'nfs_ready_archive_v13',side_effect=AssertionError('prospective route selected')):
+      fixture.x.produce('archive-nfs-ready',request['context'])
+     self.assertEqual(legacy.call_count,1)
+    finally:fixture.doCleanups()
+ def test_parent_dispatch_selects_explicit_successor(self):
+  self.stopped();request=self.request();P._NFS_ADAPTERS[self.x]=N
+  with patch.object(N,'nfs_ready_archive_v13',wraps=N.nfs_ready_archive_v13) as successor,patch.object(N,'nfs_ready_archive',side_effect=AssertionError('legacy route selected')):
+   self.x.produce('archive-nfs-ready',request['context'])
+  self.assertEqual(successor.call_count,1)
+
 if __name__=='__main__':unittest.main()

@@ -116,16 +116,82 @@ def _copy_derivative(prep,destination):
     o.check(result['sha256']==f['sha256'] and o.attributes(destination)==attrs,'derivative-copy')
     return result,attrs
 
+_NFS_SELECTIONS=weakref.WeakKeyDictionary()
+
+def nfs_child_geometry(facts,source,retention):
+    """Join original host export spelling to actual selected-child mount IDs."""
+    geometry=facts['geometry'];o.check(type(geometry) is dict and set(geometry)=={'version','kind','common_root','library','retention'} and geometry['version']==1 and geometry['kind']=='private-common-root-nfs','repair-nfs-common-geometry')
+    root=Path(geometry['common_root']['path']);library=Path(geometry['library']['path']);retention=Path(retention)
+    o.check(library==Path(facts['library']) and retention==Path(geometry['retention']['path']) and library.parent==root and retention.parent==root and library!=retention and Path(source).is_relative_to(library),'repair-nfs-common-direct-paths')
+    expected=geometry['common_root']['signature9'];o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-original-common-root9')
+    for role,path in (('library',library),('retention',retention)):
+        saved=geometry[role]['signature9'];o.check(o.stat5(os.lstat(path))==[saved[i] for i in (0,1,5,6,7)] and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000],'repair-nfs-original-common-child5')
+    def unescape(value):
+        for encoded,plain in ((r'\040',' '),(r'\011','\t'),(r'\012','\n'),(r'\134','\\')):value=value.replace(encoded,plain)
+        return value
+    rows=[]
+    with open('/proc/self/mountinfo',encoding='utf-8') as stream:
+        for line in stream:
+            fields=line.split();separator=fields.index('-')
+            rows.append(dict(id=int(fields[0]),device=fields[2],root=unescape(fields[3]),target=unescape(fields[4]),options=fields[5],fstype=fields[separator+1],source=unescape(fields[separator+2])))
+            o.check(len(rows)<=4096,'repair-nfs-mountinfo-bound')
+    def covering(path):
+        candidates=[row for row in rows if path==Path(row['target']) or Path(row['target']) in path.parents]
+        o.check(bool(candidates),'repair-nfs-unmapped-child-path');depth=max(len(Path(row['target']).parts) for row in candidates)
+        found=[row for row in candidates if len(Path(row['target']).parts)==depth]
+        o.check(len(found)==1,'repair-nfs-ambiguous-child-mount');return found[0]
+    left,right=covering(Path(source)),covering(retention)
+    original=facts['mount'];host_target=Path(original['target']);export=Path(original['fsroot'])
+    host_source=original['source'];suffix='['+original['fsroot']+']'
+    if host_source.endswith(suffix):host_source=host_source[:-len(suffix)]
+    o.check(left==right and 'rw' in left['options'].split(',') and left['target']==str(root) and left['fstype']=='nfs4' and left['device']==original['maj:min'] and left['source']==host_source and root.is_relative_to(host_target) and Path(left['root'])==export/root.relative_to(host_target),'repair-nfs-same-actual-mount-and-export')
+    o.check(not any(Path(row['target'])!=root and Path(row['target']).is_relative_to(root) for row in rows),'repair-nfs-nested-child-mount')
+    device=os.lstat(source).st_dev;o.check(device==facts['device'] and device==os.lstat(retention).st_dev and str(os.major(device))+':'+str(os.minor(device))==left['device'],'repair-nfs-original-device')
+    o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-final-common-root9')
+    return left
+
+class NFSRepairPublication:
+    """Original parent NFS facts, observed before Writer; no serialized factory."""
+    __slots__=('custody','scope','facts','thread','__weakref__')
+    def __init__(self,key,custody,scope,facts):
+        o.check(key is _KEY,'repair-nfs-owning-selection');self.custody=custody;self.scope=scope
+        self.facts=copy.deepcopy(facts);self.thread=threading.get_ident()
+        _NFS_SELECTIONS[self]=(custody,scope,o.compact(facts),self.thread,False)
+    def consume(self,prep,lease):
+        record=_NFS_SELECTIONS.get(self)
+        o.check(record is not None and record==(self.custody,self.scope,o.compact(self.facts),self.thread,False) and self.thread==threading.get_ident() and lease.custody is self.custody,'repair-nfs-original-selection')
+        current=self.custody.archive_publication_original(self.scope)
+        binding=self.scope.binding
+        o.check(current==self.facts and self.facts['protocol']=='rename-link-v1' and self.facts['mount']['fstype']=='nfs4' and self.facts['library']==binding['host_scopes']['library'] and list(map(str,prep._controller.roots))==binding['roots'] and str(prep._controller.root)==binding['data'] and self.facts['owner']==prep._binding['owner'] and self.facts['operation_id']==prep._binding['operation_id'] and os.lstat(prep._binding['source']['path']).st_dev==self.facts['device'],'repair-nfs-original-configured-geometry')
+        nfs_child_geometry(self.facts,prep._binding['source']['path'],self.facts['geometry']['retention']['path'])
+        o.check(_NFS_SELECTIONS.get(self) is record,'repair-nfs-selection-after-callback')
+        _NFS_SELECTIONS[self]=(*record[:-1],True);return copy.deepcopy(self.facts)
+
+def nfs_publication(custody,scope):
+    from mylar import publication_reader_lifecycle as life, publication_native_configured_scope as native
+    installed();o.check(type(custody) is life.StoppedReaderCustody and type(scope) is native.NativeConfiguredScope and scope._custody is custody,'repair-nfs-exact-custody-scope')
+    facts=custody.archive_publication(scope)
+    return NFSRepairPublication(_KEY,custody,scope,facts)
+
+NFS_STEPS=('retain-displaced','detach-source','publish','detach-stage','retain-original','detach-displaced')
+
+def nfs_receipt_names(reverse=False):
+    direction='reverse' if reverse else 'install'
+    return {direction+'-nfs-'+str(number).zfill(2)+'-'+step+'-'+edge+'.json'
+            for number,step in enumerate(NFS_STEPS,1) for edge in ('intent','done')}
+
 class RepairAdoption:
-    __slots__=('preparation','reader','root','source','stage','journal','_owner','_before','_after','_files','_nodes','_absent','_source_attrs','_stage_attrs','_census','_records','_claims','_phase','_names','_thread','_objects','_receipt','_dirs','_contents','_source_names','__weakref__')
-    def __init__(self,key,prep,lease,root,before,after,files,nodes,absent,stage_attrs):
+    __slots__=('preparation','reader','root','source','stage','journal','_owner','_before','_after','_files','_nodes','_absent','_source_attrs','_stage_attrs','_census','_records','_claims','_phase','_names','_thread','_objects','_receipt','_dirs','_contents','_source_names','_publication','__weakref__')
+    def __init__(self,key,prep,lease,root,before,after,files,nodes,absent,stage_attrs,publication=None):
         o.check(key is _KEY,'repair-owning-factory');self.preparation=prep;self.reader=lease;self.root=root
         self.source=Path(prep._binding['source']['path']);self.stage=root/'swap.arc';self.journal=root/'journal'
         self._owner=copy.deepcopy(prep._binding['owner']);self._before=before;self._after=after;self._files=files;self._nodes=nodes;self._absent=absent
         self._source_attrs=copy.deepcopy(prep._binding['source_attributes']);self._stage_attrs=stage_attrs
         self._census=copy.deepcopy(prep._census);self._records=copy.deepcopy(prep._records);self._claims=copy.deepcopy(prep._claims)
-        self._phase='prepared';self._names={'swap.arc','journal'};self._thread=threading.get_ident();self._objects=[id(prep),id(lease),id(prep._writer),id(prep._controller)];self._receipt=None;self._source_names=set(os.listdir(self.source.parent));self._dirs={p:o.signature(p) for p in (root,self.journal,self.source.parent)};self._contents={p:reader.retained_fact(p,v,max(v[2],1),prep._deadline)['sha256'] for p,v in files.items()};self._seal()
-    def _core(self):return o.digest({'objects':self._objects,'phase':self._phase,'thread':self._thread,'paths':list(map(str,(self.root,self.source,self.stage,self.journal))),'files':{str(p):v for p,v in self._files.items()},'nodes':{str(p):v for p,v in self._nodes.items()},'absent':sorted(map(str,self._absent)),'before':self._before,'after':self._after,'owner':self._owner,'source_attrs':self._source_attrs,'stage_attrs':self._stage_attrs,'census':self._census,'records':self._records,'claims':{str(p):v for p,v in self._claims.items()},'names':sorted(self._names),'receipt':self._receipt,'dirs':{str(p):v for p,v in self._dirs.items()},'contents':{str(p):v for p,v in self._contents.items()},'source_names':sorted(self._source_names)})
+        self._publication=copy.deepcopy(publication);self._phase='prepared';self._names={'swap.arc','journal'};self._thread=threading.get_ident();self._objects=[id(prep),id(lease),id(prep._writer),id(prep._controller)];self._receipt=None;self._source_names=set(os.listdir(self.source.parent));self._dirs={p:o.signature(p) for p in (root,self.journal,self.source.parent)};self._contents={p:reader.retained_fact(p,v,max(v[2],1),prep._deadline)['sha256'] for p,v in files.items()}
+        if self._publication is not None:self._dirs[Path(self._publication['geometry']['common_root']['path'])]=list(self._publication['geometry']['common_root']['signature9'])
+        self._seal()
+    def _core(self):return o.digest({'objects':self._objects,'phase':self._phase,'thread':self._thread,'paths':list(map(str,(self.root,self.source,self.stage,self.journal))),'files':{str(p):v for p,v in self._files.items()},'nodes':{str(p):v for p,v in self._nodes.items()},'absent':sorted(map(str,self._absent)),'before':self._before,'after':self._after,'owner':self._owner,'source_attrs':self._source_attrs,'stage_attrs':self._stage_attrs,'census':self._census,'records':self._records,'claims':{str(p):v for p,v in self._claims.items()},'names':sorted(self._names),'receipt':self._receipt,'dirs':{str(p):v for p,v in self._dirs.items()},'contents':{str(p):v for p,v in self._contents.items()},'source_names':sorted(self._source_names),'publication':self._publication})
     def _seal(self):_SEALS[self]=self._core()
     def _life(self):o.check(_SEALS.get(self)==self._core() and threading.get_ident()==self._thread and time.monotonic()<self.preparation._deadline and self._objects==[id(self.preparation),id(self.reader),id(self.preparation._writer),id(self.preparation._controller)],'repair-lifetime')
     def _record(self,name,value):
@@ -175,13 +241,131 @@ class RepairAdoption:
                 if value is not None:raise o.Held('repair-inline-claim')
                 continue
             if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,None if info.st_mode & 0o170000==0o040000 else info.st_nlink)!=value:raise o.Held('repair-inline-claim')
+    def _rename_link(self,reverse):
+        """Explicit NFS protocol; no exchange attempt or automatic recovery.
+
+        Each intent/done is durable. The only library publication is no-clobber
+        link. Full source/stage FDs survive every transition and callback.
+        """
+        o.check(self._publication is not None and self._publication['protocol']=='rename-link-v1' and self._publication['mount']['fstype']=='nfs4','repair-nfs-selected-before-dispatch')
+        displaced=self.root/('reverse-displaced.arc' if reverse else 'install-displaced.arc')
+        o.check(not os.path.lexists(displaced),'repair-nfs-exclusive-displacement')
+        directory_nodes={p:list(self._nodes[p]) for p in (self.source.parent,self.root)}
+        fds={};originals={};stamps={};locations={self.source:'old',self.stage:'new',displaced:None}
+        directory9={p:o.signature(p) for p in directory_nodes}
+        try:
+            for key,path in (('old',self.source),('new',self.stage)):
+                fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC);fds[key]=fd
+                v=o.stat9(os.fstat(fd));o.check(v==self._files[path] and v[8]==1,'repair-nfs-original-FD')
+                originals[key]=(list(v),self._contents[path]);stamps[key]=list(v)
+            def check_state():
+                self._life();self.reader.revalidate()
+                prep=self.preparation;guard=prep._modules[2];writer=prep._writer
+                o.check(getattr(writer.local[1],'depth',0)>0 and writer.local is prep._local and guard.writer_identity(writer)==prep._identity and guard.registry_snapshot(prep._controller.database,writer.root/'publication-v1.json')==(self._census,self._records),'repair-nfs-original-writer-census')
+                files={path:v for path,v in self._files.items() if path not in (self.source,self.stage)}
+                dirs={**self._dirs,**directory9}
+                absent=set(self._absent)-{displaced}
+                for path,key in locations.items():
+                    if key is None:absent.add(path)
+                    else:files[path]=list(stamps[key])
+                for key,fd in fds.items():
+                    current=o.stat9(os.fstat(fd));o.check(current==stamps[key],'repair-nfs-live-original-FD9')
+                    content=hashlib.sha256();offset=0
+                    while offset<current[2]:
+                        o.check(time.monotonic()<prep._deadline,'repair-nfs-read-deadline')
+                        block=os.pread(fd,min(1024**2,current[2]-offset),offset);o.check(bool(block),'repair-nfs-original-short-read');content.update(block);offset+=len(block)
+                    o.check(content.hexdigest()==originals[key][1] and o.stat9(os.fstat(fd))==stamps[key],'repair-nfs-original-FD-bytes')
+                for path,value in files.items():
+                    if path in locations:continue
+                    actual=reader.retained_fact(path,value,max(value[2],1),prep._deadline)
+                    o.check(actual['sha256']==self._contents[path],'repair-nfs-immutable-control-bytes')
+                root_names=set(self._names)
+                if locations[self.stage] is None:root_names.remove(self.stage.name)
+                if locations[displaced] is not None:root_names.add(displaced.name)
+                source_names=set(self._source_names)
+                if locations[self.source] is None:source_names.remove(self.source.name)
+                o.check(set(os.listdir(self.root))==root_names and set(os.listdir(self.source.parent))==source_names and set(os.listdir(self.journal))=={path.name for path in self._files if path.parent==self.journal},'repair-nfs-complete-namespace')
+                direct({**files,**dirs},self._nodes,absent)
+                for path,value in self._claims.items():
+                    if path==self.source:
+                        key=locations[path];value=None if key is None else tuple(stamps[key][i] for i in (0,1,5,6,7,8))
+                    try:z=os.lstat(path)
+                    except FileNotFoundError:o.check(value is None,'repair-nfs-missing-claim');continue
+                    o.check((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if stat.S_ISDIR(z.st_mode) else z.st_nlink)==value,'repair-nfs-full-claim')
+                for key,fd in fds.items():
+                    if o.stat9(os.fstat(fd))!=stamps[key]:raise o.Held('repair-nfs-final-original-FD')
+                direct({**files,**dirs},self._nodes,absent)
+            def capture_changed():
+                for key,fd in fds.items():
+                    current=o.stat9(os.fstat(fd));saved=originals[key][0]
+                    o.check([current[i] for i in (0,1,2,3,5,6,7)]==[saved[i] for i in (0,1,2,3,5,6,7)] and current[8]==sum(value==key for value in locations.values()),'repair-nfs-exact-known-inode-transition')
+                    stamps[key]=current
+                for path,node in directory_nodes.items():
+                    o.check(o.stat5(os.lstat(path))==node,'repair-nfs-original-parent5');directory9[path]=o.signature(path)
+            def record(number,step,edge):
+                check_state()
+                self._record(('reverse' if reverse else 'install')+'-nfs-'+str(number).zfill(2)+'-'+step+'-'+edge+'.json',dict(version=1,protocol='rename-link-v1',direction='reverse' if reverse else 'install',step=step,edge=edge,source=str(self.source),stage=str(self.stage),displaced=str(displaced),locations={str(path):None if key is None else list(stamps[key]) for path,key in locations.items()},publication_acceptance=False))
+                check_state()
+            for number,step in enumerate(NFS_STEPS,1):
+                record(number,step,'intent')
+                with o.directory_fd(self.source.parent,directory_nodes[self.source.parent]) as library_fd,o.directory_fd(self.root,directory_nodes[self.root]) as private_fd:
+                    check_state()
+                    # Final primitive CAS after all reader/hash/receipt/helpers.
+                    # Writer excludes cooperating applications. There is no NFS
+                    # conditional-unlink primitive against a hostile same-UID
+                    # replacement after this boundary; that actor is excluded.
+                    fixed={path:v for path,v in self._files.items() if path not in (self.source,self.stage)}
+                    absent=set(self._absent)-{displaced}
+                    for path,key in locations.items():
+                        if key is None:absent.add(path)
+                        else:fixed[path]=stamps[key]
+                    fixed.update({**self._dirs,**directory9})
+                    root_names=set(self._names)
+                    if locations[self.stage] is None:root_names.remove(self.stage.name)
+                    if locations[displaced] is not None:root_names.add(displaced.name)
+                    source_names=set(self._source_names)
+                    if locations[self.source] is None:source_names.remove(self.source.name)
+                    if set(os.listdir(self.root))!=root_names or set(os.listdir(self.source.parent))!=source_names or set(os.listdir(self.journal))!={path.name for path in self._files if path.parent==self.journal}:raise o.Held('repair-nfs-pre-syscall-namespace')
+                    for path,value in fixed.items():
+                        z=os.lstat(path)
+                        if [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]!=value:raise o.Held('repair-nfs-pre-syscall-file9')
+                    for path,value in self._nodes.items():
+                        z=os.lstat(path)
+                        if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=value:raise o.Held('repair-nfs-pre-syscall-node5')
+                    for path in absent:
+                        try:os.lstat(path)
+                        except FileNotFoundError:continue
+                        raise o.Held('repair-nfs-pre-syscall-absence')
+                    for key,fd in fds.items():
+                        z=os.fstat(fd)
+                        if [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]!=stamps[key]:raise o.Held('repair-nfs-pre-syscall-original-FD9')
+                    if step=='retain-displaced':
+                        os.link(self.source.name,displaced.name,src_dir_fd=library_fd,dst_dir_fd=private_fd,follow_symlinks=False);locations[displaced]='old'
+                    elif step=='detach-source':
+                        os.unlink(self.source.name,dir_fd=library_fd);locations[self.source]=None
+                    elif step=='publish':
+                        os.link(self.stage.name,self.source.name,src_dir_fd=private_fd,dst_dir_fd=library_fd,follow_symlinks=False);locations[self.source]='new'
+                    elif step=='detach-stage':
+                        os.unlink(self.stage.name,dir_fd=private_fd);locations[self.stage]=None
+                    elif step=='retain-original':
+                        os.link(displaced.name,self.stage.name,src_dir_fd=private_fd,dst_dir_fd=private_fd,follow_symlinks=False);locations[self.stage]='old'
+                    else:
+                        os.unlink(displaced.name,dir_fd=private_fd);locations[displaced]=None
+                    os.fsync(library_fd);os.fsync(private_fd)
+                    capture_changed();check_state()
+                record(number,step,'done')
+            check_state();self._dirs.update(directory9);self._seal()
+        finally:
+            for fd in fds.values():os.close(fd)
+
     def _change(self,reverse=False):
         self.close();o.check(self._phase==('installed' if reverse else 'prepared'),'repair-phase')
         before,after=(self._after,self._before) if reverse else (self._before,self._after);p=self.preparation
+        if self._publication is not None:nfs_child_geometry(self._publication,self.source,self.root.parent)
         if not reverse:
             p.revalidate() # No marker exists yet, ordinary ownership is unchanged.
             marker=p._writer.root/PENDING
-            raw=o.compact({'version':1,'purpose':'same-path-owned-archive-repair','operation_id':p._binding['operation_id'],'owner':self._owner,'preparation':p._binding['token'],'reader':self.reader.binding})
+            raw=o.compact(dict(version=1,purpose='same-path-owned-archive-repair',operation_id=p._binding['operation_id'],owner=self._owner,preparation=p._binding['token'],reader=self.reader.binding,**({'publication':self._publication} if self._publication is not None else {})))
             o.write(marker,raw,o.stat5(os.lstat(p._writer.root)));self._files[marker]=o.signature(marker);self._contents[marker]=hashlib.sha256(raw).hexdigest();self._absent.remove(marker);self._seal()
         intent='reverse-intent.json' if reverse else 'install-intent.json'
         self._record(intent,{'version':1,'phase':intent,'source':self._files[self.source],'stage':self._files[self.stage],'owner':self._owner,'reader_sha256':o.digest(self.reader.binding)})
@@ -195,7 +379,11 @@ class RepairAdoption:
             # All callbacks are complete; exact FD/path/source/database CAS precedes exchange.
             direct(self._files,self._nodes,self._absent)
             syscall_claims=copy.deepcopy(self._claims);sf=self._files[self.source];syscall_claims[self.source]=(sf[0],sf[1],sf[5],sf[6],sf[7],sf[8])
-            exchange(self.source,self.stage,self._nodes[self.source.parent],self._nodes[self.stage.parent],self._files[self.source],self._files[self.stage],(copy.deepcopy({**self._files,**self._dirs}),copy.deepcopy(self._nodes),set(self._absent),syscall_claims));exchanged=True
+            if self._publication is None:
+                exchange(self.source,self.stage,self._nodes[self.source.parent],self._nodes[self.stage.parent],self._files[self.source],self._files[self.stage],(copy.deepcopy({**self._files,**self._dirs}),copy.deepcopy(self._nodes),set(self._absent),syscall_claims))
+            else:
+                self._rename_link(reverse)
+            exchanged=True
             # Bind the finite exchange immediately, before SQL/helper callbacks.
             exchanged_files=copy.deepcopy(self._files)
             for path,prior in ((self.source,self._files[self.stage]),(self.stage,self._files[self.source])):
@@ -256,6 +444,7 @@ class RepairAdoption:
     def reverse(self):return self._change(True)
     def uncertain_status(self):
         """Fresh finite-state observation only; no replay, reseal or completion."""
+        if self._publication is not None:return self._nfs_uncertain_status()
         self._life();o.check(self._phase=='uncertain','repair-status-phase');directories={x:o.stat9(os.lstat(x)) for x in (self.root,self.journal,self.source.parent)};self.reader.revalidate();self._native()
         p=self.preparation;dbpath=p._controller.native_database
         observations={x:o.fact(x,512*1024**2+2,p._deadline) for x in (self.source,self.stage)}
@@ -282,6 +471,28 @@ class RepairAdoption:
             o.check((s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,None if stat.S_ISDIR(s.st_mode) else s.st_nlink)==v,'repair-status-claim')
         direct({**files,**directories},self._nodes,self._absent)
         return {'version':1,'outcome':result,'mutation_authority':False,'publication_acceptance':False,'automatic_replay':False}
+
+    def _nfs_uncertain_status(self):
+        """Bounded facts only; never repair an interrupted absent source name."""
+        self._life();o.check(self._phase=='uncertain','repair-nfs-status-phase');self.reader.revalidate()
+        nfs_child_geometry(self._publication,Path(self._publication['geometry']['library']['path']),self.root.parent)
+        values={};known={self.preparation._binding['source']['sha256'],self.preparation._binding['derivative']['sha256']}
+        for path in (self.source,self.stage,self.root/'install-displaced.arc',self.root/'reverse-displaced.arc'):
+            try:z=os.lstat(path)
+            except FileNotFoundError:values[str(path)]=None;continue
+            o.check(stat.S_ISREG(z.st_mode) and z.st_nlink in (1,2),'repair-nfs-status-file')
+            stamp=o.stat9(z);expected=[self._files[self.source],self._files[self.stage]]
+            o.check(any([stamp[i] for i in (0,1,2,3,5,6,7)]==[v[i] for i in (0,1,2,3,5,6,7)] for v in expected),'repair-nfs-status-original-inode')
+            raw=o.read_checked(path,stamp,512*1024**2+2,self.preparation._deadline)
+            value=dict(path=str(path),signature9=stamp,sha256=hashlib.sha256(raw).hexdigest())
+            o.check(value['sha256'] in known,'repair-nfs-status-known-bytes');values[str(path)]=value
+        result=dict(version=1,outcome='held-nfs-transition-uncertain',paths=values,mutation_authority=False,publication_acceptance=False,automatic_replay=False,reader_resume_authority=False)
+        self._life();self.reader.close()
+        for path,value in values.items():
+            if value is None:
+                if os.path.lexists(path):raise o.Held('repair-nfs-status-absence-drift')
+            elif o.signature(path)!=value['signature9']:raise o.Held('repair-nfs-status-original-file-drift')
+        return result
 
     def complete(self):
         """Consume the exact installed phase; never accept a serialized receipt.
@@ -449,8 +660,10 @@ class RepairAdoption:
         if self._phase=='rollback-complete':value['rollback_verified']=True
         self.close();return value
 
-def prepare_existing(preparation,lease,retention_root):
+def prepare_existing(preparation,lease,retention_root,*,publication=None):
     installed();o.check(type(preparation) is o.RepairPreparation and type(lease) is reader.RepairReaderLease,'exact-repair-types')
+    o.check(publication is None or type(publication) is NFSRepairPublication,'repair-exact-publication-selection')
+    selected=None if publication is None else publication.consume(preparation,lease)
     prep=preparation;implementation_paths=[Path(__file__),Path(reader.__file__),Path(__file__).with_name('publication_archive_rollback.py')];implementation_nodes=o.ancestors(implementation_paths);implementation_files={p:o.fact(p,4*1024**2,prep._deadline) for p in implementation_paths};prep.revalidate();lease.revalidate()
     source=Path(prep._binding['source']['path']);o.check(source.suffix.lower()=='.cbz','repair-supported-CBZ-same-path');o.check(lease.source==source,'reader-native-same-path');o.check(set(lease.binding['page_names'])==set(prep._binding['exceptional_witness']['virtual_original_inventory']['pages']),'reader-source-page-bijection')
     root=o.canonical(retention_root);nodes=copy.deepcopy(prep._nodes);o.merge_nodes(nodes,implementation_nodes);o.merge_nodes(nodes,o.ancestors([root,source]));nodes[root]=o.stat5(os.lstat(root));o.check(stat.S_IMODE(os.lstat(root).st_mode)==0o700 and os.lstat(root).st_uid==os.geteuid(),'repair-private-retention')
@@ -465,9 +678,10 @@ def prepare_existing(preparation,lease,retention_root):
     stage,attrs=_copy_derivative(prep,op/'swap.arc');files={p:f['signature9'] for p,f in {**prep._files,**implementation_files}.items()};files[op/'swap.arc']=stage['signature9']
     rf,rn,ra=lease.vectors();o.merge_nodes(nodes,rn);files.update(rf)
     absent=set(ra)|{prep._writer.root/n for n in (PENDING,TERMINAL,*OTHER_PENDING)}
+    if selected is not None:absent|={op/'install-displaced.arc',op/'reverse-displaced.arc'}
     for db in (prep._controller.native_database,prep._controller.database):absent.update(Path(str(db)+s) for s in ('-wal','-shm','-journal'))
     o.check(all(o.stat5(os.lstat(p))==v for p,v in nodes.items()),'repair-admission-ancestor')
-    cap=RepairAdoption(_KEY,prep,lease,op,before,after,files,nodes,absent,attrs);cap.close()
+    cap=RepairAdoption(_KEY,prep,lease,op,before,after,files,nodes,absent,attrs,selected);cap.close()
     # An immutable native preimage is evidence for a later independent reader/
     # catalog verifier, never a serialized capability. Capture before mutation.
     original_db=prep._controller.native_database
@@ -479,7 +693,7 @@ def prepare_existing(preparation,lease,retention_root):
     with closing(sqlite3.connect(preimage.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
         o.check(snapshot(db,prep._deadline)==before,'repair-native-preimage-logical')
     cap._files[preimage]=pf['signature9'];cap._contents[preimage]=pf['sha256'];cap._names.add(preimage.name);cap._dirs[op]=o.signature(op);cap._seal()
-    cap._record('baseline.json',{'version':1,'kind':'repair-local-preimage-observation','preparation':copy.deepcopy(prep._binding),'reader':lease.binding,'native_before':pf,'native_after_sha256':o.digest(after),'adoption_root':str(op),'swap_before':stage,'swap_attributes':attrs,'mutation_authority':False,'publication_acceptance':False})
+    cap._record('baseline.json',{'version':2 if selected is not None else 1,**({'publication':selected} if selected is not None else {}),'kind':'repair-local-preimage-observation','preparation':copy.deepcopy(prep._binding),'reader':lease.binding,'native_before':pf,'native_after_sha256':o.digest(after),'adoption_root':str(op),'swap_before':stage,'swap_attributes':attrs,'mutation_authority':False,'publication_acceptance':False})
     cap.close();return cap
 
 # Opaque live factual exports. A saved dictionary cannot enter this registry.
@@ -517,7 +731,7 @@ def _terminal_close(cap,record):
             'repair-terminal-cap-seal')
 
 def _terminal_core_projection(cap):
-    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
     pending=[logical];projection=[]
     while pending:
         value=pending.pop();kind=type(value)
@@ -572,7 +786,7 @@ def terminal_original_vectors(handle,cap):
     if actual!=record['physical'] or tuple(w.root_identity)+tuple(w.lock_identity)!=record['physical'][-1] or w.local is not p._local or not getattr(w.local[1],'depth',0) or any(getattr(w.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=record['pid'] or threading.get_ident()!=record['thread'] or cap._phase!=record['phase'] or tuple(sorted(cap._owner.items()))!=record['owner'] or tuple(cap._objects)!=(record['physical'][2],record['physical'][3],record['physical'][1],record['physical'][0]) or cap._thread!=record['thread'] or _SEALS.get(cap)!=record['cap_seal']:
         raise o.Held('repair-terminal-export-original-owner')
     if time.monotonic()>=record['deadline']:raise o.Held('repair-terminal-export-deadline')
-    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
     pending=[logical];projection=[]
     while pending:
         value=pending.pop();kind=type(value)

@@ -10,14 +10,14 @@ Install bounded refusal diagnostics first, then a dedicated native-owned prepara
 
 - Runtime: the existing Mylar and normalizer Python images; actual selected-runtime checks include Mylar Python 3.10.
 - Dependencies: existing publication guard, native Controller, existing-only shared Writer, complete correction census and native/reader transaction boundaries. No new external dependency.
-- Storage: private preparation, custody and phase records inside existing application state, outside scanned media. No extra mount or automatic remote directory creation.
+- Storage: private preparation, custody and phase records inside existing application state, outside scanned media. Diagnostics add no mount; prospective plan13 replaces two temporary library/retention binds with one exact private common-root bind described in the owning contract. No automatic remote directory creation.
 - Tests: disposable byte, SQLite and filesystem controls; source/image imports, native/generated parity, late-change/lost-response controls and verified scoped live acceptance.
 - Limits: 128 MiB for buffered runtime diagnostics within the existing 768 MiB worker allowance, 512 MiB source for owned native repair preparation, existing 4,096-member/4 GiB expanded/per-member/metadata limits and monotonic deadlines. No remote access during classification or while Writer is held.
 - Profile: one empty stored Unix directory with consistent directory flag and missing slash in a closed ZIP32 archive. Other ordinary supported variants stay on ordinary inventory.
 
 ## Constitution Check
 
-Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.
+Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. The dedicated plan13 NFS purpose explicitly amends transient bind admission for a private G containing only library L and retention R; permanent Compose mounts, settings, ports and privileges remain unchanged. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.
 
 ## Project Structure
 
@@ -34,3 +34,22 @@ US2 captures actual source/witness, current owner/catalog/census and custody und
 US3 creates the dedicated same-payload repair capability only after current allowed-owner/correction and exact reader continuity checks. Exceptional original inventory applies only to the captured source; other owner archives retain ordinary verification. Durable predecessor/phase binding prevents unverified replay or acknowledgement. Native/reader acceptance precedes cleanup.
 
 Features 022/023 complete current-library acceptance still gates general writer release. Do not recreate Mylar while claiming a process-local startup hold survives. Diagnostics or private copies alone cannot release it.
+
+
+## Prospective NFS purpose implementation
+
+The current source implements plan13/action-v3 `rename-link-v1` using actual
+common-root/mountinfo joins and separately sealed original NFS facts over the
+existing pipe before Writer. Each of six link/unlink transitions has intent/done
+receipts; typed explicit reversal uses the original live capability. Baseline v2
+and the independent verifier cover complete phase evidence and common-root
+custody; legacy schemas/local exchange remain supported. The source contract
+requires cooperating-writer exclusion plus absence of independent actors writing
+selected names; it does not claim conditional unlink against a post-CAS actor.
+See [the exact contract](contracts/archive-repair.md#prospective-nfs-renamelink-purpose).
+
+Host controls use real local files, descriptors and SQLite with explicitly
+substituted installed custody/NFS admission. The genuine disposable application
+bootstrap/plan producer is still unbuilt. Selected-image installed factories,
+actual NFS and actual native/worker terminal/ACK execution remain required; this
+batch does not complete T012/T015 or authorize live repair.

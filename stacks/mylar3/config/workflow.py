@@ -131,7 +131,8 @@ def set_policy(values):
         return value
 
 
-def intake():
+def intake(*,persist=True):
+    """Observe current admission; health leaves durable intake state untouched."""
     import mylar
     with LOCK:
         rules=policy(); now=time.time(); old=store().get('intake','current',{})
@@ -159,8 +160,9 @@ def intake():
         elif free<(rules['free_resume_gib'] if paused else rules['free_stop_gib'])*1024**3:paused=True;reason='Waiting for free storage'
         else:paused=False;reason='Accepting new searches and downloads'
         value={'paused':paused,'reason':reason,'depth':depth,'free_bytes':free,'checked_at':now}
-        if paused!=old.get('paused') or reason!=old.get('reason'):emit('intake',reason)
-        store().set('intake','current',value)
+        if persist:
+            if paused!=old.get('paused') or reason!=old.get('reason'):emit('intake',reason)
+            store().set('intake','current',value)
         return value
 
 
@@ -798,7 +800,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'observer_diagnostics':observer_diagnostics(),'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
+        result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'observer_diagnostics':observer_diagnostics(),'intake':intake(persist=False),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
         try:
             from mylar import ordinary_import_observation, api
         except ImportError:

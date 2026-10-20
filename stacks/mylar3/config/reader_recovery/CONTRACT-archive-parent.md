@@ -59,8 +59,10 @@ code-availability check; they do not establish parent acceptance.
 
 The parent performs the existing active NFS observation, owns the exact reader
 stop, executes the neutral backup child, produces eight controls, emits the
-archive execute input, and consumes only `nfs_ready_archive` from the same
-process-local NFS owner registry. This factual canary bridge does not transfer a
+archive execute input, and consumes `nfs_ready_archive` for legacy plans or the
+explicit `nfs_ready_archive_v13` successor for exact plan 13 from the same
+process-local NFS owner registry. The historical direct function remains exact;
+private request v2 with an explicit terminal is admitted only by plan 13. This factual canary bridge does not transfer a
 released canary lock or create mutation authority; the actual action reacquires
 its existing-only Writer and completely revalidates native/reader custody.
 
@@ -97,8 +99,8 @@ must be updated coherently. No receipt from an older helper may be relabeled.
 Root must independently review/install the coherent sibling lifecycle/factory,
 provider and host graph, regenerate exact SDK/source maps, and pass genuine
 canonical selected-image composed parent/provider/birth tests before pinning
-PARENT_SOURCE_SHA. The actual protected full backup, actual NFS canary and atomic
-repair syscall platform acceptance, current process/epoch/catalog/census and
+PARENT_SOURCE_SHA. The actual protected full backup, actual NFS canary and explicitly selected
+repair syscall protocol acceptance, current process/epoch/catalog/census and
 reader continuity remain operational gates. These local tests do not establish
 those facts. Historical existing operations lacking original metadata/stage9
 remain held. Reader indexing/reference-history acceptance and ordinary native
@@ -191,3 +193,20 @@ reader resume nor replay. Source/host tests and historical constructor/Main
 prerequisites do not replace genuine connected Birth and terminal proof.
 
 The configured archive source closure includes the reader backup, backup primitives, reader schema, native scope and native process probe helpers. Root installation retains all thirteen artifact originals. Before any profile inspection or stop, the Parent seals the nine source leaves required by the backup provider and evidence adapter. The child copies only this exact same-directory group into one source-owned directory, preserves the existing per-file original and child custody, and mounts its files read-only. Missing, foreign, changed or partially projected groups refuse. No arbitrary source-group selector, SDK membership or overlay authority is added. Other controls retain their individual path projection.
+
+
+## Prospective plan13 NFS purpose
+
+Plan13 adds exact `publication_geometry` for a single private common-root bind
+G→G containing only library L and retention R. Original G full9/all three FDs,
+exact namespace and role/mount exclusions remain bound through final restart
+closure. Retention retains its canonical original path instead of receiving a
+separate scope alias bind. The action input is version3 with explicit
+`publication_protocol=rename-link-v1` and `terminal=forward|rollback`; private
+request version2 may select explicit reversal. Predecessor plan/input schemas
+are unchanged. A one-use pre-Writer `archive_publication` request joins the
+Parent's original consumed NFS owner and already-generated ready ref to the
+actual input/pipe. Typed selection and actual child mountinfo precede pending.
+The [source checkpoint](GENUINE-ARCHIVE-SCENARIO.md) records phase details,
+exclusion limits, component evidence and the still-unbuilt genuine bootstrap.
+No genuine installed/NFS/worker terminal acceptance is claimed by this source.

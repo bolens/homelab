@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "161609a10457aa85c6e743671d04fbcf156b2070b9e47ce57791cd333f40cea1",
+  "base_cohort_sha256": "05e2c58100e120f21da72a8e9b189f2bd5f6b150990be9169ba0564827090fc4",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -141,7 +141,7 @@
     "ddl_transport_worker.py": "72c48b80946b8204e5cb953282bdd8848d9f1abfa67a654da745755a2d2ca782",
     "encrypted.py": "a6b3e3e0c719718c3605cd5d7efc16cc04f3b6bb60c7bf0cf86704727d742e14",
     "failed_downloads.py": "03d6d319f5729dca003dfbbbbd89cc89277fa2bac5095ec5c76d971c745a17c6",
-    "file_identity.py": "b9a2bffb0e8f9ae99cdb8f83cdd041d302fb405d00e2450b15b2a003ed977cc9",
+    "file_identity.py": "887372bfd8db0fe6fde973603a7985278da0e7f4f0c422830743f5f6a82627b6",
     "filechecker.py": "12107b448a52ccbbeb4cc1763013abb1edacb431d7aa8489a5882ae45f733acd",
     "filers.py": "9dca2606d55bb496467d301bec46021b16b02bfad59c08e63cef289ee15b3b2b",
     "findcomicfeed.py": "f1164466e130ab9c81ea1ae36295b0fc07598bb491ebf0b82a30a290cc51e7a0",
@@ -173,27 +173,27 @@
     "ordinary_import_observation.py": "c2e8da946e2677b1ebf940342077ea6bbf64b0210bbbddca77e92f9dce55bea3",
     "pack_bindings.py": "1bb49d868ab3ce3dd2e4789aa4fb32833780cc63ba7a0ec29bf2109ce7369ed1",
     "pack_catalog.py": "00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f",
-    "pack_intake.py": "9cf005357e9c754374b2a07306618f17a299fc2c5dfc2da39f44b2f74380b4f7",
+    "pack_intake.py": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89",
     "parseit.py": "ef0682002829fb601041280c47e737c9e3907732bc01132a8fea70d4f97f0918",
-    "pp_monitor.py": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4",
+    "pp_monitor.py": "b5ef9cc52feb93b4cea8b4a1025b6e9bc467455fd3e0eee5f871da86f8152ae8",
     "process.py": "68fc9811b7f12eed5ddf5910c40bcdd2300a18d01901759ade560516f955b57d",
     "processing_guard.py": "9e0074d6178e7963e596505e69b7828346790f618ef461d61dcab3c4a95c6655",
     "prowlarr_identity.py": "f79b997d11da1c7b642d8d14b901b21374b367adc0e499f6a9507c77a0d7854d",
     "publication_api.py":
       "785f93d90903633ec72570b03926d2581df6fef837f5352a5e1aa651f78ca131",
-    "publication_archive_adoption.py": "3bb0f1c5e00d26819fa909b39d00c11d22bfef7a1bab21eb9abdd5702c52f18d",
+    "publication_archive_adoption.py": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9",
     "publication_archive_derivative.py": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
     "publication_archive_diagnostics.py": "c71f0d71dcd2b69c1f4f392bd5aada3bb1a65794fd8f1c12ee16aa7489684577",
     "publication_archive_dispatch.py": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7",
-    "publication_archive_history.py": "16d37ff25299215b44ac0b13895babf3fd2dfc7e7b5badc822a8d2c93609134a",
+    "publication_archive_history.py": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456",
     "publication_archive_layout.py": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168",
     "publication_archive_owned.py": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1",
     "publication_archive_preparation_existing.py": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66",
     "publication_archive_prepare_routes.py": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02",
-    "publication_archive_reader.py": "05affe629333eb81c84180e012d7d497baca73c7c39ce8c877facfc2b2a165a9",
+    "publication_archive_reader.py": "6ecb8ef27a0031045200995761d9c7fb8181c9b4b9906dffd091a2e3e53044ad",
     "publication_archive_repair.py": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
     "publication_archive_rollback.py": "675081c87096fc97021c3e72bcb8f7ce975836313849efdb6293af9ffbc99d04",
-    "publication_archive_verifier.py": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666",
+    "publication_archive_verifier.py": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1",
     "publication_conversion.py": "133ffebcee2149b28fbc504f2794f36cda0e0505daed94a3de567494ba2c71d0",
     "publication_derivative.py": "f9133246f5049b2746eda4512ebf1d654e8c486601ecb791ada331b893017f0b",
     "publication_filesystem_binding.py": "337c1bdb82200bbf36eb4f91a76977b3e5853fb765fe170b89e78c05c3587262",
@@ -220,7 +220,7 @@
     "publication_negative_phase.py": "e4629c1f0fb1caf085ded83762a3370346ee55d661a8eac32b8a5a7a0a452ae3",
     "publication_reader_admission.py": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c",
     "publication_reader_disk.py": "c469c8add49e93fef63616f07a67e46ca012a56ac61de7f2cba3ed629cdccaa1",
-    "publication_reader_lifecycle.py": "9558032119aee25f3a717dcbe915b2c24705556abde6baa265818eaf26fc4c27",
+    "publication_reader_lifecycle.py": "b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2",
     "publication_reader_native_coordinator.py": "e54130e689c4a2b28fa269e104a72f966a94882295fd9c70a2d471bad4be6611",
     "publication_reader_phase.py": "2f284cfa83852197b15aa4da7072d210ff9cf54a7ea75a53591e9601196a7ca6",
     "publication_reader_softdelete.py": "560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5",
@@ -286,9 +286,9 @@
     "weeklypullit.py": "f65ad6997a6bf040f7dbb543fce9035855c08adf84c2e06a892d594da79f3948",
     "worker_handoff.py": "41045f1f071620f585a308776c4a182bec6317852ca849208ce82fa0aceeac57",
     "worker_health.py": "73a1bd5dc778d74f3cae04adc7e7e3c6620d0601c1a68c059828dae75ee75dd0",
-    "workflow.py": "1f1185f06d60720aab5c62ccaff39f512d94e665f650dbea5e7c6d51ff6ebd25",
+    "workflow.py": "93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365",
     "workflow_nzb.py": "79f76b1a0e32c6524f962b6c4fa67b3088d70ba4859e852e55159e5a1bbed581",
-    "workflow_store.py": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f",
+    "workflow_store.py": "fa2e61abfb5f8174160ef9da6d41610e51e9984c097760963beb4cfb35fbd2a5",
     "workflow_web.py": "a7862ed59724b7578c23fcd335bd2a192d832d1da83242372e84935254299c85",
     "wwt.py": "b533a9c82d6932d4af19d305182ba8016bb54f941b5df161977627e5fe4c9d87",
     "cache_reservation.py": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
@@ -300,6 +300,18 @@
           "patch_pp_monitor.py"
         ],
         "tracked_source_sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
+      },
+      "cache_admission": {
+        "owning_adapters": [
+          "patch_cache_admission.py"
+        ],
+        "tracked_source_sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
+      },
+      "cache_reservation": {
+        "owning_adapters": [
+          "patch_cache_admission.py"
+        ],
+        "tracked_source_sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
       },
       "combined_cleanup": {
         "owning_adapters": [
@@ -335,7 +347,7 @@
         "owning_adapters": [
           "patch_file_matching.py"
         ],
-        "tracked_source_sha256": "b9a2bffb0e8f9ae99cdb8f83cdd041d302fb405d00e2450b15b2a003ed977cc9"
+        "tracked_source_sha256": "887372bfd8db0fe6fde973603a7985278da0e7f4f0c422830743f5f6a82627b6"
       },
       "import_problems": {
         "owning_adapters": [
@@ -408,13 +420,13 @@
         "owning_adapters": [
           "patch_pack_intake.py"
         ],
-        "tracked_source_sha256": "9cf005357e9c754374b2a07306618f17a299fc2c5dfc2da39f44b2f74380b4f7"
+        "tracked_source_sha256": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89"
       },
       "pp_monitor": {
         "owning_adapters": [
           "patch_pp_monitor.py"
         ],
-        "tracked_source_sha256": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4"
+        "tracked_source_sha256": "b5ef9cc52feb93b4cea8b4a1025b6e9bc467455fd3e0eee5f871da86f8152ae8"
       },
       "processing_guard": {
         "owning_adapters": [
@@ -432,7 +444,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "3bb0f1c5e00d26819fa909b39d00c11d22bfef7a1bab21eb9abdd5702c52f18d"
+        "tracked_source_sha256": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9"
       },
       "publication_archive_derivative": {
         "owning_adapters": [
@@ -456,7 +468,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "16d37ff25299215b44ac0b13895babf3fd2dfc7e7b5badc822a8d2c93609134a"
+        "tracked_source_sha256": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456"
       },
       "publication_archive_layout": {
         "owning_adapters": [
@@ -480,7 +492,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "05affe629333eb81c84180e012d7d497baca73c7c39ce8c877facfc2b2a165a9"
+        "tracked_source_sha256": "6ecb8ef27a0031045200995761d9c7fb8181c9b4b9906dffd091a2e3e53044ad"
       },
       "publication_archive_repair": {
         "owning_adapters": [
@@ -498,7 +510,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666"
+        "tracked_source_sha256": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1"
       },
       "publication_conversion": {
         "owning_adapters": [
@@ -751,7 +763,7 @@
         "owning_adapters": [
           "patch_workflow.py"
         ],
-        "tracked_source_sha256": "1f1185f06d60720aab5c62ccaff39f512d94e665f650dbea5e7c6d51ff6ebd25"
+        "tracked_source_sha256": "93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365"
       },
       "workflow_nzb": {
         "owning_adapters": [
@@ -763,19 +775,7 @@
         "owning_adapters": [
           "patch_workflow.py"
         ],
-        "tracked_source_sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f"
-      },
-      "cache_admission": {
-        "owning_adapters": [
-          "patch_cache_admission.py"
-        ],
-        "tracked_source_sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
-      },
-      "cache_reservation": {
-        "owning_adapters": [
-          "patch_cache_admission.py"
-        ],
-        "tracked_source_sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
+        "tracked_source_sha256": "fa2e61abfb5f8174160ef9da6d41610e51e9984c097760963beb4cfb35fbd2a5"
       }
     },
     "kind": "prospective-reader-source-cohort",
@@ -864,7 +864,7 @@
       "publication_reader_lifecycle": {
         "already_installed": true,
         "filename": "publication_reader_lifecycle.py",
-        "sha256": "9558032119aee25f3a717dcbe915b2c24705556abde6baa265818eaf26fc4c27"
+        "sha256": "b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2"
       },
       "publication_reader_native_coordinator": {
         "already_installed": false,

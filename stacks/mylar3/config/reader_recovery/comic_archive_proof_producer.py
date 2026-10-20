@@ -10,7 +10,7 @@ import time
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'c58a59c36fbf516068388ff4e660b2610efa7baeda677c087f61510635eb5e82', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
+PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'dc216f79407216aef121484ced36b1d758d58cb15b25c973e41649ff76a29b05', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need
@@ -260,14 +260,16 @@ def phase_custody(request,*,watch):
  reader={'config_root':child(config),'restore_root':child(restore),'scratch':child(scopes['scratch']),'current_pairs':copy.deepcopy(old['current_pairs']),'restore_pairs':copy.deepcopy(old['pairs']),'backup_manifest':refchild(proofs['backup_manifest']),'backup_acceptance':refchild(proofs['backup_acceptance']),'runtime':expected['reader'],'child_source_sha256':inv['provider_sha256'],'child_image':plan['selected_image']}
  input_host=mapping.original_host(mapping.host(inv['input_path']));input_doc=o.ref({'path':input_host,'sha256':inv['input_sha256']})
  command=['/lsiopy/bin/python3','-I','-B',child(plan['provider']['path']),'--phase',ctx['phase'],'--input',inv['input_path'],'--input-sha256',inv['input_sha256'],'--source-sha256',inv['provider_sha256']]
- same_child=type(plan.get('version')) is int and plan['version'] in (11,12)
- if type(plan.get('version')) is int and plan['version']==12:
+ same_child=type(plan.get('version')) is int and plan['version'] in (11,12,13)
+ if type(plan.get('version')) is int and plan['version'] in (12,13):
   worker=plan.get('worker_observation');need(type(worker) is dict and set(worker)=={'mode','source','image_sources'} and worker['mode']=='original-pipes-v1','archive-worker-exact-plan')
   for ref in (worker['source'],worker['image_sources']):need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and type(ref['path']) is str and Path(ref['path']).is_absolute() and type(ref['sha256']) is str and len(ref['sha256'])==64 and all(c in '0123456789abcdef' for c in ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'archive-worker-original-source-ref')
  if same_child:need(plan.get('terminal_mode')=='same-child-v1' and ctx['phase']=='execute','archive-producer-finite-same-child-plan')
  else:need(type(plan.get('version')) is int and plan['version']==10 and 'terminal_mode' not in plan,'archive-producer-exact-legacy-plan')
  expected_input={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}|({'execution_originals'} if ctx['phase']=='verify-terminal' else set())|({'terminal_mode'} if same_child else set())
- need(set(input_doc)==expected_input and type(input_doc['version']) is int and input_doc['version']==(2 if same_child else 1) and (not same_child or input_doc['terminal_mode']=='same-child-v1') and same(a.owner_request({'version':1,'owner':input_doc['owner'],'operation_id':input_doc['operation_id']}),owner) and input_doc['parent_sha256']==inv['parent_sha256'] and input_doc['selected_image']==plan['selected_image'],'archive-producer-exact-action-join')
+ if plan.get('version')==13:expected_input|={'terminal','publication_protocol'}
+ need(set(input_doc)==expected_input and type(input_doc['version']) is int and input_doc['version']==(3 if plan.get('version')==13 else 2 if same_child else 1) and (not same_child or input_doc['terminal_mode']=='same-child-v1') and same(a.owner_request(dict(version=owner['version'],owner=input_doc['owner'],operation_id=input_doc['operation_id'],**({'terminal':input_doc['terminal']} if owner['version']==2 else {}))),owner) and input_doc['parent_sha256']==inv['parent_sha256'] and input_doc['selected_image']==plan['selected_image'],'archive-producer-exact-action-join')
+ if plan.get('version')==13:need(input_doc['publication_protocol']=='rename-link-v1' and input_doc['terminal']==owner.get('terminal','forward'),'archive-producer-original-nfs-protocol')
  need(inv['command']==command and input_doc['command_template']==command[:9]+['<INPUT_SHA256>']+command[10:] and input_doc['nonce']==request['nonce'] and input_doc['action']=='archive-one' and input_doc['controls']=={k:refchild(v) for k,v in ctx['controls'].items()} and input_doc['archive_scopes']==refchild(ctx['archive_scopes']) and input_doc['sdk_map']==refchild(plan['sdk_map']),'archive-producer-exact-child-input')
  if ctx['phase']=='verify-terminal':need(input_doc['execution_originals']==refchild(ctx['execution_originals']),'archive-producer-original-execute-input')
  native=plan['native'];need(set(native)=={'data','roots'} and len(native['roots'])==1,'archive-producer-native-geometry')

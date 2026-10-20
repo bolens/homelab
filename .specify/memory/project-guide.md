@@ -177,6 +177,12 @@ health. Older images may rewrite identical telemetry on status reads. Check the
 installed source before relying on read-only observations; deliver the correction
 rather than relax full filesystem witnesses. Keep immutable backup/source
 witnesses strict and reject unexplained queue state changes.
+Trace every health callee: workflow intake refresh can also emit an event and
+write its cache after ten seconds. Keep health's intake computation passive while
+ordinary intake retains persistence and hysteresis. Default Store reads must not
+repeat chmod on an already private database, since that alone changes ctime.
+Check both initialized default and admitted existing-only stores; missing-store
+initialization is a separate write boundary.
 Keep no-follow path descriptors for captured scope nodes until final acknowledgement.
 A deleted inode can be reused before a pathname check, so device/inode tuples alone
 do not preserve the original node. Close descriptors on capture and pre-output
@@ -372,6 +378,22 @@ the rejected export intact, and correct the new fixture rather than weakening
 the source-permission check.
 A partial manifest or matching database copies do not verify a backup if its
 owning helper refuses a later preservation check.
+
+For a configured cache test, distinguish payload acceptance under Writer from the
+outer mount-source check after the child releases Writer. A successful child can
+prove growth, refusal, accounting and payload removal while the outer operation
+still refuses cleanup. Retain the exact changed child's identity and before/after
+metadata privately at the failed comparison; a later observation cannot identify
+that historical change. Do not relax unrelated metadata or repeat
+payload writes to diagnose an unidentified source change. Derive owned aliases
+from every genuine configured mapping and retain their original descriptors.
+Manifest closure must include the plan's semantic caller/helper pins as well as
+file hashes; matching a source bundle alone does not prove the bound caller runs.
+When refreshing the configured-reader base manifest, preserve the five API/auth
+source-hash entries' existing two-line key/value layout. A generic secret rule
+can mistake those public SHA-256 values for API keys when both appear on one
+line. Keep the values and scanning rules unchanged, then repin the base manifest,
+installer and finite source maps. Do not add a secret-scan exception.
 
 Protected temporary control copies may run from volatile storage. Persist the
 source hashes, stopped-state baseline, backup/restore receipts and final outcome

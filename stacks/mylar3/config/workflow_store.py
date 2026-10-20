@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import stat
 import threading
 import time
 
@@ -61,8 +62,10 @@ class Store:
                     raise ValueError('Workflow database was replaced')
                 db=sqlite3.connect(self.path.as_uri()+'?mode=rw',uri=True,timeout=10)
             else:
-                fd=os.open(self.path,os.O_CREAT|os.O_RDWR,0o600);os.close(fd)
-                os.chmod(self.path,0o600)
+                fd=os.open(self.path,os.O_CREAT|os.O_RDWR,0o600)
+                try:
+                    if stat.S_IMODE(os.fstat(fd).st_mode)!=0o600:os.fchmod(fd,0o600)
+                finally:os.close(fd)
                 db=sqlite3.connect(str(self.path),timeout=10)
             db.row_factory=sqlite3.Row
             try:
