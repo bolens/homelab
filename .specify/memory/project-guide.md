@@ -152,6 +152,13 @@ prove a reader permission or DTO failure. Check the owning transport context
 before repeating full source captures. Retain only fixed error types, numeric
 network codes and trusted source locations in shared diagnostics; keep addresses
 and responses private.
+An image-only recreation can change labels inherited from the old and new
+images, including build and OCI revision labels. Derive those exact changes
+from original immutable image metadata and protect explicit Compose overrides,
+including overrides equal to an old image default. Keep independent prospective
+Compose model/hash and platform-label bindings; do not ignore label keys or
+compare the runtime labels only after the update. Preserve every unrelated
+runtime field and original data check.
 For performance fixes, measure the complete owning path with a representative
 fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
