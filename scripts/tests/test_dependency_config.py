@@ -104,5 +104,43 @@ class SelectedRuntimePolicyTests(unittest.TestCase):
         self.assertIn("/stacks/hashcat", general["directories"])
 
 
+class SelectedPipPolicyTests(unittest.TestCase):
+    def setUp(self):
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text())
+        self.pip = [item for item in config["updates"] if item["package-ecosystem"] == "pip"]
+
+    def directories(self, update):
+        return update.get("directories", [update.get("directory")])
+
+    def test_each_original_pip_directory_has_exactly_one_owner(self):
+        directories = [directory for item in self.pip for directory in self.directories(item)]
+        self.assertEqual(len(directories), len(set(directories)))
+        self.assertEqual(set(directories), {
+            "/.github", "/stacks/acquire", "/stacks/blackbird", "/stacks/clark-browser/build",
+            "/stacks/docker-forensics-toolkit", "/stacks/ghunt", "/stacks/metagoofil",
+            "/stacks/mylar3", "/stacks/privotron", "/stacks/torbot",
+        })
+
+    def test_parent_constraints_are_scoped_without_pillow_or_global_exclusions(self):
+        expected = {
+            "/stacks/mylar3": [{"dependency-name": "chardet", "versions": [">=6"]}],
+            "/stacks/ghunt": [{"dependency-name": "rich", "versions": [">=14"]}],
+        }
+        scoped = [item for item in self.pip if item.get("ignore")]
+        self.assertEqual(len(scoped), len(expected))
+        for item in scoped:
+            self.assertEqual(len(self.directories(item)), 1)
+            self.assertEqual(item["ignore"], expected[self.directories(item)[0]])
+
+    def test_split_entries_preserve_shared_update_behavior(self):
+        shared = next(item for item in self.pip if "/.github" in self.directories(item))
+        def behavior(item):
+            return {key: value for key, value in item.items()
+                    if key not in {"directory", "directories", "ignore"}}
+        self.assertEqual(len(self.pip), 3)
+        for item in self.pip:
+            self.assertEqual(behavior(item), behavior(shared))
+
+
 if __name__ == "__main__":
     unittest.main()

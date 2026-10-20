@@ -160,9 +160,7 @@ updates:
       - "/stacks/blackbird"
       - "/stacks/clark-browser/build"
       - "/stacks/docker-forensics-toolkit"
-      - "/stacks/ghunt"
       - "/stacks/metagoofil"
-      - "/stacks/mylar3"
       - "/stacks/privotron"
       - "/stacks/torbot"
     schedule:
@@ -181,6 +179,62 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    groups:
+      python:
+        patterns:
+          - "*"
+        group-by: "dependency-name"
+
+  - package-ecosystem: "pip"
+    directory: "/stacks/mylar3"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "05:29"
+      timezone: "America/Denver"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # ComicTagger 1.6.0b11.dev0 requires chardet>=5.1,<6; migrate the parent before this major.
+    ignore:
+      - dependency-name: "chardet"
+        versions: [">=6"]
+    groups:
+      python:
+        patterns:
+          - "*"
+        group-by: "dependency-name"
+
+  - package-ecosystem: "pip"
+    directory: "/stacks/ghunt"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "05:29"
+      timezone: "America/Denver"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # GHunt 2.3.4 requires rich>=13.9.1,<14; migrate the parent before this major.
+    ignore:
+      - dependency-name: "rich"
+        versions: [">=14"]
     groups:
       python:
         patterns:
