@@ -23,6 +23,9 @@ SUITES=SUITES+(('test_genuine_native_catalog.py',21),)
 SUITES=SUITES+(('test_genuine_bootstrap_creator.py',27),)
 SUITES=SUITES+(('test_plan13_disposable_mapping.py',25),)
 SUITES=SUITES+(('test_genuine_reader_quiescence.py',18),)
+SUITES=SUITES+(('test_genuine_plan13_producer.py',21),)
+SUITES=SUITES+(('test_genuine_current_roles.py',22),)
+SUITES=SUITES+(('test_genuine_source_cohort.py',32),)
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
@@ -98,6 +101,38 @@ def copy_fixtures(fixes,temporary):
   raw=checked(fixes/name,pins[0],files,nodes)
   with os.fdopen(os.open(private/name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb') as f:f.write(raw)
   if (private/name).read_bytes()!=raw:raise Held('Private native health readback')
+ # The SourceCohort fixtures need the exact finite owning source union.
+ # Copy original row paths, never target aliases or discovered directory entries.
+ pins={}
+ def admit(name,pin):
+  if type(name)is not str:raise Held('Unsafe owning source path')
+  rel=PurePosixPath(name)
+  if rel.is_absolute()or '..'in rel.parts or str(rel)!=name or '\\'in name or '\x00'in name:raise Held('Unsafe owning source path')
+  if type(pin)is not str or re.fullmatch('[a-f0-9]{64}',pin)is None:raise Held('Explicit owning source pin required')
+  if name in pins and pins[name]!=pin:raise Held('Conflicting owning source pins')
+  pins[name]=pin
+ for name,row in manifest['files'].items():admit('reader_recovery/'+name,row['sha256'])
+ for name in ('reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'):
+  admit(name,digest(checked(fixes/name,None,files,nodes)))
+ admit('publication_reader_admission.py',cohort['modules']['publication_reader_admission']['sha256'])
+ admit('media_writer.py',cohort['existing_sdk_closure']['media_writer']['tracked_source_sha256'])
+ admit('publication_native_configured_scope.py',scope_pin)
+ if type(native_rows)is not list or not 1<=len(native_rows)<=1024:raise Held('Finite owning source map required')
+ for row in native_rows:
+  if type(row)is not dict or not {'path','sha256'}<=set(row):raise Held('Explicit owning source row required')
+  admit(row['path'],row['sha256'])
+ if len(pins)>1024:raise Held('Owning source union bound')
+ union_bytes=0
+ for name,pin in pins.items():
+  raw=checked(fixes/name,pin,files,nodes);union_bytes+=len(raw)
+  if union_bytes>MAX_BYTES:raise Held('Fixture aggregate bound')
+  target=private/name
+  if target.exists():
+   if target.is_symlink()or target.read_bytes()!=raw:raise Held('Private owning source conflict')
+   continue
+  target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+  with os.fdopen(os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb')as f:f.write(raw)
+  if target.read_bytes()!=raw:raise Held('Private owning source readback')
  close_original(files,nodes);return tree,files,nodes
 
 def run(fixes):

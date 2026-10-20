@@ -159,6 +159,11 @@ including overrides equal to an old image default. Keep independent prospective
 Compose model/hash and platform-label bindings; do not ignore label keys or
 compare the runtime labels only after the update. Preserve every unrelated
 runtime field and original data check.
+Do not equate an inherited OCI `revision` label with the repository commit.
+A child Dockerfile may preserve the upstream base revision. Bind the repository
+commit through the reviewed source proof and publisher provenance, and join
+runtime labels to the exact index, platform manifest and OCI configuration.
+Keep those digest roles distinct and protect explicit Compose label overrides.
 For performance fixes, measure the complete owning path with a representative
 fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
@@ -265,6 +270,14 @@ names from the exact installed config source without importing provider-writing
 configuration code. Default archive-byte compatibility compares the hash-pinned
 legacy builder within each Python runtime, preserving exact original bytes and
 page/metadata checks instead of using host-only ZIP hashes as portable goldens.
+
+Keep original Root-owned evidence under its existing ownership. The checked Parent
+Tree copy projects exact originals into UID1000 child scratch; do not chown the
+originals or weaken reference custody to make a child consume them. Distinguish
+a read-only observer from an exposed application route: Mylar's upcoming route
+can call its Wanted DateAdded backfill. Classify legitimate catalog drift by
+exact keys and writer predicates, preserving every other cell and duplicate
+count; column multisets alone do not prove row preservation or actor attribution.
 
 For explicit disposable catalog fixtures, use the real startup-created full schema.
 A fresh exec importing `native_writers` has no daemon startup or publication
