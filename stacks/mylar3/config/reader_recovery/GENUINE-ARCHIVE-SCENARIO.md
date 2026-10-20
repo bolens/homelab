@@ -179,3 +179,17 @@ constructor refusal prove composition and failure boundaries. They do not
 prove genuine configured factories, NFS, Birth, terminal execution or ACK.
 Capturing fresh owning facts and performing that connected execution remain
 separate required work.
+
+## Current role capture after bootstrap
+
+Use `genuine_current_roles.run` only with the original bootstrap plan/result,
+catalog and source references. Its explicit Root entry captures one bounded
+native readiness observation between unchanged role and installed-source checks.
+It returns the existing composer’s nonce, observation time, roles and native
+process shape. The post-startup catalog owns the current INI reference; the
+virgin plan’s old file signature is not reused after application startup.
+
+The source controls cover output-parent replacement, same-byte output-leaf
+replacement, original-input drift and replay refusal. They do not establish
+actual application startup, NFS bindability, SourceCohort readiness or connected
+Parent/Birth/terminal acceptance. Those original inputs remain required.

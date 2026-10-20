@@ -24,6 +24,7 @@ SUITES=SUITES+(('test_genuine_bootstrap_creator.py',27),)
 SUITES=SUITES+(('test_plan13_disposable_mapping.py',25),)
 SUITES=SUITES+(('test_genuine_reader_quiescence.py',18),)
 SUITES=SUITES+(('test_genuine_plan13_producer.py',21),)
+SUITES=SUITES+(('test_genuine_current_roles.py',22),)
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
