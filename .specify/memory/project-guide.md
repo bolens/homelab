@@ -88,6 +88,7 @@ health programs too: a new top-level image receipt can still invoke an older
 embedded module hash. Prepare an exact source-bound supplier successor, preserve
 the predecessor, and verify old-source refusal and new-source acceptance before
 rollout.
+Before publishing maintained Python changes, run the exact Source lint Python rules from the pinned fleet tooling: `ruff check --isolated --select E9,F` over the paths selected by `.github/source-lint.json`, using the pinned workflow runtime. Local `make ci-local` does not replace this separate hosted gate. An unused import or binding still changes a pinned source file when removed, so refresh its owning hash and verify downstream consumers.
 Preserve unchanged source-map formatting. API/auth source hashes can be
 misclassified as credentials after reserialization; verify their source
 provenance and keep secret scanning enabled.
