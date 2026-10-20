@@ -146,3 +146,27 @@ unchanged. Installed parity and actual backup, migration and reader acceptance
 remain separate from these source updates.
 
 Configured archive installation emits thirteen fixed artifacts. The nine archive code leaves (backup/action/adapter/proof and their five reader/scope/probe helpers) are sealed as original siblings before role inspection or stop. The child projects that exact graph together under read-only file mounts while retaining each original file9/hash/ancestor5 and independent UID1000 copy. Other control projection paths are unchanged. The operational producer is the generated evidence adapter, which owns the native-observation phase; the proof producer is its fixed sibling dependency. Constructor-only acceptance calls left() while the reader is Running; continuous() belongs to the maintained stopped-reader phase. No host import/projection control proves connected Birth, NFS, terminal acceptance or reader resume.
+
+
+## Original reader task observation
+
+`genuine_reader_quiescence.py` observes the pinned Komga 1.28.1 administrator
+event stream through the original native role. Creator input version2 binds
+this helper explicitly and permits one bounded read-only stream request; version1
+keeps its original source set and behavior. Bootstrap invokes the optional
+observer after reader book/page/progress checks while its original session and
+common-root handles remain live. Role, process, credential, library, source and
+reader-JAR checks bracket the observation.
+
+The observer requires two complete zero-count `TaskQueueStatus` events at least
+eight seconds apart on one connection, within a total 30-second deadline.
+Positive counts or mutation events reset the interval. Partial, malformed,
+oversized, silent, redirected or disconnected streams refuse. Heartbeats provide
+no empty-queue evidence. Credentials remain in private stdin and never appear
+in output. There is no tasks-list GET or DELETE fallback.
+
+The result reports only `queue_empty_observed`. It excludes no future scheduler
+work and grants no quiescence, stop, resume, publication, import or ACK authority.
+Actual stopped-reader state, the original Writer and final task-database checks
+remain separate Parent prerequisites. Focused transport/session fixtures do not
+prove genuine application or NFS execution.

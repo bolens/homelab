@@ -50,7 +50,9 @@ See [the exact contract](contracts/archive-repair.md#prospective-nfs-renamelink-
 
 Host controls use real local files, descriptors and SQLite with explicitly
 substituted installed custody/NFS admission. The finite disposable creator, fresh bootstrap, native-data stages and explicit
-plan13 role/library mapping are implemented. Complete genuine plan production
+plan13 role/library mapping are implemented. The optional original-session SSE
+observer records bounded task-empty facts without granting quiescence or future
+work exclusion. Complete genuine plan production
 and actual application execution remain unproved. Selected-image installed factories,
 actual NFS and actual native/worker terminal/ACK execution remain required; this
 batch does not complete T012/T015 or authorize live repair.
