@@ -123,9 +123,10 @@ production `/data` mapping remains exact for older plans; no synthetic aliases
 or additional binds make disposable roles resemble production. This is mapping
 compatibility, not actual NFS or installed-factory proof.
 
-The complete producer still needs genuine container startup/enrollment and
-processing, task quiescence, actual source-cohort/effective-scope/NFS controls
-and plan13 production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
+Genuine execution still needs container startup/enrollment and processing,
+actual source-cohort/effective-scope/NFS controls and final stopped-reader
+authority. The checked composer below consumes those original facts; it does
+not produce their authority. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
 fixtures do not satisfy this requirement. No actual NFS syscall or application
 operation ran for this source batch. Actual selected-image factory, terminal,
 worker and ACK execution remain separate required gates.
@@ -153,3 +154,28 @@ work and grants no quiescence, stop, resume, publication, import or ACK authorit
 Actual stopped-reader state, the original Writer and final task-database checks
 remain separate Parent prerequisites. Focused transport/session fixtures do not
 prove genuine application or NFS execution.
+
+
+## Checked original-reference composition
+
+`genuine_plan13_producer.py` accepts original bootstrap, catalog, reader and
+current-role records plus outputs from the existing checked installer. It
+rederives the installer artifacts and maps without reinstalling them after
+SourceCohort capture. Exact page hashes, process/role/image joins, the original
+reader queue bracket, seven effective-scope references, private base admission
+and eight NFS engine/session sources close before plan creation.
+
+Its explicit Root entry assembles plan13, writes one durable intent and calls
+the genuine configured Parent with its original engine and source arguments.
+The owning Parent still enforces Writer, SourceCohort, backup, stop, NFS and ACK
+admission. Refused or uncertain execution retains evidence and permits no replay.
+The tool is a public host dependency exercised in checked build fixtures, not
+an installed native SDK module or permanent worker hook.
+
+All 21 focused controls pass on host and Python 3.10; independent review accepts
+the source. The complete recovery suite passes 1,145 controls across 69 suites
+with zero skips and unchanged originals. Source fixtures and a genuine Parent
+constructor refusal prove composition and failure boundaries. They do not
+prove genuine configured factories, NFS, Birth, terminal execution or ACK.
+Capturing fresh owning facts and performing that connected execution remain
+separate required work.
