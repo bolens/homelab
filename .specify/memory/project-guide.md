@@ -271,6 +271,14 @@ configuration code. Default archive-byte compatibility compares the hash-pinned
 legacy builder within each Python runtime, preserving exact original bytes and
 page/metadata checks instead of using host-only ZIP hashes as portable goldens.
 
+Keep original Root-owned evidence under its existing ownership. The checked Parent
+Tree copy projects exact originals into UID1000 child scratch; do not chown the
+originals or weaken reference custody to make a child consume them. Distinguish
+a read-only observer from an exposed application route: Mylar's upcoming route
+can call its Wanted DateAdded backfill. Classify legitimate catalog drift by
+exact keys and writer predicates, preserving every other cell and duplicate
+count; column multisets alone do not prove row preservation or actor attribution.
+
 For explicit disposable catalog fixtures, use the real startup-created full schema.
 A fresh exec importing `native_writers` has no daemon startup or publication
 admission. Never set its private readiness globals or reconstruct startup to

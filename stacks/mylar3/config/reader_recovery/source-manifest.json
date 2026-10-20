@@ -25,13 +25,13 @@
       "sha256": "5973203039d782168b97be1bc05e36cfa5b2fde9bdb6412eea0ab1da01714731"
     },
     "GENUINE-ARCHIVE-SCENARIO.md": {
-      "sha256": "e0bbe268cf0b47a2b171847b52774e35197321bdde9d08aa0bdc1730bd203ab3"
+      "sha256": "2e94eedba52c0675640fcaed086323f9c215f01e95b02d3b9cebf6efd87114fe"
     },
     "INSTALLER-SOURCE-LOCATORS.json": {
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "8297d7d28fb8292f985ff193e7c0b483167da6f612532ee59dc67d8207d47176"
+      "sha256": "4cba9c81e3720ef07fb8bd464cbeabbac65038dfb7925affad8aabf2a3b37038"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -519,6 +519,9 @@
     "genuine_reader_quiescence.py": {
       "sha256": "1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd"
     },
+    "genuine_source_cohort.py": {
+      "sha256": "cf88fa4d04f151fbf348f397ddb0fce86a0bb1e7b1d3743c65a7cb8821c8037a"
+    },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
@@ -638,6 +641,9 @@
     },
     "test_genuine_reader_quiescence.py": {
       "sha256": "7c3cce082fb7d43dd01cf439e462a887223068292a7cdf2a69b7ba5f4b6e09c9"
+    },
+    "test_genuine_source_cohort.py": {
+      "sha256": "34234ba9f8ba1b6ea86c0763eb799b26432b480bc14da3b5e15b0ed4e1fe603c"
     },
     "test_hardlink_nfs_probe.py": {
       "sha256": "388f7ab2c6147b13457e9d9356848c40c19f290032fe2c9348eaba1d80df727d"

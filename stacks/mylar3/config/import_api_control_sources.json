@@ -677,11 +677,11 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "4c2ee8aa57a7adf4b58227764da2db9218778724f1f5f45036609df8d356dbe2"
+    "sha256": "3b15e05fd6b79ad214aa3e9c9429b72bae8e6bf8b706b2e7608a80529f10b4c8"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "229c678ef9eb4255373ba0e27d52e96b8890e7f5bb0b8a6083257326602efd65"
+    "sha256": "1984263d0dbd3656a83871580ad2f1edaf31507e1db8aa296ef24b129390a3b2"
   },
   {
     "path": "run_standalone_controls.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "70341885aac0465fe2775a3fe0968f5bc19358e3b29dd0b69d07da8108d815e8"
+    "sha256": "615a2ea97bee12039f43b94fff8825d271dbdd86d34c75d1bd8cd37645d244d3"
   },
   {
     "path": "story_arc_search.py",
@@ -1369,7 +1369,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "3edf060e5089044017939eaff1efdffc1089f4b7d405a33548a0a020b62596ea"
+    "sha256": "77f07500ca899e409c514a8c2f611b9e3fd2ba0311de1d482ec8983386b82ca5"
   },
   {
     "path": "test_publication_reader_softdelete.py",

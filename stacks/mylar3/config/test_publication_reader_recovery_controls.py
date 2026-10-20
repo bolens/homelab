@@ -70,7 +70,7 @@ class Controls(unittest.TestCase):
    raw=real(p)
    if p==self.stage/'config/publication_reader_admission.py':self.source.chmod(0o640);fired.append(True)
    return raw
-  with patch.object(Path,'read_bytes',new=changed),self.assertRaisesRegex(m.Held,'Original source file drift'):self.copy()
+  with patch.object(Path,'read_bytes',new=changed),self.assertRaisesRegex(m.Held,'Original source replaced'):self.copy()
   self.assertTrue(fired)
  def test_late_child_callback_originalbyte_drift_refused(self):
   # A real isolated trivial suite mutates only this synthetic source.
@@ -79,25 +79,45 @@ class Controls(unittest.TestCase):
  def test_real588_public644_closure_passes_no_source_changes(self):
   # Exact current public files, no ignored config copied.
   actual=self.root/'actual';actual.mkdir();manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
-  for name in manifest['files']:
-   dst=tree/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/'reader_recovery'/name,dst);dst.chmod(0o644)
-  shutil.copyfile(PUBLIC/'reader_recovery/source-manifest.json',tree/'source-manifest.json')
-  shutil.copyfile(PUBLIC/'media_writer.py',actual/'media_writer.py');(actual/'media_writer.py').chmod(0o644)
-  for name in ('publication_reader_cohort.json','publication_reader_admission.py','publication_native_configured_scope.py','standalone_control_sources.json','queue_control.py','worker_health.py','publication_guard.py','publication_archive_layout.py','publication_archive_derivative.py','publication_archive_repair.py','tagger_metadata.py'):shutil.copyfile(PUBLIC/name,actual/name)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1167);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  rows=json.loads((PUBLIC/'standalone_control_sources.json').read_bytes())
+  names={row['path']for row in rows}|{'reader_recovery/'+name for name in manifest['files']}|{'reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'}
+  for name in names:
+   dst=actual/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/name,dst);dst.chmod(0o644)
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1199);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+ def extra_source(self):
+  p=self.fixes/'extra.py';p.write_bytes(b'# exact explicit source\n');p.chmod(0o644)
+  index=self.fixes/'standalone_control_sources.json';rows=json.loads(index.read_bytes());row=dict(path='extra.py',target='alias.py',sha256=digest(p));rows.extend((row,dict(row,target='another-alias.py')));index.write_text(json.dumps(rows));return p,index,rows
+ def test_explicit_source_union_copies_paths_not_aliases_and_missing_refuses(self):
+  p,index,rows=self.extra_source();(self.fixes/'ignored.ini').write_bytes(b'not declared');tree,_,_=self.copy();self.assertEqual((tree.parent/'extra.py').read_bytes(),p.read_bytes());self.assertFalse((tree.parent/'alias.py').exists());self.assertFalse((tree.parent/'another-alias.py').exists());self.assertFalse((tree.parent/'ignored.ini').exists())
+  for name in ('standalone_control_sources.json','publication_reader_cohort.json','reader_recovery/source-manifest.json'):self.assertEqual((tree.parent/name).read_bytes(),(self.fixes/name).read_bytes())
+  p.unlink()
+  with tempfile.TemporaryDirectory()as target,self.assertRaises(FileNotFoundError):m.copy_fixtures(self.fixes,target)
+ def test_explicit_source_union_conflicting_duplicate_and_overlap_refuse(self):
+  p,index,rows=self.extra_source();rows[-1]['sha256']='0'*64;index.write_text(json.dumps(rows))
+  with self.assertRaisesRegex(m.Held,'Conflicting owning source pins'):self.copy()
+  rows[-1]['sha256']=digest(p);rows.append(dict(path='reader_recovery/fixture.py',sha256='1'*64));index.write_text(json.dumps(rows))
+  with tempfile.TemporaryDirectory()as target,self.assertRaisesRegex(m.Held,'Conflicting owning source pins'):m.copy_fixtures(self.fixes,target)
+ def test_explicit_source_union_final_original_drift_refuses(self):
+  p,_,_=self.extra_source();real=Path.read_bytes;fired=[]
+  def changed(path):
+   raw=real(path)
+   if path==self.stage/'config/extra.py':p.write_bytes(b'changed after readback');fired.append(True)
+   return raw
+  with patch.object(Path,'read_bytes',new=changed),self.assertRaisesRegex(m.Held,'Original source file drift'):self.copy()
+  self.assertTrue(fired)
  def parent(self):
   spec=importlib.util.spec_from_file_location('parent_runner',ROOT/'run_publication_reader_controls.py');parent=importlib.util.module_from_spec(spec);spec.loader.exec_module(parent)
   (self.fixes/'publication_negative_namespace_kernel.py').write_text('# disposable budget fixture\n')
   return parent
  def test_aggregate_budget_encloses_actual_serial_child_deadlines(self):
   # Only process scheduling/results are projected; actual fixture-copy and
-  # parent runner paths execute. This does not rerun or grant the 1167 controls.
+  # parent runner paths execute. This does not rerun or grant the 1199 controls.
   parent=self.parent();children=[];expected=dict(m.SUITES)
   def child(command,**kw):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],1167);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),70);self.assertEqual(m.SUITES[-1],('test_genuine_current_roles.py',22))
+  self.assertEqual(value['tests'],1199);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),71);self.assertEqual(m.SUITES[-1],('test_genuine_source_cohort.py',32))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()
@@ -105,7 +125,7 @@ class Controls(unittest.TestCase):
   for name,kw in calls:
    self.assertTrue(kw['check'])
    if name in ('test_publication_reader_recovery_controls.py','run_reader_recovery_controls.py'):
-    self.assertEqual(kw['timeout'],8460)
+    self.assertEqual(kw['timeout'],8580)
     self.assertGreaterEqual(kw['timeout'],sum(children)+60)
    else:self.assertEqual(kw['timeout'],90)
  def test_aggregate_timeout_still_propagates_before_following_proof(self):

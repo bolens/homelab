@@ -193,3 +193,24 @@ The source controls cover output-parent replacement, same-byte output-leaf
 replacement, original-input drift and replay refusal. They do not establish
 actual application startup, NFS bindability, SourceCohort readiness or connected
 Parent/Birth/terminal acceptance. Those original inputs remain required.
+
+
+## Causal source cohort capture
+
+The Root-only `genuine_source_cohort.run` consumes original fixture/image,
+executable, maps and readiness references. It records command intent, raw
+results and exit status before judging each stage. Installed-cohort and full
+owning recovery execution are bracketed by hashes of all 180 current native
+modules and independent container inspection. Its finite read-only source
+bundle is copied from explicit source paths, preserving missing, conflicting
+and changed-source refusal.
+
+The selected image's exact `/config` declaration requires private bounded tmpfs,
+an explicit idle process and disabled health checks. No anonymous volume or
+live application mount is accepted. Historical base-map names remain exact;
+current native hashes and the distinct 25-module SDK join remain original-bound.
+Independent review and 32 focused host/Python 3.10 controls pass. The complete
+recovery runner passes 1,199 controls across 71 suites with zero skips and
+unchanged originals. These are source and disposable-fixture checks; actual
+selected-image cohort execution, Parent/Birth, NFS and terminal acceptance
+remain open.
