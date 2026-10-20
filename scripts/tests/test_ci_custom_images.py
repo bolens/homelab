@@ -106,6 +106,21 @@ class AilBuildContractTests(unittest.TestCase):
             self.assertNotIn(obsolete, readme)
 
 
+class PythonRuntimeContractTests(unittest.TestCase):
+    def test_acquire_keeps_dissect_compatible_python(self):
+        stages = [line for line in (ROOT / "stacks/acquire/Dockerfile").read_text().splitlines()
+                  if line.startswith("FROM ")]
+        self.assertEqual(len(stages), 1)
+        self.assertRegex(stages[0], r"^FROM python:3[.]13-slim-bookworm@sha256:[0-9a-f]{64}$")
+
+    def test_privotron_keeps_both_lock_compatible_stages(self):
+        stages = [line for line in (ROOT / "stacks/privotron/Dockerfile").read_text().splitlines()
+                  if line.startswith("FROM ")]
+        self.assertEqual(len(stages), 2)
+        self.assertRegex(stages[0], r"^FROM python:3[.]13-slim-bookworm@sha256:[0-9a-f]{64} AS builder$")
+        self.assertEqual(stages[1], stages[0].removesuffix(" AS builder"))
+
+
 class MylarStagePreservationTests(unittest.TestCase):
     """Preserve checked external-tree patches across the real final COPY routes."""
 

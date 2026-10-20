@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,6 +14,12 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 RENOVATE = ROOT / "renovate.json"
+# Docker uses Bundler requirements, not literal image tags (for example v0.15.6).
+# Gem::Requirement accepts these operators and Gem::Version's numeric grammar.
+DOCKER_REQUIREMENT = re.compile(
+    r"(?:!=|>=|<=|~>|=|>|<)?\s*[0-9]+(?:\.[0-9a-zA-Z]+)*"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
 
 
 def fail(message: str) -> None:
@@ -70,6 +77,8 @@ def validate_dependabot() -> None:
             fail(f"duplicate update definition for {ecosystem}: {directories}")
         seen.add(identity)
 
+        validate_docker_ignore_versions(update)
+
         schedule = update.get("schedule")
         if not isinstance(schedule, dict) or schedule.get("interval") not in {
             "daily",
@@ -88,6 +97,41 @@ def validate_dependabot() -> None:
         if unsupported and ecosystem not in semver_cooldown_ecosystems:
             keys = ", ".join(sorted(unsupported))
             fail(f"{keys} are unsupported for ecosystem {ecosystem}")
+
+    validate_docker_coverage(config)
+
+
+def validate_docker_ignore_versions(update: dict) -> None:
+    if update.get("package-ecosystem") not in {"docker", "docker-compose"}:
+        return
+    for condition in update.get("ignore", []):
+        for requirement in condition.get("versions", []):
+            if not isinstance(requirement, str) or not all(
+                DOCKER_REQUIREMENT.fullmatch(part.strip())
+                for part in requirement.split(",")
+            ):
+                fail("Docker ignore versions must use Bundler numeric requirements, not image-tag prefixes")
+
+
+def validate_docker_coverage(config: dict) -> None:
+    """Every maintained stack Dockerfile has exactly one update owner."""
+    owners: dict[Path, int] = {}
+    for update in config["updates"]:
+        if update.get("package-ecosystem") != "docker":
+            continue
+        directories = update.get("directories", [update.get("directory")])
+        for directory in directories:
+            for path in ROOT.glob(directory.lstrip("/")):
+                if path.is_dir():
+                    owners[path] = owners.get(path, 0) + 1
+    for path in (ROOT / "stacks").rglob("*"):
+        if not path.is_file() or "Dockerfile" not in path.name:
+            continue
+        if "repo" in path.relative_to(ROOT).parts:
+            continue
+        count = owners.get(path.parent, 0)
+        if count != 1:
+            fail(f"{path.relative_to(ROOT)} needs exactly one Docker update directory (found {count})")
 
 
 def validate_renovate() -> None:
