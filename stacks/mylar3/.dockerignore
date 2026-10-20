@@ -100,6 +100,7 @@ config/test_fixtures/cache_admission/**
 !config/reader_recovery/CONTRACT-stopped-nfs-handoff.md
 !config/reader_recovery/CONTRACT-terminal.md
 !config/reader_recovery/README.md
+!config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md
 !config/reader_recovery/_terminal_reconstruction_fixtures/CONTRACT-installed-terminal.md
 
 # Exact public worker fixture graph, checked-stage only.
