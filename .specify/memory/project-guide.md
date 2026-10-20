@@ -101,6 +101,14 @@ Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not
 verify the inner Python-source census; run the source-copy semantic check before
 starting the expensive native image gate.
+Komga 1.29 introduces independently configurable session SQLite state through
+`sessionsDb.file` and JDBC sessions enabled by its Docker defaults. Inventory all
+configuration databases and journal companions for an update. A fixed five-role
+scope or database/tasks-only schema from the 1.28.1 recovery tools cannot accept
+this version by changing only the JAR hash: preserve that historical schema and
+implement a reviewed versioned session-scope successor with actual target-image
+proof before recovery uses the new reader. Portable image delivery alone does
+not establish that compatibility.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
@@ -407,6 +415,18 @@ Close an implementation milestone when its documented source and selected-image
 gates pass; keep downstream configured execution under its owning tasks. Do not
 substitute source parity for a required genuine runtime path, or defer an
 implementation checkbox solely for a live test assigned to a later task.
+
+Keep fixture families that replace `sys.modules['mylar']` in separate child
+processes. Collecting unrelated families before execution can leave tests bound
+to different fake application objects. A symlink to installed bytes is also not
+a canonical regular-file fixture: source-owned `__file__` and no-follow checks
+correctly reject it. Use exact hash-verified private copies when a mechanical
+fixture requires them, label that proof as copied-byte execution, and retain a
+separate canonical installed-origin/type check. Keep original source and image
+closure strict; diagnose private-copy metadata drift before changing its contract.
+Privileged isolated-test actuators should retain bounded failure diagnostics in
+the same run, including fixed source basenames and line numbers. Never decode a
+binary source-capture stdout stream as a text failure log.
 
 For disposable Git source exports, apply and verify file permissions from the
 reviewed Git tree before running security controls. `git archive` can emit mode

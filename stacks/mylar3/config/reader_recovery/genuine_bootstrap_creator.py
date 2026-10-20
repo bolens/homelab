@@ -240,6 +240,9 @@ class PurposeEngine:
         if args[0] == 'restart':
             need(args == ['restart', '--time', '30', self.ids['native']] and data is None, 'only-original-native-restart')
             return self.call('connected-restart', 1, args)
+        if self.owner.document['version']==2 and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
+            need(data is None,'queue-reader-jar-no-input')
+            return self.call('queue-reader-original-jar',2,args,readonly=True)
         need(args[0] == 'exec' and args[:5] == ['exec', '--interactive', '--user', '1000:1000', self.ids['native']]
              and args[5:9] == ['/lsiopy/bin/python3', '-I', '-B', '-c'], 'fixed-native-exec')
         program = args[9]; sources = self.owner.raw
@@ -266,6 +269,14 @@ class PurposeEngine:
             need(value.get('nonce') == self.owner.nonce and value.get('cid') == self.ids['native'] and value.get('root') == self.owner.child_data
                  and value.get('library') == str(self.owner.library) and value.get('sdk') == self.owner.sdk and value.get('action') in ('seed','observe'), 'fixed-catalog-scope')
             name, maximum = 'catalog-' + value['action'], 1 if value['action'] == 'seed' else 64
+        elif self.owner.document['version']==2 and program==sources['reader_queue'].decode():
+            from genuine_reader_quiescence import request as queue_request
+            need(args[10:]==['--disposable-reader-queue-v1',self.owner.nonce,self.ids['native']],'fixed-queue-invocation')
+            value=p.decode(data);queue_request(value)
+            need(value['nonce']==self.owner.nonce and value['native_cid']==self.ids['native']
+                 and value['base']=='http://'+self.owner.reader_host+':25600' and value['key']==self.owner.reader_key,
+                 'original-queue-origin-credentials')
+            name,maximum='reader-task-empty',1
         else:raise p.Held('undeclared-creator-program')
         return self.call(name, maximum, args, data, readonly=name not in {'http-native-prepare-fresh','http-native-initialize-bootstrap','http-native-force-process-fixture','http-reader-create-library','http-reader-scan','http-reader-set-progress','catalog-seed'})
 
@@ -274,13 +285,15 @@ class Creator:
     def __init__(self, document, *, driver=None):
         need(os.geteuid() == os.getegid() == 1000, 'creator-actual-uid1000-required')
         need(type(document) is dict and set(document) == {'version','kind','nonce','observed','seconds','state_parent','nfs_parent','nfs_mount','images','native_sdk','data_contract','sources'}, 'creator-schema')
-        need(type(document['version']) is int and document['version'] == 1 and document['kind'] == 'approved-disposable-three-role-creator'
+        need(type(document['version']) is int and document['version'] in (1,2) and document['kind'] == 'approved-disposable-three-role-creator'
              and p.digest(document['nonce']) and type(document['observed']) is int and 0 <= time.time()-document['observed'] <= 120
              and type(document['seconds']) is int and 30 <= document['seconds'] <= 900, 'creator-original-deadline')
         self.document = copy.deepcopy(document); self.nonce = document['nonce']; self.end = time.monotonic()+document['seconds']
         self.raw = {}
-        need(set(document['sources']) == set(SOURCES), 'creator-source-closure')
-        for name, filename in SOURCES.items():
+        source_names=dict(SOURCES)
+        if document['version']==2:source_names['reader_queue']='genuine_reader_quiescence.py'
+        need(set(document['sources']) == set(source_names), 'creator-source-closure')
+        for name, filename in source_names.items():
             ref = document['sources'][name]; need(Path(ref['path']) == HERE/filename, 'creator-source-path')
             self.raw[name] = p.read(ref, private=False)
         self.state_parent = b.directory(document['state_parent']); self.nfs_parent = b.directory(document['nfs_parent'])
@@ -446,7 +459,8 @@ class Creator:
     def execute(self):
         try:
             plan=self.prepare()
-            result=b.Bootstrap(plan,self.engine).execute(native_catalog_helper=self.document['sources']['catalog_helper'])
+            options={} if self.document['version']==1 else dict(reader_queue_helper=self.document['sources']['reader_queue'])
+            result=b.Bootstrap(plan,self.engine).execute(native_catalog_helper=self.document['sources']['catalog_helper'],**options)
             return dict(bootstrap=result,installed_factories_verified=False,publication_acceptance=False,actual_nfs_verified=False,ordinary_ack_verified=False,birth_verified=False,mutation_authority=False,reader_resume_authority=False,automatic_replay=False)
         except BaseException:
             try:
