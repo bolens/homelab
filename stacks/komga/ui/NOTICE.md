@@ -1,7 +1,8 @@
 # Komga next-UI notification patch
 
 Komga is copyright its contributors and licensed under GNU GPL version 3.
-Upstream source: https://github.com/gotson/komga/tree/2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
+Komga version: 1.29.0.
+Upstream source: https://github.com/gotson/komga/tree/6a785099c8aa3e0485397c617415771d6d60cef3
 
 The Dockerfile downloads and verifies that complete source archive, applies
 patch-source.py and import-title.ts, and builds with the upstream npm lockfile.
