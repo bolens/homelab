@@ -409,7 +409,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66"
+    "sha256": "59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4"
   },
   {
     "path": "publication_archive_prepare_routes.py",
@@ -529,7 +529,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c"
+    "sha256": "123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475"
   },
   {
     "path": "publication_reader_disk.py",
@@ -677,11 +677,11 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "90b7baccdbae478ec652289acb69ee7cb6a9c4af0945baf6796bb5ba466179c5"
+    "sha256": "3f2b426d8700c24b8b0d7e68542045c5cbe4e7cbf61877341f5f292f63321373"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "9b53843070d3e319520880f7b6263ae7bb523105f4a711b95e8acc3d0810c6e0"
+    "sha256": "e04515ea55d65919d0b1390f5cadaf010be1d6b4019ae82995f97fc36d865a66"
   },
   {
     "path": "run_standalone_controls.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "4d19f60b2e983e58b77c1f3ec3a2e609eed35613a49a68bb82b8d4c662336f3b"
+    "sha256": "89923d6b2207833e48079f38df954a68d23c9c0503c86550b43f5095a174bfb8"
   },
   {
     "path": "story_arc_search.py",
@@ -1349,7 +1349,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "84edd60c65baa7d018b3aef11c938ca3a73d0454346c8f7c8118ab56e6600895"
+    "sha256": "1b3ad9cb153c93a855a821eb7f5ccfece3a8820e27d257ab94ab215a0cb72282"
   },
   {
     "path": "test_publication_reader_lifecycle.py",
@@ -1369,7 +1369,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "08d1dca71b52627f6c044e85b8be759354c995691ad8f3931f189ee6cfb78c83"
+    "sha256": "3d4f460aabd1c3ccce7a5d33974876813f72165c0083549e438ac7ebc48f010b"
   },
   {
     "path": "test_publication_reader_softdelete.py",

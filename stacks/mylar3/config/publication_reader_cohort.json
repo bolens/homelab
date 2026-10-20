@@ -185,7 +185,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66"
+      "tracked_source_sha256": "59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4"
     },
     "publication_archive_prepare_routes": {
       "owning_adapters": [
@@ -559,7 +559,7 @@
       "already_installed": false,
       "filename": "publication_reader_admission.py",
       "owned_predecessor_sha256": "43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071",
-      "sha256": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c"
+      "sha256": "123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475"
     },
     "publication_reader_disk": {
       "already_installed": false,

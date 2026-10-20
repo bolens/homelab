@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "05e2c58100e120f21da72a8e9b189f2bd5f6b150990be9169ba0564827090fc4",
+  "base_cohort_sha256": "c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -188,7 +188,7 @@
     "publication_archive_history.py": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456",
     "publication_archive_layout.py": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168",
     "publication_archive_owned.py": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1",
-    "publication_archive_preparation_existing.py": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66",
+    "publication_archive_preparation_existing.py": "59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4",
     "publication_archive_prepare_routes.py": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02",
     "publication_archive_reader.py": "6ecb8ef27a0031045200995761d9c7fb8181c9b4b9906dffd091a2e3e53044ad",
     "publication_archive_repair.py": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
@@ -218,7 +218,7 @@
     "publication_negative_namespace.py": "406d27948d2dd16f63eb8b70506daf46165a30f48b50db8d116750556d189a44",
     "publication_negative_namespace_kernel.py": "f35887c5dad8985baf41fb5861423c18f556db1311f0e4fde202021f4cb59633",
     "publication_negative_phase.py": "e4629c1f0fb1caf085ded83762a3370346ee55d661a8eac32b8a5a7a0a452ae3",
-    "publication_reader_admission.py": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c",
+    "publication_reader_admission.py": "123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475",
     "publication_reader_disk.py": "c469c8add49e93fef63616f07a67e46ca012a56ac61de7f2cba3ed629cdccaa1",
     "publication_reader_lifecycle.py": "b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2",
     "publication_reader_native_coordinator.py": "e54130e689c4a2b28fa269e104a72f966a94882295fd9c70a2d471bad4be6611",
@@ -285,7 +285,7 @@
     "weeklypull.py": "a56b60cfa315df899852883388924d187f02f8fccf3dc46bb9a8497e25dfce65",
     "weeklypullit.py": "f65ad6997a6bf040f7dbb543fce9035855c08adf84c2e06a892d594da79f3948",
     "worker_handoff.py": "41045f1f071620f585a308776c4a182bec6317852ca849208ce82fa0aceeac57",
-    "worker_health.py": "73a1bd5dc778d74f3cae04adc7e7e3c6620d0601c1a68c059828dae75ee75dd0",
+    "worker_health.py": "f84cf0019db0e584569c129ecb268c68d42f41287b02433c3fd5135f1394e453",
     "workflow.py": "93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365",
     "workflow_nzb.py": "79f76b1a0e32c6524f962b6c4fa67b3088d70ba4859e852e55159e5a1bbed581",
     "workflow_store.py": "fa2e61abfb5f8174160ef9da6d41610e51e9984c097760963beb4cfb35fbd2a5",
@@ -480,7 +480,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66"
+        "tracked_source_sha256": "59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4"
       },
       "publication_archive_prepare_routes": {
         "owning_adapters": [
@@ -854,7 +854,7 @@
         "already_installed": false,
         "filename": "publication_reader_admission.py",
         "owned_predecessor_sha256": "43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071",
-        "sha256": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c"
+        "sha256": "123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475"
       },
       "publication_reader_disk": {
         "already_installed": false,

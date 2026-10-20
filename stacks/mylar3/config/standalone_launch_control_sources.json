@@ -166,7 +166,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66",
+    "sha256": "59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4",
     "target": "fixtures/child/source/publication_archive_preparation_existing.py"
   },
   {

@@ -78,7 +78,12 @@ When a pinned manifest or embedded cohort changes, trace its literal hash consum
 in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
-prove those semantic pins agree. Trace inherited operational suppliers and generated
+prove those semantic pins agree. The private-copy recovery collection does not
+replace the owning native reader controls: run `run_publication_reader_controls.py`
+and its canonical cohort-import test when lifecycle or admission source changes.
+Trace direct dependency literals in both admission and archive preparation, then
+the Parent base-admission pin and current import-time test pins; a closed JSON
+map can still contain a caller that refuses the new module. Trace inherited operational suppliers and generated
 health programs too: a new top-level image receipt can still invoke an older
 embedded module hash. Prepare an exact source-bound supplier successor, preserve
 the predecessor, and verify old-source refusal and new-source acceptance before

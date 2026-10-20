@@ -92,18 +92,19 @@ class RetainedObservation:
         # namespace ancestors stay checked by the genuine process-local canary;
         # host ancestors are independently retained Parent/Tree originals.
         tree=g['_CHILD_TREES'][owner];files=[]
+        host_map=owner.mapping.nfs_host if owner.mapping.plan13() else owner.mapping.host
         need(all(type(facts[key]) is list and len(facts[key])<=512 for key in ('files','nodes','names','absent')) and type(facts['device']) is int and facts['device']>0 and type(facts['mount']) is dict and facts['mount'].get('fstype')=='nfs4','nfs-retained-bounded-real-nfs-facts')
         for path,stamp in facts['files']:
             need(type(path) is str and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp),'nfs-retained-original-file-vector')
-            host=owner.mapping.host(path);expected=tuple(stamp)
+            host=host_map(path);expected=tuple(stamp)
             need(tuple(g['nine'](os.lstat(host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
         nodes=dict(owner.nodes)
         for path,stamp in (*tree.nodes,*tree.directories):
             need(path not in nodes or nodes[path]==tuple(stamp),'nfs-retained-host-node-conflict');nodes[path]=tuple(stamp)
         names=[]
         for path,expected in facts['names']:
-            host=owner.mapping.host(path);need(tuple(sorted(os.listdir(host)))==tuple(sorted(expected)),'nfs-retained-original-namespace');names.append((host,frozenset(expected)))
-        absent=tuple(owner.mapping.host(path) for path in facts['absent'])
+            host=host_map(path);need(tuple(sorted(os.listdir(host)))==tuple(sorted(expected)),'nfs-retained-original-namespace');names.append((host,frozenset(expected)))
+        absent=tuple(host_map(path) for path in facts['absent'])
         self.files,self.nodes,self.names,self.absent=tuple(files),tuple(nodes.items()),tuple(names),absent
         self.original=(owner,session,self.tape,g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device)),self.files,self.nodes,self.names,self.absent)
         _RETAINED[self]=self.original;self.close()

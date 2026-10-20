@@ -182,7 +182,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c'
+BASE_ADMISSION_SHA = '123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -209,10 +209,10 @@ class Paths:
         need(len({x['child'] for x in mounts}) == len(mounts), 'mount-duplicate')
 
     def child(self, host):
-        if self.owner in _NFS_DATA_ROOTS:
+        if not self.plan13() and self.owner in _NFS_DATA_ROOTS:
             path=Path(host)
             if any(path==Path(root) or Path(root) in path.parents for root in _NFS_DATA_ROOTS[self.owner]):return str(path)
-        if self.owner in _NFS_OUTPUT_PAIRS:
+        if not self.plan13() and self.owner in _NFS_OUTPUT_PAIRS:
             original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner];path=Path(host)
             if path==Path(original) or Path(original) in path.parents:return str(Path(virtual)/path.relative_to(original))
         if self.owner is not None:
@@ -234,10 +234,10 @@ class Paths:
         return result
 
     def host(self, child):
-        if self.owner in _NFS_DATA_ROOTS:
+        if not self.plan13() and self.owner in _NFS_DATA_ROOTS:
             path=Path(child)
             if any(path==Path(root) or Path(root) in path.parents for root in _NFS_DATA_ROOTS[self.owner]):return str(path)
-        if self.owner in _NFS_OUTPUT_PAIRS:
+        if not self.plan13() and self.owner in _NFS_OUTPUT_PAIRS:
             original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner];path=Path(child)
             if path==Path(virtual) or Path(virtual) in path.parents:return str(Path(physical)/path.relative_to(virtual))
         if self.owner is not None:
@@ -254,6 +254,41 @@ class Paths:
         need(len(selected) == 1, 'ambiguous-child')
         _, row, rest = selected[0]
         return str(Path(row['host']) / rest)
+
+    def plan13(self):
+        plan=getattr(self.owner,'plan',{})
+        return type(plan.get('version')) is int and plan['version']==13 and plan.get('kind')=='reviewed-archive-one-lifecycle-protocol'
+
+    def nfs_roots(self):
+        # This observer view never changes ordinary action/Birth mount spelling.
+        owner=self.owner
+        need(self.plan13() and type(owner) is LifecycleParent and owner.mapping is self
+             and owner in _NFS_SOURCE_CONTEXTS and owner in _NFS_DATA_ROOTS,'nfs-plan13-owning-mapping')
+        owner.left();active=decode(_NFS_SOURCE_CONTEXTS[owner][2]);ref=active['active_scope']
+        need(ref['path'] in owner.files,'nfs-plan13-original-scope')
+        nodes=parents(Path(ref['path']));original=tuple(owner.files[ref['path']])
+        scope=decode(read(dict(ref,signature9=list(original))))
+        roots=tuple(scope['forbidden_roots'])+(str(Path(active['parent_admission']['path']).parent),)
+        need(_NFS_DATA_ROOTS[owner]==roots,'nfs-plan13-original-protected-roots')
+        owner.left();final({ref['path']:original},nodes,())
+        need(_NFS_DATA_ROOTS[owner]==roots,'nfs-plan13-final-protected-roots')
+        return roots
+
+    def nfs_child(self,host):
+        roots=self.nfs_roots();path=absolute(str(host))
+        if any(path==Path(root) or Path(root) in path.parents for root in roots):return str(path)
+        if self.owner in _NFS_OUTPUT_PAIRS:
+            original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner]
+            if path==Path(original) or Path(original) in path.parents:return str(Path(virtual)/path.relative_to(original))
+        return self.child(path)
+
+    def nfs_host(self,child):
+        roots=self.nfs_roots();path=absolute(str(child))
+        if any(path==Path(root) or Path(root) in path.parents for root in roots):return str(path)
+        if self.owner in _NFS_OUTPUT_PAIRS:
+            original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner]
+            if path==Path(virtual) or Path(virtual) in path.parents:return str(Path(physical)/path.relative_to(virtual))
+        return self.host(path)
 
     def child_ref(self, value):
         if self.owner is not None:
@@ -311,10 +346,11 @@ class Paths:
 
     def admit_nfs_probe(self,value):
         need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner;owner.left()
+        child_map,host_map=(self.nfs_child,self.nfs_host) if self.plan13() else (self.child,self.host)
         session=_NFS_LIVE_SESSIONS.get(owner);need(session is not None,'nfs-probe-original-session');session.close()
         need(type(value) is dict and set(value)=={'path','sha256','signature9'} and value['path']==str(Path(session.output)/'probe'/'probe-input.json') and digest(value['sha256']),'nfs-probe-exact-derived-input')
         stamp=tuple(value['signature9']);need(len(stamp)==9 and all(type(v) is int for v in stamp) and stat.S_ISREG(stamp[5]) and stat.S_IMODE(stamp[5])==0o600 and stamp[6:9]==(1000,1000,1) and 0<stamp[2]<=MAX,'nfs-probe-child-creator')
-        host=absolute(self.host(value['path']));nodes=parents(host)
+        host=absolute(host_map(value['path']));nodes=parents(host)
         fd=os.open(host,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             need(tuple(nine(os.fstat(fd)))==stamp and tuple(nine(os.lstat(host)))==stamp,'nfs-probe-original-FD9');raw=b''
@@ -324,7 +360,7 @@ class Paths:
         finally:os.close(fd)
         data=decode(raw);need(type(data) is dict and set(data)=={'version','kind','nonce','root','root9','source_parent9','target_parent9','device','mount','forbidden_roots','seconds'},'nfs-probe-input-schema')
         refs,_,active,probe,_=_NFS_SOURCE_CONTEXTS[owner];outer=decode(active);plan=decode(probe)
-        fixture=str(Path(outer['parent_admission']['path'])/plan['fixture_name']);fixture_host=self.host(fixture)
+        fixture=str(Path(outer['parent_admission']['path'])/plan['fixture_name']);fixture_host=host_map(fixture)
         scope_ref=outer['active_scope'];scope=decode(read(dict(scope_ref,signature9=list(owner.files[scope_ref['path']]))))
         roots=scope['forbidden_roots'];need(type(roots) is list and 1<=len(roots)<=32 and len(roots)==len(set(roots)),'nfs-probe-original-protected-roots')
         need(type(data['version']) is int and data['version']==1 and data['kind']=='reviewed-disposable-hardlink-nfs-canary' and type(data['nonce']) is str and re.fullmatch('[a-f0-9]{64}',data['nonce']) is not None and type(data['seconds']) is int and data['seconds']==120,'nfs-probe-original-input-kind')
@@ -333,16 +369,16 @@ class Paths:
         for path,original in directories.items():
             need(len(original)==9 and all(type(v) is int for v in original) and original[0]==plan['expected_device'] and stat.S_ISDIR(original[5]) and stat.S_IMODE(original[5])==0o700 and original[6:8]==(1000,1000) and tuple(nine(os.lstat(path)))==original,'nfs-probe-original-directory9')
         for root in roots:
-            physical=self.host(root);need(not (Path(physical)==Path(fixture_host) or Path(physical) in Path(fixture_host).parents or Path(fixture_host) in Path(physical).parents),'nfs-probe-protected-overlap')
+            physical=host_map(root);need(not (Path(physical)==Path(fixture_host) or Path(physical) in Path(fixture_host).parents or Path(fixture_host) in Path(physical).parents),'nfs-probe-protected-overlap')
         cohort_ref=outer['source_cohort'];cohort=decode(read(dict(cohort_ref,signature9=list(owner.files[cohort_ref['path']]))))
         need(cohort['images']['selected']==owner.plan['selected_image'],'nfs-probe-original-cohort-image')
         sources=[]
         for key in ('probe','hardlink_kernel'):
             original=cohort['sources'][key];need(original['path'] in owner.files,'nfs-probe-source-original-membership')
             sources.append(self.child_host_ref(dict(original,signature9=list(owner.files[original['path']]))))
-        virtual_sources=[self.child(str(Path(row['path']))) for row in sources]
-        output=str(Path(session.output)/'probe');output_host=self.host(output)
-        mounts=[[fixture_host,fixture,True],[fixture_host,'/config',False],[output_host,output,True],*[ [r['path'],v,False] for r,v in zip(sources,virtual_sources) ],[str(host),value['path'],False],*[ [self.host(root),root,False] for root in roots ]]
+        virtual_sources=[child_map(str(Path(row['path']))) for row in sources]
+        output=str(Path(session.output)/'probe');output_host=host_map(output)
+        mounts=[[fixture_host,fixture,True],[fixture_host,'/config',False],[output_host,output,True],*[ [r['path'],v,False] for r,v in zip(sources,virtual_sources) ],[str(host),value['path'],False],*[ [host_map(root),root,False] for root in roots ]]
         spec=dict(image=owner.plan['selected_image'],mounts=mounts,probe=virtual_sources[0],kernel=virtual_sources[1],input=value['path'],input_sha256=value['sha256'],probe_sha256=sources[0]['sha256'])
         session.close();need(owner not in _NFS_PROBE_ROWS,'nfs-probe-no-rebaseline')
         row=(copy.deepcopy(value),str(host),tuple(nodes.items()),tuple(directories.items()),session,session.cid,session.original_pid,owner.plan['nonce'],copy.deepcopy(spec))
@@ -517,7 +553,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'd18f96659df27f72e2bcc0a524ca043c790e185b03070e269b569ade48382791'}
 NFS_ACTIVE_SOURCE_SHA='d485a22d43b11baeb87f3ac8beb48bdab847f786cd5a64dfcc6156b982825231'
 
 
@@ -1474,7 +1510,8 @@ class LifecycleParent:
         modules=self.nfs_host_modules();refs,_,active,probe,output=_NFS_SOURCE_CONTEXTS[self]
         original_probe=decode(probe);parent=decode(active)['parent_admission']
         fixture=str(Path(parent['path'])/original_probe['fixture_name'])
-        absent=(self.mapping.host(fixture),self.mapping.host(parent['path']))
+        host_map=self.mapping.nfs_host if self.mapping.plan13() else self.mapping.host
+        absent=(host_map(fixture),host_map(parent['path']))
         engine=modules['comic_nfs_host_engine.py'].EngineReplies(self,cid,self.plan['nonce'],intents_ref=refs['engine_intents'])
         lease=modules['comic_nfs_lease_session.py'].HostLeaseReplies(engine,None,absent,helper_ref=refs['comic_negative_nfs_active_lifecycle.py'])
         probe_handler=modules['comic_nfs_host_probe.py'].HostProbeReplies(engine)
@@ -2971,9 +3008,11 @@ class LifecycleParent:
             raise Held('parent-uncertain-evidence-retained-no-replay-or-resume') from None
 
 
-def run_operation(plan_ref, source_ref, *, engine):
-    """Explicit owning host integration; no service operations on module import."""
-    return LifecycleParent(plan_ref, source_ref, engine).execute()
+def run_operation(plan_ref, source_ref, *, engine, configured=None, nfs_sources=None, nfs_intents=None):
+    """Explicit owning integration; forward original configured inputs unchanged."""
+    if configured is None and nfs_sources is None and nfs_intents is None:
+        return LifecycleParent(plan_ref, source_ref, engine).execute()
+    return LifecycleParent(plan_ref, source_ref, engine,configured=configured,nfs_sources=nfs_sources,nfs_intents=nfs_intents).execute()
 
 
 if __name__ == '__main__':
