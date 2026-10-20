@@ -60,3 +60,10 @@ and inspect the selected release notes before updating.
    and API-key access. If verification fails, stop the new image and restore the
    verified original database and compatible image. Remove only this operation's
    temporary copies after successful acceptance.
+
+The selected [v1.55 release](https://github.com/meilisearch/meilisearch/releases/tag/v1.55.0)
+also changes ranking-score threshold behavior and rejects a null
+`binaryQuantization` setting. Include representative threshold queries and the
+current vector/embedder settings in the isolated migration checks for both this
+instance and Linkwarden's separate instance. The image pin alone does not migrate
+either database.
