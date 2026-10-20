@@ -414,3 +414,10 @@ Actual image/runtime, disposable creation, complete Parent/Birth/NFS execution, 
 
 
 The later `435d5f2` candidate adds the independently reviewed finite disposable creator and corrects the native runtime fixture comparison. Its owning run passes 769 native and 1,069 recovery controls with zero recovery skips and unchanged originals. All 71 focused fixture controls pass on Python 3.10, all 852 selected Python files pass Ruff E9/F, and image-context, full local CI and normal commit checks pass. The original failures remain retained. Hosted verification is running; actual image/application, configured cache and import/ACK acceptance remain open. See [the creator and runtime-compatibility record](../024-verified-archive-repair/evidence-history.md#disposable-creator-and-runtime-fixture-compatibility-2026-10-20).
+
+
+## Combined source delivery — 2026-10-20
+
+PR #405 merges normally as `6dbbb33527136ca44dfaf986105efd0a4baba764`. Its tree exactly matches the independently reviewed `435d5f2` candidate. All seven required checks pass; the complete check inventory is 41 successes and the expected Spec Kit update skip. Final paginated feedback and security review have no unresolved findings. The SHA-256 artifact-integrity finding is dismissed as a false positive only after independent review of all four flows: complete private JSON artifacts are checked against original references; passwords are not authenticated with that digest. The checksum remains intact and the CodeQL check passes without a rerun or waiver.
+
+GitHub main, eligible local main and the configured mirror are synchronized to this merge. The matching main image publication is running. No image pull, service restart, import, ACK or new cache payload ran for this source delivery; actual publication/source proof, installed execution and fresh protected rollout remain required. The permanent worker remains inactive at the last verified live baseline. The separate next mapping batch passes 769 native and 1,094 recovery controls, but remains draft source rather than installed or live acceptance.
