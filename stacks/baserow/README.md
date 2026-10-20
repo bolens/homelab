@@ -42,8 +42,22 @@ Add stack from this directory; set `BASEROW_PUBLIC_URL` in stack env. No host po
 
 ## Updates and backups
 
-Stop the all-in-one container before copying its complete `baserow_data` volume,
-including PostgreSQL and uploads. Verify an isolated restore with the previous
+Preserve the current image and private configuration, including legacy AI
+provider environment values needed for rollback. Stop the all-in-one container
+before copying its complete `baserow_data` volume, including PostgreSQL and
+uploads. Verify an isolated restore with the previous
 image and check database readability before updating. Startup can run application
 migrations; verify users, tables, rows and uploads afterward. Restore the previous
 image and complete data backup if preservation checks fail.
+
+
+Baserow 2.4 imports supported legacy AI-provider settings into the database.
+Manage imported instance providers in **Admin tools → AI providers**, and workspace
+providers in **Settings → AI providers**; changing their old environment values
+no longer updates them. Check the imported credentials, models and workspace
+inheritance before removing rollback configuration. Database backups now include
+these credentials and must remain private. Review skipped-provider fallbacks,
+Kuma's separate model selection and published applications in the
+[upstream migration guidance](https://baserow.io/docs/installation%2Fai-providers#upgrading-to-baserow-24).
+Verify an isolated restore of the complete configuration and data before updating,
+then verify provider settings and application data after migration.

@@ -30,7 +30,7 @@ services:
   bookstack:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/bookstack:latest@sha256:1fdbaf1908cbe0e92960b45f39404745e3e37392732c131940a163455632e9cd
+    image: lscr.io/linuxserver/bookstack:latest@sha256:d1ebd57baa3bf966e72419cf682408831713d22fe8aa0dc28deb9add4a29e3e9
     container_name: bookstack
     restart: unless-stopped
     depends_on:

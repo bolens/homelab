@@ -5,7 +5,7 @@ services:
   baserow:
     labels:
       logging: "true"
-    image: baserow/baserow:latest@sha256:97e1818daf5dd64a0a8f7069db4199c2a79b9234cff450b60d97fc99b8c4ab39
+    image: baserow/baserow:latest@sha256:2229bc0ad9c8e1c3c44cef3324ff0501639d44a7b6f64026ebaa44f61cfb038e
     container_name: baserow
     restart: unless-stopped
     # Allow Celery and the embedded PostgreSQL server to shut down cleanly.

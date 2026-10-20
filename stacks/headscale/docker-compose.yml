@@ -9,7 +9,7 @@ services:
     labels:
       logging: "true"
     container_name: headscale
-    image: docker.io/headscale/headscale:latest@sha256:8833f828b414c0907b7e5c71da76473216fe17cce0818a166b536ec552c0903f
+    image: docker.io/headscale/headscale:latest@sha256:780ed2f9e85719a2211277433f2c8afb45105d0d25031949a6848a485f9e216d
     restart: unless-stopped
     cpus: 1.0
     mem_limit: 1g
