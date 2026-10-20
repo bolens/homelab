@@ -182,9 +182,12 @@ health. Older images may rewrite identical telemetry on status reads. Check the
 installed source before relying on read-only observations; deliver the correction
 rather than relax full filesystem witnesses. Keep immutable backup/source
 witnesses strict and reject unexplained queue state changes.
-Trace every health callee: workflow intake refresh can also emit an event and
-write its cache after ten seconds. Keep health's intake computation passive while
-ordinary intake retains persistence and hysteresis. Default Store reads must not
+Trace every health and read-only Activity snapshot callee: workflow intake
+refresh can emit an event and write its cache after ten seconds. Pass
+`persist=False` from both observers while ordinary intake retains persistence
+and hysteresis. Test stale reads against the actual initialized database hash,
+full file signature and directory namespace, including admitted existing-only
+stores and a subsequent genuine mutating intake check. Default Store reads must not
 repeat chmod on an already private database, since that alone changes ctime.
 Check both initialized default and admitted existing-only stores; missing-store
 initialization is a separate write boundary.
