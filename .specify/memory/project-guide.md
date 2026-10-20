@@ -114,6 +114,14 @@ this version by changing only the JAR hash: preserve that historical schema and
 implement a reviewed versioned session-scope successor with actual target-image
 proof before recovery uses the new reader. Portable image delivery alone does
 not establish that compatibility.
+Copying the archive SDK source from its container does not copy its Python runtime.
+Its canonical wrapper selects `python3` from the consumer environment; in Mylar
+that remains daemon Python 3.10, even when Modern has a private newer interpreter.
+Verify the installed canonical conversion command with genuine archives and
+full member/directory preservation before accepting an SDK pin. A host test or
+source import alone misses interpreter-dependent calls such as `hashlib.file_digest`.
+A compatible helper does not extend the SDK's broader declared minimum version.
+
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
