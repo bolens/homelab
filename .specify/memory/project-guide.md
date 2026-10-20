@@ -100,6 +100,14 @@ Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not
 verify the inner Python-source census; run the source-copy semantic check before
 starting the expensive native image gate.
+Komga 1.29 introduces independently configurable session SQLite state through
+`sessionsDb.file` and JDBC sessions enabled by its Docker defaults. Inventory all
+configuration databases and journal companions for an update. A fixed five-role
+scope or database/tasks-only schema from the 1.28.1 recovery tools cannot accept
+this version by changing only the JAR hash: preserve that historical schema and
+implement a reviewed versioned session-scope successor with actual target-image
+proof before recovery uses the new reader. Portable image delivery alone does
+not establish that compatibility.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep

@@ -21,6 +21,7 @@ SUITES=SUITES+(('test_archive_common_root.py',7),('test_archive_plan13.py',15),(
 SUITES=SUITES+(('test_genuine_application_bootstrap.py',23),)
 SUITES=SUITES+(('test_genuine_native_catalog.py',21),)
 SUITES=SUITES+(('test_genuine_bootstrap_creator.py',21),)
+SUITES=SUITES+(('test_plan13_disposable_mapping.py',25),)
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass

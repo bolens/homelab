@@ -548,6 +548,144 @@ def live_mapping(rows, roots, roles=None):
     )
 
 
+def current_plan(roles):
+    """Recheck the original pipe-supplied controls; never adopt current rows."""
+    checked = current_roles(encode(roles))
+    ref = checked['plan']
+    plan, original = read(ref['path'], ref['sha256'])
+    check(original['signature'] == ref['signature9'], 'mapping-original-plan9')
+    return plan
+
+
+def disposable_archive_mapping(rows, roots, roles, plan):
+    """Finite creator geometry only; no NFS/platform or publication grant.
+
+    Parent retains G/L/R descriptors. This repeated observation checks original
+    G full9 and descendant node5, allowing the owned canary inside R to change.
+    """
+    check(plan == current_plan(roles) and type(plan.get('version')) is int
+          and plan['version'] == 13 and plan.get('kind') == 'reviewed-archive-one-lifecycle-protocol'
+          and plan.get('terminal_mode') == 'same-child-v1' and plan.get('action') == 'archive-one',
+          'disposable-mapping-original-plan13')
+    nonce = plan.get('nonce')
+    check(type(nonce) is str and re.fullmatch('[a-f0-9]{64}', nonce), 'disposable-mapping-nonce')
+    geometry = plan.get('publication_geometry')
+    exact(geometry, ('version', 'kind', 'common_root', 'library', 'retention'))
+    check(type(geometry['version']) is int and geometry['version'] == 1
+          and geometry['kind'] == 'private-common-root-nfs', 'disposable-mapping-geometry')
+    paths, frames = {}, {}
+    for role in ('common_root', 'library', 'retention'):
+        ref = geometry[role]; exact(ref, ('path', 'signature9'))
+        path = canonical(ref['path']); frame = ref['signature9']
+        check(type(frame) is list and len(frame) == 9 and all(type(v) is int for v in frame)
+              and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == 0o700
+              and frame[6:8] == [1000, 1000], 'disposable-mapping-directory')
+        paths[role], frames[role] = path, frame
+    common, library, retention = (paths[k] for k in ('common_root', 'library', 'retention'))
+    check(common.name == 'archive-publication-' + nonce and library == common/'L'
+          and retention == common/'R' and len({tuple(v[:2]) for v in frames.values()}) == 3
+          and len({v[0] for v in frames.values()}) == 1, 'disposable-mapping-exact-geometry')
+    mounts = plan.get('mounts')
+    check(type(mounts) is list and 1 <= len(mounts) <= 64, 'disposable-mapping-declared-mounts')
+    for mount in mounts:
+        exact(mount, ('host','child','write'))
+        check(type(mount['write']) is bool, 'disposable-mapping-mount-mode')
+        canonical(mount['host']); canonical(mount['child'])
+    bound = [mount for mount in mounts if mount['host'] == str(common)]
+    check(bound == [dict(host=str(common),child=str(common),write=True)], 'disposable-mapping-common-bind')
+    for mount in mounts:
+        if mount is bound[0]:continue
+        check(all(not (Path(raw) == common or common in Path(raw).parents or Path(raw) in common.parents)
+                  for raw in (mount['host'],mount['child'])), 'disposable-mapping-common-shadow')
+    check(plan.get('native', {}).get('roots') == [str(library)] and library in roots
+          and all(root == library or not (root == common or root in common.parents or common in root.parents)
+                  for root in roots), 'disposable-mapping-protected-library')
+    selected = select_roles(rows, roles)
+    native_worker = identities([selected['native'], selected['worker']], roles)
+    reader_state = selected['reader']['State']
+    check(reader_state['Status'] == 'running' and reader_state['Running'] is True
+          and type(reader_state['Pid']) is int and reader_state['Pid'] > 0
+          and all(reader_state[k] is False for k in ('Paused','Restarting','Dead','OOMKilled')),
+          'disposable-mapping-reader-runtime')
+    native_config = [m for m in selected['native']['Mounts'] if m.get('Destination') == '/config']
+    check(len(native_config) == 1, 'disposable-mapping-native-config')
+    state = canonical(native_config[0]['Source']).parent
+    check(state.name == 'archive-bootstrap-' + nonce and not (state == common or state in common.parents
+          or common in state.parents), 'disposable-mapping-private-state')
+    data = Path(plan['native']['data'])
+    check(data.is_absolute() and str(data) == plan['native']['data'] and '..' not in data.parts
+          and (data == Path('/config') or Path('/config') in data.parents), 'disposable-mapping-native-data')
+    expected = {'native': [(str(state/'native'), '/config', True), (str(library), str(library), True)],
+                'reader': [(str(state/'reader'), '/config', True), (str(library), str(library), False)],
+                'worker': [(str(state/'worker'), '/state', True),
+                           (str(state/'native'/data.relative_to('/config')), '/mylar', False),
+                           (str(library), '/data/comics', True)]}
+    networks = []
+    for role, row in selected.items():
+        labels = row['Config'].get('Labels', {}); host = row['HostConfig']
+        check(row['Name'] == '/archive-bootstrap-' + nonce[:16] + '-' + role
+              and labels.get('com.homelab.archive.bootstrap') == nonce
+              and labels.get('com.homelab.archive.purpose') == 'genuine-archive-fixture',
+              'disposable-mapping-original-purpose')
+        check(all(m.get('Type') == 'bind' and type(m.get('RW')) is bool for m in row['Mounts'])
+              and sorted((m['Source'], m['Destination'], m['RW']) for m in row['Mounts']) == sorted(expected[role]),
+              'disposable-mapping-exact-mounts')
+        check(not host.get('Privileged') and not host.get('Devices') and not host.get('DeviceRequests')
+              and not host.get('CapAdd') and not host.get('PortBindings')
+              and all(v == 'no-new-privileges' for v in (host.get('SecurityOpt') or []))
+              and host.get('PidMode', '') != 'host' and host.get('IpcMode', '') != 'host'
+              and not any(row['NetworkSettings'].get('Ports', {}).values()), 'disposable-mapping-isolation')
+        if role == 'worker':
+            check(host.get('NetworkMode') == 'none', 'disposable-mapping-inactive-worker-network')
+        else:
+            net = row['NetworkSettings'].get('Networks', {})
+            check(re.fullmatch('[a-f0-9]{64}', host.get('NetworkMode', '')) and len(net) == 1
+                  and next(iter(net.values())).get('NetworkID') == host['NetworkMode'],
+                  'disposable-mapping-private-network')
+            networks.append(host['NetworkMode'])
+    check(len(set(networks)) == 1, 'disposable-mapping-same-network')
+    handles = []
+    try:
+        for role, path in paths.items():
+            fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); handles.append(fd)
+            z = os.fstat(fd); observed = [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]
+            check(observed == stamp(path) and (observed == frames[role] if role == 'common_root'
+                  else all(observed[i] == frames[role][i] for i in (0,1,5,6,7))), 'disposable-mapping-original-directory')
+        check(set(os.listdir(handles[0])) == {'L', 'R'} and stamp(common) == frames['common_root'],
+              'disposable-mapping-original-namespace')
+        check(current_plan(roles) == plan, 'disposable-mapping-final-plan')
+        select_roles(rows, roles)
+        for (role, path), fd in zip(paths.items(), handles):
+            z = os.fstat(fd); observed = [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]
+            check(observed == stamp(path) and (observed == frames[role] if role == 'common_root'
+                  else all(observed[i] == frames[role][i] for i in (0,1,5,6,7))), 'disposable-mapping-final-directory')
+        check(stamp(common) == frames['common_root'] and set(os.listdir(handles[0])) == {'L', 'R'},
+              'disposable-mapping-final-namespace')
+    finally:
+        for fd in handles:os.close(fd)
+    reader = selected['reader']
+    return dict(native_worker=native_worker,
+                reader=dict(id=reader['Id'], image=reader['Image'], pid=reader['State']['Pid'], started_at=reader['State']['StartedAt']),
+                media_mounts=[dict(source=str(library), destination=str(library), rw=False)])
+
+
+def current_mapping(rows, roots, roles=None):
+    plan = None if roles is None else current_plan(roles)
+    if plan is not None and type(plan.get('version')) is int and plan['version'] == 13:
+        return disposable_archive_mapping(rows, roots, roles, plan)
+    return live_mapping(rows, roots, roles)
+
+
+def selected_library_root(mapping, roles=None):
+    plan = None if roles is None else current_plan(roles)
+    if plan is not None and type(plan.get('version')) is int and plan['version'] == 13:
+        root = plan['publication_geometry']['library']['path']
+        check(mapping['media_mounts'] == [dict(source=root, destination=root, rw=False)],
+              'disposable-mapping-selected-library')
+        return canonical(root)
+    return canonical(next(m['source'] for m in mapping['media_mounts'] if m['destination'] == '/data/comics'))
+
+
 def mount_identity(value):
     check(
         type(value) is dict
@@ -712,7 +850,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None, roles=None, host
                 DOCKER + ["inspect", *(role_ids(roles) if roles is not None else ["mylar3", "komga-comic-normalizer-1", "komga"])]
             ).stdout
         )
-        ids = live_mapping(rows, roots, roles)
+        ids = current_mapping(rows, roots, roles)
         native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
         health = fresh_native(call, native["Id"])
         pub = health['publication']
@@ -1036,7 +1174,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
                 DOCKER + ["inspect", *(role_ids(roles) if roles is not None else ["mylar3", "komga-comic-normalizer-1", "komga"])]
             ).stdout
         )
-        ids = live_mapping(rows, roots, roles)
+        ids = current_mapping(rows, roots, roles)
         native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
         health = fresh_native(call, native["Id"])
         pub = health['publication']
@@ -2123,7 +2261,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     active_lease = None
     def observe_active():
         rows = json.loads(call(DOCKER + ['inspect',*(role_ids(roles) if roles is not None else ['mylar3','komga-comic-normalizer-1','komga'])]))
-        mapping = live_mapping(rows, roots,roles)
+        mapping = current_mapping(rows, roots,roles)
         selected=select_roles(rows,roles) if roles is not None else None
         native=selected['native'] if selected is not None else next(row for row in rows if row['Name']=='/mylar3')
         mounts = [m for m in native['Mounts'] if m['Destination'] == '/config']
@@ -2196,7 +2334,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         return mount_identity(json.loads(r.stdout))
 
     core = dict(outer['probe_plan'])
-    check(canonical(core['library_root']) == canonical(next(m['source'] for m in initial['mapping']['media_mounts'] if m['destination']=='/data/comics'))
+    check(canonical(core['library_root']) == selected_library_root(initial['mapping'], roles)
           and core['expected_device'] == outer['parent_admission']['expected_device']
           and stamp(canonical(core['library_root']))[0] == core['expected_device']
           and core['mount_identity'] == outer['parent_admission']['mount_identity']

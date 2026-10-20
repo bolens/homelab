@@ -116,6 +116,13 @@ bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is
 an unproved execution prerequisite. No permission, mount or socket workaround is
 added, and the legacy root-only bootstrap entry point remains unchanged.
 
+Exact plan13 dispatch now consumes the original current-role plan/source references
+and the creator's actual canonical library path. It checks finite nonce-labelled
+profiles, images, epochs, mounts, private network and common-root custody. Legacy
+production `/data` mapping remains exact for older plans; no synthetic aliases
+or additional binds make disposable roles resemble production. This is mapping
+compatibility, not actual NFS or installed-factory proof.
+
 The complete producer still needs genuine container startup/enrollment and
 processing, task quiescence, actual source-cohort/effective-scope/NFS controls
 and plan13 production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen

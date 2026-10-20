@@ -88,6 +88,18 @@ report, output and phase-directory tuples close with inline kernel operations
 AFTER the final emit/watch/engine/deadline/helper callbacks before reader start.
 Lost ACKs or any uncertain state retain holds, with no replay or automatic repair.
 
+## Source-bound disposable plan13 mapping
+
+Only exact plan13 selects the finite disposable successor. It rereads original
+plan/source full signatures, hashes and ancestors; joins original role IDs,
+profiles, epochs and nonce-purpose labels; and requires the creator's exact
+native, reader and inactive-worker binds. The reader's mapped library remains
+its actual canonical L path, not a relabelled `/data/comics` destination.
+Original G full9, L/R directory identity, the two-child namespace and no-shadow
+common-root bind close again after callbacks. Older plans retain the unchanged
+production mapping. This observation grants no filesystem, Birth, factory or
+publication authority.
+
 ## Installation and operational gates
 
 Historical accepted admission fixtures remain build-only. The installer accepts
