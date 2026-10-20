@@ -2,7 +2,7 @@ services:
   kometa:
     labels:
       logging: "true"
-    image: kometateam/kometa:latest@sha256:c8a6b82ec7292f6e0148dc8708651ad8de4547902a38b1b78c899f463295b5c8
+    image: kometateam/kometa:latest@sha256:0309e3975174d93a02f7a33f918a49875bcf623f87ac539390b3450532781bbf
     container_name: kometa
     restart: unless-stopped
     cpus: 2.0

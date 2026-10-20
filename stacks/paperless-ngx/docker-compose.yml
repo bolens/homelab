@@ -34,7 +34,7 @@ services:
   webserver:
     labels:
       logging: "true"
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest@sha256:cb91bfb468e63025a9d10c01b54c33665113668eee61b490db96de19b860b9c4
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest@sha256:dba0242c1df1843643df4eb50ce5639f3a7900f414879088fd5bed8eaf2d456d
     container_name: paperless-ngx
     restart: unless-stopped
     depends_on:
