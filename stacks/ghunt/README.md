@@ -58,10 +58,10 @@ docker push harbor.yourdomain.com/homelab/ghunt:latest
 ```
 
 The hash-locked build checks all installed dependency metadata with
-`audit-dependencies.py`. It permits only the retained GHunt 2.3.4/Pillow 12.3.0
-pair: GHunt declares Pillow `>=10.4.0,<11`, while this image deliberately retains
-Pillow 12.3.0. This is an explicit compatibility exception, not a claim that
-upstream supports the newer Pillow. Every missing dependency and every other
+`audit-dependencies.py`. It permits only the retained GHunt 2.3.4/Pillow 13.0.0
+pair: GHunt declares Pillow `>=10.4.0,<11`, while this image uses
+Pillow 13.0.0 for its JPEG/TIFF security fixes. This is an explicit compatibility
+exception, not a claim that upstream supports the newer Pillow. Every missing dependency and every other
 conflict fails the build, including GHunt's autoslot/Rich bounds and
 alive-progress's exact about-time requirement. Updating either exception version
 requires a new review; normal clean dependency checks need no exception.
