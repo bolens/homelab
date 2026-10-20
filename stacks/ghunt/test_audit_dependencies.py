@@ -9,8 +9,8 @@ HERE = Path(__file__).parent
 SPEC = importlib.util.spec_from_file_location("ghunt_dependency_audit", HERE / "audit-dependencies.py")
 audit = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(audit)
-KNOWN = "ghunt 2.3.4 has requirement pillow<11.0.0,>=10.4.0, but you have pillow 12.3.0."
-VERSIONS = {"ghunt": "2.3.4", "pillow": "12.3.0"}
+KNOWN = "ghunt 2.3.4 has requirement pillow<11.0.0,>=10.4.0, but you have pillow 13.0.0."
+VERSIONS = {"ghunt": "2.3.4", "pillow": "13.0.0"}
 
 class DependencyAuditTests(unittest.TestCase):
     def result(self, code=1, out=KNOWN, err=""):
@@ -21,7 +21,7 @@ class DependencyAuditTests(unittest.TestCase):
 
     def test_only_exact_documented_pillow_pair_is_accepted(self):
         self.assertEqual(audit.validate(self.result(), VERSIONS), "documented-pillow-override")
-        for versions in ({"ghunt": "2.3.5", "pillow": "12.3.0"}, {"ghunt": "2.3.4", "pillow": "12.3.1"}, {}):
+        for versions in ({"ghunt": "2.3.5", "pillow": "13.0.0"}, {"ghunt": "2.3.4", "pillow": "12.3.0"}, {"ghunt": "2.3.4", "pillow": "13.0.1"}, {}):
             with self.subTest(versions=versions), self.assertRaises(audit.Refused):
                 audit.validate(self.result(), versions)
 
@@ -48,6 +48,9 @@ class DependencyAuditTests(unittest.TestCase):
         self.assertEqual(run.call_args.args[0], [audit.sys.executable, "-I", "-B", "-m", "pip", "check"])
         self.assertTrue(run.call_args.kwargs["capture_output"])
         self.assertEqual(run.call_args.kwargs["timeout"], 30)
+
+    def test_regeneration_override_matches_exact_reviewed_pillow(self):
+        self.assertEqual((HERE / "requirements.override").read_text(), "pillow==13.0.0\n")
 
     def test_image_runs_audit_after_install_and_context_allows_only_own_script(self):
         text = (HERE / "Dockerfile").read_text()
