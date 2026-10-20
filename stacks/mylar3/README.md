@@ -1488,6 +1488,11 @@ permissions alone do not exclude same-UID/root actors, and NFS has no conditiona
 unlink-by-inode guarantee after the last CAS. Every link/unlink phase is durable;
 uncertainty retains both revisions and holds without automatic restoration or
 replay. This adds no permanent service mount, port, setting or privilege.
+The exact plan13 disposable mapping verifies original role references and the
+creator's canonical library path rather than requiring production `/data`
+mounts. Legacy production mapping stays unchanged. This source compatibility
+check adds no permanent mounts, ports, settings or operational admission.
+
 The explicit disposable application bootstrap can initialize original fresh Mylar
 state and request Komga library scans, ordered-page verification and progress
 checks. It requires original private nonce-labelled containers, accepted images,

@@ -21,6 +21,7 @@ from unittest.mock import patch
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
 import genuine_bootstrap_creator as c
+import genuine_reader_quiescence as q
 
 CONFIG_KEYS=('API_ENABLED API_KEY HTTP_PORT HTTP_ROOT ENABLE_HTTPS DESTINATION_DIR CACHE_DIR DDL_LOCATION CHECK_FOLDER LOG_DIR SECURE_DIR BACKUP_LOCATION ENABLE_META RENAME_FILES ENABLE_PRE_SCRIPTS ENABLE_EXTRA_SCRIPTS FILE_OPTS ENFORCE_PERMS CHMOD_FILE CHMOD_DIR POST_PROCESSING ENABLE_CHECK_FOLDER ENABLE_TORRENTS').split()
 
@@ -71,6 +72,10 @@ class DriverDouble:
         if args[0]=='restart':
             self.ready=True;row=self.rows[args[-1]];row['State'].update(Pid=456,StartedAt='restarted');return args[-1].encode()
         if args[0]=='exec' and args[-2:]==['sha256sum',c.JAR]:return (c.JAR_SHA+'  '+c.JAR+'\n').encode()
+        if args[0]=='exec' and 'reader_queue'in o.raw and args[9]==o.raw['reader_queue'].decode():
+            if self.fail=='queue':raise c.p.Held('injected-queue-response-lost')
+            q.request(c.p.decode(data))
+            return c.p.encode(dict(queue_empty_observed=True,zero_events=2,separation_ms=10000,elapsed_ms=11000,frames=2,lines=6,bytes=140))
         if args[0]=='exec' and args[9]==c.ENROLL_PROGRAM:
             value=c.p.decode(data);operation=value['operation']
             if self.fail=='enroll-'+operation:raise c.p.Held('injected-enrollment-reply-lost')
@@ -120,6 +125,62 @@ class CreatorTests(unittest.TestCase):
         owner=c.Creator(self.document,driver=driver);driver.owner=owner;owner.config_source=self.config_source;owner.service_source=self.service_source
         self.addCleanup(lambda:c.p.close_common_root(owner.geometry)if owner.geometry is not None else None)
         return owner,driver
+    def queue_call(self,owner):
+        args=['exec','--interactive','--user','1000:1000',owner.engine.ids['native'],'/lsiopy/bin/python3','-I','-B','-c',
+              (HERE/'genuine_reader_quiescence.py').read_text(),'--disposable-reader-queue-v1',owner.nonce,owner.engine.ids['native']]
+        value=dict(version=1,nonce=owner.nonce,native_cid=owner.engine.ids['native'],base='http://'+owner.reader_host+':25600',key=owner.reader_key,seconds=30)
+        return args,value
+    def test_v1_source_schema_and_engine_refuse_queue_extension(self):
+        owner,driver=self.creator();owner.prepare();args,value=self.queue_call(owner);before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'undeclared-creator-program'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before)
+        document=copy.deepcopy(self.document);document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        with self.assertRaisesRegex(c.p.Held,'source-closure'):c.Creator(document,driver=driver)
+    def test_v2_requires_exact_helper_source_before_directories_or_engine(self):
+        self.document['version']=2
+        with self.assertRaisesRegex(c.p.Held,'source-closure'):self.creator()
+        self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py');self.document['sources']['reader_queue']['sha256']='0'*64
+        with self.assertRaises(c.p.Held):self.creator()
+    def test_v2_one_readonly_queue_call_and_two_exact_jar_reads(self):
+        self.document['version']=2;self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        owner,driver=self.creator();owner.prepare();args,value=self.queue_call(owner)
+        result=c.p.decode(owner.engine.run(args,30,c.p.encode(value)))
+        self.assertTrue(result['queue_empty_observed']);before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'call-budget'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before)
+        jar=['exec','--user','1000:1000',owner.engine.ids['reader'],'sha256sum',c.JAR]
+        for _ in range(2):self.assertIn(c.JAR_SHA.encode(),owner.engine.run(jar,30))
+        with self.assertRaisesRegex(c.p.Held,'call-budget'):owner.engine.run(jar,30)
+        self.assertEqual(owner.engine.started,{'native','reader'});self.assertFalse(owner.engine.poisoned)
+        self.assertFalse(any(call[0]in ('rm','stop')for call in driver.calls))
+    def test_v2_wrong_queue_origin_key_selector_or_program_never_reaches_driver(self):
+        self.document['version']=2;self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        owner,driver=self.creator();owner.prepare();args,value=self.queue_call(owner);before=len(driver.calls)
+        for change in ({'base':'http://foreign:25600'},{'key':'PRIVATE-FOREIGN'},{'native_cid':'f'*64},{'nonce':'f'*64}):
+            with self.assertRaises((c.p.Held,q.Held)):owner.engine.run(args,30,c.p.encode(dict(value,**change)))
+        for index,changed in ((9,'print("foreign")'),(4,owner.engine.ids['reader']),(-1,'f'*64)):
+            alternate=list(args);alternate[index]=changed
+            with self.assertRaises(c.p.Held):owner.engine.run(alternate,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before)
+    def test_v2_unknown_readonly_reply_is_not_replayed_or_upgraded(self):
+        self.document['version']=2;self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        owner,driver=self.creator();owner.prepare();args,value=self.queue_call(owner);driver.fail='queue'
+        with self.assertRaises(c.p.Held):owner.engine.run(args,30,c.p.encode(value))
+        before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'call-budget'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before);self.assertFalse(owner.engine.poisoned)
+    def test_v2_original_bootstrap_constructor_receives_bound_helper_without_grants(self):
+        self.document['version']=2;self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        owner,_=self.creator();observed=[]
+        def boundary(session,**options):
+            self.assertIs(type(session),c.b.Bootstrap);session.queue_originals();observed.append(options)
+            # Source forwarding only; genuine startup/processing is not run.
+            c.p.close_common_root(session.geometry)
+            return dict(boundary_double=True)
+        with patch.object(c.b.Bootstrap,'execute',boundary):result=owner.execute()
+        self.assertEqual(observed,[dict(native_catalog_helper=self.document['sources']['catalog_helper'],reader_queue_helper=self.document['sources']['reader_queue'])])
+        for key in ('installed_factories_verified','publication_acceptance','actual_nfs_verified','ordinary_ack_verified',
+                    'birth_verified','mutation_authority','reader_resume_authority','automatic_replay'):self.assertIs(result[key],False)
     def test_default_run_and_cli_refuse_before_engine_or_files(self):
         with patch.object(c,'Creator',side_effect=AssertionError('creator called')),self.assertRaises(c.p.Held):c.run(None)
         result=subprocess.run([sys.executable,'-I','-B',str(HERE/'genuine_bootstrap_creator.py')],capture_output=True,timeout=10)

@@ -421,3 +421,17 @@ The later `435d5f2` candidate adds the independently reviewed finite disposable 
 PR #405 merges normally as `6dbbb33527136ca44dfaf986105efd0a4baba764`. Its tree exactly matches the independently reviewed `435d5f2` candidate. All seven required checks pass; the complete check inventory is 41 successes and the expected Spec Kit update skip. Final paginated feedback and security review have no unresolved findings. The SHA-256 artifact-integrity finding is dismissed as a false positive only after independent review of all four flows: complete private JSON artifacts are checked against original references; passwords are not authenticated with that digest. The checksum remains intact and the CodeQL check passes without a rerun or waiver.
 
 GitHub main, eligible local main and the configured mirror are synchronized to this merge. The matching main image publication is running. No image pull, service restart, import, ACK or new cache payload ran for this source delivery; actual publication/source proof, installed execution and fresh protected rollout remain required. The permanent worker remains inactive at the last verified live baseline. The separate next mapping batch passes 769 native and 1,094 recovery controls, but remains draft source rather than installed or live acceptance.
+
+
+## Published worker installed-runtime checks — 2026-10-20
+
+The worker image published from PR [#405](https://github.com/bolens/homelab/pull/405), merge [6dbbb335](https://github.com/bolens/homelab/commit/6dbbb33527136ca44dfaf986105efd0a4baba764), passes isolated installed-runtime verification with exit code zero. All 42 expected modules have canonical `/app` origins and shared types, with no source overlay. The selected pack/import collection runs 168 controls on Python 3.13.5 with zero skips; this is not a repeated full-suite result. Publication provenance and the independently inspected local image identity join the same main commit.
+
+These controls use disposable fixtures. No configured import, ACK, canary retry, worker activation or adoption ran. Genuine installed factories, actual NFS, selected retained-pack import, a later automatically consumed capture, restart reconciliation and fresh ACK remain required. All four canary histories and uncertain outcomes stay retained; recurring recovery remains unaccepted.
+
+
+## Native image proof and harness refusal — 2026-10-20
+
+The PR #405 Mylar publication passes trusted main CI and exact source/context provenance checks. Its immutable image is pulled and independently identified. Isolated source capture verifies all 180 expected native files and three authentication files; the separate installed cohort passes canonical source/origin/type checks.
+
+The 198-component stage remains unaccepted. Its first attempt exposes two fixture problems: independently constructed fake application modules are collected into one process, and canonical-file guards reject symlinked fixture sources. Targeted old/fresh-process and alias/regular-copy reproductions establish both causes without changing production code or assertions. A separately reviewed successor isolates all 17 selectors and labels byte-copy execution separately from canonical installed proof. Its publication selector passes all 114 assertions, then private-copy metadata closure refuses. That drift must be diagnosed before accepting another successor; the original image/source checks are retained. No native rollout, canary import, ACK, service restart or application-data change occurs in these isolated attempts.

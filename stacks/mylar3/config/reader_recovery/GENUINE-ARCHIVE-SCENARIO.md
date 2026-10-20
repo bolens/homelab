@@ -116,9 +116,40 @@ bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is
 an unproved execution prerequisite. No permission, mount or socket workaround is
 added, and the legacy root-only bootstrap entry point remains unchanged.
 
+Exact plan13 dispatch now consumes the original current-role plan/source references
+and the creator's actual canonical library path. It checks finite nonce-labelled
+profiles, images, epochs, mounts, private network and common-root custody. Legacy
+production `/data` mapping remains exact for older plans; no synthetic aliases
+or additional binds make disposable roles resemble production. This is mapping
+compatibility, not actual NFS or installed-factory proof.
+
 The complete producer still needs genuine container startup/enrollment and
 processing, task quiescence, actual source-cohort/effective-scope/NFS controls
 and plan13 production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
 fixtures do not satisfy this requirement. No actual NFS syscall or application
 operation ran for this source batch. Actual selected-image factory, terminal,
 worker and ACK execution remain separate required gates.
+
+
+## Original reader task observation
+
+`genuine_reader_quiescence.py` observes the pinned Komga 1.28.1 administrator
+event stream through the original native role. Creator input version2 binds
+this helper explicitly and permits one bounded read-only stream request; version1
+keeps its original source set and behavior. Bootstrap invokes the optional
+observer after reader book/page/progress checks while its original session and
+common-root handles remain live. Role, process, credential, library, source and
+reader-JAR checks bracket the observation.
+
+The observer requires two complete zero-count `TaskQueueStatus` events at least
+eight seconds apart on one connection, within a total 30-second deadline.
+Positive counts or mutation events reset the interval. Partial, malformed,
+oversized, silent, redirected or disconnected streams refuse. Heartbeats provide
+no empty-queue evidence. Credentials remain in private stdin and never appear
+in output. There is no tasks-list GET or DELETE fallback.
+
+The result reports only `queue_empty_observed`. It excludes no future scheduler
+work and grants no quiescence, stop, resume, publication, import or ACK authority.
+Actual stopped-reader state, the original Writer and final task-database checks
+remain separate Parent prerequisites. Focused transport/session fixtures do not
+prove genuine application or NFS execution.
