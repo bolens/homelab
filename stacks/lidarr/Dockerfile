@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
         --filter "FullyQualifiedName~AlbumDistanceFixture|FullyQualifiedName~AlbumUpgradeSpecificationFixture" \
         --logger "console;verbosity=minimal"
 
-FROM lscr.io/linuxserver/lidarr@sha256:67887807b13ae025c0fe979da298347c8609969087ab064c81d8e9acc1e06bbf
+FROM lscr.io/linuxserver/lidarr@sha256:985aa3dd452e6bee903f3c913fdb27a152450f9c6f9a6dc48691ab510ba87fe6
 
 COPY --from=patch-build /src/_output/net8.0/Lidarr.Core.dll /app/lidarr/bin/Lidarr.Core.dll
 
