@@ -101,6 +101,11 @@ Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not
 verify the inner Python-source census; run the source-copy semantic check before
 starting the expensive native image gate.
+For isolated Python component checks, `-I` child interpreters ignore environment-only
+bytecode suppression. Make exact regular private fixture copies read-only before
+their first metadata witness so imports cannot create bytecode there. Keep full
+source metadata and canonical `/app` checks intact; label private-copy execution
+separately from installed-source proof, without changing `__file__` or waiving guards.
 Komga 1.29 introduces independently configurable session SQLite state through
 `sessionsDb.file` and JDBC sessions enabled by its Docker defaults. Inventory all
 configuration databases and journal companions for an update. A fixed five-role
@@ -147,6 +152,13 @@ prove a reader permission or DTO failure. Check the owning transport context
 before repeating full source captures. Retain only fixed error types, numeric
 network codes and trusted source locations in shared diagnostics; keep addresses
 and responses private.
+An image-only recreation can change labels inherited from the old and new
+images, including build and OCI revision labels. Derive those exact changes
+from original immutable image metadata and protect explicit Compose overrides,
+including overrides equal to an old image default. Keep independent prospective
+Compose model/hash and platform-label bindings; do not ignore label keys or
+compare the runtime labels only after the update. Preserve every unrelated
+runtime field and original data check.
 For performance fixes, measure the complete owning path with a representative
 fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
