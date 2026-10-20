@@ -102,9 +102,23 @@ is insufficient. This fixture seed is not provider metadata import or ordinary
 import acknowledgement. Host tests explicitly double transport and grant no
 genuine daemon or connected-factory acceptance.
 
-The complete producer still needs original disposable container/account creation,
-task quiescence, actual source-cohort/effective-scope/NFS controls and plan13
-production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
+The opt-in `genuine_bootstrap_creator.py` adds a UID1000 actor with a finite
+Polkit Docker adapter. It creates three original labelled disposable roles and
+one internal network, starts only native and reader, enrolls the pinned Komga
+1.28.1 first administrator and API key, then invokes the original bootstrap and
+native-catalog stages. The worker stays Created. Exact images, source references,
+an original dedicated NFS scratch parent and a reviewed image/DATA contract are
+inputs. The creator never guesses the DATA directory or adopts prior resources.
+Unknown mutation replies retain evidence and refuse replay or automatic cleanup.
+
+UID1000 host access does not prove the root Docker daemon can resolve direct
+bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is
+an unproved execution prerequisite. No permission, mount or socket workaround is
+added, and the legacy root-only bootstrap entry point remains unchanged.
+
+The complete producer still needs genuine container startup/enrollment and
+processing, task quiescence, actual source-cohort/effective-scope/NFS controls
+and plan13 production. Minimal component BOOK/MEDIA schemas and patched SDK/Parent/Popen
 fixtures do not satisfy this requirement. No actual NFS syscall or application
 operation ran for this source batch. Actual selected-image factory, terminal,
 worker and ACK execution remain separate required gates.

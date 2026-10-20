@@ -18,6 +18,7 @@ sys.path.insert(0,str(HERE))
 import genuine_native_catalog_helper as h
 import genuine_native_catalog as c
 import genuine_archive_fixture as f
+import genuine_archive_fixture_legacy as legacy_fixture
 import genuine_bootstrap_http as http
 
 
@@ -112,9 +113,16 @@ class Transactions(unittest.TestCase):
 
 class Contracts(unittest.TestCase):
     def test_default_fixture_bytes_and_explicit_distinct_metadata(self):
-        # Frozen pre-change output digest, computed from the legacy fixture.
-        expected=('dd3f015a4b24679b6fa2bd5686ae7c50e41c1743eb81abbf9f3386ab01a972ac','627bb4260a155eb37884c1d700af0abdae352010d90777f0b86489b02d7d8ee0')
-        self.assertEqual((hashlib.sha256(f.archive()).hexdigest(),hashlib.sha256(f.archive(unrelated=True)).hexdigest()),expected)
+        # Exact pre-identity source from dea6810, evaluated in this runtime.
+        # ZIP/PNG bytes vary across Python/zlib builds; defaults must still match
+        # the unchanged legacy builder byte for byte within each runtime.
+        self.assertEqual(hashlib.sha256(Path(legacy_fixture.__file__).read_bytes()).hexdigest(),
+                         'f11083d2c43fb3b6e38d757ba57c410bdc1eaa0e9bf2505e04f160870c775fbd')
+        for malformed in (False, True):
+            for unrelated in (False, True):
+                with self.subTest(malformed=malformed, unrelated=unrelated):
+                    self.assertEqual(f.archive(malformed=malformed, unrelated=unrelated),
+                                     legacy_fixture.archive(malformed=malformed, unrelated=unrelated))
         for title in h.SERIES:
             with zipfile.ZipFile(io.BytesIO(f.archive(identity=(title,2,2024))))as archive:
                 xml=archive.read('ComicInfo.xml');self.assertIn(('<Series>'+title+'</Series>').encode(),xml);self.assertIn(b'<Number>2</Number><Year>2024</Year>',xml)
