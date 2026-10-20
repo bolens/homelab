@@ -6,7 +6,7 @@
 # syntax=docker/dockerfile:1
 # Keep both stages on Python 3.13 until the bootstrap and upstream locks support
 # Python 3.14; backports-zstd currently requires Python <3.14.
-FROM python:3.14-slim-bookworm@sha256:48b13b003dda20b16f9442b8475aa05fe21bf6579a8c881db92ffb4d8fd20f83 AS builder
+FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e AS builder
 
 WORKDIR /app
 
@@ -35,7 +35,7 @@ RUN poetry config virtualenvs.create false \
 
 RUN sed -i 's/headless=False/headless=True/g' main.py
 
-FROM python:3.14-slim-bookworm@sha256:48b13b003dda20b16f9442b8475aa05fe21bf6579a8c881db92ffb4d8fd20f83
+FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e
 
 ENV PATH=/opt/venv/bin:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright

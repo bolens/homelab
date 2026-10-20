@@ -1,5 +1,5 @@
 # Dissect target 3.25.1 requires CPython 3.13 pathlib/glob internals.
-FROM python:3.14-slim-bookworm@sha256:48b13b003dda20b16f9442b8475aa05fe21bf6579a8c881db92ffb4d8fd20f83
+FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e
 
 WORKDIR /app
 

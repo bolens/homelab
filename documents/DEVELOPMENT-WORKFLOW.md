@@ -193,6 +193,14 @@ Actions are pinned to immutable commit SHAs. Dependabot proposes grouped,
 reviewed updates for Actions, Dockerfiles, Compose images, and the root npm
 manifest. Those managers are disabled in Renovate to prevent duplicate pull
 requests; Renovate remains available for other supported dependency types.
+Dockerfile update directories are listed explicitly and checked for complete,
+non-overlapping coverage. Acquire and Privotron stay on Python 3.13 until their
+application locks support a newer runtime; their separate update group still
+receives digest refreshes. AIL's native builder stays on Ubuntu 22.04, enforced by
+the custom-image contract test. The interim Ubuntu 25.10 release is explicitly
+ignored; this does not suppress other stacks' selected Ubuntu 26.04 digest
+updates. Treat runtime migrations as reviewed application changes.
+
 Security-reporting workflows grant
 `security-events: write` only to jobs that upload results; other workflows and
 jobs retain read-only or empty default permissions.
