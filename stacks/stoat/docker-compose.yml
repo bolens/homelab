@@ -157,7 +157,7 @@ services:
   api:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/api:v0.16.1
+    image: ghcr.io/stoatchat/api:v0.16.2
     container_name: stoat-api
     restart: unless-stopped
     env_file:
@@ -188,7 +188,7 @@ services:
   events:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/events:v0.16.1
+    image: ghcr.io/stoatchat/events:v0.16.2
     container_name: stoat-events
     restart: unless-stopped
     env_file:
@@ -217,7 +217,7 @@ services:
   autumn:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/file-server:v0.16.1
+    image: ghcr.io/stoatchat/file-server:v0.16.2
     container_name: stoat-autumn
     restart: unless-stopped
     env_file:
@@ -246,7 +246,7 @@ services:
   january:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/proxy:v0.16.1
+    image: ghcr.io/stoatchat/proxy:v0.16.2
     container_name: stoat-january
     restart: unless-stopped
     env_file:
@@ -270,7 +270,7 @@ services:
   gifbox:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/gifbox:v0.16.1
+    image: ghcr.io/stoatchat/gifbox:v0.16.2
     container_name: stoat-gifbox
     restart: unless-stopped
     env_file:
@@ -294,7 +294,7 @@ services:
   crond:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/crond:v0.16.1
+    image: ghcr.io/stoatchat/crond:v0.16.2
     container_name: stoat-crond
     restart: unless-stopped
     env_file:
@@ -323,7 +323,7 @@ services:
   pushd:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/pushd:v0.16.1
+    image: ghcr.io/stoatchat/pushd:v0.16.2
     container_name: stoat-pushd
     restart: unless-stopped
     env_file:
@@ -354,7 +354,7 @@ services:
   voice-ingress:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/voice-ingress:v0.16.1
+    image: ghcr.io/stoatchat/voice-ingress:v0.16.2
     container_name: stoat-voice-ingress
     restart: unless-stopped
     env_file:
