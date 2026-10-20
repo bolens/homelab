@@ -159,6 +159,11 @@ including overrides equal to an old image default. Keep independent prospective
 Compose model/hash and platform-label bindings; do not ignore label keys or
 compare the runtime labels only after the update. Preserve every unrelated
 runtime field and original data check.
+Do not equate an inherited OCI `revision` label with the repository commit.
+A child Dockerfile may preserve the upstream base revision. Bind the repository
+commit through the reviewed source proof and publisher provenance, and join
+runtime labels to the exact index, platform manifest and OCI configuration.
+Keep those digest roles distinct and protect explicit Compose label overrides.
 For performance fixes, measure the complete owning path with a representative
 fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
