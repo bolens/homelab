@@ -57,6 +57,17 @@ docker build -t harbor.yourdomain.com/homelab/ghunt:latest .
 docker push harbor.yourdomain.com/homelab/ghunt:latest
 ```
 
+The hash-locked build checks all installed dependency metadata with
+`audit-dependencies.py`. It permits only the retained GHunt 2.3.4/Pillow 12.3.0
+pair: GHunt declares Pillow `>=10.4.0,<11`, while this image deliberately retains
+Pillow 12.3.0. This is an explicit compatibility exception, not a claim that
+upstream supports the newer Pillow. Every missing dependency and every other
+conflict fails the build, including GHunt's autoslot/Rich bounds and
+alive-progress's exact about-time requirement. Updating either exception version
+requires a new review; normal clean dependency checks need no exception.
+Verify image imports, CLI behavior and image-related processing before deployment.
+No authenticated Google requests are made by the dependency audit.
+
 Set `GHUNT_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
 
 ## Configuration
