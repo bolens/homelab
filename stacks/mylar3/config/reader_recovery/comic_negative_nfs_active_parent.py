@@ -1518,9 +1518,9 @@ def checked_library_documents(documents):
     return user, libraries
 
 
-def map_library_documents(documents, rows, expected_roots):
+def map_library_documents(documents, rows, expected_roots, *, roles=None):
     user, libraries = checked_library_documents(documents)
-    komga = next(r for r in rows if r['Name'] == '/komga')
+    komga = select_roles(rows,roles)['reader'] if roles is not None else next(r for r in rows if r['Name'] == '/komga')
     mapped = set()
     for value in libraries:
         raw = value['root']
@@ -1541,7 +1541,7 @@ def map_library_documents(documents, rows, expected_roots):
 
 
 
-def fresh_libraries(query_plan, rows, controls, expected_roots, *, library_observer=None):
+def fresh_libraries(query_plan, rows, controls, expected_roots, *, library_observer=None, roles=None):
     exact(query_plan, ('version', 'kind', 'configuration', 'expected_base_url'))
     check(type(query_plan['version']) is int and query_plan['version'] == 1
           and query_plan['kind'] == 'approved-active-komga-library-query', 'query-plan')
@@ -1565,7 +1565,7 @@ def fresh_libraries(query_plan, rows, controls, expected_roots, *, library_obser
               and reply['native_grant'] is False and reply['publication_authority'] is False,
               'original-host-library-query-reply')
         documents = reply['documents']
-    return map_library_documents(documents, rows, expected_roots)
+    return map_library_documents(documents, rows, expected_roots,roles=roles)
 
 
 def lifecycle_module():
@@ -2162,7 +2162,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
             observed['publication']['state'] == 'held'
             and observed['publication']['reason'] == 'writer-busy'
             and observed['publication']['census'] is None)
-    libraries = fresh_libraries(query_plan, rows, controls, roots,library_observer=library_observer)
+    libraries = fresh_libraries(query_plan, rows, controls, roots,library_observer=library_observer,roles=roles)
     check(same_active(observe_active()[0]), 'active-library-query-bracket')
     ancestors = ancestry([*controls, output, *roots])
     check(all(ancestors.get(p) == v for p, v in admission.items() if p in ancestors), 'active-evidence-ancestor-drift')
@@ -2237,7 +2237,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     lease.pulse()
     if not gated:
         check(same_active(observe_active()[0]),'post-probe-active-bracket')
-        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer)==libraries,'post-probe-library-scopes-unchanged')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer,roles=roles)==libraries,'post-probe-library-scopes-unchanged')
     fixture = canonical(parent['path']) / core['fixture_name']
     accepted, af = read(output / 'probe' / 'acceptance.json', result['acceptance_sha256'])
     controls[output / 'probe' / 'acceptance.json'] = af
@@ -2280,7 +2280,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         check(type(result) is dict and result['probe_verified'] is True
               and result['acceptance_sha256']==pending['acceptance_sha256'],'postrelease-original-probe-terminal')
         check(same_active(observe_active()[0]),'postrelease-original-active-bracket')
-        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer)==libraries,'postrelease-original-library-scopes')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer,roles=roles)==libraries,'postrelease-original-library-scopes')
     controls.update(getattr(lease, 'records', {}))
     accepted_operation = emit('active-acceptance.json', {
         'version': 1, 'kind': 'active-owned-disposable-nfs-acceptance',

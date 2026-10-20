@@ -19,7 +19,7 @@ import threading
 import time
 from urllib.parse import unquote,urlsplit
 import weakref
-_KEY=object();_SEALS=weakref.WeakKeyDictionary();_PIPE_SEALS=weakref.WeakKeyDictionary();_WRITER_PIPE=weakref.WeakKeyDictionary()
+_KEY=object();_SEALS=weakref.WeakKeyDictionary();_PIPE_SEALS=weakref.WeakKeyDictionary();_WRITER_PIPE=weakref.WeakKeyDictionary();_ARCHIVE_PUBLICATION=weakref.WeakKeyDictionary();_ARCHIVE_PUBLICATION_ORIGINALS=weakref.WeakKeyDictionary()
 BIRTH_SOURCE=Path('/app/mylar3/mylar/publication_native_scope_birth.py')
 MAX=64*1024**2
 FRAME_MAX=1024**2
@@ -93,10 +93,12 @@ class ParentPipe:
    z=os.fstat(descriptor)
    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('lifecycle-original-pipe-FD')
   return expected
- def challenge(self,nonce,input_sha,parent_sha,writer_session=None):
+ def challenge(self,nonce,input_sha,parent_sha,writer_session=None,*,archive_publication=None):
   original=self.binding();self.seq+=1;token=secrets.token_hex(32)
   message=dict(protocol='reader-lifecycle-pipe-v1',type='challenge',nonce=nonce,input_sha256=input_sha,parent_sha256=parent_sha,sequence=self.seq,challenge=token)
+  require(writer_session is None or archive_publication is None,'lifecycle-no-publication-request-under-writer')
   if writer_session is not None:message['writer_session']=copy.deepcopy(writer_session)
+  if archive_publication is not None:message['archive_publication']=copy.deepcopy(archive_publication)
   raw=encoded(message)+b'\n'
   count=0
   while count<len(raw):count+=os.write(self.output,raw[count:])
@@ -105,7 +107,9 @@ class ParentPipe:
    require(time.monotonic()<end and len(buf)<FRAME_MAX,'lifecycle-pipe-bound')
    ready=select.select([self.input],[],[],max(0,end-time.monotonic()))[0];require(bool(ready),'lifecycle-parent-unavailable')
    b=os.read(self.input,1);require(bool(b),'lifecycle-parent-closed');buf.extend(b)
-  value=decoded(buf);base={'protocol','type','sequence','challenge','nonce','input_sha256','parent_sha256','reader','child_source_sha256','child_image'};require(set(value) in ((base,base|{'native','worker','child_mounts'}) if writer_session is None else (base|{'native','worker','child_mounts','writer_session'},)),'lifecycle-pipe-schema')
+  value=decoded(buf);base={'protocol','type','sequence','challenge','nonce','input_sha256','parent_sha256','reader','child_source_sha256','child_image'}
+  shapes=((base|{'native','worker','child_mounts','archive_publication'},) if archive_publication is not None else ((base,base|{'native','worker','child_mounts'}) if writer_session is None else (base|{'native','worker','child_mounts','writer_session'},)))
+  require(set(value) in shapes,'lifecycle-pipe-schema')
   if writer_session is not None:require(value['writer_session']==writer_session,'lifecycle-writer-session-response')
   require(value['protocol']=='reader-lifecycle-pipe-v1' and value['type']=='observation' and value['sequence']==self.seq and value['challenge']==token and value['nonce']==nonce and value['input_sha256']==input_sha and value['parent_sha256']==parent_sha,'lifecycle-pipe-response')
   require(self.binding()==original,'lifecycle-pipe-descriptor-CAS')
@@ -149,6 +153,26 @@ class StoppedReaderCustody:
     require(p not in self.nodes or self.nodes[p]==v,'lifecycle-birth-node-conflict');self.nodes[p]=copy.deepcopy(v)
    passive(copy.deepcopy(birth_files),copy.deepcopy(birth_nodes))
   self.core=self._core();_SEALS[self]=self.core;self.observed=None;self.revalidate_stopped();self.vectors()
+ def archive_publication(self,scope):
+  """One original NFS strategy observation before Writer, over the same pipe."""
+  require(self not in _WRITER_PIPE and self not in _ARCHIVE_PUBLICATION,'lifecycle-publication-before-writer-one-use')
+  module=importlib.import_module('mylar.publication_native_configured_scope')
+  require(type(scope) is module.NativeConfiguredScope and scope._custody is self,'lifecycle-publication-exact-scope')
+  self.revalidate_stopped();scope.revalidate();expected=_SEALS.get(self);self._sealed(expected)
+  response=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha,archive_publication={'version':1,'protocol':'rename-link-v1'})
+  facts=response['archive_publication'];binding=scope.binding
+  require(type(facts) is dict and set(facts)=={'version','protocol','nonce','input_sha256','parent_sha256','owner','operation_id','library','mount','device','geometry','execution_authority','publication_acceptance'},'lifecycle-publication-facts-schema')
+  require(type(facts['version']) is int and facts['version']==1 and facts['protocol']=='rename-link-v1' and facts['nonce']==self.nonce and facts['input_sha256']==self.input_sha and facts['parent_sha256']==self.parent_sha and facts['owner']==self.invocation['owner'] and facts['operation_id']==self.invocation['operation_id'],'lifecycle-publication-invocation')
+  require(facts['library']==binding['host_scopes']['library'] and type(facts['mount']) is dict and set(facts['mount'])=={'source','target','fstype','fsroot','options','maj:min'} and facts['mount']['fstype']=='nfs4' and type(facts['device']) is int and facts['device']>0 and all(facts[k] is False for k in ('execution_authority','publication_acceptance')),'lifecycle-publication-original-nfs-geometry')
+  require(self.invocation.get('publication_protocol')=='rename-link-v1' and self.invocation.get('version')==3,'lifecycle-publication-explicit-source-policy')
+  require(module.observed_native(response['native'])==scope._native and module.observed_worker(response['worker'])==scope._worker and response['child_mounts']==scope._mounts,'lifecycle-publication-original-native-scope')
+  self._sealed(expected);passive(copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent))
+  record=(scope,encoded(facts));_ARCHIVE_PUBLICATION[self]=record;_ARCHIVE_PUBLICATION_ORIGINALS[self]=record;return copy.deepcopy(facts)
+ def archive_publication_original(self,scope):
+  record=_ARCHIVE_PUBLICATION.get(self);require(record is not None and record[0] is scope,'lifecycle-publication-original-record')
+  expected=_SEALS.get(self);self._sealed(expected);self.revalidate_stopped();scope.revalidate()
+  result=decoded(record[1]);require(_ARCHIVE_PUBLICATION.get(self) is record,'lifecycle-publication-original-after-callback')
+  self._sealed(expected);passive(copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent));return result
  def writer_enter(self,scope,binding):
   require(self not in _WRITER_PIPE,'lifecycle-no-active-writer-session')
   module=importlib.import_module('mylar.publication_native_configured_scope')
@@ -171,6 +195,7 @@ class StoppedReaderCustody:
   passive(copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent));_WRITER_PIPE.pop(self,None)
  def _core(self):return hashlib.sha256(encoded(dict(command=self.command,paths=[str(self.input),str(self.control),str(self.config_root),str(self.main),str(self.tasks),str(self.restore_root),str(self.scratch)],deadline=self.deadline,backup_manifest=self.backup_manifest,backup_acceptance=self.backup_acceptance,input_sha=self.input_sha,nonce=self.nonce,parent_sha=self.parent_sha,thread=self.thread,channel=id(self.channel),channel_seal=self.channel_seal,reader=self.reader,invocation=self.invocation,proofs=self.proofs,files={str(p):v for p,v in self.files.items()},reader_files={str(p):v for p,v in self.reader_files.items()},nodes={str(p):v for p,v in self.nodes.items()},absent=list(map(str,self.absent)),reader_absent=list(map(str,self.reader_absent))))).hexdigest()
  def _sealed(self,expected):
+  if self in _ARCHIVE_PUBLICATION_ORIGINALS:require(_ARCHIVE_PUBLICATION.get(self) is _ARCHIVE_PUBLICATION_ORIGINALS[self],'lifecycle-publication-original-seal')
   require(self.channel.binding()==self.channel_seal,'lifecycle-original-channel')
   require(expected is not None and self._core()==self.core==_SEALS.get(self)==expected and threading.get_ident()==self.thread and time.monotonic()<self.deadline,'lifecycle-custody-lifetime')
  def revalidate_stopped(self):
@@ -644,7 +669,7 @@ def bind_archive_terminal_originals(custody,scope,cap):
    raise Held('archive-terminal-final-original-custody')
   if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
-  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
   while pending:
       value=pending.pop();kind=type(value)
@@ -761,7 +786,7 @@ def archive_terminal_original_vectors(custody,scope,cap):
    raise Held('archive-terminal-final-original-custody')
   if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
-  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
   while pending:
       value=pending.pop();kind=type(value)
@@ -934,7 +959,7 @@ def archive_terminal_release(custody,scope,cap,refs):
    raise Held('archive-terminal-final-original-custody')
   if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
-  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
   while pending:
       value=pending.pop();kind=type(value)
@@ -1072,7 +1097,7 @@ def consume_archive_terminal_release(witness,custody,scope,cap):
    raise Held('archive-terminal-final-original-custody')
   if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
-  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
   while pending:
       value=pending.pop();kind=type(value)

@@ -20,6 +20,20 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(reopened.get('command','abc')['phase'],'queued')
         self.assertEqual(reopened.events(issueid='10')[0]['outcome'],'Started')
         self.assertEqual((Path(self.tmp.name)/'workflow.sqlite').stat().st_mode&0o777,0o600)
+    def test_reads_preserve_metadata_and_permissions_are_still_repaired(self):
+        path=Path(self.tmp.name)/'workflow.sqlite'
+        self.store.set('policy','current',{'enabled':True})
+        before=path.stat()
+        with patch('workflow_store.os.fchmod', wraps=os.fchmod) as chmod:
+            self.assertEqual(self.store.get('policy','current'),{'enabled':True})
+            chmod.assert_not_called()
+        after=path.stat()
+        self.assertEqual((before.st_ino,before.st_mtime_ns,before.st_ctime_ns),
+                         (after.st_ino,after.st_mtime_ns,after.st_ctime_ns))
+        path.chmod(0o644)
+        self.assertEqual(self.store.get('policy','current'),{'enabled':True})
+        self.assertEqual(path.stat().st_mode&0o7777,0o600)
+
     def test_retention_and_bounded_filters(self):
         for i in range(105):self.store.event('search','Started',issueid=str(i%2))
         self.assertEqual(len(self.store.events()),100)

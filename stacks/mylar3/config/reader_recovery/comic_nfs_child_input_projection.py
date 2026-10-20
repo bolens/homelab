@@ -17,6 +17,12 @@ class Inputs:
         g=owner.left.__func__.__globals__
         need(type(owner) is g.get('LifecycleParent') and g.get('_CORES',{}).get(owner)==owner.core,'nfs-input-owning-parent')
         self.owner,self.g=owner,g;self.emitted={}
+    def child(self,value):
+        mapping=self.owner.mapping
+        return (mapping.nfs_child if mapping.plan13() else mapping.child)(value)
+    def host(self,value):
+        mapping=self.owner.mapping
+        return (mapping.nfs_host if mapping.plan13() else mapping.host)(value)
     def ref(self,value):
         need(type(value) is dict and set(value)=={'path','sha256'},'nfs-input-two-field-ref')
         owner,g=self.owner,self.g;path=value['path']
@@ -44,7 +50,7 @@ class Inputs:
             value['logs'][role]=self.ref(value['logs'][role]);receipt[role]=dict(value['logs'][role])
         for role in roles:value['sources'][role]=self.ref(value['sources'][role])
         value['parent']=self.ref(value['parent'])
-        value['writer_root']=self.owner.mapping.child(value['writer_root'])
+        value['writer_root']=self.child(value['writer_root'])
         value['receipt']=self.emit('nfs-cohort-receipt-input.json',receipt)
         expected=copy.deepcopy(receipt_before)
         for role in ('stdout','stderr'):expected[role]=receipt[role]
@@ -75,14 +81,14 @@ class Inputs:
         scope_expected=copy.deepcopy(scope_before);scope_expected['sources']=scope['sources']
         need(scope==scope_expected,'nfs-input-scope-facts-unchanged');value['active_scope']=self.emit('nfs-scope-input.json',scope)
         value['effective_observer_review']=self.effective_review(value['effective_observer_review'])
-        value['operation_output']=self.owner.mapping.child(self.owner.mapping.host(before['operation_output']))
+        value['operation_output']=self.child(self.host(before['operation_output']))
         admission=value['parent_admission'];need(set(admission)=={'path','grandparent_signature','expected_device','mount_identity'},'nfs-input-parent-admission-schema')
         # Directory signatures/device/mount observation are actual originals;
         # no current directory is adopted during this path projection.
-        admission['path']=self.owner.mapping.child(admission['path'])
+        admission['path']=self.child(admission['path'])
         core=value['probe_plan'];need(type(core) is dict and core['scope']==before['active_scope'],'nfs-input-probe-scope-original')
         core['scope']=dict(value['active_scope']);core['fixture_parent']=admission['path'];core['output_root']=str(Path(value['operation_output'])/'probe')
-        for key in ('library_root',):core[key]=self.owner.mapping.child(core[key])
+        for key in ('library_root',):core[key]=self.child(core[key])
         return self.emit('nfs-active-input.json',value)
     def document_projected(self,value):
         # Derived own input refs retain separate root creator/SHA9 metadata.

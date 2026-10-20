@@ -112,3 +112,28 @@ Before each helper creation the owning parent fsyncs and reads back a private in
 The helper startup witness accepts either the unchanged complete static profile or the exact observed paired transition: its original CID-prefix hostname becomes the original reader hostname, and `OomKillDisable` changes from the boolean `false` to `null`. Every other static field must remain equal under the original complete profile comparison. This exception belongs only to this created-to-successfully-exited helper transition; general reader/native/worker profiles remain strict. Before cleanup, the complete validated exited static profile must match again, including both transitioned fields.
 
 Komga 1.28.1 serializes its nullable unrestricted `ageRestriction` field by omitting it. The principal validator therefore accepts either absence or explicit JSON null for this one field. A non-null age restriction still refuses, as do missing other required fields, non-admin or partial-library access, or nonempty sharing/label restrictions. This matches the pinned upstream [UserDto NON_NULL contract](https://github.com/gotson/komga/blob/2ab7a5a61a8b8bb12a6edd576fed380b4b613c99/komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/UserDto.kt#L9-L18); it grants no configured authority without the original complete query and joins.
+
+
+## Dedicated archive plan13 common root
+
+Plan13 is an explicit transient mount-policy successor: selected action source
+and private stage must share one actual writable NFS4 mount ID. Its sole G→G
+bind contains exactly UID/GID1000 mode0700 direct children library L and private
+retention R. Original G full9, all G/L/R FDs and the exact namespace remain held;
+G timestamp drift is not waived. Nested/overmounted/aliased binds, extra children
+and other role overlaps refuse. The active canary uses R as neutral grandparent
+and cleans its own child before retention admission; G remains excluded as an
+ancestor of the protected library. Native DATA, reader config, scratch and
+operation output remain outside G. Permanent service contracts are unchanged.
+
+The Parent joins its process-local consumed NFS owner and exact NFS-ready input
+to one pre-Writer request on the original pipe. Custody retains these facts
+separately from native-observation projections. They grant no publication and
+do not set `actual_library_platform_verified`. The selected child must join
+actual mountinfo export/device and equal source/stage mount IDs before pending.
+See the [archive protocol](../../../../specs/024-verified-archive-repair/contracts/archive-repair.md#prospective-nfs-renamelink-purpose)
+for durable link/unlink phases, explicit reversal and the cooperating-writer
+exclusion prerequisite. Independent same-UID/root actors writing names inside
+the syscall boundary are outside that contract; no inode-conditional unlink
+exists on NFS. Installed connected factories and actual NFS/terminal/ACK proof
+remain mandatory.

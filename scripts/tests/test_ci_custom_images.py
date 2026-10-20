@@ -126,6 +126,22 @@ class MylarStagePreservationTests(unittest.TestCase):
 
     STACK = ROOT / "stacks/mylar3"
 
+    def test_reader_manifest_nonpython_files_have_explicit_context_admission(self):
+        manifest = json.loads((self.STACK / "config/reader_recovery/source-manifest.json").read_text())
+        required = {"source-manifest.json"} | {
+            name for name in manifest["files"] if not name.endswith(".py")
+        }
+        rules = [line.strip() for line in (self.STACK / ".dockerignore").read_text().splitlines()
+                 if line.strip() and not line.lstrip().startswith("#")]
+        subtree_exclusion = rules.index("config/reader_recovery/**")
+        for name in sorted(required):
+            with self.subTest(source=name):
+                # This stack exposes non-code source leaves explicitly; a hash
+                # alone cannot make Docker export them through the deny rule.
+                admission = "!config/reader_recovery/" + name
+                self.assertEqual(rules.count(admission), 1, admission)
+                self.assertGreater(rules.index(admission), subtree_exclusion)
+
     def copy_checked_artifact(self, body, checked, final, artifact):
         stage = body.rsplit("\nFROM ", 1)[1]
         for line in stage.splitlines():

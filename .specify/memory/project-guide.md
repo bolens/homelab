@@ -78,11 +78,17 @@ When a pinned manifest or embedded cohort changes, trace its literal hash consum
 in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
-prove those semantic pins agree. Trace inherited operational suppliers and generated
+prove those semantic pins agree. The private-copy recovery collection does not
+replace the owning native reader controls: run `run_publication_reader_controls.py`
+and its canonical cohort-import test when lifecycle or admission source changes.
+Trace direct dependency literals in both admission and archive preparation, then
+the Parent base-admission pin and current import-time test pins; a closed JSON
+map can still contain a caller that refuses the new module. Trace inherited operational suppliers and generated
 health programs too: a new top-level image receipt can still invoke an older
 embedded module hash. Prepare an exact source-bound supplier successor, preserve
 the predecessor, and verify old-source refusal and new-source acceptance before
 rollout.
+Before publishing maintained Python changes, run the exact Source lint Python rules from the pinned fleet tooling: `ruff check --isolated --select E9,F` over the paths selected by `.github/source-lint.json`, using the pinned workflow runtime. Local `make ci-local` does not replace this separate hosted gate. An unused import or binding still changes a pinned source file when removed, so refresh its owning hash and verify downstream consumers.
 Preserve unchanged source-map formatting. API/auth source hashes can be
 misclassified as credentials after reserialization; verify their source
 provenance and keep secret scanning enabled.
@@ -177,6 +183,15 @@ health. Older images may rewrite identical telemetry on status reads. Check the
 installed source before relying on read-only observations; deliver the correction
 rather than relax full filesystem witnesses. Keep immutable backup/source
 witnesses strict and reject unexplained queue state changes.
+Trace every health and read-only Activity snapshot callee: workflow intake
+refresh can emit an event and write its cache after ten seconds. Pass
+`persist=False` from both observers while ordinary intake retains persistence
+and hysteresis. Test stale reads against the actual initialized database hash,
+full file signature and directory namespace, including admitted existing-only
+stores and a subsequent genuine mutating intake check. Default Store reads must not
+repeat chmod on an already private database, since that alone changes ctime.
+Check both initialized default and admitted existing-only stores; missing-store
+initialization is a separate write boundary.
 Keep no-follow path descriptors for captured scope nodes until final acknowledgement.
 A deleted inode can be reused before a pathname check, so device/inode tuples alone
 do not preserve the original node. Close descriptors on capture and pre-output
@@ -216,6 +231,35 @@ Build schema fixtures from the actual owning creator or migration and confirm th
 against retained metadata before live verification. A later `CREATE TABLE IF NOT
 EXISTS` declaration may differ from the existing startup-created schema; deriving
 both the verifier and its fixture from that declaration can hide the same error.
+Disposable creation and application bootstrap have separate authority. Use the
+explicit UID1000 creator and finite Polkit adapter only with original accepted
+image metadata, private dedicated scratch references and reviewed image/DATA
+bindings. The default root bootstrap entry point remains unchanged. Host UID1000
+NFS access does not prove the root daemon can resolve mode0700 root-squashed bind
+sources. Require actual bindability before claiming execution, retain unknown
+creation replies without adoption or replay, and keep the worker unstarted.
+Pinned Komga 1.28.1 first-admin enrollment uses the claim headers, followed by
+Basic-authenticated API-key creation. Do not substitute an ordinary user endpoint
+or silently extend this contract to another version. Parse virgin INI section
+names from the exact installed config source without importing provider-writing
+configuration code. Default archive-byte compatibility compares the hash-pinned
+legacy builder within each Python runtime, preserving exact original bytes and
+page/metadata checks instead of using host-only ZIP hashes as portable goldens.
+
+For explicit disposable catalog fixtures, use the real startup-created full schema.
+A fresh exec importing `native_writers` has no daemon startup or publication
+admission. Never set its private readiness globals or reconstruct startup to
+claim that authority. A finite fixture-data seed may use the installed existing
+raw Writer with default pending refusals and original media snapshots, but must
+identify itself as fixture seeding. Provider metadata import, daemon processing
+and ordinary import acknowledgement require their own observed results.
+Keep archive metadata, catalog identities and filenames coherent for discovery;
+reader page verification alone does not prove native issue matching.
+The installed DB connection returns `sqlite3.Row`; normalize integrity-query
+results without changing its row factory. Acquire the original raw Writer and
+verify the existing catalog, held descriptor and companion namespace before
+constructing that connection, which can otherwise create a missing database or
+recover a journal outside custody.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
@@ -372,6 +416,22 @@ the rejected export intact, and correct the new fixture rather than weakening
 the source-permission check.
 A partial manifest or matching database copies do not verify a backup if its
 owning helper refuses a later preservation check.
+
+For a configured cache test, distinguish payload acceptance under Writer from the
+outer mount-source check after the child releases Writer. A successful child can
+prove growth, refusal, accounting and payload removal while the outer operation
+still refuses cleanup. Retain the exact changed child's identity and before/after
+metadata privately at the failed comparison; a later observation cannot identify
+that historical change. Do not relax unrelated metadata or repeat
+payload writes to diagnose an unidentified source change. Derive owned aliases
+from every genuine configured mapping and retain their original descriptors.
+Manifest closure must include the plan's semantic caller/helper pins as well as
+file hashes; matching a source bundle alone does not prove the bound caller runs.
+When refreshing the configured-reader base manifest, preserve the five API/auth
+source-hash entries' existing two-line key/value layout. A generic secret rule
+can mistake those public SHA-256 values for API keys when both appear on one
+line. Keep the values and scanning rules unchanged, then repin the base manifest,
+installer and finite source maps. Do not add a secret-scan exception.
 
 Protected temporary control copies may run from volatile storage. Persist the
 source hashes, stopped-state baseline, backup/restore receipts and final outcome
