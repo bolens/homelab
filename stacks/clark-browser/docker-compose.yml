@@ -16,6 +16,7 @@ services:
       context: build
       dockerfile: Dockerfile
     image: ${CLARK_BROWSER_IMAGE:-ghcr.io/bolens/homelab-clark-browser:latest}
+    # CLARK_CDP_ORIGINS is passed from stack.env; never infer it from request headers.
     env_file:
       - stack.env
       - path: ../../shared.env
