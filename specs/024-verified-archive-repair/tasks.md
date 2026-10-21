@@ -104,3 +104,9 @@ history](../023-verified-publication-corrections/evidence-history.md#disposable-
 Detailed component tests, experiments and failure receipts remain in
 [evidence history](evidence-history.md). Those records do not complete production
 adoption or release the remaining feature 022/023 gates.
+
+The single-authentication batch passes its actual privilege/client check and
+removes only the three never-started predecessor fixture containers and their
+network. Input binding then refuses before activation; its incomplete generation
+is preserved without replay. Connected, NFS, import and ACK gates remain open.
+See [the execution record](../023-verified-publication-corrections/evidence-history.md#single-authentication-execution-and-binding-refusal--2026-10-21).

@@ -117,3 +117,9 @@ Detailed dated checks, failed generations and historical delivery exceptions
 remain in [evidence history](evidence-history.md). Current required CI and the
 remaining operational dependencies above remain authoritative. Reading-progress
 work remains deferred as requested; original recovery evidence stays retained.
+
+The single-authentication batch passes its actual privilege/client check and
+removes only the three never-started predecessor fixture containers and their
+network. Input binding then refuses before activation; its incomplete generation
+is preserved without replay. Connected, NFS, import and ACK gates remain open.
+See [the execution record](../023-verified-publication-corrections/evidence-history.md#single-authentication-execution-and-binding-refusal--2026-10-21).

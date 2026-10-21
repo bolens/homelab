@@ -154,3 +154,14 @@ Clark PR #460 and the original generation preparation remain recorded in
 Host-only control changes do not refresh the original 27 installation outputs
 or require another image pull when the installed SDK remains unchanged. Fresh
 source and connected runtime acceptance still precede their owning operations.
+
+The old PR #341 worktree documentation has been reconciled against current
+history. Its exact patch and verified Git bundle are preserved privately, and
+the old worktree is removed without force.
+See [recovered storage notes](evidence-history.md#recovered-storage-notes-and-old-worktree-cleanup--2026-10-21).
+
+The single-authentication batch passes its actual privilege/client check and
+removes only the three never-started predecessor fixture containers and their
+network. Input binding then refuses before activation; its incomplete generation
+is preserved without replay. Connected, NFS, import and ACK gates remain open.
+See [the execution record](../023-verified-publication-corrections/evidence-history.md#single-authentication-execution-and-binding-refusal--2026-10-21).

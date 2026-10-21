@@ -929,3 +929,41 @@ PR #466 merged after 14 passing hosted checks and one expected skip. GitHub,
 local main and the configured mirror agree on the reviewed merge. The new
 host-only batch transport retains the selected image/SDK originals and requires
 no image replacement merely to exercise it.
+
+## Recovered storage notes and old-worktree cleanup — 2026-10-21
+
+The retained 2026-10-15 task note records 115 old unused private cache records
+in the first 866.5 MB pass. It describes the separate 84-image cleanup as a
+no-force pass limited to October 7 or earlier task-local images. The
+[archived cleanup record](evidence-history-through-20261020-4164dd6.md#recovery-delivery-and-storage-cleanup-2026-10-15)
+preserves the accepted storage history and later delivery status. These recovered
+task-note details are historical attribution, not a new cleanup execution or
+operational verification.
+
+The old PR #341 worktree contains only two modified spec 023 documents. Its
+committed tree matches the merged PR exactly. Three added evidence paragraphs
+already survive in the archive, and two have newer verified delivery results.
+The complete uncommitted patch and Git snapshot `686b4ec3` are retained in a
+private bundle. Independent unbundling verifies both original document blobs.
+After checking ignored outputs and current source dependencies, cleanup removes
+only this old worktree without force. The exact squash-integrated branch ref is
+removed after bundle and tree verification, retaining the archive ref. The app
+archive request remains queued and is not counted as completed archival. No implementation or aggregate
+acceptance checkbox advances from this documentation reconciliation.
+
+## Single-authentication execution and binding refusal — 2026-10-21
+
+The actual privileged batch passes its identity check: processing returns to
+UID 1000, saved Root cannot be regained after final drop, and the exact Root
+probe client is terminated and reaped. It then verifies all three earlier test
+containers were Created and never started, removes those exact containers and
+their private network, and preserves their data and journals. No service stop
+is issued. These are executed results, separate from the 25 private wrapper
+controls passed on host and Python 3.10.
+
+The next UID 1000 binding phase refuses after writing its first exclusive
+request file and before writing the companion reference. The wrapper records
+only identity and cleanup as completed, exits nonzero and never enters
+activation. The incomplete generation and all outputs remain retained. No
+request, cleanup or activation is replayed. Fresh connected fixture execution,
+factory/NFS acceptance, live imports and acknowledgements remain unproved.
