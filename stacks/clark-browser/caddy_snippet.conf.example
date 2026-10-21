@@ -2,13 +2,18 @@
 
 clark.home, clark.local {
 	tls internal
+	# Add https://clark.home and https://clark.local to CLARK_CDP_ORIGINS.
+	# Preserve the incoming Host and Caddy-managed X-Forwarded-Proto defaults.
+	# The CDP adapter uses them for reachable ws/wss discovery URLs.
 	reverse_proxy clark-browser:9222
 }
 
+# Add http://clark.example.com to CLARK_CDP_ORIGINS before enabling this route.
 # http://clark.example.com {
 # 	reverse_proxy clark-browser:9222
 # }
 #
+# Add https://clark.example.com to CLARK_CDP_ORIGINS before enabling this route.
 # clark.example.com {
 # 	tls {
 # 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}

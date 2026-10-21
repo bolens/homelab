@@ -1,3 +1,6 @@
 **
 !Dockerfile
 !requirements.txt
+!clarkserve.py
+!test_clarkserve.py
+!clarkserve-LICENSE
