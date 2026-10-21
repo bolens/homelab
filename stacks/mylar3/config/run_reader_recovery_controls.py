@@ -21,6 +21,7 @@ SUITES=SUITES+(('test_archive_common_root.py',11),('test_archive_plan13.py',15),
 SUITES=SUITES+(('test_genuine_application_bootstrap.py',33),)
 SUITES=SUITES+(('test_genuine_native_catalog.py',21),)
 SUITES=SUITES+(('test_genuine_bootstrap_creator.py',50),)
+SUITES=SUITES+(('test_genuine_bootstrap_batch.py',24),)
 SUITES=SUITES+(('test_plan13_disposable_mapping.py',26),)
 SUITES=SUITES+(('test_genuine_reader_quiescence.py',18),)
 SUITES=SUITES+(('test_genuine_plan13_producer.py',22),)

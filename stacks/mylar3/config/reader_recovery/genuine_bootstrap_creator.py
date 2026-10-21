@@ -95,12 +95,20 @@ def config_sections(raw, names):
 
 class Driver:
     """Only PurposeEngine calls this fixed existing Polkit client prefix."""
+    def _spawn(self, args, data):
+        """Default transport remains one existing Polkit client per call."""
+        return subprocess.Popen([*PREFIX,*args],stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+
+    def _kill_process(self, process):
+        """Transport owns only the exact Popen client; daemon outcome stays unknown."""
+        process.kill()
+
     def docker(self, args, seconds, data=None):
         need(type(args)is list and type(seconds)is int and 1<=seconds<=30 and (data is None or type(data)is bytes and len(data)<=8*1024**2),'bounded-engine-request')
         process=None;streams=[];deadline=time.monotonic()+seconds;output={};pending=memoryview(data or b'')
         try:
-            process=subprocess.Popen([*PREFIX,*args],stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
-                stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+            process=self._spawn(args, data)
             with selectors.DefaultSelector()as poll:
                 for stream in (process.stdout,process.stderr):
                     streams.append(stream);output[stream]=bytearray();os.set_blocking(stream.fileno(),False);poll.register(stream,selectors.EVENT_READ)
@@ -136,9 +144,13 @@ class Driver:
             if failure is error:raise
             raise failure from None
         finally:
+            primary=sys.exc_info()[1]
             if process is not None and process.poll()is None:
-                try:process.kill()
+                try:self._kill_process(process)
                 except OSError:pass  # A privileged client may outlive its unknown reply.
+                except BaseException as secondary:
+                    if primary is None:raise
+                    primary.creator_client_cleanup_failure=type(secondary).__name__
                 try:process.wait(timeout=0.1)
                 except subprocess.TimeoutExpired:pass
             for stream in streams:stream.close()

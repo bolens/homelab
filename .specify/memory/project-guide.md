@@ -560,6 +560,13 @@ the authorized work. Honor the latest access pause or scope change. Ask again
 only when a proposed action exceeds or cannot be tied to the recorded scope.
 Keep permissions for named-chat coordination and delegated work equally specific.
 The checkpoint records human authorization and cannot create new permission.
+Group related authorized privileged operations into one finite reviewed batch
+when the operator requests fewer authentication prompts. Authenticate before
+starting the batch's command deadlines. Retain checks between phases, bounded
+runtime and outputs, exact owned cleanup, and the existing UID requirements.
+Use a per-invocation transport only. Do not grant lasting Docker access or relay
+arbitrary commands. A timeout or lost mutation reply requires retained evidence
+and a state check before any fresh attempt; batching does not permit replay.
 Follow the current [delivery rules](../../RELEASING.md), including any revocation
 of a temporary CI exception.
 

@@ -113,6 +113,19 @@ an original dedicated NFS scratch parent and a reviewed image/DATA contract are
 inputs. The creator never guesses the DATA directory or adopts prior resources.
 Unknown mutation replies retain evidence and refuse replay or automatic cleanup.
 
+`genuine_bootstrap_batch.py` provides the same Creator workflow through one
+explicit trusted Root invocation. Polkit authentication precedes the Creator
+clock. The Python actor uses real/effective UID/GID1000, retaining saved Root
+only for this invocation's fixed Docker launches. It drops effective privilege
+before pipe reads and waits, and destroys saved authority when the run ends.
+This is a trusted batch, not a privilege sandbox. It adds no command relay,
+persistent socket access, worker start, resume, replay or cleanup permission.
+The default per-command Creator transport remains available unchanged.
+The batch requires `--activate`, the original `--input` and `--sha256`, and the
+reviewed batch source's `--source-sha256`. Its separate `--identity-self-check`
+checks actual credential transitions and exact client termination without Docker
+or application inputs. It grants no fixture or publication acceptance.
+
 UID1000 host access does not prove the root Docker daemon can resolve direct
 bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is
 an execution prerequisite independent of UID1000 access. Explicit Creator request

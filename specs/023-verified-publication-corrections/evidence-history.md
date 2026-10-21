@@ -906,3 +906,26 @@ including all 1,260 controls across 72 suites with zero skips. The direct semant
 pins, all current copy maps, Komga's 62 Python/37 JDK 21 checks, Source lint and
 full local CI pass. The new batch still requires hosted CI, delivery and fresh
 connected execution. No aggregate acceptance checkbox changes.
+
+## Single-authentication batch and interrupted fixture — 2026-10-21
+
+The fifth disposable Creator attempt retained a deadline refusal at its read-only
+native inspection. Public startup/configuration copies completed, but the first
+start path had not reached a start intent. The attempt is not replayable; current
+container state must be established before exact owned cleanup. No connected
+factory, NFS, import or ACK acceptance follows.
+
+The operator requested one authentication for related privileged operations. The
+next launcher will authenticate before starting command deadlines and execute a
+finite batch with the existing identity, phase, output and cleanup checks. No
+persistent Docker access is authorized. The launcher is implemented and
+independently reviewed. Its 24 new controls and the existing 50 Creator controls
+pass in Python 3.10. The complete 1,284-control, 73-suite cohort and its 14 outer
+controls pass, with zero skips; full local CI also passes. Actual Root identity,
+privileged transport and connected execution remain pending. Aggregate task
+markers are unchanged.
+
+PR #466 merged after 14 passing hosted checks and one expected skip. GitHub,
+local main and the configured mirror agree on the reviewed merge. The new
+host-only batch transport retains the selected image/SDK originals and requires
+no image replacement merely to exercise it.
