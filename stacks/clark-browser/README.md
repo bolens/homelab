@@ -104,3 +104,7 @@ intended hostname list manually; preparation never appends permissions. This is
 a DNS-rebinding/origin guard, not authentication. Keep the existing internal
 admin network and loopback-only host publication; enabling an origin does not
 make public unauthenticated CDP safe.
+
+The pinned upstream stealth arguments include `--no-sandbox`, so Chromium runs
+without its own browser sandbox. Container isolation and restricted CDP access
+remain part of this stack's security boundary.
