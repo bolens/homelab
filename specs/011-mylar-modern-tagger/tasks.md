@@ -111,8 +111,8 @@ must be sequenced. No agent may change live services during fixture work.
 - [x] T026 Integrate the owning host runner and both current 428-entry source
   maps, preserving prior order, metadata, the intentional alias and unrelated
   requirements. Independent review and 21 focused controls pass; the complete
-  local delivery gate passes. Modern dynamically collects all 20 runtime tests,
-  retaining the previous 18 tests and assertions. Actual image proof is T027.
+  local delivery gate passes. Modern dynamically collects all 21 runtime tests,
+  retaining the prior controls and adding canonical SDK conversion/CRC coverage. Actual image proof is T027.
 - [ ] T027 Build and verify the reviewed linux/amd64 candidate image with
   CPython 3.13.16/Pillow 13, Jammy ICU 70.1 and final-layer ELF closure. Require
   the full owning gates, genuine CBR-to-normalized-CBZ processing, real CLI
