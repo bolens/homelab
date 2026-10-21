@@ -786,7 +786,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "bcb4a6410c5499e761be2a5d5b4dfda381eff0c41833d58720993d319513e62f",
+    "sha256": "91a9a0a07c27964f4a3dee34b6e10c00c7e1ce88cd2a2f5ce4cea3124d4e621f",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -806,7 +806,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
+    "sha256": "6aee7eef6d4144941dfa200589251d3ba79bd46ae276429b1eb0a17d890e3472",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "36a587201a8f409b9c4577f174d0317fce2e4c07116648cc9550eb5213e88115",
+    "sha256": "6c434af654f0cd282a1a7bd6cd532ef0b60b1191fc16c18da83bf5e906cd5351",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1721,7 +1721,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "b96db64eda8661a065e3b39ca4c6fcbe386a0d44cfee9a93fd279d091277a329",
+    "sha256": "21c63500f483c542fca5cfd467e47ea9acad320018927762bc30fbe7fefeb7cf",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {

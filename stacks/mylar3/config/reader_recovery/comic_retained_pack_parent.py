@@ -246,7 +246,7 @@ class ConfiguredRuntime:
         return encode(dict(Id=row['Id'],Image=row['Image'],Config=row['Config'],HostConfig=row['HostConfig'],Mounts=row['Mounts'],Networks={k:v['NetworkID'] for k,v in row['NetworkSettings']['Networks'].items()}))
     def quiesce(self):
         need(not self.quiescent,'runtime-quiesce-once')
-        self.command(['pause',self.ids['native']]);self.command(['stop','--time','30',self.ids['reader']]);self.quiescent=True
+        self.command(['pause',self.ids['native']]);self.command(['stop','--timeout','30',self.ids['reader']]);self.quiescent=True
         self.stopped_reader=self.inspect(self.ids['reader'])['State'];self.paused_native=self.inspect(self.ids['native'])['State'];self.close()
     def close(self):
         need(self in _RUNTIMES and _RUNTIMES[self]==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,thread=self.thread,deadline=self.deadline)),'original-runtime-seal')

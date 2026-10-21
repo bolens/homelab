@@ -4,10 +4,10 @@
 
 ## Current remaining work
 
-**Updated 2026-10-20.** T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
+**Updated 2026-10-21.** T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
 
-- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; combined source verification passes 1,219 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
-- **Existing source milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. The SourceCohort producer's integrated recovery inventory passes 1,219 controls across 72 suites without skips. These are source/component milestones, with actual selected-image execution still required. See [producer evidence](evidence-history.md#causal-source-cohort-producer--2026-10-20), [plan composition](evidence-history.md#checked-plan13-original-reference-composition--2026-10-20) and [task observation](evidence-history.md#original-reader-task-observation-source--2026-10-20).
+- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the completed source verification passes 1,241 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
+- **Existing source milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. The retained integrated recovery inventory passes 1,241 controls across 72 suites without skips. These are source/component milestones, with actual selected-image execution still required. See [producer evidence](evidence-history.md#causal-source-cohort-producer--2026-10-20), [plan composition](evidence-history.md#checked-plan13-original-reference-composition--2026-10-20) and [task observation](evidence-history.md#original-reader-task-observation-source--2026-10-20).
 - **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
@@ -83,13 +83,14 @@ published source/type/reliability milestone is accepted. T012/T015 still require
 genuine connected factories and terminal consumption; T016–T018 require the
 verified live rollout, repair/import and final preservation/retention checks.
 
-The corrected integrated recovery source passes 1,239 controls across 72 suites
-with zero skips under Python 3.10. Clark PR #460 is merged; the media candidate
-includes that reviewed update and still requires normal current-head CI,
-publication, actual new-image capture and fresh configured acceptance. Disabled
-capture/installer preparation and a data-only request builder are reviewed, but
-supply no installed, import or repair acceptance. See [the current shared
-preparation record](../023-verified-publication-corrections/evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
+The PR #462 (`335226b`) native capture verifies all 180 sources and startup files;
+its matching supplier preserves 27 original installation outputs. PR #464 merges
+with all 43 hosted checks passing. Latest host compatibility checks pass: 50
+Creator controls, 29 bootstrap controls and all 14 outer checks including the
+1,252-control collection on Python 3.10. Actual Creator starts both services,
+then one enrollment POST returns HTTP 400 without retry. The bounded email
+correction is source-verified; fresh enrollment, SourceCohort and connected
+acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#creator-startup-diagnostics-and-pending-source-closure--2026-10-21).
 
 Docker address-pool exhaustion is resolved. The isolated new-directory NFS bind
 passes with searchable ancestors and private leaves, and its exact resources

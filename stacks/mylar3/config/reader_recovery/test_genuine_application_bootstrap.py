@@ -51,6 +51,7 @@ class Engine:
         if args[0] == 'inspect':return b.p.encode([self.rows[args[1]]])
         if args[:2] == ['network', 'inspect']:return b.p.encode([self.network])
         if args[0] == 'restart':
+            assert args==['restart','--timeout','30',self.plan['roles']['native']['id']]
             if self.fail == 'restart':raise b.Held('injected-restart-response-lost')
             row = self.rows[args[-1]]; row['State'].update(StartedAt='own-new-epoch', Pid=999)
             row['NetworkSettings']['SandboxID'] = 'own-new-sandbox'

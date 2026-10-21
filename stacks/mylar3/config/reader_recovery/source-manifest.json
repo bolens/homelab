@@ -481,7 +481,7 @@
       "sha256": "96714f959a86f8fa9b83fda82e795505a93e511eb0ca287326b0d1233970a48b"
     },
     "comic_retained_pack_parent.py": {
-      "sha256": "bcb4a6410c5499e761be2a5d5b4dfda381eff0c41833d58720993d319513e62f"
+      "sha256": "91a9a0a07c27964f4a3dee34b6e10c00c7e1ce88cd2a2f5ce4cea3124d4e621f"
     },
     "comic_terminal_observation_producer.py": {
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
@@ -493,7 +493,7 @@
       "sha256": "a9cc244c3214d3cc2527afdc427280ca873ba666bae976ae84bb8af532144c31"
     },
     "genuine_application_bootstrap.py": {
-      "sha256": "7a8d8f203d7784a127ba5f0cccecc66193cdc55f4c92dc801afb504c13017bc5"
+      "sha256": "18db2194bba4a369a2516c9e1f7658390a31dc58b8a623ab1a6bbea59cfb2b7d"
     },
     "genuine_archive_fixture.py": {
       "sha256": "b2aebd9bb7388fb80d877b898b8b52a86a1d4f2c783d2544c23e641d6f0b3da3"
@@ -502,13 +502,13 @@
       "sha256": "f11083d2c43fb3b6e38d757ba57c410bdc1eaa0e9bf2505e04f160870c775fbd"
     },
     "genuine_bootstrap_creator.py": {
-      "sha256": "dcc3d246d0e66fcbe7962976a9881849cd1a1555bfe83d17054485c1dfb36ffe"
+      "sha256": "1804072a9cea907b5287f979bb780bad718cdd4fd8fc508dbb510763ccd9bb93"
     },
     "genuine_bootstrap_http.py": {
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "93573cdf8054dd6eee26308abf4817ed52820ed4927515124a63f9e5103c7c0f"
+      "sha256": "c32326d52da0e62f60621ed01c9d30b2fa209e995b9ccfd52159da28d0aa2e78"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -628,13 +628,13 @@
       "sha256": "2e3944b84972171861138cce0f87edf6331d59093720934d5bdcf607e159aa72"
     },
     "test_genuine_application_bootstrap.py": {
-      "sha256": "25fa12f273a3b1f66ddec5d2777acfb6735658c84634fa48db0d820590e2cd9e"
+      "sha256": "ce9fc63391e0d183b6cc1297393f1ef39b8567e8b2ce6f77aeefa344e39fe3e4"
     },
     "test_genuine_archive_fixture.py": {
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
     },
     "test_genuine_bootstrap_creator.py": {
-      "sha256": "fb2c9852edc0056dbc589877850a1a28f5389852a5fa3ded4a5bf777527bc0c9"
+      "sha256": "d18d7a26a1f176501b7b2aa02f077c83308aa0a3ca8f065c7901bc103c5b89dd"
     },
     "test_genuine_current_roles.py": {
       "sha256": "325b850891eab160b7c0142fbd846cf67684c976b7f4f1fad9b190e931438e1e"

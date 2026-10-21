@@ -761,6 +761,14 @@ and default/PR CodeQL alerts are clear. PR #464 merges as
 Local main and the authorized mirror are verified at the same merge commit.
 No formal task checkbox advances from this build-only proof.
 
+The hosted PR #464 job takes 29m 44s. Both verification branches execute: the
+tagging stage takes 666.3s and the remaining checks take 1,743.9s, overlapping
+as designed. The mandatory aggregate takes 0.1s. This run does not show a cold
+build speedup; the verified benefit is reuse of the unchanged tagging stage.
+[GitHub Actions cache visibility](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#restrictions-for-accessing-a-cache)
+follows branch scope, so another PR cannot assume access to this PR cache
+before a matching main build seeds its cache.
+
 The warning-fix image published from PR #462, merge `335226b`, also completes
 its trusted main publication. Its
 actual daemon identity, registry provenance and new isolated source capture join:
@@ -796,3 +804,48 @@ controls pass, and the complete recovery collection passes 1,241 controls across
 These source results do not establish Creator startup, SourceCohort, connected
 Parent/NFS or terminal acceptance. Matching source pins and a fresh reviewed
 generation remain required before another operational attempt.
+
+
+### Creator startup diagnostics and pending source closure — 2026-10-21
+
+An owned disposable startup reproduction confirms only the observed
+`HostConfig.OomKillDisable` transition from `false` to `null`; every other
+immutable field must match. The reproduction fixture is removed. The next
+Creator attempt reaches native startup and then refuses its inspection. Exact
+cleanup removes its three fixture containers and private network with source
+closure, retaining the failed generation's files without replay. This supplies
+no connected factory, processing or import/ACK acceptance.
+
+A separate CLI-only reproduction, without contacting the daemon, confirms that
+Docker's deprecated `--time` spelling writes its warning to stdout. The paired
+`--timeout` spelling avoids contaminating the checked command reply. The source
+correction also adds safe private profile diagnostics and fixed trusted-frame
+reporting. All 49 Creator and 29 bootstrap controls pass on Python 3.10. These
+are focused results; actual startup and the complete current source closure
+remain separate gates.
+
+PR #465 head `8f29b35` fails two outer aggregate assertions that still expect
+1,239 tests while its owning collection returns 1,241. Both failures remain
+recorded. Those exact expectations now advance to the new 1,251-control
+inventory, retaining their assertions. The first full outer run catches a
+stale CurrentRoles bootstrap source pin and remains a failed attempt. After
+updating that exact pin and its manifest, all 14 outer checks pass in 94.719s
+on Python 3.10, including the complete 1,251-control collection. Independent
+review verifies every declared source-map hash and current semantic pin.
+Historical 1,239/1,241 results and installed proofs retain their original scope.
+
+The next actual Creator starts both disposable services and passes the reader
+JAR, native process and unclaimed-status checks. Its one enrollment POST returns
+HTTP 400. The failed request and private diagnostics are retained without replay;
+no factory, NFS, import or ACK acceptance follows. The generated email has a
+74-character local part, exceeding the pinned validator's 64-character limit.
+A bounded email correction and read-only status check remain in progress; the
+saved error does not establish the server's exact rejection reason.
+
+The email correction uses a 58-character local part and preserves the full
+nonce/CID and API-key comment bindings. All 50 Creator controls pass on host and
+Python 3.10. The final 14 outer checks pass in 86.724s, including all 1,252 owning
+controls with zero skips. The pinned [Komga claim controller](https://github.com/gotson/komga/blob/2ab7a5a61a8b8bb12a6edd576fed380b4b613c99/komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ClaimController.kt)
+requires email validation; the corresponding [validator](https://github.com/hibernate/hibernate-validator/blob/8.0.3.Final/engine/src/main/java/org/hibernate/validator/internal/constraintvalidators/AbstractEmailValidator.java)
+limits local parts to 64 characters. The earlier HTTP 400 remains a retained
+failed attempt, not evidence of successful or absent enrollment.

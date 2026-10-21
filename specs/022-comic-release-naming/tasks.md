@@ -9,7 +9,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-20.** T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
+**Updated 2026-10-21.** T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
 
 Historical installed import-to-release-name/metadata checks remain accepted for their inspected generation. Ordinary Mylar runs the published PR #405 image after verified backup and isolated restore. It is healthy, and the complete original-bound post-update preservation check is accepted, including the source-specific scheduler and workflow classifications. Exact-key comparison preserves all 16,432 issue records and every field except 111 Wanted records whose empty DateAdded becomes the current date. Komga remains running; the permanent worker and combined bulk pass remain inactive. The four selected-pack histories contain no accepted import or ACK. T019/T023/T024 still require configured recovery, combined passes and final acceptance, with dot separators and a hyphen before the verified group. See the shared [current rollout record](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 
@@ -97,13 +97,14 @@ cover import, dotted release rename and preserved metadata, including existing
 `ComicInfo.xml` position. They do not complete the configured combined pass.
 See [the shared pipeline proof](../023-verified-publication-corrections/evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18).
 
-The corrected integrated recovery source passes 1,239 controls across 72 suites
-with zero skips under Python 3.10. Clark PR #460 is merged; the media candidate
-includes that reviewed update and still requires normal current-head CI,
-publication, actual new-image capture and fresh configured acceptance. Disabled
-capture/installer preparation and a data-only request builder are reviewed, but
-supply no installed, import or repair acceptance. See [the current shared
-preparation record](../023-verified-publication-corrections/evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
+The PR #462 (`335226b`) native capture verifies all 180 sources and startup files;
+its matching supplier preserves 27 original installation outputs. PR #464 merges
+with all 43 hosted checks passing. Latest host compatibility checks pass: 50
+Creator controls, 29 bootstrap controls and all 14 outer checks including the
+1,252-control collection on Python 3.10. Actual Creator starts both services,
+then one enrollment POST returns HTTP 400 without retry. The bounded email
+correction is source-verified; fresh enrollment, SourceCohort and connected
+acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#creator-startup-diagnostics-and-pending-source-closure--2026-10-21).
 
 Detailed dated checks, failed generations and historical delivery exceptions
 remain in [evidence history](evidence-history.md). Current required CI and the
