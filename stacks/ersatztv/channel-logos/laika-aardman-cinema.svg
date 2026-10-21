@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="laika-aardman-cinema-title">
+  <title id="laika-aardman-cinema-title">LAIKA &amp; Aardman Cinema</title>
+  <defs>
+    <radialGradient id="laika-aardman-cinema-clay">
+      <stop offset="0" stop-color="#ece5cd" />
+      <stop offset="0.35" stop-color="#d7cfaf" />
+      <stop offset="0.7" stop-color="#b9ad8c" />
+      <stop offset="1" stop-color="#dcd3b5" />
+    </radialGradient>
+    <linearGradient id="laika-aardman-cinema-ear">
+      <stop offset="0" stop-color="#826456" />
+      <stop offset="0.5" stop-color="#503b32" />
+      <stop offset="1" stop-color="#342c29" />
+    </linearGradient>
+    <radialGradient id="laika-aardman-cinema-nose">
+      <stop offset="0" stop-color="#85918e" />
+      <stop offset="0.25" stop-color="#293238" />
+      <stop offset="0.6" stop-color="#0a1016" />
+      <stop offset="1" stop-color="#1c252b" />
+    </radialGradient>
+    <linearGradient id="laika-aardman-cinema-button">
+      <stop offset="0" stop-color="#6d7eac" />
+      <stop offset="0.35" stop-color="#283859" />
+      <stop offset="0.8" stop-color="#111d36" />
+      <stop offset="1" stop-color="#52628b" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b7e4c5" stroke-width="5" />
+  <g transform="translate(0 7.5)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <circle cx="109" cy="119" r="48" fill="url(#laika-aardman-cinema-button)" stroke="#bccbf2" stroke-width="5" />
+      <circle cx="109" cy="119" r="37" fill="#15213d" stroke="#94a9da" stroke-width="3" />
+      <path d="M82 93q-22 23-7 49" fill="none" stroke="#d6e0fb" stroke-width="4" />
+      <circle cx="99" cy="109" r="6" fill="#e4eafa" />
+      <circle cx="120" cy="109" r="6" fill="#e4eafa" />
+      <circle cx="99" cy="130" r="6" fill="#e4eafa" />
+      <circle cx="120" cy="130" r="6" fill="#e4eafa" />
+      <path d="m99 109 21 21m0-21-21 21" stroke="#dbadbb" stroke-width="3" />
+      <path d="M85 161q-39 26-21 65 9 23 47 19" fill="none" stroke="#b7e4c5" stroke-width="4" />
+      <path d="m109 247 26-39 4 3-26 39Z" fill="#d7e7d8" stroke="#93b6ae" stroke-width="2" />
+      <path d="M118 234q-16 2-10 12" fill="none" stroke="#b7e4c5" stroke-width="3" />
+      <path d="M197 104q-30 1-41 28-11 24-4 60 8 20 22 5l21-58Z" fill="url(#laika-aardman-cinema-ear)" stroke="#dac39b" stroke-width="4" />
+      <path d="M205 94q-32 15-31 72l-8 34-27 15q-11 16 12 29l30 12 2 25q12 18 43 8l14-40q33-20 30-64-1-41-22-70-18-25-43-21Z" fill="url(#laika-aardman-cinema-clay)" stroke="#eee1c5" stroke-width="5" />
+      <path d="M200 107q-21 23-17 56" fill="none" stroke="#f8edd2" stroke-width="7" />
+      <path d="M234 101q30-12 46 18 17 44 7 91-9 28-24 12-14-21-12-57l-5-26Z" fill="url(#laika-aardman-cinema-ear)" stroke="#a68a74" stroke-width="4" />
+      <path d="M266 125q17 43 10 80" fill="none" stroke="#886a56" stroke-width="6" />
+      <ellipse cx="191" cy="175" rx="17" ry="25" fill="#faf1db" />
+      <ellipse cx="220" cy="171" rx="17" ry="25" fill="#faf1db" />
+      <ellipse cx="186" cy="176" rx="5" ry="8" fill="#27333b" />
+      <ellipse cx="215" cy="172" rx="5" ry="8" fill="#27333b" />
+      <path d="M173 203q-28-1-36 13-6 12 16 21 19 8 40-1" fill="#ded5b9" stroke="#eee1c5" stroke-width="3" />
+      <ellipse cx="139" cy="217" rx="17" ry="13" fill="url(#laika-aardman-cinema-nose)" stroke="#b7c8b8" stroke-width="3" />
+      <path d="M131 211q8-7 16 0" fill="none" stroke="#a0aaa4" stroke-width="3" />
+      <path d="m176 247 13 4m7-136 9-4m22 27 8 2" stroke="#b59872" stroke-width="3" />
+      <path d="M182 271q21 8 47 1l-1 20q-23 9-44-1Z" fill="#728e70" stroke="#b7e4c5" stroke-width="4" />
+      <path d="m190 278 1 11m10-10v12m11-12-1 12m11-13-2 12" stroke="#9fc69e" stroke-width="2" />
+      <path d="M67 314h229m-133-10h96m-165 0-6-25m204-206 6-12m-24 9V55" stroke="#b7e4c5" stroke-width="4" />
+    </g>
+    <g>
+      <path d="M88 94q21-13 39 1m-37 50q19 10 36-1" fill="none" stroke="#8fa3ce" stroke-width="2" />
+      <path d="m186 127 8-3m-6 7 8-3m44 24 7 3m-8 2 7 3" stroke="#b6a98e" stroke-width="2" fill="none" />
+      <circle cx="135" cy="213" r="3" fill="#d9dfd5" />
+    </g>
+  </g>
+  <g fill="#b7e4c5" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.5)">
+    <text x="535" y="126" font-size="68">LAIKA &amp;</text>
+    <text x="535" y="202" font-size="65">AARDMAN</text>
+    <text x="535" y="278" font-size="68">CINEMA</text>
+  </g>
+</svg>

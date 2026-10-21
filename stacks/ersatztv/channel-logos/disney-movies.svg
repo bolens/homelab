@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="disney-movies-title">
+  <title id="disney-movies-title">Disney Movies</title>
+  <defs>
+    <linearGradient id="disney-movies-warm-stone">
+      <stop offset="0" stop-color="#d7c9df" />
+      <stop offset="0.35" stop-color="#f7d7ba" />
+      <stop offset="0.65" stop-color="#dfad7e" />
+      <stop offset="1" stop-color="#ae81a8" />
+    </linearGradient>
+    <linearGradient id="disney-movies-gate-light">
+      <stop offset="0" stop-color="#ffdfaa" />
+      <stop offset="0.6" stop-color="#efbb87" />
+      <stop offset="1" stop-color="#a880a5" />
+    </linearGradient>
+    <linearGradient id="disney-movies-blue-roofs">
+      <stop offset="0" stop-color="#7191bd" />
+      <stop offset="0.5" stop-color="#375689" />
+      <stop offset="1" stop-color="#203762" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8cc7ff" stroke-width="5" />
+  <g transform="translate(0 11.0)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M44 184C63 45 279 38 309 181" stroke="#dcecff" stroke-width="5" fill="none" />
+      <path d="M58 158Q92 72 180 71" stroke="#80afdd" stroke-width="2" fill="none" />
+      <path d="M66 322V215h40v-45h29v-38h31V95h20v37h29v38h29v45h40v107Z" fill="url(#disney-movies-warm-stone)" />
+      <path d="M186 96v38h29v38h29v44h40v106h-22v-93h-33v-44h-28v-43h-28V96Z" fill="#a77da1" />
+      <path d="m65 215 22-48 22 48m14-44 26-48 23 48m-15-75 19-49 20 49m-15 76 25-49 25 49m10 44 24-48 24 48" fill="url(#disney-movies-blue-roofs)" />
+      <path d="m87 167 22 48H97Zm62-44 23 48h-13Zm27-76 20 49h-13Zm30 76 25 49h-14Zm58 44 24 48h-14Z" fill="#24385d" />
+      <path d="M113 322V225h125v97Z" fill="url(#disney-movies-gate-light)" />
+      <path d="M219 229h19v93h-19Z" fill="url(#disney-movies-warm-stone)" />
+      <path d="M113 225h125v11H113Zm-47-10h43v10H66Zm176 0h42v10h-42Z" fill="#f8dfb9" />
+      <path d="M146 323v-49q29-48 58 0v49Z" fill="#cc976b" />
+      <path d="M157 323v-47q18-32 36 0v47Z" fill="#202e53" />
+      <path d="M159 279h32m-23-11v54m14-54v54" stroke="#8c6d89" stroke-width="3" />
+      <path d="M59 327h234m-143-87h52" stroke="#dcecff" stroke-width="6" />
+      <g fill="#ffe5a5">
+        <path d="M81 238h12v27H81Zm176 0h12v27h-12Zm-113-56h10v23h-10Zm51 0h10v23h-10Zm-25-60h10v24h-10Z" />
+      </g>
+      <path d="M75 281h24m-24 14h24m151-14h24m-24 14h24m-128-40h10m68 0h10" stroke="#b28d9d" stroke-width="3" />
+      <path d="M176 49V34l25 9-25 9" fill="#dcecff" stroke="#dcecff" stroke-width="3" />
+      <path d="m308 167 4 9 10 1-8 6 2 9-8-5-8 5 3-9-8-6 10-1Z" fill="#fff0c5" />
+    </g>
+    <g>
+      <g fill="none" stroke="#f5dfb9" stroke-width="2">
+        <path d="M72 272h30m-30 10h30m145-10h29m-29 10h29M119 245h20m-20 10h16m78-10h18m-15 10h15m-61-91h12m-5-9v17" />
+      </g>
+      <path d="m172 306 4-29 5 29m-21 15h31" fill="none" stroke="#ffe0a7" stroke-width="3" opacity=".8" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8cc7ff">DISNEY</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8cc7ff">MOVIES</text>
+</svg>

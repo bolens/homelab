@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="amblin-movie-magic-title">
+  <title id="amblin-movie-magic-title">Amblin Movie Magic</title>
+  <defs>
+    <radialGradient id="amblin-movie-magic-moon" cx=".35" cy=".3" r=".75">
+      <stop offset="0" stop-color="#f9ffef" />
+      <stop offset="0.6" stop-color="#d8f1ee" />
+      <stop offset="1" stop-color="#7ca4b9" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#74a6f0" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 1.5)">
+    <circle cx="185" cy="146" r="91" fill="url(#amblin-movie-magic-moon)" stroke="#e0f4f5" stroke-width="5" />
+    <path d="M132 77q-54 60-15 115" fill="none" stroke="#90b2c1" stroke-width="13" />
+    <circle cx="231" cy="110" r="15" fill="#9cbbc4" />
+    <circle cx="151" cy="172" r="19" fill="#9cbbc4" />
+    <path d="M55 282q60-24 123 8 63-32 123-8v35q-67-23-123 10-56-33-123-10Z" fill="#7497b3" stroke="#cee6f4" stroke-width="4" />
+    <path d="M65 288q62-17 112 10 58-26 113-10v18q-61-17-113 10-52-27-112-10Z" fill="#c1d7e5" />
+    <path d="M177 297v19m-97-22 31 2m-31 6 35 3m93-8 38-6m-37 13 41-5" stroke="#7593a8" stroke-width="3" />
+    <g stroke="#d6eaf6" stroke-width="4" fill="#080f1b">
+      <circle cx="102" cy="236" r="28" />
+      <circle cx="245" cy="236" r="28" />
+      <path d="m102 236 45-65 49 65Zm45-65 98 65-27-70m-21 0h29m-89 1h21m72 1 13-17 13 4" fill="none" />
+    </g>
+    <path d="m148 164 9-41 29-18 24 17-24 28-15 10 22 38-14 16-33-47" fill="none" stroke="#080e18" stroke-width="13" />
+    <circle cx="187" cy="89" r="14" fill="#080e18" />
+    <path d="m188 121 27 21 17 15" fill="none" stroke="#080e18" stroke-width="11" />
+    <path d="m231 173 39-2-7 34-27-1Z" fill="#8e7455" stroke="#d4bb95" stroke-width="3" />
+    <path d="M240 174v-15q-12-10-4-17 15-12 27 0 7 10-6 18v13Z" fill="#a59377" stroke="#d8c5a7" stroke-width="3" />
+    <path d="m247 146 1 0m8 0h1" stroke="#263c43" stroke-width="3" />
+    <path d="m259 169 14-12 1-9" stroke="#b3b79e" stroke-width="4" />
+    <circle cx="275" cy="147" r="4" fill="#fff4bc" />
+    <path d="m60 94 4 8 8 4-8 4-4 8-4-8-8-4 8-4Zm229 153 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z" fill="#cee6f4" />
+    <g fill="none" stroke="#8daac4" stroke-width="1.7">
+      <path d="m74 236h56m-28-28v56m-20-48 40 40m-40 0 40-40m95 20h56m-28-28v56m-20-48 40 40m-40 0 40-40" />
+      <circle cx="172" cy="234" r="8" />
+      <path d="m172 234 13 7 9-3m-84 26 44-20" />
+    </g>
+    <path d="m177 213 16-2 6 6-20 3m-38-45-10-4-7 4" fill="#172b42" stroke="#adc5dc" stroke-width="2" />
+    <path d="m238 180 27-1m-26 8 25-1m-23 8 20-1m-16-19 2 29m7-30 1 30" fill="none" stroke="#d0b38a" stroke-width="1.5" />
+    <path d="M64 309q60-20 110 13m8 0q57-32 111-13" fill="none" stroke="#7295b0" stroke-width="2" />
+  </g>
+  <g fill="#6298ff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 17.0)">
+    <text x="535" y="150" font-size="68">AMBLIN</text>
+    <text x="535" y="238" font-size="48" fill="#ff925a">MOVIE MAGIC</text>
+    <g>
+      <path d="M367 80h335m-335 190h335" stroke="#ff925a" stroke-width="4" fill="none" />
+    </g>
+  </g>
+</svg>

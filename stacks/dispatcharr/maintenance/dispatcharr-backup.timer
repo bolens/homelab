@@ -1,0 +1,9 @@
+[Unit]
+Description=Create consistent IPTV snapshots before the existing backup job
+
+[Timer]
+OnCalendar=*-*-* 02:20:00 America/Denver
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="sci-fi-title">
+  <title id="sci-fi-title">Sci-Fi Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#66e4ed" stroke-width="5" />
+  <g transform="translate(0 9.5)">
+    <g transform="translate(22 14) scale(0.9)">
+      <g stroke-linejoin="round">
+        <circle cx="178" cy="190" r="91" fill="#69d9f2" stroke="#c3f3ff" stroke-width="6" />
+        <path d="M113 129q63-46 129 7m-145 26q70-38 158-2m-160 36q71-30 166-6m-153 43q65-23 141-6" stroke="#38a1c1" stroke-width="11" fill="none" />
+        <path d="M110 146c-55 38-84 75-75 94 14 30 92 17 177-24s141-96 127-125c-9-18-47-20-97-6" transform="translate(-11 11) scale(1.02)" fill="none" stroke="#b7edff" stroke-width="10" stroke-linecap="round" />
+        <circle cx="274" cy="285" r="22" fill="#8ec4e8" stroke="#c3f3ff" stroke-width="4" />
+        <circle cx="269" cy="280" r="5" fill="#5c91b7" />
+        <path d="m79 77 5-12 5 12 12 5-12 5-5 12-5-12-12-5Zm207 85 4-10 4 10 10 4-10 4-4 10-4-10-10-4Z" fill="#c3f3ff" />
+      </g>
+    </g>
+  </g>
+  <g fill="#66e4ed" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 23.50)">
+    <text x="535" y="150" font-size="70">SCI-FI</text>
+    <text x="535" y="238" font-size="70">CINEMA</text>
+  </g>
+</svg>

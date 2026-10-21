@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="80s-movies-title">
+  <title id="80s-movies-title">1980s Rewind Cinema</title>
+  <defs>
+    <linearGradient id="80s-movies-brushed-metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e7ebeb" />
+      <stop offset="0.45" stop-color="#a4b3bd" />
+      <stop offset="1" stop-color="#596d80" />
+    </linearGradient>
+    <linearGradient id="80s-movies-housing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#52616c" />
+      <stop offset="0.4" stop-color="#2e3d4b" />
+      <stop offset="1" stop-color="#162534" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#f6a0e8" stroke-width="5" />
+  <g transform="translate(0 -10.0)">
+    <g stroke-linejoin="round">
+      <path d="M57 107h238l12 17v173H45V124Z" fill="url(#80s-movies-housing)" stroke="#8698a6" stroke-width="7" />
+      <path d="M62 121h226v24H62Z" fill="#efe6d0" />
+      <rect x="66" y="161" width="218" height="79" rx="10" fill="#111c2d" />
+      <path d="M88 174h174v53H88Z" fill="#9da8ab" />
+      <circle cx="114" cy="201" r="23" fill="#e0dbc6" />
+      <circle cx="236" cy="201" r="23" fill="#e0dbc6" />
+      <path d="M137 201h76" stroke="#1a2937" stroke-width="7" />
+      <g fill="#253746">
+        <circle cx="114" cy="201" r="7" />
+        <circle cx="236" cy="201" r="7" />
+      </g>
+      <path d="M89 256h64v23H89Z" fill="#f5ecd7" />
+      <path d="M166 258h102m-102 15h75M73 146v101m205-101v101" stroke="#71828d" stroke-width="4" />
+      <path d="M55 287h242" stroke="#85939b" stroke-width="5" />
+      <g>
+        <path d="M62 137h226v8H62Z" fill="#e276aa" />
+        <path d="M167 259h96m-96 13h65" stroke="#d0b9c1" stroke-width="4" />
+        <path d="m243 127 10 5-10 5Z" fill="#bb547e" />
+      </g>
+    </g>
+  </g>
+  <g fill="#f6a0e8" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.00)">
+    <text x="535" y="126" font-size="66">1980s</text>
+    <text x="535" y="202" font-size="66">REWIND</text>
+    <text x="535" y="278" font-size="66">CINEMA</text>
+  </g>
+</svg>

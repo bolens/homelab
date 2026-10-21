@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="comedy-title">
+  <title id="comedy-title">Comedy Reels</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffba58" stroke-width="5" />
+  <g transform="translate(0 -6.00)">
+    <g stroke-linejoin="round" stroke-linecap="round" transform="rotate(-6 175 195)">
+      <path d="M72 88q103-35 206 0v99c-5 73-49 121-103 140-55-19-98-67-103-140Z" fill="#ae693e" stroke="#ffe4a5" stroke-width="5" />
+      <path d="M84 96q91-28 182 0v89c-4 65-42 110-91 130-49-20-87-65-91-130Z" fill="#ffba58" />
+      <path d="M175 83q48 0 91 13v89c-4 65-42 110-91 130 48-59 57-156 0-232Z" fill="#ae693e" opacity="0.52" />
+      <path d="M93 107q37-13 66-12M89 125v35" stroke="#ffe4a5" stroke-width="7" fill="none" />
+      <path d="M175 170l-15 47q14 10 30 0" fill="#ae693e" opacity="0.65" />
+      <path d="M176 173v29" fill="none" stroke="#ffe4a5" stroke-width="4" />
+      <path d="M103 145q22-22 48-6m48 0q26-16 48 6" fill="none" stroke="#ae693e" stroke-width="7" />
+      <path d="M98 174q26-34 57-2-30-11-57 2Zm97-2q30-32 57 2-28-13-57-2Z" fill="#302633" />
+      <path d="M105 224q70 38 140 0-6 63-70 69-64-6-70-69Z" fill="#342634" stroke="#ae693e" stroke-width="4" />
+      <path d="M117 235q58 23 116 0l-10 20q-48 16-96 0Z" fill="#fff0ce" />
+      <path d="M141 243v16m23-12v16m23-16v16m23-20v16" stroke="#d4b292" stroke-width="2" />
+      <path d="M146 279q29-20 58 0-28 11-58 0Z" fill="#cf805f" />
+      <path d="M96 200q15-9 30 1m98 0q16-10 30-1" fill="none" stroke="#ae693e" stroke-width="5" />
+      <path d="m111 216 12 4m104 0 12-4" stroke="#ffe4a5" stroke-width="5" />
+    </g>
+  </g>
+  <g fill="#ffba58" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 23.50)">
+    <text x="535" y="150" font-size="70">COMEDY</text>
+    <text x="535" y="238" font-size="70">REELS</text>
+  </g>
+</svg>

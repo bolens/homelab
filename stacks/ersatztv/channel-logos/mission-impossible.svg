@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="mission-impossible-title">
+  <title id="mission-impossible-title">Mission: Impossible Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#e77460" stroke-width="5" />
+  <g transform="translate(0 -5.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M69 119h226v182H69Z" fill="#753f3b" stroke="#e9a07b" stroke-width="6" />
+      <path d="M82 133h200v111H82Z" fill="#272e3a" stroke="#b97765" stroke-width="4" />
+      <circle cx="133" cy="183" r="37" fill="#c59677" stroke="#ffe0b2" stroke-width="4" />
+      <circle cx="232" cy="183" r="37" fill="#c59677" stroke="#ffe0b2" stroke-width="4" />
+      <circle cx="133" cy="183" r="10" fill="#3f3337" />
+      <circle cx="232" cy="183" r="10" fill="#3f3337" />
+      <path d="m111 165 8 9m29 24 9 9m-39-8-8 9m37-42 9-9m53 8 9 9m29 24 9 9m-39-8-8 9m37-42 9-9" stroke="#76574e" stroke-width="6" />
+      <path d="M133 220h99m-99-74h99" stroke="#d9bca0" stroke-width="3" />
+      <rect x="91" y="258" width="102" height="26" rx="3" fill="#252932" stroke="#d78b70" stroke-width="3" />
+      <path d="M102 265h14v12h-14Zm24 0h14v12h-14Zm40 0h14v12h-14Zm-17 2v1m0 7v1" fill="none" stroke="#f99775" stroke-width="3" />
+      <rect x="212" y="260" width="17" height="16" fill="#cf6655" />
+      <rect x="240" y="260" width="17" height="16" fill="#dbb28e" />
+      <path d="M295 246c28-10 23-33 3-46-22-15-34-34-13-65" fill="none" stroke="#e7be7f" stroke-width="7" />
+      <path d="m288 123-3-29m13 31 20-23m-15 32 29-3m-54-8-22-18" stroke="#ffdf8e" stroke-width="5" />
+      <path d="m287 119 10 11-7 12-11-11Z" fill="#fff3c9" />
+    </g>
+  </g>
+  <g fill="#e77460" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.00)">
+    <text x="535" y="126" font-size="66">MISSION:</text>
+    <text x="535" y="202" font-size="55">IMPOSSIBLE</text>
+    <text x="535" y="278" font-size="66">CINEMA</text>
+  </g>
+</svg>

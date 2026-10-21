@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="kaiju-cinema-title">
+  <title id="kaiju-cinema-title">Kaiju Cinema</title>
+  <defs />
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a9d37f" stroke-width="5" />
+  <g transform="translate(0 -1.5)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <defs>
+        <linearGradient id="kaiju-scales-face" x1="135" y1="80" x2="235" y2="305" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#7b929c" />
+          <stop offset=".48" stop-color="#465e68" />
+          <stop offset="1" stop-color="#293e48" />
+        </linearGradient>
+      </defs>
+      <path d="M188 90 164 71l-5 28-24-6 5 27-25 6 10 25-25 12 17 24-22 22 23 16-17 26 27 6-7 29 26-8 5-82Z" fill="#80c8df" stroke="#3c7390" stroke-width="3" />
+      <path d="m163 90-4 21-20-4 6 23-20 5 13 24-22 8 17 21-18 21 18 12-14 22 18 4" fill="none" stroke="#b8f1ff" stroke-width="4" />
+      <path d="M207 58q26-8 38 11l4 15 29 10q12 7-2 16l-35 7c-12 15-7 28-3 40l18 8 18-7 15 13-9 13-24 4-29-11c-3 26 5 54 17 74 12 19 5 35-5 45l30 14q8 8-5 13h-44l-16-33-18-15c-12 14-20 25-20 38l-2 10h-47l-4-17c-30 18-61 22-83 14 50-9 79-33 88-63-9-42-1-72 11-100 15-34 29-51 36-75 0-11 11-19 20-14Z" fill="url(#kaiju-scales-face)" />
+      <path d="M201 119q-35 80-5 136l16 17-19 5q-34-36-33-80 1-48 41-78Z" fill="#82938e" />
+      <path d="M210 193q-2 41 13 62l-12 15 14 28 11 23h25l-21-21q14-20 3-43-20-30-23-60Z" fill="#2c414c" />
+      <path d="M192 91q15-21 40-16l13 9-6 17-13 3-20-6Z" fill="#4f6570" />
+      <path d="m240 97 28 3-24 8m-9-28 12-3" fill="none" stroke="#122631" stroke-width="5" />
+      <path d="m244 103 6 8 5-8m5-2 5 8 5-7" fill="#f1ebcf" />
+      <path d="m234 82 10-2-5 7Z" fill="#fff1ac" />
+      <path d="M185 152q-11 17-15 37m15-18 13 5m-17 9 13 5m-16 9 13 5m-12 10 13 4m-11 11 13 3" stroke="#91a8af" stroke-width="4" fill="none" />
+      <path d="m254 171 5 12m6-15 7 12m-139 143 8-10m10 10 8-10m66 10 7-10m10 10 7-10" stroke="#dadbd0" stroke-width="5" />
+      <path d="m277 99 36-13-10 16 15 4-14 5 9 16-36-12Z" fill="#70d7f7" />
+      <path d="M282 107h27" stroke="#e0ffff" stroke-width="4" />
+      <path d="M48 329h257m-225-2v-28h23m162 28v-45h27v45" fill="none" stroke="#a9d37f" stroke-width="6" />
+      <path d="M274 292h9m-9 13h9m-188 4v9" stroke="#a9d37f" stroke-width="3" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#a9d37f">KAIJU</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#a9d37f">CINEMA</text>
+</svg>

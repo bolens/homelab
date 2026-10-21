@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="holiday-sitcom-shuffle-title">
+  <title id="holiday-sitcom-shuffle-title">Holiday Sitcom Shuffle</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffb469" stroke-width="5" />
+  <g transform="translate(0 2.5)"><g stroke-linejoin="round"><path d="m116 71 42-13m35 1 44 14" stroke="#80c99e" stroke-width="15" stroke-linecap="round"/><rect x="60" y="98" width="240" height="202" rx="30" fill="#df9c63" stroke="#ffd291" stroke-width="6"/><rect x="76" y="114" width="182" height="170" rx="18" fill="#2f3748"/><path d="M121 178h98v83h-98Z" fill="#e9c47c"/><path d="M170 178v83m-49-53h98" stroke="#fff0b3" stroke-width="7"/><path d="M169 176c-40 0-46-43-22-34 17 6 22 34 22 34Zm2 0c40 0 46-43 22-34-17 6-22 34-22 34Z" fill="#fff0b3"/><circle cx="278" cy="141" r="8" fill="#fff0b3"/><circle cx="278" cy="172" r="8" fill="#fff0b3"/><path d="M269 232h18m-18 14h18m-18 14h18m-180 41-11 25m151-25 11 25" stroke="#ffd291" stroke-width="6" stroke-linecap="round"/><path d="m168 59 11 13-10 15-14-15Z" fill="#f1938f"/></g></g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ffb469">Holiday</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ffb469">Sitcoms</text>
+</svg>

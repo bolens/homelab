@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="sports-cinema-title">
+  <title id="sports-cinema-title">Sports Cinema</title>
+  <defs>
+    <linearGradient id="sports-cinema-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0ad" />
+      <stop offset="0.25" stop-color="#ecc158" />
+      <stop offset="0.5" stop-color="#fff0b5" />
+      <stop offset="0.7" stop-color="#bc8732" />
+      <stop offset="1" stop-color="#dca444" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8ee8a9" stroke-width="5" />
+  <g transform="translate(0 0.5)">
+    <g transform="translate(0 -11.5)">
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M118 115H84v38q0 54 57 54m91-92h34v38q0 54-57 54" fill="none" stroke="url(#sports-cinema-gold)" stroke-width="10" />
+        <path d="M119 94h112v79q0 58-56 74-56-16-56-74Z" fill="url(#sports-cinema-gold)" stroke="#f7e4a4" stroke-width="6" />
+        <path d="M190 98h37v75q0 50-52 70v-24q30-18 30-61Z" fill="#a8772f" />
+        <path d="M128 106h12v65q-1 28 17 42" fill="none" stroke="#f7e4a4" stroke-width="6" />
+        <path d="M163 242h24v43h-24Z" fill="#d5ac50" />
+        <path d="m134 281 82 0 16 32H118Z" fill="#455a65" stroke="#f7e4a4" stroke-width="5" />
+        <path d="M145 289h61v13h-61Z" fill="#d3be87" />
+        <path d="m175 119 11 24 27 3-20 19 6 27-24-14-24 14 6-27-20-19 27-3Z" fill="#6a4a25" />
+        <path d="M92 281q-48-63-24-143m190 143q48-63 24-143" fill="none" stroke="url(#sports-cinema-gold)" stroke-width="5" />
+        <g fill="#78b69a">
+          <path d="M70 168q-34-21-28-49 33 12 28 49Zm-4 42q-37-10-39-39 36 3 39 39Zm9 41q-38-1-48-29 36-5 48 29Zm18 31q-37 9-53-15 34-15 53 15ZM280 168q34-21 28-49-33 12-28 49Zm4 42q37-10 39-39-36 3-39 39Zm-9 41q38-1 48-29-36-5-48 29Zm-18 31q37 9 53-15-34-15-53 15Z" />
+        </g>
+      </g>
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8ee8a9">SPORTS</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8ee8a9">CINEMA</text>
+</svg>

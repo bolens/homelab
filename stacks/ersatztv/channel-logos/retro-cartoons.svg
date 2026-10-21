@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="retro-cartoons-title">
+  <title id="retro-cartoons-title">Retro Cartoons</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8de6d1" stroke-width="5" />
+  <g transform="translate(0 -0.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="m125 103-33-47m76 47 38-48" stroke="#a7d7ca" stroke-width="7" />
+      <circle cx="92" cy="56" r="5" fill="#d5f3de" />
+      <circle cx="206" cy="55" r="5" fill="#d5f3de" />
+      <path d="M70 106h207l33 19v169l-31 20H70Z" fill="#315153" stroke="#7bcdbb" stroke-width="5" />
+      <rect x="49" y="106" width="237" height="207" rx="24" fill="#4d8176" stroke="#9aead3" stroke-width="6" />
+      <path d="M66 121q90-8 172 0m-175 7v37" stroke="#b3edda" stroke-width="5" fill="none" />
+      <rect x="64" y="124" width="174" height="166" rx="38" fill="#172e39" stroke="#2a514d" stroke-width="5" />
+      <path d="M91 137q60-11 119 0 15 25 14 70t-13 69q-62 11-120 0-14-28-14-69t14-70Z" fill="#b6ead4" />
+      <path d="M95 147q45-9 85-5" stroke="#e1f7dc" stroke-width="7" fill="none" />
+      <path d="M82 203q65 6 139 0m-139 17q65 6 139 0m-133 18q62 5 127 0" stroke="#83bfae" opacity="0.28" stroke-width="2" />
+      <ellipse cx="119" cy="184" rx="16" ry="25" fill="#203642" />
+      <ellipse cx="182" cy="184" rx="16" ry="25" fill="#203642" />
+      <path d="m120 173 14-7-2 20Zm63 0 14-7-2 20Z" fill="#d2f4dd" />
+      <path d="M106 225q45 26 90 0-2 42-45 42-42 0-45-42Z" fill="#203642" />
+      <path d="M112 232q40 17 78 0l-6 10q-33 9-66 0Z" fill="#e8f7d9" />
+      <path d="M133 260q18-20 38 0" fill="#64a796" />
+      <circle cx="259" cy="156" r="13" fill="#315153" stroke="#a7ead2" stroke-width="4" />
+      <path d="m259 146-4 10" stroke="#d9f5d9" stroke-width="3" />
+      <circle cx="259" cy="199" r="13" fill="#315153" stroke="#a7ead2" stroke-width="4" />
+      <path d="m259 189 5 10" stroke="#d9f5d9" stroke-width="3" />
+      <path d="M250 241h18m-18 10h18m-18 10h18m-18 10h18m-18 10h18" stroke="#a7ead2" stroke-width="4" />
+      <path d="m85 315-8 16m175-16 8 16" stroke="#8de6d1" stroke-width="7" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8de6d1">RETRO</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="56" font-weight="800" text-anchor="middle" fill="#8de6d1">CARTOONS</text>
+</svg>

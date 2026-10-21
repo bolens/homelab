@@ -296,7 +296,7 @@
   {
     "name": "ErsatzTV",
     "category": "Media",
-    "summary": "ErsatzTV is a self-hosted virtual cable TV server that creates linear TV channels from your media library.",
+    "summary": "ErsatzTV Legacy creates scheduled television channels from an existing media library. It exports M3U playlists and XMLTV schedules for Dispatcharr, Plex, Jellyfin and other IPTV clients.",
     "url": "apps/ersatztv/"
   },
   {

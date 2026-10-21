@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="sitcom-shuffle-title">
+  <title id="sitcom-shuffle-title">Sitcom Shuffle</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffb867" stroke-width="5" />
+  <g transform="translate(0 5.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M73 283v24l9 5 7-29m175 0 7 29 9-5v-24" fill="#b47b47" stroke="#ffb867" stroke-width="3" />
+      <rect x="78" y="166" width="194" height="115" rx="26" fill="#b77947" stroke="#ffb867" stroke-width="5" />
+      <rect x="86" y="173" width="85" height="74" rx="17" fill="#dfa66c" />
+      <rect x="178" y="173" width="85" height="74" rx="17" fill="#dfa66c" />
+      <path d="M96 184q29-10 62-1m31 0q29-9 62 0" stroke="#ffd39a" stroke-width="4" fill="none" />
+      <path d="M99 198v30m155-30v30" stroke="#c78c55" stroke-width="3" />
+      <circle cx="128" cy="209" r="4" fill="#b77947" />
+      <circle cx="220" cy="209" r="4" fill="#b77947" />
+      <rect x="76" y="237" width="198" height="48" rx="15" fill="#d59659" stroke="#ffb867" stroke-width="4" />
+      <path d="M89 241q37-8 78 0v21H87m96-21q38-8 78 0v21h-78Z" fill="#f0b477" />
+      <path d="M176 241v24m-90 3h177" stroke="#9f683d" stroke-width="3" />
+      <path d="M79 217c-21-17-40-3-37 20l7 43q2 15 18 15h214q16 0 18-15l7-43c3-23-16-37-37-20v58H79Z" fill="#ffb867" stroke="#e0a064" stroke-width="4" />
+      <path d="M54 226q8-12 19-6m202 0q13-6 20 6M66 284h218" fill="none" stroke="#ffdbac" stroke-width="4" />
+      <path d="M112 61h126q20 0 20 19v49q0 20-20 20h-42l-27 23 3-23h-60q-20 0-20-20V80q0-19 20-19Z" fill="#dd995c" stroke="#ffb867" stroke-width="4" />
+      <path d="M106 73h131q7 0 9 8H106Z" fill="#ffca8b" />
+      <path d="M119 98q11-16 23 0m65 0q11-16 23 0" fill="none" stroke="#67452f" stroke-width="5" />
+      <path d="M132 112q44 19 85 0-9 31-42 31-32 0-43-31Z" fill="#67452f" />
+      <path d="M143 119q33 9 63 0l-5 9q-29 7-53-1Z" fill="#fff0d6" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ffb867">SITCOM</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="69" font-weight="800" text-anchor="middle" fill="#ffb867">SHUFFLE</text>
+</svg>

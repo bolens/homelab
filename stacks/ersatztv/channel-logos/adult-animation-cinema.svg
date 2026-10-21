@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="adult-animation-cinema-title">
+  <title id="adult-animation-cinema-title">Adult Animation Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#c2a2fa" stroke-width="5" />
+  <g transform="translate(0 -24.00)">
+    <g stroke="#75608d" stroke-width="5" stroke-linejoin="round">
+      <path d="M70 110h221v192H70Z" fill="#a18ab9" />
+      <path d="M85 130h191v150H85Z" fill="#302a46" />
+      <path d="M98 144h165v122H98Z" fill="#55436b" />
+      <path d="M235 154a29 29 0 1 0 13 49 29 29 0 0 1-13-49Z" fill="#e5c18d" stroke="none" />
+      <path d="m125 173 20-20 55 4 19 23-7 54-27 20-43-9-22-28Z" fill="#b6a2d5" />
+      <path d="m132 178 28-10 32 4 15 12-16 5-30-5-28 5Z" fill="#8871ae" stroke="none" />
+      <path d="m140 192 21 8m19 0 21-6" stroke="#342b49" stroke-width="7" stroke-linecap="round" />
+      <path d="m150 220 40 7-5 11-30-5Z" fill="#41334f" />
+      <path d="m157 224 27 5" stroke="#eee1ff" stroke-width="4" />
+      <path d="m160 181-2-19 6-5 16 3m-5-1 4-12" fill="none" stroke="#dcc6f5" stroke-linecap="round" />
+      <path d="M81 117v11m0 18v11m0 18v11m0 18v11m0 18v11m0 18v11m199-156v11m0 18v11m0 18v11m0 18v11m0 18v11m0 18v11" stroke="#e9d6ff" stroke-width="7" />
+      <path d="m250 241 57 28-57 28Z" fill="#e5ba77" />
+      <path d="m263 252 29 16-29 15Z" fill="#ffdda1" stroke="none" />
+      <path d="M96 291h111m20 0h14" stroke="#ead6ff" stroke-width="4" />
+      <path d="m116 305-10 17h154l-10-17" fill="#80699a" />
+    </g>
+  </g>
+  <text x="535" y="137.0" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#c2a2fa">ADULT</text>
+  <text x="535" y="212.0" font-family="DejaVu Sans, sans-serif" font-size="55" font-weight="800" text-anchor="middle" fill="#c2a2fa">ANIMATION</text>
+  <text x="535" y="297.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#c2a2fa">CINEMA</text>
+</svg>

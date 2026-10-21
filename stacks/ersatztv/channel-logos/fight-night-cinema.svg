@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="fight-night-cinema-title">
+  <title id="fight-night-cinema-title">Fight Night Cinema</title>
+  <defs>
+    <linearGradient id="fight-night-cinema-leather" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ed5c4f" />
+      <stop offset="0.42" stop-color="#c93435" />
+      <stop offset="1" stop-color="#7b202c" />
+    </linearGradient>
+    <linearGradient id="fight-night-cinema-cuff" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff4d7" />
+      <stop offset="1" stop-color="#ccba96" />
+    </linearGradient>
+    <linearGradient id="fight-night-cinema-cuff-piping" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dce5ea" />
+      <stop offset="1" stop-color="#788e9f" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ff9a85" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <path d="M112 279c-27-19-43-46-46-77-2-23 3-47 20-54 18-7 35 6 39 27l4 17c4 6 10 1 9-6l-9-68c-5-37 15-64 49-68 41-5 83 11 96 50 15 46 5 107-20 150l-16 29Z" fill="url(#fight-night-cinema-leather)" stroke="#f48b77" stroke-width="7" />
+    <path d="M182 59c43-3 78 19 86 56 10 47-2 104-31 155l-29 3c30-62 38-146-26-214Z" fill="#7e2631" />
+    <path d="M83 160c27-2 19 52 46 68 10 7 21 10 37 14l-9 15c-53-4-80-53-74-97Z" fill="#e25549" />
+    <path d="M100 173c10 10 10 29 17 43 10 23 27 32 49 34M147 97q34-28 73-14m-81 182q42 10 81 0" fill="none" stroke="#ff9d7b" stroke-width="7" />
+    <path d="M112 279h128v42a10 10 0 0 1-10 10H122a10 10 0 0 1-10-10Z" fill="url(#fight-night-cinema-cuff)" stroke="url(#fight-night-cinema-cuff-piping)" stroke-width="7" />
+    <path d="M126 291h100m-88 13 13 12m-13 0 13-12m18 0 13 12m-13 0 13-12m18 0 13 12m-13 0 13-12" fill="none" stroke="#586574" stroke-width="5" />
+    <path d="M166 110q27-17 58-9m-49 6 3 8m9-12 2 8m9-10 1 8m9-9 0 8m9-7-1 8" fill="none" stroke="#f38870" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+  <g id="fight-night-cinema-three-line-wordmark" font-family="DejaVu Sans, sans-serif" font-weight="800" text-anchor="middle" fill="#ff9a85">
+    <text x="535" y="137.5" font-size="70">FIGHT</text>
+    <text x="535" y="217.5" font-size="70">NIGHT</text>
+    <text x="535" y="297.5" font-size="70">CINEMA</text>
+  </g>
+</svg>

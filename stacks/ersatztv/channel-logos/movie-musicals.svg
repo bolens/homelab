@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="movie-musicals-title">
+  <title id="movie-musicals-title">Encore! Music &amp; Musicals</title>
+  <defs>
+    <linearGradient id="movie-musicals-chrome" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eaf2f4" />
+      <stop offset="0.25" stop-color="#b6c5cd" />
+      <stop offset="0.5" stop-color="#f5f7ed" />
+      <stop offset="0.75" stop-color="#849ba9" />
+      <stop offset="1" stop-color="#c5d5db" />
+    </linearGradient>
+    <linearGradient id="movie-musicals-notes" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0ac" />
+      <stop offset="0.5" stop-color="#e5b24d" />
+      <stop offset="1" stop-color="#b78231" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#d8a6fc" stroke-width="5" />
+  <g transform="translate(0 -0.5)">
+    <g transform="translate(0 0.5)">
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <rect x="93" y="61" width="105" height="173" rx="49" fill="url(#movie-musicals-chrome)" stroke="#e7f0ed" stroke-width="5" />
+        <path d="M160 65q35 10 35 46v72q0 43-44 48 22-19 22-49v-76q0-27-13-41Z" fill="#718c9b" />
+        <path d="M108 91q5-15 20-18" stroke="#ffffff" stroke-width="6" fill="none" />
+        <path d="M109 104h73m-73 25h73m-73 25h73m-73 25h73" stroke="#344d5e" stroke-width="7" />
+        <path d="M72 183v24a74 74 0 0 0 148 0v-24m-74 98v38" fill="none" stroke="url(#movie-musicals-chrome)" stroke-width="9" />
+        <circle cx="72" cy="186" r="9" fill="#e7f0ed" />
+        <circle cx="220" cy="186" r="9" fill="#e7f0ed" />
+        <path d="M108 311h76l12 12H96Z" fill="#718c9b" stroke="url(#movie-musicals-chrome)" stroke-width="4" />
+        <path d="M261 219v-99l49-13v98m-49-62 49-13" stroke="url(#movie-musicals-notes)" stroke-width="8" fill="none" />
+        <ellipse cx="245" cy="220" rx="20" ry="14" fill="url(#movie-musicals-notes)" />
+        <ellipse cx="294" cy="206" rx="20" ry="14" fill="url(#movie-musicals-notes)" />
+        <path d="m239 278 8-19 8 19 20 8-20 8-8 19-8-19-19-8Z" fill="#e7f0ed" />
+      </g>
+    </g>
+  </g>
+  <g fill="#d8a6fc" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.00)">
+    <text x="535" y="126" font-size="66">ENCORE!</text>
+    <text x="535" y="202" font-size="66">MUSIC &amp;</text>
+    <text x="535" y="278" font-size="65">MUSICALS</text>
+  </g>
+</svg>

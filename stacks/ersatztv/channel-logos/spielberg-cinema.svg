@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="spielberg-cinema-title">
+  <title id="spielberg-cinema-title">Spielberg Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a6dafa" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 12.0)">
+    <circle cx="182" cy="159" r="103" fill="#435f87" stroke="#a6dafa" stroke-width="5" />
+    <path d="M119 91q-56 81 11 142" fill="none" stroke="#7899bc" stroke-width="15" />
+    <circle cx="227" cy="119" r="17" fill="#58769c" />
+    <circle cx="164" cy="205" r="19" fill="#58769c" />
+    <path d="M49 304q68-23 127 0 67-24 131 0" fill="none" stroke="#6489a9" stroke-width="6" />
+    <g stroke="#d5ecfa" stroke-width="5" fill="#182c43">
+      <circle cx="111" cy="225" r="31" />
+      <circle cx="245" cy="225" r="31" />
+      <path d="m111 225 41-65 43 65Zm41-65 93 65-28-72m-24 0h31m-83 5h23" fill="none" />
+      <path d="m215 149 16-17 15 5" fill="none" />
+    </g>
+    <path d="m156 151 4-36 29-19 22 18-19 26-13 17 17 34" fill="none" stroke="#142235" stroke-width="15" />
+    <circle cx="183" cy="82" r="15" fill="#142235" />
+    <path d="M227 155h36l-7 35h-24Z" fill="#846647" stroke="#c9ae85" stroke-width="4" />
+    <path d="M237 154q-7-31 14-31l8 31Z" fill="#798d92" stroke="#b3c4c8" stroke-width="3" />
+    <path d="m57 78 4 8 8 4-8 4-4 8-4-8-8-4 8-4Z" fill="#d5ecfa" />
+  </g>
+  <g fill="#a6dafa" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 20.0)">
+    <text x="535" y="150" font-size="60">SPIELBERG</text>
+    <text x="535" y="238" font-size="68">CINEMA</text>
+  </g>
+</svg>

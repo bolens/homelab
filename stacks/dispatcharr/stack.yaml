@@ -1,8 +1,9 @@
 name: dispatcharr
 default_port: 9191
-databases: []
+databases:
+- postgres
 health:
-  endpoint: /
+  endpoint: /api/accounts/initialize-superuser/
   internal_only: false
 monitoring:
   prometheus: false
@@ -19,7 +20,7 @@ exposure:
   public_by_default: false
   recommended_hostname: dispatcharr.yourdomain.com
 data_profile:
-  contains_pii: false
+  contains_pii: true
   contains_logs_only: false
   recommended_backup: true
 host_requirements:
@@ -48,11 +49,11 @@ resources:
   gpu_profile: none
 placement:
   preferred_node: null
-  colocation_group: null
+  colocation_group: media
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: Optional host maintenance provides verified database snapshots, dated channel quarantine and Node Exporter health metrics; installation is explicit. Its optional ErsatzTV integration adds online application backups, private channel recipes and native/Dispatcharr/Plex programme correctness checks. An opt-in ErsatzTV guide bridge reuses the same-host Plex binding; its image-only HTTPS route is public while guides and streams remain private.
 runtime_security:
   privileged_services: []
   host_network_services: []

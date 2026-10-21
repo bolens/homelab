@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="scooby-doo-movies-title">
+  <title id="scooby-doo-movies-title">Scooby-Doo Movies</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a7d875" stroke-width="5" />
+  <g transform="translate(0 -1.5)"><g stroke-linejoin="round"><path d="m113 53 62 11 62-11-12 24-50 10-50-10Z" fill="#40a9ac"/><ellipse cx="175" cy="78" rx="17" ry="26" fill="#eacb67" stroke="#fae19a" stroke-width="4"/><ellipse cx="175" cy="78" rx="8" ry="16" fill="#183347"/><path d="m175 84 125 125-125 125L50 209Z" fill="#d1a745" stroke="#f6dc80" stroke-width="6"/><path d="m175 103 105 106-105 106L70 209Z" fill="#45bdc6" stroke="#173b46" stroke-width="4"/><path d="m175 105 103 104-103 104V105Z" fill="#3298a9"/><path d="m175 85 125 124-13 1-112-111L64 210l-13-1Z" fill="#ffe7a0"/><path d="m117 154h43v17h-25v29h25v57h-43v-17h26v-24h-26Zm64 0h24q41 0 41 51t-41 52h-24Zm18 17v69h7q21 0 21-35t-21-34Z" fill="#f5d66d" fill-rule="evenodd"/><path d="M123 158h31m45 0h9" stroke="#fff0b2" stroke-width="3" stroke-linecap="round"/></g></g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="47" font-weight="800" text-anchor="middle" fill="#a7d875">SCOOBY-DOO</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#a7d875">MOVIES</text>
+</svg>

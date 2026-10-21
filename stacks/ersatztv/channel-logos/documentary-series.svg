@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="documentary-series-title">
+  <title id="documentary-series-title">Documentary Series</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8ae0a2" stroke-width="5" />
+  <g transform="translate(0 0.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <rect x="68" y="69" width="214" height="231" rx="18" fill="#315e54" stroke="#8ae0a2" stroke-width="6" />
+      <path d="M90 91h170v185H90Z" fill="#b9d8a5" />
+      <path d="M90 91h170v72H90Z" fill="#72a994" />
+      <circle cx="226" cy="116" r="13" fill="#f2dfa3" />
+      <path d="m91 161 40-44 32 29 26-17 39 32Z" fill="#315e54" />
+      <path d="m118 131 13-14 12 12-12-3Z" fill="#dbecc5" />
+      <path d="M90 178h170m-170 58h170" stroke="#315e54" stroke-width="5" />
+      <circle cx="175" cy="217" r="48" fill="#407b70" stroke="#d7edbd" stroke-width="4" />
+      <ellipse cx="175" cy="217" rx="23" ry="48" fill="none" stroke="#8ae0a2" stroke-width="3" />
+      <path d="M128 217h94m-87-22h80m-80 44h80" stroke="#8ae0a2" stroke-width="3" />
+      <path d="m151 178 20 9-7 12 15 14-8 17-15-2-6-14-13-6m55 9 19-3 8 13-12 13-3 20-12-7-3-18Z" fill="#bfd49a" />
+      <path d="M75 314h201" stroke="#8ae0a2" stroke-width="6" />
+      <g fill="#d7edbd">
+        <rect x="75" y="89" width="8" height="15" rx="2" />
+        <rect x="75" y="121" width="8" height="15" rx="2" />
+        <rect x="75" y="153" width="8" height="15" rx="2" />
+        <rect x="75" y="185" width="8" height="15" rx="2" />
+        <rect x="75" y="217" width="8" height="15" rx="2" />
+        <rect x="75" y="249" width="8" height="15" rx="2" />
+        <rect x="267" y="89" width="8" height="15" rx="2" />
+        <rect x="267" y="121" width="8" height="15" rx="2" />
+        <rect x="267" y="153" width="8" height="15" rx="2" />
+        <rect x="267" y="185" width="8" height="15" rx="2" />
+        <rect x="267" y="217" width="8" height="15" rx="2" />
+        <rect x="267" y="249" width="8" height="15" rx="2" />
+      </g>
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="40" font-weight="800" text-anchor="middle" fill="#8ae0a2">DOCUMENTARY</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8ae0a2">SERIES</text>
+</svg>

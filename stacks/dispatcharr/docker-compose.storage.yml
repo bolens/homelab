@@ -1,0 +1,10 @@
+# Optional DVR storage. Create the directory only after verifying its mount.
+# Combine explicitly with the base Compose file and any Plex override.
+services:
+  dispatcharr:
+    volumes:
+      - type: bind
+        source: ${DISPATCHARR_RECORDINGS_PATH:?Set an existing recordings directory}
+        target: /data/recordings
+        bind:
+          create_host_path: false

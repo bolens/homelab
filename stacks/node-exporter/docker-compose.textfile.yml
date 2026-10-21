@@ -1,0 +1,7 @@
+# Optional host-generated metrics through the existing read-only host mount.
+services:
+  node-exporter:
+    command: !override
+      - --path.rootfs=/host
+      - --no-collector.nvme
+      - --collector.textfile.directory=/host${NODE_EXPORTER_TEXTFILE_DIRECTORY:-/var/lib/node_exporter/textfile_collector}

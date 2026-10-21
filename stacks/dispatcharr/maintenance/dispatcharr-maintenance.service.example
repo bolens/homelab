@@ -1,0 +1,11 @@
+[Unit]
+Description=Dispatcharr guide, quarantine and recording health
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /path/to/maintenance/runner.py check --config /etc/dispatcharr-maintenance.json
+TimeoutStartSec=10min
+Nice=10

@@ -3,7 +3,7 @@ default_port: 8409
 databases: []
 health:
   endpoint: /
-  internal_only: false
+  internal_only: true
 monitoring:
   prometheus: false
   uptime_kuma:
@@ -29,7 +29,7 @@ host_requirements:
 links:
   homepage: https://ersatztv.org
   docs: https://ersatztv.org/docs/installation/docker/
-  repo: https://github.com/ErsatzTV/ErsatzTV
+  repo: https://github.com/ErsatzTV/legacy
 backup:
   priority: medium
   schedule_hint: daily
@@ -41,8 +41,8 @@ volumes:
   role: media
   critical: false
 auth:
-  mode: app_local
-  sso_provider: null
+  mode: external
+  sso_provider: cloudflare_access
   access_policy: access_full_site
 resources:
   cpu_profile: large
@@ -55,7 +55,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: Optional host maintenance provides private channel recipes, programme correctness metrics and verified online application backups; installation and schedule/profile changes are explicit.
 runtime_security:
   privileged_services: []
   host_network_services: []

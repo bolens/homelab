@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="nolan-cinema-title">
+  <title id="nolan-cinema-title">Nolan Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b9cddf" stroke-width="5" />
+  <g transform="translate(0 -7.5)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M65 199V67h231v250H65v-88m25-31V91h180v59m0 27v115H90v-66m25-49v-61h130v150H115v-66m25-24v-36h80v100h-80v-34" fill="none" stroke="#557991" stroke-width="5" />
+      <path d="M65 67h231v47M90 91h180m-155 25h79" fill="none" stroke="#8babc0" stroke-width="3" />
+      <path d="M65 228h23m27-29h25m104-27h26m-49 68h24" stroke="#8babc0" stroke-width="4" />
+      <ellipse cx="183" cy="302" rx="66" ry="9" fill="#294056" />
+      <path d="M173 143v41h22v-41" fill="#819bac" stroke="#d7e6ef" stroke-width="4" />
+      <ellipse cx="184" cy="141" rx="12" ry="5" fill="#c9dce9" stroke="#eef5fa" stroke-width="3" />
+      <path d="M175 152h17m-17 8h17m-17 8h17m-17 8h17" stroke="#4f6d83" stroke-width="3" />
+      <path d="M174 183q-9 10-25 23l-25 26q59 27 119 0l-25-26q-16-13-25-23Z" fill="#94aebf" stroke="#d9e7f1" stroke-width="4" />
+      <path d="M174 187q-4 13-28 37l15 7q21-31 22-45Z" fill="#e4eef5" />
+      <path d="M194 188q7 17 35 42l13 2-25-26q-16-13-23-18Z" fill="#617e95" />
+      <path d="M124 231v11q59 23 119 0v-11" fill="#667f94" stroke="#d9e7f1" stroke-width="4" />
+      <ellipse cx="183.5" cy="232" rx="59.5" ry="12" fill="none" stroke="#d9e7f1" stroke-width="3" />
+      <path d="M131 246q18 9 37 31l16 17 16-17q19-22 36-31-51 15-105 0Z" fill="#47627b" stroke="#a5c1d5" stroke-width="3" />
+      <path d="M148 252q25 13 36 36l-7-33Z" fill="#8eacbf" />
+      <path d="M183 278v18" stroke="#e4eef5" stroke-width="4" />
+      <path d="M105 281q-24 19 6 28m150-21q21 14-3 24m-24 14h46m-9-7 9 7-9 7" fill="none" stroke="#b9cddf" stroke-width="4" />
+    </g>
+  </g>
+  <g fill="#b9cddf" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 23.0)">
+    <text x="535" y="150" font-size="68">NOLAN</text>
+    <text x="535" y="238" font-size="68">CINEMA</text>
+  </g>
+</svg>
