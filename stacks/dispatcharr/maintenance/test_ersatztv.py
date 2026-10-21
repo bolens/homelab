@@ -79,6 +79,41 @@ class RecipeTests(unittest.TestCase):
                                          {'Channel': [1], 'Schedule': [3]}), 1)
 
 
+class PlexWindowTests(unittest.TestCase):
+    def test_observer_filters_large_guide_to_requested_window(self):
+        import xml.etree.ElementTree as ET
+        from unittest.mock import Mock
+        from ersatztv import ErsatzTV
+        observer = object.__new__(ErsatzTV)
+        observer.config = {'account_id': 1, 'source_id': 1, 'dvr_id': '2'}
+        binding = {'guide_id': 'etv-one', 'output_number': '100', 'uuid': 'fixture'}
+        observer.recipe = Mock(return_value={
+            'definitions': {}, 'bindings': [binding], 'restrictions': []})
+        observer.database = Mock(return_value=Mock(close=Mock()))
+        observer.request = Mock(return_value=b'fixture XMLTV')
+        observer.owner = Mock()
+        observer.owner.django.return_value = {
+            'bindings': [binding], 'programmes': [('etv-one', 200, 7400, 'Show', 'Episode')]}
+
+        def plex(path, params=None):
+            if path == '/livetv/dvrs':
+                return ET.fromstring('<MediaContainer><Dvr key="2" epgIdentifier="fixture"/></MediaContainer>')
+            # Plex parses the comparison operator from the parameter name. An
+            # extra equals sign makes it ignore the bound and return the full guide.
+            bounded = params.get('endsAt>') == 200 and params.get('beginsAt<') == 7400
+            root = ET.Element('MediaContainer', totalSize='1' if bounded else '20566')
+            video = ET.SubElement(root, 'Video', type='episode', grandparentTitle='Show', title='Episode')
+            ET.SubElement(video, 'Media', channelVcn='100', beginsAt='200', endsAt='7400')
+            return root
+
+        observer.owner.plex_call.side_effect = plex
+        with patch('ersatztv.definitions', return_value={}), patch(
+                'ersatztv.xml_programmes', return_value=({}, {
+                    'etv-one': [(200, 7400, 'Show', 'Episode')]})), patch(
+                'ersatztv.time.time', return_value=80):
+            self.assertEqual(observer.check()['guide_correct'], 1)
+
+
 class RequestTests(unittest.TestCase):
     def test_api_session_reads_authenticate_without_adding_key_to_playlist_reads(self):
         from ersatztv import ErsatzTV
