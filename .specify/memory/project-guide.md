@@ -415,6 +415,17 @@ Do not print environment values in diagnostics. For Docker's `OomKillDisable`,
 accept a verified `false` to `null` default representation change only when every
 other runtime field remains equal; reject `true`, missing fields and unknown
 values.
+A never-started Docker container may have empty network and endpoint IDs even
+when its HostConfig names the exact original network ID. Join that CREATED
+profile to a fresh inspection of the original network. Require the actual
+network ID after start; do not relax later lifecycle checks to accept emptiness.
+
+Request preparation may assemble data and check its shape. It does not verify
+publication, source, filesystem or installation facts. Keep execution in the
+owning validated entry point. Hashing a Python file and then reopening it with
+`exec_module` does not prove which bytes executed; a post-import check detects
+substitution only after code may already have run. Use the reviewed source
+cohort/loader boundary rather than adding an unguarded launch wrapper.
 
 Use the owning operation’s required access mode for the existing Writer file.
 Native Writer acquisition opens it read/write even when it changes no protocol

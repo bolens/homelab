@@ -90,22 +90,22 @@ Deliver US1 as the opt-in naming MVP, verify US2 recovery gates, then roll out U
 
 ## Current evidence
 
-Naming foundations and earlier live canaries are accepted as recorded by T001–T018 and T020–T022. The interrupted combined/bulk pass, supplement reconciliation and final idempotence remain open under T019/T023/T024. Current verification and release dependencies are listed above.
+Naming foundations and earlier live canaries are accepted under T001–T018 and
+T020–T022. The combined bulk pass, supplement reconciliation and final
+idempotence remain open under T019/T023/T024. Published ordinary-pipeline tests
+cover import, dotted release rename and preserved metadata, including existing
+`ComicInfo.xml` position. They do not complete the configured combined pass.
+See [the shared pipeline proof](../023-verified-publication-corrections/evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18).
 
-Detailed dated checks, previous delivery exceptions, image identities and failure receipts are retained in [evidence history](evidence-history.md). Those historical observations do not override the current hosted-CI requirement or complete live acceptance.
+The corrected integrated recovery source passes 1,239 controls across 72 suites
+with zero skips under Python 3.10. Clark PR #460 is merged; the media candidate
+includes that reviewed update and still requires normal current-head CI,
+publication, actual new-image capture and fresh configured acceptance. Disabled
+capture/installer preparation and a data-only request builder are reviewed, but
+supply no installed, import or repair acceptance. See [the current shared
+preparation record](../023-verified-publication-corrections/evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
 
-Candidate source-overlay runtime verification and delivery pass; matching installed-successor and configured recovery checks remain required. The failed single selected-pack attempt does not resume the combined naming/metadata pass. See [the current shared evidence](../023-verified-publication-corrections/evidence-history.md#delivered-source-and-first-selected-attempt--2026-10-16) and the retained [earlier naming checkpoint](evidence-history.md#naming-runtime-checkpoint-2026-10-11).
-
-The shared recovery source is merged with passing CI. Its configured-installer follow-up passes focused runtime checks; matching-image and live lifecycle acceptance remain required. See [the shared checkpoint](../023-verified-publication-corrections/evidence-history.md#merged-recovery-and-configured-installer-follow-up-2026-10-15).
-
-New installed-pipeline verification reaches preserved metadata after a verified import and release rename. It exposes an archive-order refusal when existing `ComicInfo.xml` is not last; the source correction preserves its original position and passes focused regression checks. Final-image verification remains required before this can support resumed combined work. See [the shared import and metadata evidence](../023-verified-publication-corrections/evidence-history.md#ordinary-import-and-metadata-order--2026-10-18). T019/T023/T024 remain open.
-
-The corrected verification-only image now passes the genuine import → dotted release rename → preserved metadata case, including the original durable acknowledgement and preserved original/restore copies. All four ordinary pipeline cases pass without skips. This component proof leaves the configured combined pass and bulk-library acceptance open; see feature 023 evidence history.
-
-Shared feature 023 recovery source corrections pass 1,239 controls with zero skips; see [the source evidence](../023-verified-publication-corrections/evidence-history.md#coupled-disposable-recovery-source-verified--2026-10-21). This does not resume the combined naming/metadata pass: T019/T023/T024 still depend on matching installed and connected acceptance, with historical originals and deferred reading-progress safeguards retained.
-
-The initial PR #461 source result confused daemon Python 3.10 with Modern
-tagger Python 3.13. The corrected predicate and two stale manifests now pass
-owning regressions, the complete 1,239-control source gate and local validation.
-Required hosted image CI and fresh installed/configured acceptance remain
-pending. Existing open acceptance tasks remain open. See [the correction record](../023-verified-publication-corrections/evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).
+Detailed dated checks, failed generations and historical delivery exceptions
+remain in [evidence history](evidence-history.md). Current required CI and the
+remaining operational dependencies above remain authoritative. Reading-progress
+work remains deferred as requested; original recovery evidence stays retained.

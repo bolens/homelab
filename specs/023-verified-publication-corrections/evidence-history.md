@@ -640,3 +640,39 @@ receipt SHA256:
 Repository validation passes with the new owning checks enabled. Installed
 factory, publication and configured acceptance remain false. Required hosted
 image CI remains pending. No live service change occurred.
+
+## Next-generation preparation and Clark integration — 2026-10-21
+
+Clark PR #460 merges as `0c9018f` after all current-head checks pass. The actual
+isolated Chromium/CDP result verifies hostname attachment, page JavaScript,
+forwarded HTTPS discovery, prefetched browser preservation and launcher exit.
+The exact exited test container and private network are removed with absence
+verified. Its original attach CLI return code was not retained; the canonical
+result and daemon exit code zero remain the observed facts. This is not live
+ingress TLS or deployment acceptance. The media branch includes the reviewed
+Clark tree and requires fresh combined-head CI before its own merge.
+
+The public-source capture successor permits exactly the reviewed adoption leaf
+change among 180 expected module hashes based on the original capture, preserving
+the other 179 values and
+53 installers. The disabled supplier freezes the current installer, 13 source
+roles and 10 NFS roles. It requires a future original capture/map/publication
+join before deriving SDK102 from actual values. Twelve focused controls pass
+for each preparation on host and Python 3.10, with independent review. Neither
+has run its operational phase or refreshed the historical 27 output references.
+
+Review holds an earlier private request wrapper because its launch entry bypasses
+preparation checks and its source loader reopens mutable files. It was never
+activated. The reviewed replacement only assembles the existing 12-key Creator
+request data from pinned JSON templates. It has no loader, launch, activation,
+transport or output interface. Twelve data/composition controls pass on both
+host and Python 3.10 using disposable fixtures and explicit transport doubles.
+Reference shapes confer no authority: Root still must
+verify fresh originals and use the existing owning Creator for execution.
+
+New native publication/image/capture bindings and new-parent facts remain unset. No live
+service, import, ACK or configured factory acceptance follows from preparation.
+The capture, supplier and data-only packet seals are respectively
+`8577c51822335c154b1033ffc9c4befe3fabea5fd52b77845bcb46f01f293632`,
+`bcea7f299f5947252682d0728c4fa58d4c5f37be3b00564132a4a77ed4b249c3`
+and `7c609053419581087e0a0d7959301f28dc9f30cf601571e9b59541defc08ee30`.

@@ -77,24 +77,26 @@ Deliver truthful diagnostics first while implementing the separate owning capabi
 
 ## Evidence
 
-T001–T010 accept the prospective design, retained diagnostics and bounded non-executable preparation. T011 and T013 accept dedicated adoption and durable recovery-history implementation. Installed reader continuity, integrated acceptance and live repair remain open under T012 and T015–T018. Current verification and remaining release dependencies are listed above.
+T001–T010 accept the prospective design, diagnostics and bounded preparation.
+T011/T013 accept adoption and durable-history implementation. Feature 023 T022's
+published source/type/reliability milestone is accepted. T012/T015 still require
+genuine connected factories and terminal consumption; T016–T018 require the
+verified live rollout, repair/import and final preservation/retention checks.
 
-Detailed dated source/image tests, retained-original experiments and failure receipts are retained in [evidence history](evidence-history.md). Private repaired copies and earlier component proofs do not complete production adoption or authorize hold release.
+The corrected integrated recovery source passes 1,239 controls across 72 suites
+with zero skips under Python 3.10. Clark PR #460 is merged; the media candidate
+includes that reviewed update and still requires normal current-head CI,
+publication, actual new-image capture and fresh configured acceptance. Disabled
+capture/installer preparation and a data-only request builder are reviewed, but
+supply no installed, import or repair acceptance. See [the current shared
+preparation record](../023-verified-publication-corrections/evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
 
-Earlier candidate and installer checks remain in [this feature's history](evidence-history.md#installed-recovery-prerequisite-2026-10-11) and the [shared recovery checkpoint](../023-verified-publication-corrections/evidence-history.md#merged-recovery-and-configured-installer-follow-up-2026-10-15). The current PR #383 worker passes 254 installed cases plus two permission-fault cases on exact private copies. After correcting the test export permissions, current native source parity, installed reader types and the complete reliability gate pass without skips. T012/T015 remain open because feature 023 T026 still needs genuine connected owning factory proof. These component results do not supply configured repair or live acceptance. See [current worker evidence](../023-verified-publication-corrections/evidence-history.md#current-worker-implementation-verification--2026-10-18).
+Docker address-pool exhaustion is resolved. The isolated new-directory NFS bind
+passes with searchable ancestors and private leaves, and its exact resources
+are removed. Full configured geometry/NFS/reader proof remains pending. Preserve
+failed generations and the original 27 artifact references; see [the prerequisite
+history](../023-verified-publication-corrections/evidence-history.md#disposable-nfs-bind-prerequisite-isolated--2026-10-21).
 
-Feature 023 T022 is now complete: the published native image passes source parity, installed reader types and the complete reliability gate without skips. This satisfies the portable owning-phase/checked-installation milestone. T012/T015 remain open because their separate T026 genuine connected-factory prerequisite is not yet proved.
-
-PR #449 delivers the shared active-input, host-engine and disposable-scope sources with passing CI and isolated candidate gates. The genuine connected factory/NFS/terminal prerequisites for T012/T015 remain unproved; see [shared delivery evidence](../023-verified-publication-corrections/evidence-history.md#integrated-recovery-sources-delivered--2026-10-20). No repair, adoption or live import follows from this source delivery.
-
-The matching configured reader-parent artifact staging now passes with 27 retained original references. The disposable bootstrap stops before container creation because Docker cannot allocate another default network. T012/T015 still require the genuine connected factory/NFS/terminal proof; see the [shared prerequisite evidence](../023-verified-publication-corrections/evidence-history.md#disposable-reader-parent-staging-and-network-prerequisite--2026-10-21).
-
-The default-network exhaustion is resolved. Disposable bootstrap now isolates a daemon/NFS traversal prerequisite; the limited empty-directory bind alternative passes without live-library permission changes. Full geometry, connected factory and terminal acceptance remain pending; see the [shared prerequisite follow-up](../023-verified-publication-corrections/evidence-history.md#disposable-nfs-bind-prerequisite-isolated--2026-10-21).
-
-The shared coupled source/consumer correction passes the full 1,239-control gate with closed source custody. T012/T015 remain open for the changed native image and connected factory/terminal proof; [shared source evidence](../023-verified-publication-corrections/evidence-history.md#coupled-disposable-recovery-source-verified--2026-10-21).
-
-The initial PR #461 source result confused daemon Python 3.10 with Modern
-tagger Python 3.13. The corrected predicate and two stale manifests now pass
-owning regressions, the complete 1,239-control source gate and local validation.
-Required hosted image CI and fresh installed/configured acceptance remain
-pending. Existing open acceptance tasks remain open. See [the correction record](../023-verified-publication-corrections/evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).
+Detailed component tests, experiments and failure receipts remain in
+[evidence history](evidence-history.md). Those records do not complete production
+adoption or release the remaining feature 022/023 gates.
