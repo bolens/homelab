@@ -1027,3 +1027,38 @@ pass, including 1,302 controls across 73 suites without skips. The finite checke
 copy adds only that existing processor fixture and closes at 690 source files.
 Fresh configured execution remains required. All 16 remaining aggregate task
 markers stay open.
+
+
+## Genuine isolated bootstrap completed - 2026-10-21
+
+The ninth finite batch exits successfully through identity, owned cleanup, fresh
+binding and activation. Both genuine Mylar queue imports complete, followed by
+reader scan/progress checks and restart. The fixture worker remains stopped;
+original receipts, data and earlier failed generations remain retained. This
+accepts the isolated bootstrap milestone only. Connected factories, NFS,
+publication, retained live-DDL recovery and fresh catalog-to-ACK acceptance remain
+unproved; all 16 remaining aggregate task markers stay open.
+
+PR #471 merges as `84573600b2c5457f2c29e51a301c3ab885fcf7c9` after passing
+normal hosted CI. Local main, GitHub and the configured mirror are synchronized.
+The 1,302-control/73-suite source proof remains distinct from this genuine
+isolated execution and from the remaining configured acceptance gates.
+
+The complete 022–024 task lists are reconciled against this checkpoint: 21/24,
+25/33 and 13/18 tasks are complete, respectively (59/75 overall). Stale current
+failure and unimplemented-capability summaries are replaced; historical failures
+remain unchanged. The remaining execution order separates delivered components
+from SourceCohort/connected proof, physical and aggregate acceptance, fresh DDL
+ACK/recurring consumption, and final library/bulk/retention checks. All task IDs
+and completion states are preserved, and local evidence links resolve.
+
+## SourceCohort preparation held - 2026-10-21
+
+The next finite source-verification batch completes its fresh input-staging
+phase, then stops in preparation with a ValueError. The invocation phase never
+starts. The retained error output does not identify the refusing check or prove
+test-container cleanup; both remain unverified pending bounded diagnosis.
+Original inputs and failed-attempt logs are preserved without replay. This
+isolated attempt changes no production service and does not invalidate the
+accepted generation-nine bootstrap. SourceCohort, connected factories and all
+16 remaining task acceptance gates stay open.

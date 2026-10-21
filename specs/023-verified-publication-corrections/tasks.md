@@ -8,15 +8,35 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-21.** The accepted ordinary Mylar baseline is the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
+**Updated 2026-10-21.** 25 of 33 tasks are complete; eight retain their full integration or operational acceptance gates. The accepted ordinary Mylar baseline is the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
 - **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,302 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
-- **Fresh isolated bootstrap:** actual identity, owned predecessor cleanup, enrollment, catalog seeding and native restart pass. The eighth fixture then stops after its one forceProcess request is consumed: the pinned consumer slices a null fixture LatestDate. Database quick_check passes; retain the native/reader, Created worker and all failure evidence without replay. The date-fixture correction passes its source gate; normal delivery and fresh configured execution remain pending. Connected factory, NFS, import and ACK gates stay open. See [the latest processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+- **Fresh isolated bootstrap:** the ninth finite batch completes both genuine Mylar queue imports, reader scan/progress and restart. Its worker remains stopped and original receipts/data are retained. PR #471 is merged with passing hosted CI. Connected factories, NFS, publication, retained live-DDL and fresh ACK acceptance remain open. See [the current bootstrap record](evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
 - **T031/T032 are complete; T017–T019 retain their aggregate gates:** identity recovery and control-state adoption are accepted. Current-library, reader, restart and second-pass acceptance precede bulk resumption and final cleanup. Keep one independently verified current backup and unresolved originals. See [recovery](evidence-history.md#combined-worker-recovery-and-pack-matching-2026-10-15) and the task dependencies below.
+
+## Remaining execution order
+
+| Order | Tasks | Delivered or verified | Remaining acceptance |
+| --- | --- | --- | --- |
+| 1 | T026 / T029 | Current source collection: 1,302 controls / 73 suites; generation-nine genuine queue imports, reader checks and restart | SourceCohort run, fresh effective scope/current roles, connected owning factories and archive terminal consumption |
+| 2 | T017 / T027 | Historical verified backups, ordinary native rollout and preservation | Fresh affected-state rollout/admission as needed, physical/NFS/reader proof, aggregate retirement and retained-repeat reconciliation |
+| 3 | T028 / T033 | Retained-delivery and recurring packs-only implementation, installed worker component checks | Selected retained pack, fresh catalog-to-ACK, later automatic capture consumption and restart reconciliation |
+| 4 | T018 / T019 | Historical canaries and scoped cleanup | Complete current-library acceptance, experimental bulk admission and conclusively completed-copy cleanup |
+
+T028's reviewed source contract precedes T026; its live ACK proof remains in
+step 3. T032 remains the separate worker-activation prerequisite. None of these
+steps requires holding ordinary Mylar unavailable throughout implementation.
+The next unexecuted gate is SourceCohort verification against the retained
+installation, followed by fresh observations within their 120-second window.
+
+The subsequent SourceCohort attempt stops in preparation before invocation;
+its failure and any test-resource cleanup remain unverified. Preserve it without
+replay. The successful bootstrap remains accepted, with no additional task
+completion. See [the current preparation result](evidence-history.md#sourcecohort-preparation-held---2026-10-21).
 
 ## Phase 1: Setup
 
@@ -63,7 +83,7 @@
 
 ## Phase 7: Owning negative-retirement prerequisites
 
-These tasks preserve accepted T001–T019 history and retain their IDs in dependency order. T020–T025 and the retained-delivery source review in T028 precede T026; current combined runtime acceptance in T029 follows T026 and precedes the held-image rollout portion of T017. T027 executes after that rollout and before T017 reconciliation and T018–T019 acceptance/cleanup. Implementation completion requires the owning integration tests and selected-image proof described by each task. T022 requires portable owning tests and checked installation. T026 additionally requires connected owning factories, and feature 024 T012/T015 depend on that proof. T029 requires genuine installed discovery, import and archive producer/consumer execution; source parity alone does not complete these gates. Fresh configured Parent/NFS and aggregate execution remain under T027 and T017–T019, with feature 024 live acceptance under T016–T018.
+These tasks preserve earlier implementation and rollout history and retain their IDs in dependency order. T020–T025 and the retained-delivery source review in T028 precede T026; current combined runtime acceptance in T029 follows T026 and precedes the held-image rollout portion of T017. T027 executes after that rollout and before T017 reconciliation and T018–T019 acceptance/cleanup. Implementation completion requires the owning integration tests and selected-image proof described by each task. T022 requires portable owning tests and checked installation. T026 additionally requires connected owning factories, and feature 024 T012/T015 depend on that proof. T029 requires genuine installed discovery, import and archive producer/consumer execution; source parity alone does not complete these gates. Fresh configured Parent/NFS and aggregate execution remain under T027 and T017–T019, with feature 024 live acceptance under T016–T018.
 
 - [x] T020 [US3] Define the finite aggregate retirement contract in `contracts/publication-corrections.md`, `plan.md` and `data-model.md`; bind all five native preparations, exact affected reader rows, current census/catalog and continuous existing Writer/owning stopped-reader lifetime. Install fail-closed ordinary admission for `negative-retirement-v1.pending` across native, worker and archive preparation purposes.
 - [x] T021 [US3] Implement `stacks/mylar3/config/publication_negative_batch.py` with one immutable aggregate intent and exact shared-parent projections for all five sources through source nlink1, exact staged aliases nlink2 and retained target nlink1. Preserve original bytes/attributes and every unrelated namespace/claim/ancestor fact; forbid arbitrary baseline refresh.
@@ -84,7 +104,7 @@ These tasks preserve accepted T001–T019 history and retain their IDs in depend
 
 - [x] T031 [US3] Correct the tagger identity reader's finite history traversal so valid terminal history beyond 4,096 entries remains admissible, using strict owning parsers for both legacy version 1 and native version 2 journals without publication-job callbacks. Preserve receipt parsing, ownership, original-file checks, active-lock exclusion and the unresolved-staging hold; prove real large-history acceptance plus unsupported-version, malformed, oversized and retained-state refusal. Integrate the exact source pins and image gates, deliver with passing CI, and verify the selected native image before post-reboot identity recovery. This prerequisite of T017 does not authorize deleting history or replaying retained staging.
 - [x] T032 [US3] Deliver explicit worker control-state device adoption without rewriting `normalizer-state-v1.identity`: reviewed affected-control backup/isolated restore, original state/jobs inode and namespace custody, current accepted native edge and prospective Btrfs filesystem/subvolume binding, read-only default refusal, in-flight/unknown/foreign refusal and interrupted-commit hold. Classify bounded controls by owning role; preserve passive reports, uncertain legacy submitted dedup history and unsent notifications unchanged without granting replay or ACK, with exact current native terminal/absence proof for retained guidance review. Preserve only complete exact legacy cross-role payload alias sets as metadata; keep controls/proofs single-link and require actual publication_roots configuration and genuine scoped acceptance. Verify the installed matching worker image and exact reviewed binding before experimental worker activation. Preserve all job receipts and retained payloads; this does not require copying unrelated completed-job payloads or complete T017/T030.
-- [ ] T017 [US3] Once privileged access is permitted, coordinate writers and execute scoped consistent backup/isolated restore, matching-image native-first rollout using brief exclusion for the affected operation. Release the external deployment guard before ordinary Mylar startup; keep the experimental bulk worker inactive until its acceptance gates pass. After T027 actual aggregate terminal proof, complete exact reviewed registration and retained-repeat repair following `stacks/mylar3/README.md` and `stacks/komga/README.md`; record archive/owner/reader/database acceptance in `specs/023-verified-publication-corrections/tasks.md`.
+- [ ] T017 [US3] Coordinate writers and execute scoped consistent backup/isolated restore, matching-image native-first rollout using brief exclusion for the affected operation. Release the external deployment guard before ordinary Mylar startup; keep the experimental bulk worker inactive until its acceptance gates pass. After T027 actual aggregate terminal proof, complete exact reviewed registration and retained-repeat repair following `stacks/mylar3/README.md` and `stacks/komga/README.md`; record archive/owner/reader/database acceptance in `specs/023-verified-publication-corrections/tasks.md`.
 - [ ] T033 [US3] Deliver FR-017 recurring packs-only recovery in `stacks/komga/normalizer/normalize.py`, `pack_only.py`, `maintenance.py` and the explicit `docker-compose.packs.yml` command override, preserving the default full mode and existing selected controls. Reuse bounded native discovery, fresh per-capture Writer/authority/cache admission, typed import/report/ACK recovery and worker exclusion; omit general maintenance, naming, conversion sweeps, workflow commands, catalog fallback and reader scan requests. Prove busy/pending/malformed refusal, future-capture scheduling, no uncertain replay, bounded polling/shutdown and fresh health. Close current fixture/image/source pins, independently review and publish matching images. After T032 and affected-state backup/isolated restore, verify a selected canary then a later native capture consumed without another manual invocation, restart reconciliation, catalog-to-ACK acceptance and retained originals. Keep this task open until that ongoing configured acceptance passes; it does not authorize T018 bulk or replace T022/T026/T027/T029.
 
 - [ ] T018 [US3] Verify live known-conflict and legitimate different-payload canaries plus restart/retention/data acceptance in `specs/023-verified-publication-corrections/tasks.md` and `quickstart.md`; resume the experimental bulk worker only after protected complete current-library acceptance. Ordinary Mylar availability remains separate from bulk acceptance; unresolved durable operation markers retain their owning holds.
@@ -111,9 +131,9 @@ Build the immutable reviewed-registration MVP first, then prove every publicatio
 ## Evidence
 
 The build-warning follow-up preserves parsing and transaction behavior while
-fixing deprecated calls and resource leaks. Its changed source identities need
-matching image/capture/installer evidence; no acceptance checkbox advances from
-these source tests. See [the correction record](evidence-history.md#build-warning-corrections--2026-10-21).
+fixing deprecated calls and resource leaks. Its accepted native capture and
+matching installer are recorded below; the source correction alone does not
+complete connected acceptance. See [the correction record](evidence-history.md#build-warning-corrections--2026-10-21).
 
 T001–T016 authority foundations and guarded publication paths are accepted.
 T022's portable lifecycle/checked installation, T031 identity recovery, T032
@@ -132,10 +152,10 @@ original installation outputs and failed generations remain retained.
 PR #463 scheduling and PR #464 cacheable stages are merged. The tagging stage's
 117 tests pass without skips, and an unrelated reader edit reuses that layer.
 See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
-The retained catalog-permission source gate passes 1,299 controls across 73 suites
-and all 14 outer checks without skips. Later configured progress and its new
-fixture-date failure are recorded in [the latest processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
-Normal delivery and fresh corrected execution remain required.
+PR #471 delivers the current 1,302-control/73-suite source proof after passing
+hosted CI. The ninth isolated bootstrap also completes genuine processing,
+reader and restart checks; [the current bootstrap record](evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21) preserves
+the distinction from still-open connected and live acceptance.
 
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
 genuine connected factories and archive terminal consumption, T027 physical and
@@ -153,12 +173,3 @@ The old PR #341 worktree documentation has been reconciled against current
 history. Its exact patch and verified Git bundle are preserved privately, and
 the old worktree is removed without force.
 See [recovered storage notes](evidence-history.md#recovered-storage-notes-and-old-worktree-cleanup--2026-10-21).
-
-The eighth isolated generation passes catalog seeding and native restart, then
-a once-submitted forceProcess request is consumed before processing fails on a
-null fixture LatestDate. The fixture database remains readable; its services,
-data and failure evidence are retained without replay. The seed now supplies
-coherent latest-date and issue fields; all 1,302 source controls and 14 outer
-checks pass under Python 3.10. Fresh configured execution, connected/NFS,
-import and ACK acceptance remain open. See [the latest
-processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).

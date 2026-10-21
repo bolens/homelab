@@ -196,6 +196,11 @@ path. A queued request consumed before a fixture exception is not an import or
 ACK. Retain its original intent and failure evidence; never replay it to test
 a source correction.
 
+Record genuine isolated queue imports, reader scan/progress and restart as
+bootstrap execution milestones. They do not accept retained live DDL, catalog-to-ACK
+recovery, connected factories, NFS or publication. Preserve original receipts
+and failed generations; advance aggregate tasks only on their full owning proof.
+
 Copying the archive SDK source from its container does not copy its Python runtime.
 Its canonical wrapper selects `python3` from the consumer environment; in Mylar
 that remains daemon Python 3.10, even when Modern has a private newer interpreter.

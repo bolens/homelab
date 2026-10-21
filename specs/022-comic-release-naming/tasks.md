@@ -9,15 +9,20 @@
 
 ## Current remaining work
 
-**Updated 2026-10-21.** T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
+**Updated 2026-10-21.** 21 of 24 tasks are complete; 3 retain their full acceptance gates. T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
 
 Historical installed import-to-release-name/metadata checks remain accepted for their inspected generation. Ordinary Mylar runs the published PR #405 image after verified backup and isolated restore. It is healthy, and the complete original-bound post-update preservation check is accepted, including the source-specific scheduler and workflow classifications. Exact-key comparison preserves all 16,432 issue records and every field except 111 Wanted records whose empty DateAdded becomes the current date. Komga remains running; the permanent worker and combined bulk pass remain inactive. The four selected-pack histories contain no accepted import or ACK. T019/T023/T024 still require configured recovery, combined passes and final acceptance, with dot separators and a hyphen before the verified group. See the shared [current rollout record](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 
 PR #390 delivers bounded import-dispatch diagnostics with passing required CI and security review. It does not resolve the fourth attempt's missing historical reason or accept a new import. The corrected reader-helper follow-up now completes all three read-only GETs and maps both library roots with original custody and helper cleanup. Owning Parent/NFS, complete current-library and bulk acceptance remain open. See [the current reader evidence](../023-verified-publication-corrections/evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 
-The shared single-authentication launcher passes actual privilege/client checks.
-The latest isolated execution stops after catalog seeding and restart, at a
-fixture-date processing failure; T019/T023 remain held. See [the latest processing record](../023-verified-publication-corrections/evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+The shared single-authentication launcher and ninth isolated bootstrap pass
+actual execution checks. T019/T023 remain held on their broader configured and
+current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
+
+The subsequent SourceCohort attempt stops in preparation before invocation;
+its failure and any test-resource cleanup remain unverified. Preserve it without
+replay. The successful bootstrap remains accepted, with no additional task
+completion. See [the current preparation result](../023-verified-publication-corrections/evidence-history.md#sourcecohort-preparation-held---2026-10-21).
 
 ## Phase 1: Setup
 
@@ -101,10 +106,10 @@ cover import, dotted release rename and preserved metadata, including existing
 `ComicInfo.xml` position. They do not complete the configured combined pass.
 See [the shared pipeline proof](../023-verified-publication-corrections/evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18).
 
-The accepted PR #462 native capture preserves all 180 sources and startup
-files, with its matching 27-output supplier. Current source verification and the
-latest configured catalog refusal are recorded in [the shared runtime
-checkpoint](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+The accepted PR #462 native capture and matching 27-output supplier remain
+preserved. Current source verification and the successful ninth isolated
+bootstrap are recorded in [the shared bootstrap
+checkpoint](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 SourceCohort and connected acceptance remain open.
 
 Detailed dated checks, failed generations and historical delivery exceptions
@@ -112,11 +117,9 @@ remain in [evidence history](evidence-history.md). Current required CI and the
 remaining operational dependencies above remain authoritative. Reading-progress
 work remains deferred as requested; original recovery evidence stays retained.
 
-The eighth isolated generation passes catalog seeding and native restart, then
-a once-submitted forceProcess request is consumed before processing fails on a
-null fixture LatestDate. The fixture database remains readable; its services,
-data and failure evidence are retained without replay. The seed now supplies
-coherent latest-date and issue fields; all 1,302 source controls and 14 outer
-checks pass under Python 3.10. Fresh configured execution, connected/NFS,
-import and ACK acceptance remain open. See [the latest
-processing record](../023-verified-publication-corrections/evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+The ninth isolated batch completes both genuine Mylar queue imports, reader
+scan/progress and restart; its worker stays stopped. PR #471 is merged after
+passing hosted CI. This is bootstrap execution proof, with original data and
+receipts retained; connected factories, NFS, publication, retained live-DDL and
+fresh ACK acceptance remain open. See [the current bootstrap
+record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
