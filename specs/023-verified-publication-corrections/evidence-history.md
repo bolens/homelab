@@ -732,3 +732,24 @@ All tests, source checks and failure propagation remain mandatory. Per-suite
 elapsed times include source preparation and child execution. Hosted before/after
 measurement is required before claiming a speedup; no configured acceptance or
 formal task completion follows from this scheduling change.
+
+
+### Cacheable image verification stages — 2026-10-21
+
+PR #463 merged after all hosted checks passed. Its completed Mylar build ran
+verification in 1,219.1 seconds (20m 19s), compared with 2,276.8 seconds (37m 57s)
+for PR #462. The pooled 117-test publication/tagging suite took 466.729 seconds.
+These are observed individual builds, not a guaranteed duration.
+
+The next implementation separates the fixed tagging dependency closure from the
+remaining image checks. Both branches share the exact installed archive SDK and
+Modern runtime. The tagging branch copies 90 explicit source files and runs all
+117 tests with zero skips; the remaining branch has three owning-suite workers.
+A mandatory aggregate checks the tagging receipt against current source hashes.
+The default standalone verifier retains the full collection. Neither branch
+caches configured freshness decisions or grants operational acceptance.
+
+The manifest generator, verifier and routing controls pass locally, as do the
+Docker stage-graph tests. Actual target-image execution, full repository checks,
+independent review and hosted CI remain pending. No formal task checkbox advances
+from this implementation alone.

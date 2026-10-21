@@ -148,6 +148,13 @@ When a declared test suite grows, update its exact owning runner count and
 aggregate assertions together, then execute the complete suite inventory before
 pushing. Keep strict collection and zero-skip checks; historical evidence counts
 remain unchanged.
+For the cacheable Mylar tagging stage, regenerate and check its explicit dependency
+manifest and Docker COPY block with `config/tagging_stage_inputs.py` before
+refreshing the outer source maps. Keep tagging and remaining checks as independent
+branches of the same pinned runtime, joined by the mandatory aggregate stage.
+A build result may reuse unchanged public source/runtime checks; it cannot reuse
+live freshness, ownership, import or acknowledgement decisions. The default
+standalone verifier must continue to run every suite.
 The retained-pack worker fixture also has an inner `source-pins.json` census.
 Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not

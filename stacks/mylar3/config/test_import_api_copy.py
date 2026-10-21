@@ -35,6 +35,7 @@ class APICopy(unittest.TestCase):
             for name in self.runner.STANDALONE_FIXTURES | self.runner.ORDINARY_PIPELINE_FIXTURES:
                 self.assertEqual((copied/name).read_bytes(),(self.root/name).read_bytes())
             self.assertEqual((copied/self.runner.STANDALONE_MANIFEST).read_bytes(),(self.root/self.runner.STANDALONE_MANIFEST).read_bytes())
+            self.assertEqual((copied/'tagging_stage_sources.json').read_bytes(),(self.root/'tagging_stage_sources.json').read_bytes())
             self.assertFalse((copied/'comic_retained_standalone_action.py').exists())
             self.assertTrue((copied/'comic_reader_backup_primitives.py').is_file())
             self.assertIn('test_ordinary_import_observation',argv)

@@ -126,6 +126,39 @@ class MylarStagePreservationTests(unittest.TestCase):
 
     STACK = ROOT / "stacks/mylar3"
 
+    def test_cacheable_tagging_inputs_match_the_actual_docker_copy(self):
+        subprocess.run([sys.executable, '-I', '-B',
+                        str(self.STACK / 'config/tagging_stage_inputs.py'), '--check'], check=True)
+        self.assertIn('!config/tagging_stage_sources.json',
+                      (self.STACK / '.dockerignore').read_text().splitlines())
+
+    def test_both_verification_branches_are_mandatory_and_independent(self):
+        body = (self.STACK / 'Dockerfile').read_text().replace('\\\n', ' ')
+        stages = {}
+        for section in body.split('\nFROM '):
+            first, _, content = section.partition('\n')
+            fields = shlex.split(first.removeprefix('FROM '))
+            if len(fields) == 3 and fields[1] == 'AS':
+                stages[fields[2]] = (fields[0], content)
+        self.assertEqual(stages['tagging-checked'][0], 'verification-runtime')
+        self.assertEqual(stages['app-checked'][0], 'verification-runtime')
+        self.assertEqual(stages['checked'][0], 'app-checked')
+        common = stages['verification-runtime'][1]
+        self.assertIn('COPY --from=archive-verifier', common)
+        self.assertIn('COPY --from=tagger-build', common)
+        self.assertNotIn('COPY config/', common)
+        self.assertNotIn('COPY config/ ', stages['tagging-checked'][1])
+        self.assertIn("'/opt/mylar3-fixes/verify_image.py','--phase','remaining'",
+                      stages['app-checked'][1])
+        aggregate = [line for line in stages['checked'][1].splitlines() if line.startswith('RUN ')]
+        self.assertEqual(len(aggregate), 1)
+        command = shlex.split(aggregate[0])
+        self.assertEqual(command[1], '--mount=type=bind,from=tagging-checked,source=/opt/mylar-tagging-stage/verified.json,target=/run/tagging-stage-result.json,readonly')
+        self.assertEqual(command[2:], ['--network=none', 'python3', '-I', '-B',
+                                     '/opt/mylar3-fixes/verify_tagging_stage.py', '--verify-receipt',
+                                     '/opt/mylar3-fixes', '/run/tagging-stage-result.json'])
+        self.assertIn('COPY --from=checked ', body.rsplit('\nFROM ', 1)[1])
+
     def test_reader_manifest_nonpython_files_have_explicit_context_admission(self):
         manifest = json.loads((self.STACK / "config/reader_recovery/source-manifest.json").read_text())
         required = {"source-manifest.json"} | {

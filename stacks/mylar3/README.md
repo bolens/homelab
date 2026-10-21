@@ -274,6 +274,18 @@ Independent owning suites use at most four subprocesses, each with its own
 source and fixture roots. The longest publication/tagging suite starts first;
 per-suite elapsed times are logged, and every result must pass before later gates.
 
+The custom-image build splits verification into two parallel BuildKit branches
+from the same pinned archive SDK and Modern tagger runtime. One branch runs all
+117 publication/tagging tests with zero skips against an explicit, hash-checked
+source manifest. The other runs the remaining checks with at most three owning
+suite children. The final aggregate stage requires both branches and verifies
+the tagging result against the current source files before producing the image.
+An unrelated source edit can therefore reuse the tagging layer; changing any of
+its declared inputs or common runtime invalidates it. Repository checks verify
+the manifest's dependency closure and generated Docker copy list. The standalone
+`verify_image.py` command still runs the complete gate by default. These build
+results provide no cached live ownership, import or acknowledgement authority.
+
 The full custom-image gate also runs [installed ordinary-pipeline checks](config/ordinary_pipeline/README.md)
 for discovery, first import, a reply lost after durable completion, and import
 followed by rename and preserved metadata. Each uses new disposable state and

@@ -98,10 +98,34 @@ class OwningScheduling(unittest.TestCase):
         suites = ast.literal_eval(declaration.value)
         self.assertEqual(suites[0], 'test_publication_tagging.py')
         self.assertEqual(suites.count('test_publication_tagging.py'), 1)
-        occurrences = [n for n in ast.walk(TREE) if isinstance(n, ast.Constant)
-                       and n.value == 'test_publication_tagging.py']
-        self.assertEqual(len(occurrences), 1)
-        self.assertIn(occurrences[0], list(ast.walk(declaration)))
+        selector = next(n for n in TREE.body if isinstance(n, ast.FunctionDef)
+                        and n.name == 'selected_owning_suites')
+        namespace = {'OWNING_SUITES': suites}
+        exec(compile(ast.Module([selector], type_ignores=[]), 'actual-suite-selection', 'exec'), namespace)
+        selected = namespace['selected_owning_suites']
+        self.assertEqual(selected('all'), suites)
+        self.assertEqual(selected('remaining'), tuple(n for n in suites if n != 'test_publication_tagging.py'))
+        with self.assertRaises(AssertionError):selected('unknown')
+        direct = [n for n in ast.walk(TREE) if isinstance(n, ast.Call)
+                  and isinstance(n.func, ast.Attribute) and n.func.attr == 'run'
+                  and any(isinstance(v, ast.Constant) and v.value == 'test_publication_tagging.py'
+                          for v in ast.walk(n))]
+        self.assertEqual(direct, [])
+
+    def test_parallel_phases_preserve_combined_worker_limit_and_partial_reporting(self):
+        workers = next(n for n in TREE.body if isinstance(n, ast.Assign)
+                       and any(isinstance(t, ast.Name) and t.id == 'OWNING_WORKERS' for t in n.targets))
+        terminal = TREE.body[-1]
+        self.assertIsInstance(terminal, ast.If)
+        for phase, expected in (('all', 4), ('remaining', 3)):
+            namespace = {'PHASE': phase}
+            exec(compile(ast.Module([workers], type_ignores=[]), 'actual-worker-selection', 'exec'), namespace)
+            self.assertEqual(namespace['OWNING_WORKERS'], expected)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                exec(compile(ast.Module([terminal], type_ignores=[]), 'actual-phase-result', 'exec'), namespace)
+            self.assertEqual('Candidate image passed' in output.getvalue(), phase == 'all')
+            if phase == 'remaining':self.assertIn('aggregate gate still required', output.getvalue())
 
     def test_actual_owning_child_uses_distinct_source_copies(self):
         method = next(n for n in TREE.body if isinstance(n, ast.FunctionDef)
@@ -150,8 +174,8 @@ class OwningScheduling(unittest.TestCase):
                             and isinstance(i.context_expr.func, ast.Name)
                             and i.context_expr.func.id == 'ThreadPoolExecutor' for i in n.items))
         call = pool.items[0].context_expr
-        self.assertEqual({k.arg: ast.literal_eval(k.value) for k in call.keywords},
-                         {'max_workers': 4})
+        self.assertEqual({k.arg: ast.unparse(k.value) for k in call.keywords},
+                         {'max_workers': 'OWNING_WORKERS'})
         bodies = [value for node in ast.walk(TREE) for _, value in ast.iter_fields(node)
                   if isinstance(value, list) and pool in value]
         self.assertEqual(len(bodies), 1)
@@ -172,7 +196,11 @@ class OwningScheduling(unittest.TestCase):
                     return subprocess.CompletedProcess([name], 0, stdout='sibling output\n')
                 namespace = dict(ThreadPoolExecutor=ThreadPoolExecutor, owning_suite=work,
                                  OWNING_SUITES=('failed.py', 'sibling.py'),
-                                 environment=environment, subprocess=subprocess, sys=sys, FIXES=HERE)
+                                 environment=environment, subprocess=subprocess, sys=sys, FIXES=HERE,
+                                 OWNING_WORKERS=4, PHASE='all')
+                selector = next(n for n in TREE.body if isinstance(n, ast.FunctionDef)
+                                and n.name == 'selected_owning_suites')
+                exec(compile(ast.Module([selector], type_ignores=[]), 'actual-suite-selection', 'exec'), namespace)
                 output = io.StringIO()
                 expected = subprocess.CalledProcessError if failure == 'nonzero' else RuntimeError
                 with redirect_stdout(output), self.assertRaises(expected) as caught:

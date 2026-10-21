@@ -96,12 +96,113 @@ RUN printf '%s\n' /opt/libarchive/lib > /etc/ld.so.conf.d/00-homelab-libarchive.
     && ldconfig \
     && python3 -c "import ctypes,ctypes.util; p=ctypes.util.find_library('archive'); assert p; lib=ctypes.CDLL(p); lib.archive_version_number.restype=ctypes.c_int; assert lib.archive_version_number()==3008009; assert any('/opt/libarchive/lib/libarchive.so.' in line for line in open('/proc/self/maps'))"
 
-FROM pdf-runtime AS checked
+FROM pdf-runtime AS verification-runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     ARCHIVING_UTILS_ROOT=/opt/archiving-utils
 COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
 COPY --from=tagger-build /opt/tagger-python/ /opt/tagger-python/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
+
+FROM verification-runtime AS tagging-checked
+COPY config/verify_tagging_stage.py config/tagging_stage_sources.json /opt/mylar-tagging-stage/
+# BEGIN TAGGING STAGE INPUTS
+COPY config/archive_monitor.py \
+    config/cache_admission.py \
+    config/cache_reservation.py \
+    config/combined_cleanup.py \
+    config/combined_publication.py \
+    config/converted_catalog.py \
+    config/converted_tagging.py \
+    config/file_identity.py \
+    config/import_problems.py \
+    config/library_metadata.py \
+    config/library_status.py \
+    config/media_writer.py \
+    config/metadata_repair.py \
+    config/native_writers.py \
+    config/ordinary_import_continuity.py \
+    config/ordinary_import_history.py \
+    config/ordinary_import_observation.py \
+    config/pack_bindings.py \
+    config/pack_catalog.py \
+    config/pack_intake.py \
+    config/patch_publication_guard.py \
+    config/patch_publication_processing.py \
+    config/pp_monitor.py \
+    config/processing_guard.py \
+    config/publication_api.py \
+    config/publication_archive_adoption.py \
+    config/publication_archive_derivative.py \
+    config/publication_archive_diagnostics.py \
+    config/publication_archive_dispatch.py \
+    config/publication_archive_history.py \
+    config/publication_archive_layout.py \
+    config/publication_archive_owned.py \
+    config/publication_archive_preparation_existing.py \
+    config/publication_archive_prepare_routes.py \
+    config/publication_archive_reader.py \
+    config/publication_archive_repair.py \
+    config/publication_archive_rollback.py \
+    config/publication_archive_verifier.py \
+    config/publication_conversion.py \
+    config/publication_derivative.py \
+    config/publication_filesystem_binding.py \
+    config/publication_fresh.py \
+    config/publication_guard.py \
+    config/publication_identity_adoption.py \
+    config/publication_identity_maintenance.py \
+    config/publication_identity_readers.py \
+    config/publication_lineage.py \
+    config/publication_mutation.py \
+    config/publication_native.py \
+    config/publication_native_configured_scope.py \
+    config/publication_reader_lifecycle.py \
+    config/publication_reconcile.py \
+    config/publication_rename.py \
+    config/publication_rescan.py \
+    config/publication_retained_api.py \
+    config/publication_retained_delivery.py \
+    config/publication_retained_finalize.py \
+    config/publication_tagging_recovery.py \
+    config/publication_transaction.py \
+    config/queue_control.py \
+    config/queue_progress.py \
+    config/release_naming.py \
+    config/tagger_adapter.py \
+    config/tagger_archive.py \
+    config/tagger_attributes.py \
+    config/tagger_backend.py \
+    config/tagger_cli.py \
+    config/tagger_enrichment.py \
+    config/tagger_handoff.py \
+    config/tagger_legacy.py \
+    config/tagger_lookup.py \
+    config/tagger_metadata.py \
+    config/tagger_native.py \
+    config/tagger_nfs.py \
+    config/tagger_pack.py \
+    config/tagger_runtime.py \
+    config/tagger_service.py \
+    config/tagger_staging.py \
+    config/tagger_supplement.py \
+    config/tagger_volume_cache.py \
+    config/test_modern_tagger.py \
+    config/test_publication_api.py \
+    config/test_publication_guard.py \
+    config/test_publication_native.py \
+    config/test_publication_tagging.py \
+    config/test_tagger_lookup.py \
+    config/worker_handoff.py \
+    config/workflow.py \
+    config/workflow_nzb.py \
+    config/workflow_store.py \
+    /opt/mylar-tagging-inputs/
+# END TAGGING STAGE INPUTS
+RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run/tagging-fixtures,size=67108864 --network=none \
+    python3 -I -B -c "import os,sys; p='/run/tagging-fixtures'; os.chmod('/tmp',0o1777); os.chown(p,1000,1000); os.chmod(p,0o700); os.environ['HOME']=p; os.environ['TMPDIR']='/tmp'; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.geteuid()==os.getegid()==1000; os.execv(sys.executable,[sys.executable,'-I','-B','/opt/mylar-tagging-stage/verify_tagging_stage.py','--sources','/opt/mylar-tagging-inputs','--manifest','/opt/mylar-tagging-stage/tagging_stage_sources.json','--output',p+'/result.json'])" \
+    && install -D -m 0644 /run/tagging-fixtures/result.json /opt/mylar-tagging-stage/verified.json
+
+FROM verification-runtime AS app-checked
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
 RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run/authenticated-fixtures,size=67108864 --network=none python3 -I -B /opt/mylar3-fixes/patch_publication_launch_auth.py /opt/mylar-publication-launch/auth \
@@ -109,7 +210,12 @@ RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run
     && python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && chmod 0644 /app/mylar3/mylar/config.py \
     && chmod 0755 /app/mylar3/Mylar.py \
-    && python3 -I -B -c "import os,sys; p='/run/authenticated-fixtures'; os.chmod('/tmp',0o1777); os.chown(p,1000,1000); os.chmod(p,0o700); os.environ['HOME']=p; os.environ['TMPDIR']='/tmp'; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.geteuid()==os.getegid()==1000; os.mkdir(p+'/.cache',0o700); os.execv(sys.executable,[sys.executable,'-B','/opt/mylar3-fixes/verify_image.py'])"
+    && python3 -I -B -c "import os,sys; p='/run/authenticated-fixtures'; os.chmod('/tmp',0o1777); os.chown(p,1000,1000); os.chmod(p,0o700); os.environ['HOME']=p; os.environ['TMPDIR']='/tmp'; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.geteuid()==os.getegid()==1000; os.mkdir(p+'/.cache',0o700); os.execv(sys.executable,[sys.executable,'-B','/opt/mylar3-fixes/verify_image.py','--phase','remaining'])"
+
+# Both independent branches must pass before any checked artifact can be exported.
+FROM app-checked AS checked
+RUN --mount=type=bind,from=tagging-checked,source=/opt/mylar-tagging-stage/verified.json,target=/run/tagging-stage-result.json,readonly --network=none \
+    python3 -I -B /opt/mylar3-fixes/verify_tagging_stage.py --verify-receipt /opt/mylar3-fixes /run/tagging-stage-result.json
 
 FROM pdf-runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
