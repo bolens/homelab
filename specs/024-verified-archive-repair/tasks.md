@@ -12,10 +12,12 @@
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
 
-The subsequent SourceCohort attempt stops in preparation before invocation;
-its failure and any test-resource cleanup remain unverified. Preserve it without
-replay. The successful bootstrap remains accepted, with no additional task
-completion. See [the current preparation result](../023-verified-publication-corrections/evidence-history.md#sourcecohort-preparation-held---2026-10-21).
+The corrected private source projection passes the complete isolated
+SourceFixture gate: all 1,302 controls across 73 suites, with zero skips,
+installed-source checks before and after execution, and verified owned-container
+cleanup. Preserve both failed histories without replay. Fresh effective scope,
+current roles and connected factory/archive-terminal acceptance remain next;
+no aggregate task is complete on this source proof alone. See [the current handoff correction](../023-verified-publication-corrections/evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21).
 
 ## Phase 1: Setup
 

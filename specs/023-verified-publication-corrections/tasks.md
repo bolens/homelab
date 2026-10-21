@@ -22,7 +22,7 @@
 
 | Order | Tasks | Delivered or verified | Remaining acceptance |
 | --- | --- | --- | --- |
-| 1 | T026 / T029 | Current source collection: 1,302 controls / 73 suites; generation-nine genuine queue imports, reader checks and restart | SourceCohort run, fresh effective scope/current roles, connected owning factories and archive terminal consumption |
+| 1 | T026 / T029 | Current source collection: 1,302 controls / 73 suites; generation-nine genuine queue imports, reader checks and restart; installed SourceFixture gate and cleanup | Fresh effective scope/current roles, connected owning factories and archive terminal consumption |
 | 2 | T017 / T027 | Historical verified backups, ordinary native rollout and preservation | Fresh affected-state rollout/admission as needed, physical/NFS/reader proof, aggregate retirement and retained-repeat reconciliation |
 | 3 | T028 / T033 | Retained-delivery and recurring packs-only implementation, installed worker component checks | Selected retained pack, fresh catalog-to-ACK, later automatic capture consumption and restart reconciliation |
 | 4 | T018 / T019 | Historical canaries and scoped cleanup | Complete current-library acceptance, experimental bulk admission and conclusively completed-copy cleanup |
@@ -30,13 +30,16 @@
 T028's reviewed source contract precedes T026; its live ACK proof remains in
 step 3. T032 remains the separate worker-activation prerequisite. None of these
 steps requires holding ordinary Mylar unavailable throughout implementation.
-The next unexecuted gate is SourceCohort verification against the retained
-installation, followed by fresh observations within their 120-second window.
+The installed SourceCohort gate is accepted. Next obtain fresh effective-scope
+and current-role observations within their 120-second window, then exercise the
+connected owning factories and archive terminal path.
 
-The subsequent SourceCohort attempt stops in preparation before invocation;
-its failure and any test-resource cleanup remain unverified. Preserve it without
-replay. The successful bootstrap remains accepted, with no additional task
-completion. See [the current preparation result](evidence-history.md#sourcecohort-preparation-held---2026-10-21).
+The corrected private source projection passes the complete isolated
+SourceFixture gate: all 1,302 controls across 73 suites, with zero skips,
+installed-source checks before and after execution, and verified owned-container
+cleanup. Preserve both failed histories without replay. Fresh effective scope,
+current roles and connected factory/archive-terminal acceptance remain next;
+no aggregate task is complete on this source proof alone. See [the current handoff correction](evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21).
 
 ## Phase 1: Setup
 
