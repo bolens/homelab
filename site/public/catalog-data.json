@@ -1052,7 +1052,7 @@
   {
     "name": "Seafile – file sync and sharing",
     "category": "Storage",
-    "summary": "Seafile is a self-hosted file sync and sharing platform with desktop and mobile clients. This stack runs Seafile with MariaDB and Memcached behind Caddy.",
+    "summary": "Seafile is a self-hosted file sync and sharing platform with desktop and mobile clients. This example runs Seafile 14 Community Edition with MariaDB and an authenticated Redis cache behind Caddy.",
     "url": "apps/seafile/"
   },
   {

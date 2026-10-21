@@ -35,7 +35,7 @@ openssl rand -hex 24
 Set each variable to the corresponding output. See `stack.env.example` for variable names.
 
 **Portainer:** No `.env` file is used; set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` (and optionally `NEXTAUTH_URL`, `TZ`) in the stack's Environment variables when deploying.
-The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it works when deployed from Portainer's web editor.
+The stack uses **named volumes** (`lw_pg18data`, `lw_data`, `lw_meili_151_data`) so it works when deployed from Portainer's web editor.
 
 ## Configuration
 
@@ -43,9 +43,9 @@ The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it
 |------|---------|
 | **Port** | 3000 (proxied via Caddy; host port exposed for direct access if needed) |
 | **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP; private `internal` for Postgres/Meilisearch |
-| **Images** | linkwarden, postgres:16-alpine, getmeili/meilisearch |
+| **Images** | linkwarden, postgres:18-alpine, getmeili/meilisearch |
 | **Env** | `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` required; `NEXTAUTH_URL`, `TZ` optional |
-| **Storage** | Named volumes: `lw_data` (screenshots, PDFs, profile photos), `lw_pgdata`, `lw_meili_data` |
+| **Storage** | Named volumes: `lw_data` (screenshots, PDFs, profile photos), `lw_pg18data`, `lw_meili_151_data` |
 
 Linkwarden connects to its private search service at
 `http://linkwarden-meilisearch:7700`. Keep this unique hostname when other

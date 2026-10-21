@@ -2,6 +2,7 @@ name: seafile
 default_port: 80
 databases:
 - mysql
+- redis
 health:
   endpoint: /
   internal_only: false
@@ -56,7 +57,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: Seafile 14 requires the documented configuration migration and verified restore; Redis is disposable cache, and existing MariaDB volume names are preserved.
 runtime_security:
   privileged_services: []
   host_network_services: []
