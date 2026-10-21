@@ -15,9 +15,9 @@ Historical installed import-to-release-name/metadata checks remain accepted for 
 
 PR #390 delivers bounded import-dispatch diagnostics with passing required CI and security review. It does not resolve the fourth attempt's missing historical reason or accept a new import. The corrected reader-helper follow-up now completes all three read-only GETs and maps both library roots with original custody and helper cleanup. Owning Parent/NFS, complete current-library and bulk acceptance remain open. See [the current reader evidence](../023-verified-publication-corrections/evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 
-The shared single-authentication launcher passes actual privilege/client checks.
-The latest isolated execution stops after catalog seeding and restart, at a
-fixture-date processing failure; T019/T023 remain held. See [the latest processing record](../023-verified-publication-corrections/evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+The shared single-authentication launcher and ninth isolated bootstrap pass
+actual execution checks. T019/T023 remain held on their broader configured and
+current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 
 ## Phase 1: Setup
 
@@ -112,11 +112,9 @@ remain in [evidence history](evidence-history.md). Current required CI and the
 remaining operational dependencies above remain authoritative. Reading-progress
 work remains deferred as requested; original recovery evidence stays retained.
 
-The eighth isolated generation passes catalog seeding and native restart, then
-a once-submitted forceProcess request is consumed before processing fails on a
-null fixture LatestDate. The fixture database remains readable; its services,
-data and failure evidence are retained without replay. The seed now supplies
-coherent latest-date and issue fields; all 1,302 source controls and 14 outer
-checks pass under Python 3.10. Fresh configured execution, connected/NFS,
-import and ACK acceptance remain open. See [the latest
-processing record](../023-verified-publication-corrections/evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+The ninth isolated batch completes both genuine Mylar queue imports, reader
+scan/progress and restart; its worker stays stopped. PR #471 is merged after
+passing hosted CI. This is bootstrap execution proof, with original data and
+receipts retained; connected factories, NFS, publication, retained live-DDL and
+fresh ACK acceptance remain open. See [the current bootstrap
+record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).

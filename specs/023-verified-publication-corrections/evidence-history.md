@@ -1027,3 +1027,19 @@ pass, including 1,302 controls across 73 suites without skips. The finite checke
 copy adds only that existing processor fixture and closes at 690 source files.
 Fresh configured execution remains required. All 16 remaining aggregate task
 markers stay open.
+
+
+## Genuine isolated bootstrap completed - 2026-10-21
+
+The ninth finite batch exits successfully through identity, owned cleanup, fresh
+binding and activation. Both genuine Mylar queue imports complete, followed by
+reader scan/progress checks and restart. The fixture worker remains stopped;
+original receipts, data and earlier failed generations remain retained. This
+accepts the isolated bootstrap milestone only. Connected factories, NFS,
+publication, retained live-DDL recovery and fresh catalog-to-ACK acceptance remain
+unproved; all 16 remaining aggregate task markers stay open.
+
+PR #471 merges as `84573600b2c5457f2c29e51a301c3ab885fcf7c9` after passing
+normal hosted CI. Local main, GitHub and the configured mirror are synchronized.
+The 1,302-control/73-suite source proof remains distinct from this genuine
+isolated execution and from the remaining configured acceptance gates.

@@ -99,11 +99,9 @@ Detailed component tests, experiments and failure receipts remain in
 [evidence history](evidence-history.md). Those records do not complete production
 adoption or release the remaining feature 022/023 gates.
 
-The eighth isolated generation passes catalog seeding and native restart, then
-a once-submitted forceProcess request is consumed before processing fails on a
-null fixture LatestDate. The fixture database remains readable; its services,
-data and failure evidence are retained without replay. The seed now supplies
-coherent latest-date and issue fields; all 1,302 source controls and 14 outer
-checks pass under Python 3.10. Fresh configured execution, connected/NFS,
-import and ACK acceptance remain open. See [the latest
-processing record](../023-verified-publication-corrections/evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+The ninth isolated batch completes both genuine Mylar queue imports, reader
+scan/progress and restart; its worker stays stopped. PR #471 is merged after
+passing hosted CI. This is bootstrap execution proof, with original data and
+receipts retained; connected factories, NFS, publication, retained live-DDL and
+fresh ACK acceptance remain open. See [the current bootstrap
+record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
