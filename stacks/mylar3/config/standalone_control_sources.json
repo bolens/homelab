@@ -1491,7 +1491,7 @@
   },
   {
     "path": "test_preproof_composed.py",
-    "sha256": "797b0a86123074d9b5c210fd0cd246ce8f6c21437fe1126a315d0772ae82e18d",
+    "sha256": "e7d04cab3292567432fda4f440715a5efb2f5ef183c5ffbe07f06df95429c17c",
     "target": "test_preproof_composed.py"
   },
   {

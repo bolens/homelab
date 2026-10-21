@@ -703,3 +703,10 @@ on Python 3.10; the authenticated collection passes all 148 controls on host
 Python 3.14 with the actual archive SDK. Both report zero skips. Repository
 validation and independent review pass. Hosted image CI and configured acceptance
 remain separate requirements. The refused first runs remain diagnostic history.
+
+The completed build also exposed a preproof fixture child that was killed without
+being reaped on expected refusal paths. Cleanup now always waits for that exact
+child and requires its recorded return code. The owning 48 controls pass on
+Python 3.10 and 3.14 with zero skips and no subprocess ResourceWarnings after
+forced collection. Production subprocess handling is unchanged. Current finite
+copy maps include the corrected fixture.

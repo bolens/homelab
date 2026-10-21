@@ -30,7 +30,11 @@ class Preproof(base.Composed):
   inp=private/'input.json';inp.write_bytes(backup.encode(plan));inp.chmod(0o600)
   worker_root=Path(__file__).parent/'test_fixtures/retained_pack_worker'
   proc=subprocess.Popen([sys.executable,'-I','-B',str(worker_root/'check_preproof_session.py'),str(inp)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-  self.addCleanup(lambda:proc.poll() is None and proc.kill())
+  def reap():
+   if proc.poll() is None:proc.kill()
+   proc.wait(timeout=10)
+   self.assertIsNotNone(proc.returncode)
+  self.addCleanup(reap)
   for stream in (proc.stdin,proc.stdout,proc.stderr):self.addCleanup(stream.close)
   ids=dict(reader='1'*64,native='2'*64,worker='3'*64);selected='4'*64
   states={ids['reader']:dict(Running=True,Paused=False,Pid=111,StartedAt='reader-original',Status='running'),ids['native']:dict(Running=True,Paused=False,Pid=222,StartedAt='native-original',Status='running'),ids['worker']:dict(Running=False,Paused=False,Pid=0,StartedAt='',Status='created')}
