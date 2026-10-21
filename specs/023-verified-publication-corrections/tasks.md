@@ -109,6 +109,11 @@ Build the immutable reviewed-registration MVP first, then prove every publicatio
 
 ## Evidence
 
+The build-warning follow-up preserves parsing and transaction behavior while
+fixing deprecated calls and resource leaks. Its changed source identities need
+matching image/capture/installer evidence; no acceptance checkbox advances from
+these source tests. See [the correction record](evidence-history.md#build-warning-corrections--2026-10-21).
+
 T001–T016 authority foundations and guarded publication paths are accepted.
 T022's portable lifecycle/checked installation, T031 identity recovery, T032
 control-state adoption and T030 configured cache guard are complete. Published

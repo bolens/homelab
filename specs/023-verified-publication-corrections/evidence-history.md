@@ -676,3 +676,44 @@ The capture, supplier and data-only packet seals are respectively
 `8577c51822335c154b1033ffc9c4befe3fabea5fd52b77845bcb46f01f293632`,
 `bcea7f299f5947252682d0728c4fa58d4c5f37be3b00564132a4a77ed4b249c3`
 and `7c609053419581087e0a0d7959301f28dc9f30cf601571e9b59541defc08ee30`.
+
+## Build warning corrections — 2026-10-21
+
+GetComics' cached HTML parser leaked its file handle and used deprecated
+BeautifulSoup calls. A checked adapter replaces the 15 active legacy calls,
+preserves the parser's decisions and closes the handle on success or failure.
+Eleven controls pass with real BeautifulSoup on Python 3.10 and 3.14; installed
+native failover tests now reject deprecation warnings. The original fixture
+remains unchanged.
+
+The bootstrap regex uses a raw literal with identical AST and regex value.
+Its current digest consumers are updated together. Sixteen anchor controls
+pass on both interpreters. Eight SQLite test-fixture connections now close
+after their transactions; all 40 Bridge/Annual controls pass on both versions.
+Allocation traces identify those fixture leaks separately from production code.
+
+These corrections grant no configured acceptance. They change source identities
+beyond the adoption-only PR #461 generation, including GetComics and the
+installer inventory. Its disabled capture/supplier packets must not be reused
+against a later warning-corrected image; require matching publication, original
+capture and a fresh configured generation before continuing the live gates.
+
+The complete corrected recovery collection passes 1,239 controls across 72 suites
+on Python 3.10; the authenticated collection passes all 148 controls on host
+Python 3.14 with the actual archive SDK. Both report zero skips. Repository
+validation and independent review pass. Hosted image CI and configured acceptance
+remain separate requirements. The refused first runs remain diagnostic history.
+
+The completed build also exposed a preproof fixture child that was killed without
+being reaped on expected refusal paths. Cleanup now always waits for that exact
+child and requires its recorded return code. The owning 48 controls pass on
+Python 3.10 and 3.14 with zero skips and no subprocess ResourceWarnings after
+forced collection. Production subprocess handling is unchanged. Current finite
+copy maps include the corrected fixture.
+
+Pre-merge source review found the optional GetComics entry still used its prior
+hash. Replaying the checked adapter against the original captured public source
+derives `b19d1254…c5866`; reversing the change reconstructs the exact original.
+The current base, installer and regressions advance together, preserving the
+102 required/180 known names and historical manifests. This is a prospective
+source expectation; actual published-image capture remains required.

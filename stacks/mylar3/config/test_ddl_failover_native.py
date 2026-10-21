@@ -1,5 +1,6 @@
 """Isolated real-native-parser failover fixture; no network or live configuration."""
 import ast, datetime, os, re, sqlite3, sys, tempfile, unittest, queue
+import warnings
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -24,8 +25,12 @@ class DB:
  def action(self,sql,args=()):return self.connection.execute(sql,args)
 class NativeParserTest(unittest.TestCase):
  def setUp(self):
+  warning_context=warnings.catch_warnings();warning_context.__enter__()
+  self.addCleanup(warning_context.__exit__,None,None,None)
+  warnings.simplefilter('error',DeprecationWarning)
+  warnings.simplefilter('error',ResourceWarning)
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);(self.root/'html_cache').mkdir()
-  self.db=DB();self.db.upsert('ddl_info',dict(issueid='42',comicid='7',mainlink='https://fixture.invalid/release',link='https://fixture.invalid/main',link_type='GC-Main',status='Queued',site='DDL(GetComics)',pack=False),dict(id='123'))
+  self.db=DB();self.addCleanup(self.db.connection.close);self.db.upsert('ddl_info',dict(issueid='42',comicid='7',mainlink='https://fixture.invalid/release',link='https://fixture.invalid/main',link_type='GC-Main',status='Queued',site='DDL(GetComics)',pack=False),dict(id='123'))
   self.store=workflow_store.Store(self.root);self.control=queue_control.Store(self.root,clock=lambda:100);self.queue=queue.Queue();self.inject=lambda:None;self.html=HTML
   workflow=SimpleNamespace(store=lambda:self.store,emit=Mock(),reservation=lambda _:None,import_owner=lambda _:None,dispatch_owner=lambda _:None)
   self.mylar=SimpleNamespace(CONFIG=SimpleNamespace(CACHE_DIR=str(self.root),DDL_PRIORITY_ORDER=['main','mega'],DDL_PREFER_UPSCALED=False),DDL_QUEUE=self.queue,db=SimpleNamespace(DBConnection=lambda:self.db),queue_control=queue_control,workflow=workflow)

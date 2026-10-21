@@ -1,7 +1,7 @@
 [
   {
     "path": "apply_patches.py",
-    "sha256": "2f5bf5942ab840558083b03cc3038cb86f6fce5d677edb84d17d739d004f601c",
+    "sha256": "7db1a619fd357d317088087e583ab8f636d24b561ccf7864acdf5abd74e93a7d",
     "target": "apply_patches.py"
   },
   {
@@ -225,6 +225,11 @@
     "target": "patch_ddl_failover.py"
   },
   {
+    "path": "patch_getcomics_compat.py",
+    "sha256": "9e5a1e0a161a3c34ae17692ce4519c0f6d89439c8d7b766145ab02dccc082892",
+    "target": "patch_getcomics_compat.py"
+  },
+  {
     "path": "patch_ddl_mirror_retries.py",
     "sha256": "07804f99f195266395a40359347af272595fe4a35e2a6aa98bec398310586c43",
     "target": "patch_ddl_mirror_retries.py"
@@ -356,7 +361,7 @@
   },
   {
     "path": "patch_publication_retained_standalone.py",
-    "sha256": "6aa7c0494174235de7911f0bff7f73021128fc99df3f297f24edc7078af6c3e5",
+    "sha256": "60291c22d0ab342dd654da1632bd6e09820763655420015ab886d733949dff9d",
     "target": "patch_publication_retained_standalone.py"
   },
   {
@@ -786,12 +791,12 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
-    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
     "target": "reader_recovery/comic_retained_standalone_action.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
-    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
     "target": "comic_retained_standalone_action.py"
   },
   {
@@ -1061,8 +1066,13 @@
   },
   {
     "path": "test_ddl_failover_native.py",
-    "sha256": "180bc2c17553580962271b56ae05fd82861f31507c426e20562daa4c7e669dca",
+    "sha256": "2b20b2f4197ed4ff9a782405c976671602d29f67ac1076d7e47e4d60d212a332",
     "target": "test_ddl_failover_native.py"
+  },
+  {
+    "path": "test_getcomics_compat.py",
+    "sha256": "31d084a8ea7afb4e7fba0d441cd6667600e937cdfaf31a7936717ac3a76f3b4a",
+    "target": "test_getcomics_compat.py"
   },
   {
     "path": "test_ddl_mirror_retries.py",
@@ -1481,7 +1491,7 @@
   },
   {
     "path": "test_preproof_composed.py",
-    "sha256": "797b0a86123074d9b5c210fd0cd246ce8f6c21437fe1126a315d0772ae82e18d",
+    "sha256": "e7d04cab3292567432fda4f440715a5efb2f5ef183c5ffbe07f06df95429c17c",
     "target": "test_preproof_composed.py"
   },
   {
@@ -2011,7 +2021,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "ef3a0d89846406f459375983c2adcba1010e15c1f541d3719bb2f118b0fce8f3",
+    "sha256": "733a5fdbaeb2dbfaf04942a3d3551aafa4b1739ddc902b2bf061710387e36e9c",
     "target": "verify_image.py"
   },
   {
@@ -2051,7 +2061,7 @@
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
-    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075",
+    "sha256": "213e20c168bff65bcf43459c63d1eca2c9bed9b647917f19db10eb999f7167d6",
     "target": "standalone_launch_host/BOOTSTRAP.py"
   },
   {
@@ -2091,7 +2101,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "87aa1dc7e6825849ffa3d7308f68b160f0efca7b5644a85e8c427c32aa59ea2b",
+    "sha256": "e113468fe702f6820dcd0d345bbdb13f404d6c6c7430ab1bf96c798d2997a93a",
     "target": "test_standalone_anchor_composition.py"
   },
   {

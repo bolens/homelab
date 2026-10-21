@@ -331,7 +331,7 @@
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
-    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075",
+    "sha256": "213e20c168bff65bcf43459c63d1eca2c9bed9b647917f19db10eb999f7167d6",
     "target": "source/BOOTSTRAP.py"
   },
   {
@@ -481,7 +481,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/source/comic_retained_standalone_action.py",
-    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
     "target": "source/comic_retained_standalone_action.py"
   },
   {

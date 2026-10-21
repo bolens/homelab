@@ -42,6 +42,7 @@ PATCHES = (
     "patch_converted_tagging",
     "patch_library_metadata",
     "patch_ddl_failover",
+    "patch_getcomics_compat",
     "patch_comic_format_preference",
     "patch_prowlarr_identity",
     "patch_release_naming",

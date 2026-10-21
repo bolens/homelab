@@ -283,6 +283,12 @@ preservation. The offline gate cannot verify a download provider's availability.
 
 ## Queue control and import problems
 
+The image adapts GetComics parsing to supported BeautifulSoup method names and
+string filters, and closes cached HTML files after parsing, including on parser
+failure. Build checks exercise the cached parser with deprecation warnings
+treated as errors. These compatibility fixes preserve mirror selection and
+catalog/queue behavior.
+
 The image includes queue control. The queue table
 uses download-status badges instead of full-row status colors. Completed transfers
 are labeled **Downloaded**, with a **Review import** link to post-processing.
