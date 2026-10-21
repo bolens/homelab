@@ -130,3 +130,5 @@ Current native image data preservation is accepted: the complete original-bound 
 T030 is complete after independent review of the retained source/image/restart/concurrency controls and the fresh configured growth/refusal/accounting/cleanup result. The explicit workflow snapshot endpoint and later custody checks preserve truthful raw differences without current-live or import authority. See [configured cache acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
 
 Published449 native source/startup capture and matching worker installed42/SDK verification pass; see [published-image evidence](evidence-history.md#published449-image-verification--2026-10-20). Connected factories, NFS, selected import/ACK and live rollout remain unchecked.
+
+The configured reader-parent stages all 27 original artifacts, but disposable bootstrap is held at Docker bridge allocation because the host default address pools are exhausted. Preserve this failed generation and resolve the host prerequisite before a fresh generation; [dated evidence](evidence-history.md#disposable-reader-parent-staging-and-network-prerequisite--2026-10-21). T026/T029 remain open.

@@ -533,3 +533,12 @@ The published native image passes one isolated public-source capture: all 180 na
 The matching worker passes all 42 installed-module/type checks and canonical SDK parity, with unchanged checker inputs, final source closure and temporary-container absence. The full 915-control checked-build evidence remains separate; this installed check does not claim the tests ship in the final image. Independent review corrected the private launcher's output custody before execution; production sources were unchanged.
 
 Mylar and Komga remain running on their prior accepted images, and the permanent worker remains inactive. No comic import, acknowledgement, live image rollout or connected NFS/factory acceptance follows from these isolated results. T026/T029 and the live acceptance tasks remain open.
+
+
+## Disposable reader-parent staging and network prerequisite — 2026-10-21
+
+The reviewed owning installer completes against the accepted published native and worker sources. Its separate required-102 SDK projection joins the current native180 map, while the Creator retains its complete current map. The worker observer's source, exact one-module map and original image metadata remain independently bound. All 27 generated original output references and final source closure are retained. Receipt SHA256: `e4aae88693e01977095431e2b7b6228ef8beec53022ff0e0e6dc91d8e309f881`. These are staged artifacts; no connected factory or runtime admission follows.
+
+The first disposable Creator generation verifies all three original images, then receives a nonzero Docker response at internal-bridge creation. No test container creation occurs. Independent read-only inspection confirms the expected network is absent. A separate fresh diagnostic confirms Docker reports `all predefined address pools have been fully subnetted`; it creates no network. Preserve the original failed generation and resolve this host prerequisite before starting a fresh generation. The source-only SourceCohort schema and 1,219-control/72-suite inventory are identified, but no actual causal source-fixture run, NFS, terminal, import or acknowledgement acceptance is claimed.
+
+No live service restart or library mutation occurred. T026/T029, feature 024 T012/T015 and the related live acceptance tasks remain open.

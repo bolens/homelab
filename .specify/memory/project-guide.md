@@ -78,6 +78,23 @@ or preserved through cleanup. This bounded test contract supplies no current
 import, ACK, NFS, factory or worker-start authority and does not relax those
 operations' own preservation requirements.
 
+For disposable multi-service recovery fixtures, preserve the failed creator's
+original journal and namespace before diagnosing a Docker allocation failure.
+Exhausted default address pools are a host prerequisite, not archive or import
+acceptance. A network with no active endpoints can still be referenced by stopped
+or Created containers: inspect both NetworkSettings and HostConfig across the
+complete container census. Close that census before any specifically authorized
+unused-network removal, under a brief coordinated lifecycle pause. Keep the full
+original network profile and use a fresh creator generation afterward.
+
+The configured reader-parent installer and disposable Creator use different SDK
+inputs. Derive the installer's subset from its pinned base manifest's
+required_sdk_names, joined to the accepted current image map. Preserve the
+Creator's complete current SDK map separately. Optional historical-base hashes
+can differ; never replace current image hashes with historical values to make
+installation pass. Preserve the installer's original output_refs before source
+cohort execution and do not reinstall afterward.
+
 Size disposable test filesystems above the production storage
 reserve plus fixture demand. A filesystem equal to the reserve correctly refuses
 positive allocation; increase fixture capacity without weakening the guard. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
