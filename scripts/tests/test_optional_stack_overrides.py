@@ -9,6 +9,8 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -151,7 +153,10 @@ class OptionalStackOverrideTests(unittest.TestCase):
         extra = [mount for mount in mounts if mount["target"] == "/data/recordings"]
         self.assertEqual(len(extra), 1)
         self.assertEqual(extra[0]["source"], str(recordings))
-        self.assertFalse(extra[0]["bind"]["create_host_path"])
+        # Compose versions differ in whether false defaults appear in JSON.
+        self.assertFalse(extra[0].get("bind", {}).get("create_host_path", False))
+        declared = yaml.safe_load((target / override).read_text())
+        self.assertIs(declared["services"]["dispatcharr"]["volumes"][0]["bind"]["create_host_path"], False)
         self.assertFalse(recordings.exists())
         self.assertEqual([mount for mount in mounts if mount not in extra],
                          base.pop("volumes"))
