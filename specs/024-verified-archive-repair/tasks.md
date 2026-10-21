@@ -6,7 +6,7 @@
 
 **Updated 2026-10-21.** T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
 
-- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the current source verification passes 1,260 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
+- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the current source verification passes 1,299 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
 - **Existing source milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. These are source/component milestones, with actual selected-image execution still required. See [producer evidence](evidence-history.md#causal-source-cohort-producer--2026-10-20), [plan composition](evidence-history.md#checked-plan13-original-reference-composition--2026-10-20) and [task observation](evidence-history.md#original-reader-task-observation-source--2026-10-20).
 - **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
@@ -83,17 +83,11 @@ published source/type/reliability milestone is accepted. T012/T015 still require
 genuine connected factories and terminal consumption; T016–T018 require the
 verified live rollout, repair/import and final preservation/retention checks.
 
-The PR #462 (`335226b`) native capture verifies all 180 sources and startup files;
-its matching supplier preserves 27 original installation outputs. PR #464 merges
-with all 43 hosted checks passing. Latest host compatibility checks pass: 50
-Creator controls, 33 bootstrap controls, 38 source-cohort controls and all 14
-outer checks including the 1,260-control collection on Python 3.10. A fresh isolated generation now passes
-reader enrollment/API-key creation, virgin backup/restore and native
-initialization. Its planned restart changes Docker's native MAC address and
-stops at the strict preservation check. The paired container/network records
-agree. The corrected paired successor passes source tests; fresh execution
-remains required, and the failed attempt is not replayed.
-SourceCohort and connected acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#fresh-isolated-enrollment-and-restart-refusal--2026-10-21).
+The accepted PR #462 native capture preserves all 180 sources and startup
+files, with its matching 27-output supplier. Current source verification and the
+latest configured catalog refusal are recorded in [the shared runtime
+checkpoint](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+SourceCohort and connected acceptance remain open.
 
 Docker address-pool exhaustion is resolved. The isolated new-directory NFS bind
 passes with searchable ancestors and private leaves, and its exact resources
@@ -104,3 +98,14 @@ history](../023-verified-publication-corrections/evidence-history.md#disposable-
 Detailed component tests, experiments and failure receipts remain in
 [evidence history](evidence-history.md). Those records do not complete production
 adoption or release the remaining feature 022/023 gates.
+
+The actual single-authentication checks and predecessor fixture cleanup pass.
+A fresh isolated generation passes enrollment, virgin backup/restore,
+initialization and restart, then refuses catalog seeding because the helper
+required 0600 while genuine Mylar creates 0644 inside its private 0700 DATA
+root. The correction preserves database permissions and checks directory custody
+before commit. Per-operation diagnostics preserve later failures independently.
+The integrated source passes all 14 outer checks and 1,299 controls across 73
+suites with zero skips. Fresh configured execution, NFS, import and ACK gates
+remain open. Failed generations stay retained without replay. See [the current
+runtime record](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).

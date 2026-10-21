@@ -104,6 +104,19 @@ is insufficient. This fixture seed is not provider metadata import or ordinary
 import acknowledgement. Host tests explicitly double transport and grant no
 genuine daemon or connected-factory acceptance.
 
+The existing catalog may retain its native SQLite mode `0600` or `0644`. Both require
+the same canonical UID/GID1000 DATA directory at `0700`, retained through config
+and SDK reads, constructor, transaction and final checks with original directory
+FDs and ancestor identities. The helper never normalizes permissions. It checks
+DATA custody and the database node before commit, retaining every existing
+Writer, schema, rollback-header, companion and authority check. Detected drift
+before commit rolls back. A later refusal does not claim rollback or completion.
+
+Each failed Creator intent gets a separate exclusive private diagnostic, bounded
+to 64 KiB per output stream. The original first-failure record stays unchanged.
+Catalog helper stderr reports only a finite exception type and authenticated
+public function/line. Held stdout, exit status and replay refusal stay unchanged.
+
 The opt-in `genuine_bootstrap_creator.py` adds a UID1000 actor with a finite
 Polkit Docker adapter. It creates three original labelled disposable roles and
 one internal network, starts only native and reader, enrolls the pinned Komga
@@ -112,6 +125,19 @@ native-catalog stages. The worker stays Created. Exact images, source references
 an original dedicated NFS scratch parent and a reviewed image/DATA contract are
 inputs. The creator never guesses the DATA directory or adopts prior resources.
 Unknown mutation replies retain evidence and refuse replay or automatic cleanup.
+
+`genuine_bootstrap_batch.py` provides the same Creator workflow through one
+explicit trusted Root invocation. Polkit authentication precedes the Creator
+clock. The Python actor uses real/effective UID/GID1000, retaining saved Root
+only for this invocation's fixed Docker launches. It drops effective privilege
+before pipe reads and waits, and destroys saved authority when the run ends.
+This is a trusted batch, not a privilege sandbox. It adds no command relay,
+persistent socket access, worker start, resume, replay or cleanup permission.
+The default per-command Creator transport remains available unchanged.
+The batch requires `--activate`, the original `--input` and `--sha256`, and the
+reviewed batch source's `--source-sha256`. Its separate `--identity-self-check`
+checks actual credential transitions and exact client termination without Docker
+or application inputs. It grants no fixture or publication acceptance.
 
 UID1000 host access does not prove the root Docker daemon can resolve direct
 bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is

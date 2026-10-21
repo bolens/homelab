@@ -906,3 +906,95 @@ including all 1,260 controls across 72 suites with zero skips. The direct semant
 pins, all current copy maps, Komga's 62 Python/37 JDK 21 checks, Source lint and
 full local CI pass. The new batch still requires hosted CI, delivery and fresh
 connected execution. No aggregate acceptance checkbox changes.
+
+## Single-authentication batch and interrupted fixture — 2026-10-21
+
+The fifth disposable Creator attempt retained a deadline refusal at its read-only
+native inspection. Public startup/configuration copies completed, but the first
+start path had not reached a start intent. The attempt is not replayable; current
+container state must be established before exact owned cleanup. No connected
+factory, NFS, import or ACK acceptance follows.
+
+The operator requested one authentication for related privileged operations. The
+next launcher will authenticate before starting command deadlines and execute a
+finite batch with the existing identity, phase, output and cleanup checks. No
+persistent Docker access is authorized. The launcher is implemented and
+independently reviewed. Its 24 new controls and the existing 50 Creator controls
+pass in Python 3.10. The complete 1,284-control, 73-suite cohort and its 14 outer
+controls pass, with zero skips; full local CI also passes. Actual Root identity,
+privileged transport and connected execution remain pending. Aggregate task
+markers are unchanged.
+
+PR #466 merged after 14 passing hosted checks and one expected skip. GitHub,
+local main and the configured mirror agree on the reviewed merge. The new
+host-only batch transport retains the selected image/SDK originals and requires
+no image replacement merely to exercise it.
+
+## Recovered storage notes and old-worktree cleanup — 2026-10-21
+
+The retained 2026-10-15 task note records 115 old unused private cache records
+in the first 866.5 MB pass. It describes the separate 84-image cleanup as a
+no-force pass limited to October 7 or earlier task-local images. The
+[archived cleanup record](evidence-history-through-20261020-4164dd6.md#recovery-delivery-and-storage-cleanup-2026-10-15)
+preserves the accepted storage history and later delivery status. These recovered
+task-note details are historical attribution, not a new cleanup execution or
+operational verification.
+
+The old PR #341 worktree contains only two modified spec 023 documents. Its
+committed tree matches the merged PR exactly. Three added evidence paragraphs
+already survive in the archive, and two have newer verified delivery results.
+The complete uncommitted patch and Git snapshot `686b4ec3` are retained in a
+private bundle. Independent unbundling verifies both original document blobs.
+After checking ignored outputs and current source dependencies, cleanup removes
+only this old worktree without force. The exact squash-integrated branch ref is
+removed after bundle and tree verification, retaining the archive ref. The app
+archive request remains queued and is not counted as completed archival. No implementation or aggregate
+acceptance checkbox advances from this documentation reconciliation.
+
+## Single-authentication execution and binding refusal — 2026-10-21
+
+The actual privileged batch passes its identity check: processing returns to
+UID 1000, saved Root cannot be regained after final drop, and the exact Root
+probe client is terminated and reaped. It then verifies all three earlier test
+containers were Created and never started, removes those exact containers and
+their private network, and preserves their data and journals. No service stop
+is issued. These are executed results, separate from the 25 private wrapper
+controls passed on host and Python 3.10.
+
+The next UID 1000 binding phase refuses after writing its first exclusive
+request file and before writing the companion reference. The wrapper records
+only identity and cleanup as completed, exits nonzero and never enters
+activation. The incomplete generation and all outputs remain retained. No
+request, cleanup or activation is replayed. Fresh connected fixture execution,
+factory/NFS acceptance, live imports and acknowledgements remain unproved.
+
+
+## Catalog runtime contract and per-operation diagnostics - 2026-10-21
+
+The second single-authentication batch passes its Root identity check and the
+corrected fresh-directory binder. The seventh isolated generation passes reader
+enrollment, virgin backup/restore, native initialization and its planned restart.
+Catalog seeding then refuses before connected recovery. The worker remains
+never-started. This attempt changes no production service. Its request, journal,
+partial catalog operation and all earlier histories stay retained without replay.
+
+Read-only examination of the retained fixture identifies the contract mismatch:
+Mylar creates its database at mode 0644 inside its UID/GID 1000 DATA directory at
+0700. Its schema and integrity checks pass. The helper had required mode 0600,
+and its old unit fixture manually set that mode. The corrected helper accepts
+only 0600 or 0644 under the retained private DATA directory, preserves the exact
+database mode, and verifies directory custody before committing. Real SQLite
+creation with umask 022 reproduces the old refusal and passes the correction.
+Directory replacement or permission drift before commit rolls back.
+
+The Creator now retains a separate bounded private failure record for each
+original operation intent. An expected earlier probe failure can no longer hide
+a later catalog failure. The original first-failure record stays unchanged.
+Fixed diagnostic function/line reporting adds no configuration or row values.
+
+The integrated source passes 53 Creator controls, 33 catalog controls and 24
+privilege-batch controls in Python 3.10. All 14 outer checks pass, including the
+complete 1,299-control collection across 73 suites, with zero skips. Source maps
+and aggregate counts change together. Hosted delivery, fresh configured
+execution and eventual import/catalog-to-ACK acceptance remain pending. These
+results do not complete the remaining feature 022-024 acceptance tasks.

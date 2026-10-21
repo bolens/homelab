@@ -628,4 +628,50 @@ urllib.request.build_opener=lambda *args:(_ for _ in ()).throw(RuntimeError('TRA
         self.assertEqual(driver.calls[-1],['restart','--timeout','30',owner.engine.ids['native']])
 
 
+    def test_expected_probe_then_catalog_failure_have_distinct_private_intent_records(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver()
+        probe,probe_calls=self.failure_transport('sys.exit(2)',stdout=b'EXPECTED-PROBE',stderr=b'EXPECTED-PROBE-ERR')
+        with patch.object(c.subprocess,'Popen',side_effect=probe),self.assertRaises(c.p.Held):
+            owner.engine.call('native-probe',256,['inspect','fixture'],readonly=True)
+        first=owner.journal/'engine-failure.private.json';before=first.read_bytes();frame=c.p.nine(first.stat());self.assertFalse(owner.engine.poisoned)
+        catalog,catalog_calls=self.failure_transport('sys.exit(7)',stdout=b'PRIVATE-CATALOG-OUT',stderr=b'PRIVATE-CATALOG-ERR')
+        with patch.object(c.subprocess,'Popen',side_effect=catalog),patch('sys.stdout',new_callable=io.StringIO)as out,patch('sys.stderr',new_callable=io.StringIO)as err:
+            with self.assertRaises(c.p.Held):owner.engine.call('catalog-seed',1,['exec','fixture'])
+            with self.assertRaisesRegex(c.p.Held,'creator-unknown-outcome-held'):owner.engine.call('catalog-seed',1,['exec','fixture'])
+        records=[json.loads(path.read_bytes())for path in sorted(owner.journal.glob('*-engine-failure.private.json'))]
+        self.assertEqual([row['operation']for row in records],['native-probe','catalog-seed'])
+        self.assertEqual([row['diagnostic']['returncode']for row in records],[2,7])
+        self.assertEqual(base64.b64decode(records[1]['diagnostic']['stderr_base64']),b'PRIVATE-CATALOG-ERR')
+        for row in records:
+            intent=json.loads((owner.journal/(str(row['journal_operation_id']).zfill(4)+'-intent.json')).read_bytes())
+            self.assertEqual(intent['kind'],row['operation']);self.assertFalse(row['cleanup']);self.assertFalse(row['automatic_replay'])
+        self.assertEqual(first.read_bytes(),before);self.assertEqual(c.p.nine(first.stat()),frame)
+        self.assertEqual(len(probe_calls),len(catalog_calls),1);self.assertTrue(owner.engine.poisoned);self.assertEqual(out.getvalue()+err.getvalue(),'')
+
+    def test_operation_failure_record_has_independent_64k_stream_bounds(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver()
+        original=subprocess.Popen;calls=[]
+        def child(command,**kwargs):
+            calls.append(command)
+            return original([sys.executable,'-I','-B','-c',"import sys;sys.stdout.buffer.write(b'O'*131072);sys.stdout.flush();sys.stderr.buffer.write(b'E'*131072);sys.stderr.flush();sys.exit(2)"],**kwargs)
+        with patch.object(c.subprocess,'Popen',side_effect=child),self.assertRaises(c.p.Held):owner.engine.call('native-probe',256,['inspect','fixture'],readonly=True)
+        path=next(owner.journal.glob('*-engine-failure.private.json'));row=json.loads(path.read_bytes());diagnostic=row['diagnostic']
+        self.assertEqual(diagnostic['retained_stream_byte_limit'],65536)
+        for stream in ('stdout','stderr'):
+            self.assertEqual(len(base64.b64decode(diagnostic[stream+'_base64'])),65536);self.assertTrue(diagnostic[stream+'_truncated'])
+        original=json.loads((owner.journal/'engine-failure.private.json').read_bytes())
+        self.assertEqual(len(base64.b64decode(original['diagnostic']['stdout_base64'])),131072)
+        self.assertEqual(path.stat().st_mode&0o777,0o600);self.assertEqual(path.stat().st_nlink,1);self.assertEqual(len(calls),1)
+
+    def test_per_operation_diagnostic_storage_failure_preserves_primary_and_first_record(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver();child,calls=self.failure_transport('sys.exit(2)');put=c.b.put
+        def fail(path,value):
+            if path.name.endswith('-engine-failure.private.json'):raise OSError('PRIVATE-STORAGE-FAILURE')
+            return put(path,value)
+        with patch.object(c.subprocess,'Popen',side_effect=child),patch.object(c.b,'put',side_effect=fail),self.assertRaisesRegex(c.p.Held,'^creator-engine-held-no-replay$')as caught:
+            owner.engine.call('catalog-seed',1,['exec','fixture'])
+        self.assertEqual(caught.exception.creator_diagnostic_failure,'OSError');self.assertEqual(caught.exception.creator_engine_failure['returncode'],2)
+        self.assertTrue((owner.journal/'engine-failure.private.json').exists());self.assertTrue(owner.engine.poisoned);self.assertEqual(len(calls),1)
+
+
 if __name__=='__main__':unittest.main(verbosity=2)

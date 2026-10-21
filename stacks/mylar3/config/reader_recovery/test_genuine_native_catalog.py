@@ -4,16 +4,20 @@ import copy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+from types import FunctionType
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import urllib.parse
 import zipfile
 
 HERE=Path(__file__).parent
+sys.path.insert(0,str(HERE.parent))
 sys.path.insert(0,str(HERE))
 import genuine_native_catalog_helper as h
 import genuine_native_catalog as c
@@ -109,6 +113,139 @@ class Transactions(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'authority-held'):
                 with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
         self.assertEqual(calls,[]);self.assertEqual(self.path.read_bytes(),before)
+
+
+    def test_actual_sqlite_default0644_private_root_preserves_mode_and_connection(self):
+        self.db.close();self.path.unlink();mask=os.umask(0o022)
+        try:
+            self.db=sqlite3.connect(self.path);self.addCleanup(self.db.close)
+            for _,_,sql in self.schema:self.db.execute(sql)
+            self.db.commit()
+        finally:os.umask(mask)
+        self.assertEqual(self.path.stat().st_mode&0o777,0o644)
+        before=h.nine(self.path.stat());calls=[]
+        def snapshot(*args):
+            self.assertIn(self.writer.depth,(1,2));return {'explicit_nested_fixture':0},{}
+        guard=SimpleNamespace(media_snapshot=snapshot)
+        def factory():
+            calls.append('existing');return SimpleNamespace(connection=sqlite3.connect(self.path))
+        with h.private_data_root(self.root) as original:
+            with h.existing_connection(factory,self.writer,self.root,guard,original_root=original) as native:
+                result=h.transaction(native.connection,self.writer,guard,self.root,'/library',self.schema,seed=True,original_root=original)
+        after=h.nine(self.path.stat());self.assertEqual(after[:2],before[:2]);self.assertEqual(after[5:],before[5:])
+        self.assertEqual(calls,['existing']);self.assertEqual(len(result['rows']),2)
+        with self.assertRaises(sqlite3.ProgrammingError):native.connection.execute('SELECT 1')
+        self.assertEqual(self.root.stat().st_mode&0o777,0o700)
+
+    def test_unsafe_data_root_modes_and_symlink_refuse_before_factory(self):
+        calls=[];baseline=len(os.listdir('/proc/self/fd'))
+        def forbidden():calls.append('opened');raise AssertionError('constructor')
+        for mode in (0o755,0o777,0o711):
+            self.root.chmod(mode)
+            with self.subTest(mode=mode),self.assertRaisesRegex(ValueError,'data-root-private'):
+                with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+            self.root.chmod(0o700)
+        alias=self.root.parent/(self.root.name+'-explicit-alias');alias.symlink_to(self.root);self.addCleanup(alias.unlink)
+        with self.assertRaisesRegex(ValueError,'data-root-canonical'):
+            with h.existing_connection(forbidden,self.writer,alias,self.guard):pass
+        raw_lstat=os.lstat;raw_fstat=os.fstat;identity=(self.root.stat().st_dev,self.root.stat().st_ino)
+        def owner(z):
+            if (z.st_dev,z.st_ino)!=identity:return z
+            fields=list(z);fields[4]=fields[5]=1001;return os.stat_result(fields)
+        with patch.object(h.os,'lstat',side_effect=lambda *a,**k:owner(raw_lstat(*a,**k))),patch.object(h.os,'fstat',side_effect=lambda *a,**k:owner(raw_fstat(*a,**k))),self.assertRaisesRegex(ValueError,'data-root-private'):
+            with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+        self.assertEqual(calls,[]);self.assertEqual(len(os.listdir('/proc/self/fd')),baseline)
+
+    def test_unsafe_database_mode_owner_or_link_refuses_before_factory(self):
+        calls=[]
+        def forbidden():calls.append('opened');raise AssertionError('constructor')
+        for mode in (0o664,0o666):
+            self.path.chmod(mode)
+            with self.subTest(mode=mode),self.assertRaisesRegex(ValueError,'existing-database'):
+                with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+        self.path.chmod(0o644)
+        linked=self.root/'explicit-link';os.link(self.path,linked)
+        with self.assertRaisesRegex(ValueError,'existing-database'):
+            with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+        linked.unlink()
+        with patch.object(h.os,'geteuid',return_value=1001),self.assertRaisesRegex(ValueError,'existing-database'):
+            with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+        self.assertEqual(calls,[])
+
+    def test_data_root_drift_after_authority_check_refuses_before_factory(self):
+        calls=[];original=self.guard.media_snapshot
+        def drift(*args):
+            result=original(*args);self.root.chmod(0o755);return result
+        def forbidden():calls.append('opened');raise AssertionError('constructor')
+        try:
+            with patch.object(self.guard,'media_snapshot',side_effect=drift),self.assertRaisesRegex(ValueError,'data-root-changed'):
+                with h.existing_connection(forbidden,self.writer,self.root,self.guard):pass
+        finally:self.root.chmod(0o700)
+        self.assertEqual(calls,[])
+
+    def test_late_data_root_mode_drift_rolls_back_before_commit(self):
+        original=self.guard.media_snapshot
+        def drift(*args):
+            result=original(*args)
+            if self.guard.calls==2:self.root.chmod(0o755)
+            return result
+        try:
+            with patch.object(self.guard,'media_snapshot',side_effect=drift),self.assertRaisesRegex(ValueError,'data-root-changed'):self.seed()
+        finally:self.root.chmod(0o700)
+        self.assertEqual(self.db.execute('SELECT count(*) FROM comics').fetchone()[0],0)
+        self.assertEqual(self.db.execute('SELECT count(*) FROM issues').fetchone()[0],0)
+
+    def test_late_data_root_replacement_rolls_back_without_adoption(self):
+        original=self.guard.media_snapshot;retained=self.root.parent/(self.root.name+'-retained');moved=[]
+        def drift(*args):
+            result=original(*args)
+            if self.guard.calls==2:
+                self.root.rename(retained);self.root.mkdir(mode=0o700);moved.append(True)
+            return result
+        try:
+            with patch.object(self.guard,'media_snapshot',side_effect=drift),self.assertRaisesRegex(ValueError,'data-root-changed'):self.seed()
+            self.assertTrue(moved);self.assertFalse((self.root/'mylar.db').exists())
+            self.assertEqual(self.db.execute('SELECT count(*) FROM comics').fetchone()[0],0)
+        finally:
+            if moved:self.root.rmdir();retained.rename(self.root)
+
+    def test_shared_original_root_refuses_replacement_between_connection_and_transaction(self):
+        retained=self.root.parent/(self.root.name+'-retained');moved=[]
+        try:
+            with self.assertRaisesRegex(ValueError,'data-root-changed'):
+                with h.private_data_root(self.root) as original:
+                    self.root.rename(retained);self.root.mkdir(mode=0o700);moved.append(True)
+                    h.transaction(self.db,self.writer,self.guard,self.root,'/library',self.schema,seed=True,original_root=original)
+            self.assertFalse((self.root/'mylar.db').exists())
+            self.assertEqual(self.db.execute('SELECT count(*) FROM comics').fetchone()[0],0)
+        finally:
+            if moved:self.root.rmdir();retained.rename(self.root)
+
+    def test_root_final_closure_preserves_primary_constructor_failure(self):
+        def failure():self.root.chmod(0o755);raise RuntimeError('original-constructor-failure')
+        try:
+            with self.assertRaisesRegex(RuntimeError,'original-constructor-failure') as error:
+                with h.existing_connection(failure,self.writer,self.root,self.guard):pass
+            self.assertEqual(error.exception.native_data_root_closure_failure,'ValueError')
+        finally:self.root.chmod(0o700)
+
+    def test_real_writer_and_registry_census_close_private0644_transaction(self):
+        import publication_guard as guard
+        from media_writer import Writer
+        from workflow_store import Store
+        store=Store(self.root);writer=Writer(self.root/'media-writer',create=True)
+        state=guard.RegistryState(store.path,writer)
+        token=state.prepare_bootstrap(dict(manifest_sha256='a'*64,restore_sha256='b'*64,description='Explicit disposable fixture restore'),epoch='e'*64)
+        state.initialize(token,accepted_token=token)
+        self.path.chmod(0o644);mode=self.path.stat().st_mode
+        before=guard.media_snapshot(store.path,writer.root/'publication-v1.json')[0]
+        def factory():return SimpleNamespace(connection=sqlite3.connect(self.path))
+        with h.private_data_root(self.root) as original:
+            with h.existing_connection(factory,writer,self.root,guard,original_root=original) as native:
+                result=h.transaction(native.connection,writer,guard,self.root,'/library',self.schema,seed=True,original_root=original)
+        self.assertEqual(guard.media_snapshot(store.path,writer.root/'publication-v1.json')[0],before)
+        self.assertEqual(self.path.stat().st_mode,mode);self.assertTrue(result['raw_writer_verified'])
+        self.assertFalse(result['installed_factories_verified']);self.assertFalse(result['publication_acceptance'])
 
 
 class Contracts(unittest.TestCase):
@@ -260,6 +397,37 @@ class ProducerIntegrationDoubles(unittest.TestCase):
         self.assertEqual({v['path'] for v in result['books']},{v['path']for v in files});self.assertTrue(engine.created);self.assertTrue(engine.progress)
         Path(files[0]['path']).write_bytes(b'foreign-generation')
         with self.assertRaisesRegex(c.p.Held,'original-generation'):session.reader_state(dict(result=dict(files=files)))
+
+
+class HelperFailureDiagnostics(unittest.TestCase):
+    # 0644 is admitted under private DATA; a group-writable file still refuses.
+    def test_actual_admission_refusal_reports_only_trusted_public_location(self):
+        with tempfile.TemporaryDirectory()as d:
+            root=Path(d);database=root/'mylar.db';db=sqlite3.connect(database);db.execute('CREATE TABLE public_fixture(value TEXT)');db.commit();db.close();database.chmod(0o664)
+            before=database.read_bytes();writer=WriterDouble(root/'media-writer');guard=GuardDouble(writer);factory=unittest.mock.Mock(side_effect=AssertionError('must-not-open'))
+            def refused(value):
+                with h.existing_connection(factory,writer,root,guard):pass
+            stdin=io.TextIOWrapper(io.BytesIO(json.dumps(dict(nonce='a'*64,cid='b'*64)).encode()));stdout=io.TextIOWrapper(io.BytesIO());stderr=io.TextIOWrapper(io.BytesIO())
+            with patch.object(h.sys,'argv',['-c','--disposable-native-catalog-v1','a'*64,'b'*64]),patch.object(h.sys,'stdin',stdin),patch.object(h.sys,'stdout',stdout),patch.object(h.sys,'stderr',stderr),patch.object(h,'installed',side_effect=refused):self.assertEqual(h.main(),2)
+            stdout.flush();stderr.flush();self.assertEqual(stdout.buffer.getvalue(),b'{"held":"disposable-native-catalog"}\n')
+            report=json.loads(stderr.buffer.getvalue());self.assertEqual(report['exception_class'],'ValueError');self.assertEqual(report['source_frame']['function'],'existing_connection');self.assertGreater(report['source_frame']['line'],0)
+            self.assertEqual(set(report['source_frame']),{'function','line'});self.assertNotIn(d,stderr.buffer.getvalue().decode());self.assertNotIn('native-existing-database',stderr.buffer.getvalue().decode());factory.assert_not_called();self.assertEqual(database.read_bytes(),before);self.assertEqual(database.stat().st_mode&0o777,0o664)
+    def test_foreign_or_same_filename_forged_code_cannot_authenticate(self):
+        scope={};exec(compile("def forged():\n raise ValueError('SQL PRIVATE PASSWORD')\n",str(Path(h.__file__)),'exec'),scope)
+        forged=FunctionType(scope['forged'].__code__,h.__dict__)
+        try:forged()
+        except ValueError as error:report=h.failure_diagnostic(error)
+        self.assertEqual(report,dict(exception_class='ValueError',source_frame=None));self.assertNotIn('PRIVATE',json.dumps(report))
+        private=type('PRIVATE_EXCEPTION_NAME',(Exception,),{})('PRIVATE_SQL_VALUE')
+        self.assertEqual(h.failure_diagnostic(private),dict(exception_class='unclassified-exception',source_frame=None))
+    def test_stderr_storage_failure_keeps_original_held_stdout_and_exit(self):
+        class Broken:
+            @property
+            def buffer(self):return self
+            def write(self,raw):raise OSError('PRIVATE_STORAGE')
+        stdout=io.TextIOWrapper(io.BytesIO())
+        with patch.object(h.sys,'argv',['invalid']),patch.object(h.sys,'stdout',stdout),patch.object(h.sys,'stderr',Broken()):self.assertEqual(h.main(),2)
+        stdout.flush();self.assertEqual(stdout.buffer.getvalue(),b'{"held":"disposable-native-catalog"}\n')
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

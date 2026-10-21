@@ -25,7 +25,7 @@
       "sha256": "5973203039d782168b97be1bc05e36cfa5b2fde9bdb6412eea0ab1da01714731"
     },
     "GENUINE-ARCHIVE-SCENARIO.md": {
-      "sha256": "f00aa9af363bd50da4d0dcc6f1b81c4c096713a5e52354d50bb6f49c1bd6448a"
+      "sha256": "c8e8e12c304b387b332feea6dfd272e288eb3322728a94b0b70995feeba3ad74"
     },
     "INSTALLER-SOURCE-LOCATORS.json": {
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
@@ -501,8 +501,11 @@
     "genuine_archive_fixture_legacy.py": {
       "sha256": "f11083d2c43fb3b6e38d757ba57c410bdc1eaa0e9bf2505e04f160870c775fbd"
     },
+    "genuine_bootstrap_batch.py": {
+      "sha256": "40f6e3b4fb453bfc1e9b8a9b50f2eb320672077f7abe42208d265ae8311f201c"
+    },
     "genuine_bootstrap_creator.py": {
-      "sha256": "1804072a9cea907b5287f979bb780bad718cdd4fd8fc508dbb510763ccd9bb93"
+      "sha256": "3047fe4b6cf496730fab93ba1af61b15500e07c1fb9291518e89cbfd0fa060b9"
     },
     "genuine_bootstrap_http.py": {
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
@@ -514,7 +517,7 @@
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
     },
     "genuine_native_catalog_helper.py": {
-      "sha256": "f72c1c507c287701344cdf305d81d71878d3fca1596e936de4564b28b59bb3e7"
+      "sha256": "ba8695a8d0691de65944b64d299b22d2b05571c57e85de2fa1111ea8198b93f2"
     },
     "genuine_plan13_producer.py": {
       "sha256": "53975b4e111d07e91c80586ee972c2df5c55ed13a0e99819bdc5d0425da53fdf"
@@ -633,14 +636,17 @@
     "test_genuine_archive_fixture.py": {
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
     },
+    "test_genuine_bootstrap_batch.py": {
+      "sha256": "b625e7f7f47f994fee0a0558b5486a54bf4f288aadfbe4f05ea2f2ba0e5fa90a"
+    },
     "test_genuine_bootstrap_creator.py": {
-      "sha256": "d18d7a26a1f176501b7b2aa02f077c83308aa0a3ca8f065c7901bc103c5b89dd"
+      "sha256": "9a8fd8844965326cc5d4294f28030fef26d09dddbdd041794ce02bde6f353762"
     },
     "test_genuine_current_roles.py": {
       "sha256": "325b850891eab160b7c0142fbd846cf67684c976b7f4f1fad9b190e931438e1e"
     },
     "test_genuine_native_catalog.py": {
-      "sha256": "099b47dd2eb3780155d4bfa0ea72974c4dd784a5388ff36ae371148c6e96b3ca"
+      "sha256": "ca91bac8e8573787d6a67a003953aaf6fea1b7475aeba634a3da7e965c385475"
     },
     "test_genuine_plan13_producer.py": {
       "sha256": "54b99a45cec41263992ff0a81604c119e8bddba635de8c9d57b27078ffbb1355"

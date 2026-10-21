@@ -23,9 +23,9 @@ SUITES = (
 )
 
 ORDINARY_SUITE_TIMEOUT = 90
-# The aggregate has 72 serial children with existing 120-second deadlines.
+# The aggregate has 73 serial children with existing 120-second deadlines.
 # This fixed cap encloses those deadlines plus 60 seconds for fixture overhead.
-RECOVERY_AGGREGATE_TIMEOUT = 8700
+RECOVERY_AGGREGATE_TIMEOUT = 8820
 
 
 def fixture_identity():

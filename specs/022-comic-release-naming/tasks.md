@@ -15,6 +15,10 @@ Historical installed import-to-release-name/metadata checks remain accepted for 
 
 PR #390 delivers bounded import-dispatch diagnostics with passing required CI and security review. It does not resolve the fourth attempt's missing historical reason or accept a new import. The corrected reader-helper follow-up now completes all three read-only GETs and maps both library roots with original custody and helper cleanup. Owning Parent/NFS, complete current-library and bulk acceptance remain open. See [the current reader evidence](../023-verified-publication-corrections/evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 
+The shared single-authentication launcher is implemented and source-verified.
+Actual privileged identity and connected execution remain pending; it does not
+release T019/T023. See [the shared batch record](../023-verified-publication-corrections/evidence-history.md#single-authentication-batch-and-interrupted-fixture--2026-10-21).
+
 ## Phase 1: Setup
 
 **Purpose**: Record preferences, preservation requirements and prospective contracts.
@@ -97,19 +101,24 @@ cover import, dotted release rename and preserved metadata, including existing
 `ComicInfo.xml` position. They do not complete the configured combined pass.
 See [the shared pipeline proof](../023-verified-publication-corrections/evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18).
 
-The PR #462 (`335226b`) native capture verifies all 180 sources and startup files;
-its matching supplier preserves 27 original installation outputs. PR #464 merges
-with all 43 hosted checks passing. Latest host compatibility checks pass: 50
-Creator controls, 33 bootstrap controls, 38 source-cohort controls and all 14
-outer checks including the 1,260-control collection on Python 3.10. A fresh isolated generation now passes
-reader enrollment/API-key creation, virgin backup/restore and native
-initialization. Its planned restart changes Docker's native MAC address and
-stops at the strict preservation check. The paired container/network records
-agree. The corrected paired successor passes source tests; fresh execution
-remains required, and the failed attempt is not replayed.
-SourceCohort and connected acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#fresh-isolated-enrollment-and-restart-refusal--2026-10-21).
+The accepted PR #462 native capture preserves all 180 sources and startup
+files, with its matching 27-output supplier. Current source verification and the
+latest configured catalog refusal are recorded in [the shared runtime
+checkpoint](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+SourceCohort and connected acceptance remain open.
 
 Detailed dated checks, failed generations and historical delivery exceptions
 remain in [evidence history](evidence-history.md). Current required CI and the
 remaining operational dependencies above remain authoritative. Reading-progress
 work remains deferred as requested; original recovery evidence stays retained.
+
+The actual single-authentication checks and predecessor fixture cleanup pass.
+A fresh isolated generation passes enrollment, virgin backup/restore,
+initialization and restart, then refuses catalog seeding because the helper
+required 0600 while genuine Mylar creates 0644 inside its private 0700 DATA
+root. The correction preserves database permissions and checks directory custody
+before commit. Per-operation diagnostics preserve later failures independently.
+The integrated source passes all 14 outer checks and 1,299 controls across 73
+suites with zero skips. Fresh configured execution, NFS, import and ACK gates
+remain open. Failed generations stay retained without replay. See [the current
+runtime record](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).

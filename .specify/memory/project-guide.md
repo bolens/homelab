@@ -180,6 +180,15 @@ The configured path uses the existing `nfs-probe` and `nfs-lease` dialogues,
 birth and session custody. Trace actual call sites before treating an obsolete
 comment or an unused public default as missing implementation.
 
+The native catalog fixture must preserve the startup-created database mode.
+The pinned producer uses `sqlite3.connect` without chmod and can create `0644` under
+umask `022`. Admit only `0600`/`0644` under the original retained UID/GID1000 DATA `0700`
+directory, with unchanged database identity and all Writer/schema/authority
+checks. Test actual SQLite creation and the genuine constructor path instead
+of forcing every fixture to `0600`. Keep expected early probe failures separate
+from later errors: retain bounded diagnostics per original intent, without
+changing the first record or replaying an operation.
+
 Copying the archive SDK source from its container does not copy its Python runtime.
 Its canonical wrapper selects `python3` from the consumer environment; in Mylar
 that remains daemon Python 3.10, even when Modern has a private newer interpreter.
@@ -560,6 +569,13 @@ the authorized work. Honor the latest access pause or scope change. Ask again
 only when a proposed action exceeds or cannot be tied to the recorded scope.
 Keep permissions for named-chat coordination and delegated work equally specific.
 The checkpoint records human authorization and cannot create new permission.
+Group related authorized privileged operations into one finite reviewed batch
+when the operator requests fewer authentication prompts. Authenticate before
+starting the batch's command deadlines. Retain checks between phases, bounded
+runtime and outputs, exact owned cleanup, and the existing UID requirements.
+Use a per-invocation transport only. Do not grant lasting Docker access or relay
+arbitrary commands. A timeout or lost mutation reply requires retained evidence
+and a state check before any fresh attempt; batching does not permit replay.
 Follow the current [delivery rules](../../RELEASING.md), including any revocation
 of a temporary CI exception.
 

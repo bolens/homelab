@@ -95,12 +95,20 @@ def config_sections(raw, names):
 
 class Driver:
     """Only PurposeEngine calls this fixed existing Polkit client prefix."""
+    def _spawn(self, args, data):
+        """Default transport remains one existing Polkit client per call."""
+        return subprocess.Popen([*PREFIX,*args],stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+
+    def _kill_process(self, process):
+        """Transport owns only the exact Popen client; daemon outcome stays unknown."""
+        process.kill()
+
     def docker(self, args, seconds, data=None):
         need(type(args)is list and type(seconds)is int and 1<=seconds<=30 and (data is None or type(data)is bytes and len(data)<=8*1024**2),'bounded-engine-request')
         process=None;streams=[];deadline=time.monotonic()+seconds;output={};pending=memoryview(data or b'')
         try:
-            process=subprocess.Popen([*PREFIX,*args],stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
-                stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+            process=self._spawn(args, data)
             with selectors.DefaultSelector()as poll:
                 for stream in (process.stdout,process.stderr):
                     streams.append(stream);output[stream]=bytearray();os.set_blocking(stream.fileno(),False);poll.register(stream,selectors.EVENT_READ)
@@ -136,9 +144,13 @@ class Driver:
             if failure is error:raise
             raise failure from None
         finally:
+            primary=sys.exc_info()[1]
             if process is not None and process.poll()is None:
-                try:process.kill()
+                try:self._kill_process(process)
                 except OSError:pass  # A privileged client may outlive its unknown reply.
+                except BaseException as secondary:
+                    if primary is None:raise
+                    primary.creator_client_cleanup_failure=type(secondary).__name__
                 try:process.wait(timeout=0.1)
                 except subprocess.TimeoutExpired:pass
             for stream in streams:stream.close()
@@ -171,6 +183,7 @@ class PurposeEngine:
         count = self.counts.get(name, 0); need(count < maximum, 'creator-call-budget')
         self.counts[name] = count + 1
         self.owner.note('intent', name)
+        operation_id = self.owner.serial
         try:
             raw = self.driver.docker(args, self.owner.seconds(), data)
             self.owner.note('done', name, digest(raw))
@@ -180,14 +193,40 @@ class PurposeEngine:
             self.poisoned = not readonly
             diagnostic = getattr(error, 'creator_engine_failure', None)
             if diagnostic is not None and self.owner.journal is not None:
+                # One immutable record per original intent, not just the first
+                # expected probe refusal. No argv/input/exception message is saved.
+                reports = []
+                try:
+                    need(type(operation_id) is int and 1 <= operation_id <= 65535,
+                         'creator-diagnostic-operation-bound')
+                    bounded = dict(diagnostic)
+                    for stream in ('stdout', 'stderr'):
+                        raw = base64.b64decode(diagnostic[stream+'_base64'], validate=True)
+                        need(len(raw) <= LIMIT, 'creator-diagnostic-stream-bound')
+                        bounded[stream+'_base64'] = base64.b64encode(raw[:65536]).decode('ascii')
+                        bounded[stream+'_truncated'] = diagnostic[stream+'_truncated'] or len(raw) > 65536
+                    bounded['retained_stream_byte_limit'] = 65536
+                    reports.append((self.owner.journal/(str(operation_id).zfill(4)+'-engine-failure.private.json'),
+                        dict(kind='creator-operation-engine-failure', journal_operation_id=operation_id,
+                             operation=name, diagnostic=bounded, automatic_replay=False, cleanup=False)))
+                except BaseException as secondary:
+                    error.creator_diagnostic_failure = type(secondary).__name__
+                # Retain the existing first-record bytes and metadata unchanged.
                 try:
                     path = self.owner.journal/'engine-failure.private.json'
                     if not os.path.lexists(path):
-                        b.put(path, dict(kind='creator-first-engine-failure', operation=name,
-                            diagnostic=diagnostic, automatic_replay=False, cleanup=False))
+                        reports.append((path, dict(kind='creator-first-engine-failure', operation=name,
+                            diagnostic=diagnostic, automatic_replay=False, cleanup=False)))
                 except BaseException as secondary:
-                    # Losing diagnostic storage must not hide the actual refusal.
-                    error.creator_diagnostic_failure = type(secondary).__name__
+                    if not hasattr(error, 'creator_diagnostic_failure'):
+                        error.creator_diagnostic_failure = type(secondary).__name__
+                for path, report in reports:
+                    try:
+                        b.put(path, report)
+                    except BaseException as secondary:
+                        # Independent diagnostic attempts never mask the refusal.
+                        if not hasattr(error, 'creator_diagnostic_failure'):
+                            error.creator_diagnostic_failure = type(secondary).__name__
             raise
 
     def image(self, role):
