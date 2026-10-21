@@ -122,7 +122,7 @@ must be sequenced. No agent may change live services during fixture work.
   rollback readiness. Preserve backend preferences; no runtime deployment or
   acceptance follows from the host fixtures alone.
 
-PR [#449](https://github.com/bolens/homelab/pull/449) merged after all required CI checks and the final candidate proof passed. T028 still requires published-image binding and the scoped live canary.
+PR [#449](https://github.com/bolens/homelab/pull/449) merged after all required CI checks and the final candidate proof passed. The published native image now passes its exact source/startup capture, and the matching worker passes all 42 installed-module and SDK checks. T028 still requires the scoped live canary and its data-preservation checks.
 
 T025 precedes T026/T027. T026 and T027 precede T028. T001-T024 and their original
 acceptance records remain unchanged.
