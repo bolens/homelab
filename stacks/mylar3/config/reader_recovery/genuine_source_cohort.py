@@ -31,7 +31,9 @@ OWNING_SOURCES = {'probe': 'reader_recovery/comic_negative_nfs_hardlink_child.py
     'scope_projection': 'publication_native_configured_scope.py',
     'lifecycle': 'reader_recovery/comic_negative_nfs_active_lifecycle.py',
     'readiness': 'reader_recovery/comic_native_process_probe.py', 'writer': 'media_writer.py',
-    'tests': 'reader_recovery/test_nfs_current_source.py'}
+    'tests': 'reader_recovery/test_nfs_current_source.py',
+    'core_tests': 'reader_recovery/test_reader_lifecycle_parent.py',
+    'writer_fixture': 'test_media_writer.py'}
 VERIFY_LINE = b'Installed prospective reader source/origin/type proof passed; owning admission remains held\n'
 MAX = 16 * 1024**2
 # LinuxServer's declared /config is masked, never converted to an anonymous volume.
@@ -65,6 +67,22 @@ print(json.dumps({'nonce':v['nonce'],'executable_sha256':exe,'modules':actual},s
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
+
+
+def derive_parity_program(template, modules):
+    """Bind the owning installed-file probe to original map names, never hashes.
+
+    The Parent sends this program on stdin, so its names must be literal rather
+    than a second stdin document. This pure derivation establishes no runtime fact.
+    """
+    need(type(template) is str and template == producer.bootstrap.IMAGE_PROGRAM,
+         'source-parity-owning-template')
+    need(type(modules) is dict and len(modules) == 180
+         and all(type(name) is str and re.fullmatch('[A-Za-z_][A-Za-z0-9_]*[.]py', name)
+                 and p.digest(pin) for name, pin in modules.items()), 'source-parity-original-map')
+    expression = 'names=json.load(sys.stdin)'
+    need(template.count(expression) == 1, 'source-parity-template-expression')
+    return template.replace(expression, 'names=' + repr(sorted(modules)), 1).encode()
 
 
 def remember(originals, nodes):
@@ -178,6 +196,8 @@ class Emitter:
         need(stat.S_ISDIR(z.st_mode) and stat.S_IMODE(z.st_mode) == 0o700 and z.st_uid == z.st_gid == 1000, 'source-existing-writer')
         remember(self.originals, p.parents(writer)); remember(self.originals, {str(writer): p.five(z)})
         self._bundle(q['bundle_files'])
+        need(original(self.cohort['sources']['parity']) == derive_parity_program(
+            producer.bootstrap.IMAGE_PROGRAM, self.module_map), 'source-owning-parity-program')
         request = p.decode(original(self.cohort['sources']['readiness_input']))
         need(type(request) is dict and set(request) == {'version', 'nonce', 'source_sha256', 'seconds', 'module_pins', 'scope_source'}
              and type(request['version']) is int and request['version'] == 1 and request['nonce'] == q['nonce']

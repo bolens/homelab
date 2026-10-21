@@ -100,11 +100,14 @@ See [the shared pipeline proof](../023-verified-publication-corrections/evidence
 The PR #462 (`335226b`) native capture verifies all 180 sources and startup files;
 its matching supplier preserves 27 original installation outputs. PR #464 merges
 with all 43 hosted checks passing. Latest host compatibility checks pass: 50
-Creator controls, 29 bootstrap controls and all 14 outer checks including the
-1,252-control collection on Python 3.10. Actual Creator starts both services,
-then one enrollment POST returns HTTP 400 without retry. The bounded email
-correction is source-verified; fresh enrollment, SourceCohort and connected
-acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#creator-startup-diagnostics-and-pending-source-closure--2026-10-21).
+Creator controls, 33 bootstrap controls, 38 source-cohort controls and all 14
+outer checks including the 1,260-control collection on Python 3.10. A fresh isolated generation now passes
+reader enrollment/API-key creation, virgin backup/restore and native
+initialization. Its planned restart changes Docker's native MAC address and
+stops at the strict preservation check. The paired container/network records
+agree. The corrected paired successor passes source tests; fresh execution
+remains required, and the failed attempt is not replayed.
+SourceCohort and connected acceptance remain open. See [the current shared checkpoint](../023-verified-publication-corrections/evidence-history.md#fresh-isolated-enrollment-and-restart-refusal--2026-10-21).
 
 Detailed dated checks, failed generations and historical delivery exceptions
 remain in [evidence history](evidence-history.md). Current required CI and the
