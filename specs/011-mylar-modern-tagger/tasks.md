@@ -113,7 +113,7 @@ must be sequenced. No agent may change live services during fixture work.
   requirements. Independent review and 21 focused controls pass; the complete
   local delivery gate passes. Modern dynamically collects all 21 runtime tests,
   retaining the prior controls and adding canonical SDK conversion/CRC coverage. Actual image proof is T027.
-- [ ] T027 Build and verify the reviewed linux/amd64 candidate image with
+- [x] T027 Build and verify the reviewed linux/amd64 candidate image with
   CPython 3.13.16/Pillow 13, Jammy ICU 70.1 and final-layer ELF closure. Require
   the full owning gates, genuine CBR-to-normalized-CBZ processing, real CLI
   metadata/page/member preservation and native failure/recovery controls.
@@ -121,6 +121,8 @@ must be sequenced. No agent may change live services during fixture work.
   scoped live canary with verified backup/isolated restore, data preservation and
   rollback readiness. Preserve backend preferences; no runtime deployment or
   acceptance follows from the host fixtures alone.
+
+PR [#449](https://github.com/bolens/homelab/pull/449) merged after all required CI checks and the final candidate proof passed. T028 still requires published-image binding and the scoped live canary.
 
 T025 precedes T026/T027. T026 and T027 precede T028. T001-T024 and their original
 acceptance records remain unchanged.
