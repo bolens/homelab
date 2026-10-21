@@ -112,7 +112,12 @@ class Assembly:
         need(not os.path.lexists(operation) and operation != self.output
              and self.output not in operation.parents and operation not in self.output.parents, 'active-operation-output')
         self.originals.absent.update((str(operation), str(Path(q['probe_plan']['fixture_parent']) / q['probe_plan']['fixture_name']), q['probe_plan']['output_root']))
-        for name in self.originals.absent:self.remember(p.parents(Path(name)))
+        for name in self.originals.absent:
+            path = Path(name)
+            # Only these two known owned parents are intentionally absent.
+            # Their child absences retain the original existing grandparent.
+            anchor = path.parent if path.parent in (operation, self.neutral_parent) else path
+            self.remember(p.parents(anchor))
         for value in scope['sources'].values():follow(value)
         review = docs['effective_observer_review']
         need(type(review) is dict and set(review) == set(composer.EFFECTIVE), 'active-effective-seven')
@@ -199,10 +204,20 @@ class Assembly:
              and p.absolute(probe['library_root']) in roots
              and type(probe['expected_device']) is int and probe['expected_device'] > 0
              and type(probe['fixture_name']) is str and re.fullmatch('[.]comic-nfs-probe-[0-9a-f]{32}', probe['fixture_name']), 'active-original-probe-choice')
-        parent = p.absolute(probe['fixture_parent']); stamp = p.nine(os.lstat(parent))
-        need(stamp == probe['fixture_parent_signature'] and stat.S_ISDIR(stamp[5])
-             and stamp[0] == probe['expected_device'] == os.lstat(probe['library_root']).st_dev, 'active-original-probe-parent')
-        self.remember(p.parents(parent)); self.remember({str(parent): p.five(os.lstat(parent))})
+        # The owning Parent alone births this node and derives its full9.
+        # Host preparation binds absence and the existing grandparent instead.
+        parent = p.absolute(probe['fixture_parent']); admission = self.document['parent_admission']
+        active.exact(admission, ('path', 'grandparent_signature', 'expected_device', 'mount_identity'))
+        grandparent = parent.parent; stamp = p.nine(os.lstat(grandparent))
+        need(admission['path'] == str(parent) and re.fullmatch(r'[.]comic-nfs-private-[0-9a-f]{32}', parent.name)
+             and probe['fixture_parent_signature'] is None and not os.path.lexists(parent)
+             and stamp == admission['grandparent_signature'] and stat.S_ISDIR(stamp[5])
+             and stamp[0] == probe['expected_device'] == os.lstat(probe['library_root']).st_dev,
+             'active-original-precreation-parent')
+        need(probe['output_root'] == str(p.absolute(self.document['operation_output']) / 'probe'),
+             'active-probe-operation-output')
+        self.neutral_parent = parent; self.grandparent9 = stamp
+        self.originals.absent.add(str(parent)); self.remember(p.parents(parent))
         fixture = parent / probe['fixture_name']; out = p.absolute(probe['output_root'])
         need(not os.path.lexists(fixture) and not os.path.lexists(out)
              and active.outside(fixture, roots) and active.outside(out, roots)
@@ -215,6 +230,10 @@ class Assembly:
 
     def close(self):
         self.originals.close()
+        if hasattr(self, 'neutral_parent'):
+            need(not os.path.lexists(self.neutral_parent)
+                 and p.nine(os.lstat(self.neutral_parent.parent)) == self.grandparent9,
+                 'active-precreation-parent-closure')
         need(p.five(os.fstat(self.parent_fd)) == self.parent5 == p.five(os.lstat(self.output.parent)), 'active-output-parent')
         fresh(self.document['observed'])
         if hasattr(self, 'tape'):need(p.encode(self.document) == self.tape, 'active-request-changed')

@@ -27,7 +27,7 @@ SUITES=SUITES+(('test_genuine_reader_quiescence.py',18),)
 SUITES=SUITES+(('test_genuine_plan13_producer.py',22),)
 SUITES=SUITES+(('test_genuine_current_roles.py',22),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
-SUITES=SUITES+(('test_genuine_active_inputs.py',15),)
+SUITES=SUITES+(('test_genuine_active_inputs.py',19),)
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
