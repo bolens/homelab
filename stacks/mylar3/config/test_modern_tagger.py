@@ -1,5 +1,8 @@
 """Offline acceptance against the real pinned console command, not a mocked CLI."""
 import hashlib
+import io
+import platform
+import subprocess
 from importlib import metadata, util, import_module
 import json
 import os
@@ -57,8 +60,97 @@ class ModernTaggerTest(unittest.TestCase):
         shutil.copy2(self.original, self.archive)
         return hashlib.sha256(self.original.read_bytes()).hexdigest(), contents(self.archive)
 
+    def test_canonical_sdk_cbr_conversion_with_daemon_python(self):
+        sdk = Path('/opt/archiving-utils/bin/archiving-utils')
+        self.assertTrue(sdk.is_file())
+        home = self.root/'sdk-home'
+        home.mkdir(mode=0o700)
+        env = {key:value for key,value in os.environ.items() if not key.startswith('PYTHON')}
+        env.update(HOME=str(home), TMPDIR=str(self.root),
+                   PYTHONDONTWRITEBYTECODE='1', PYTHONNOUSERSITE='1')
+        for key in ('XDG_CONFIG_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME',
+                    'XDG_DATA_HOME', 'XDG_RUNTIME_DIR'):
+            directory = home/key
+            directory.mkdir(mode=0o700)
+            env[key] = str(directory)
+        # The canonical Bash wrapper selects python3 from this unchanged PATH.
+        daemon = shutil.which('python3', path=env['PATH'])
+        self.assertIsNotNone(daemon)
+        probe = subprocess.run([daemon, '-c', 'import sys; print(sys.version_info[:2])'],
+                               env=env, capture_output=True, text=True, timeout=10, check=True)
+        self.assertEqual(probe.stdout.strip(), '(3, 10)')
+        members = {'001.png':png(), '002.png':png(),
+                   'extras/credit.txt':b'Fixture credit: preserve verbatim',
+                   'ComicInfo.xml':b'<ComicInfo><Notes>Keep notes</Notes><Extension keep="yes"/></ComicInfo>'}
+
+        def header(kind, flags, body):
+            raw = struct.pack('<BHH', kind, flags, 7+len(body)) + body
+            return struct.pack('<H', zlib.crc32(raw) & 0xffff) + raw
+
+        raw = b'Rar!\x1a\x07\x00' + header(0x73, 0, bytes(6))
+        for name, data in members.items():
+            name = name.encode('ascii')
+            body = struct.pack('<IIBIIBBHI', len(data), len(data), 3,
+                               zlib.crc32(data), 0, 20, 0x30, len(name), 0o100644)
+            raw += header(0x74, 0x8000, body+name) + data
+        raw += header(0x7b, 0, b'')
+        source = self.root/'genuine.cbr'
+        source.write_bytes(raw)
+        source.chmod(0o640)
+
+        def frame(path):
+            value = path.stat()
+            return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+                    value.st_ctime_ns, value.st_mode, value.st_uid, value.st_gid, value.st_nlink)
+
+        before = frame(source)
+        self.assertFalse(zipfile.is_zipfile(source))
+
+        def cli(*args, code=0):
+            result = subprocess.run([str(sdk), *map(str, args)], env=env,
+                                    capture_output=True, text=True, timeout=60)
+            self.assertLessEqual(len(result.stdout)+len(result.stderr), 65536)
+            self.assertEqual(result.returncode, code, (result.stdout+result.stderr)[-8000:])
+            return json.loads(result.stdout)
+
+        normalized = self.root/'normalized.cbz'
+        response = cli('comic-to-cbz', '--apply', '-o', normalized, source)
+        self.assertEqual(response['failures'], [])
+        self.assertEqual(response['results'][0]['status'], 'written')
+        with zipfile.ZipFile(normalized) as archive:
+            self.assertIsNone(archive.testzip())
+            self.assertEqual(len(archive.namelist()), len(set(archive.namelist())))
+            directories = {name for name in archive.namelist() if name.endswith('/')}
+            self.assertEqual(directories, {'extras/'})
+            self.assertEqual(archive.read('extras/'), b'')
+            self.assertEqual({name:archive.read(name) for name in archive.namelist()
+                              if not name.endswith('/')}, members)
+        self.assertEqual(cli('comic-info', source)['results'][0]['result']['page_count'], 2)
+        bad = self.root/'bad-crc.cbr'
+        self.assertEqual(raw.count(members['extras/credit.txt']), 1)
+        corrupt = raw.replace(members['extras/credit.txt'], b'X'+members['extras/credit.txt'][1:])
+        bad.write_bytes(corrupt)
+        bad.chmod(0o640)
+        bad_before = frame(bad)
+        refused = self.root/'must-not-exist.cbz'
+        rejected = cli('comic-to-cbz', '--apply', '-o', refused, bad, code=1)
+        self.assertTrue(rejected['failures'])
+
+        def crc_failure(failure):
+            message = failure.get('error')
+            return isinstance(message, str) and ('crc' in message.lower() or 'checksum' in message.lower())
+
+        self.assertFalse(crc_failure({'path':'bad-crc.cbr', 'error':'unrelated failure'}))
+        self.assertTrue(any(crc_failure(failure) for failure in rejected['failures']))
+        self.assertFalse(refused.exists())
+        self.assertEqual(bad.read_bytes(), corrupt)
+        self.assertEqual(frame(bad), bad_before)
+        self.assertEqual(source.read_bytes(), raw)
+        self.assertEqual(frame(source), before)
+
     def test_pinned_version_and_headless_dependencies(self):
         self.assertEqual(metadata.version('comictagger'), VERSION)
+        self.assertEqual(metadata.version('Pillow'), '13.0.0')
         import icu
         self.assertEqual(icu.ICU_VERSION, '70.1')
         installed = {d.metadata['Name'].lower() for d in metadata.distributions()}
@@ -66,6 +158,79 @@ class ModernTaggerTest(unittest.TestCase):
         result = run([EXECUTABLE, '--config', str(self.root/'config'), '--version'], cwd=self.root, timeout=10)
         self.assertEqual(result.returncode, 1)
         self.assertTrue(version_supported(result))
+
+    def test_private_interpreter_and_final_image_elf_closure(self):
+        self.assertEqual(sys.version_info[:3], (3, 13, 16))
+        self.assertTrue(sys._is_gil_enabled())
+        self.assertEqual(Path(sys.base_prefix), Path('/opt/tagger-python'))
+        self.assertEqual(Path(sys.executable).resolve(), Path('/opt/tagger-python/bin/python3.13').resolve())
+        self.assertEqual(platform.machine(), 'x86_64')
+        self.assertEqual(os.confstr('CS_GNU_LIBC_VERSION'), 'glibc 2.35')
+        daemon = subprocess.run(['/usr/bin/python3', '-I', '-B', '-c',
+                                 'import sys; print(sys.version_info[:2])'],
+                                capture_output=True, text=True, timeout=10, check=True)
+        self.assertEqual(daemon.stdout.strip(), '(3, 10)')
+        root = Path('/opt/tagger-python')
+        self.assertIn('PYTHON SOFTWARE FOUNDATION LICENSE', (root/'LICENSE').read_text())
+        self.assertIn('Licenses and Acknowledgements for Incorporated Software', (root/'LICENSES.rst').read_text())
+        self.assertFalse((root/'include').exists())
+        self.assertFalse(list(root.rglob('libpython*.a')))
+        self.assertFalse((root/'lib/python3.13/ensurepip').exists())
+        self.assertFalse(list((root/'lib/python3.13/site-packages').glob('pip*')))
+        binaries = [root/'bin/python3.13']
+        binaries += sorted((root/'lib/python3.13/lib-dynload').glob('*.so'))
+        binaries += sorted(Path('/opt/comictagger/lib/python3.13/site-packages').rglob('*.so'))
+        self.assertGreater(len(binaries), 20)
+        for binary in binaries:
+            with self.subTest(binary=binary.name):
+                with binary.open('rb') as stream:
+                    header = stream.read(20)
+                self.assertEqual(header[:6], b'\x7fELF\x02\x01')
+                self.assertEqual(int.from_bytes(header[18:20], 'little'), 62)
+                result = subprocess.run(['/usr/bin/ldd', str(binary)],
+                                        capture_output=True, text=True, timeout=10, check=True)
+                self.assertNotIn('not found', result.stdout + result.stderr)
+                self.assertNotIn('/tmp/', result.stdout)
+                self.assertNotIn('/opt/tagger-build/', result.stdout)
+        import bz2, ctypes, lzma, sqlite3, ssl
+        payload = b'isolated runtime codec closure'
+        self.assertEqual(bz2.decompress(bz2.compress(payload)), payload)
+        self.assertEqual(lzma.decompress(lzma.compress(payload)), payload)
+        self.assertEqual(ctypes.sizeof(ctypes.c_void_p), 8)
+        self.assertGreaterEqual(sqlite3.sqlite_version_info, (3, 15, 2))
+        self.assertEqual(ssl.OPENSSL_VERSION_INFO[:2], (3, 0))
+
+    def test_real_jpeg_tiff_pages_survive_metadata_write(self):
+        from PIL import Image, features
+        self.assertTrue(features.check('jpg'))
+        self.assertTrue(features.check('libtiff'))
+        for fmt, extension in (('JPEG', 'jpg'), ('TIFF', 'tif')):
+            with self.subTest(format=fmt):
+                image = Image.new('RGB', (32, 24), (32, 96, 144))
+                stream = io.BytesIO()
+                image.save(stream, format=fmt)
+                page = stream.getvalue()
+                with zipfile.ZipFile(self.original, 'w') as archive:
+                    archive.writestr('001.' + extension, page)
+                    archive.writestr('extras/credit.txt', b'preserve verbatim')
+                    archive.comment = b'preserve archive comment'
+                self.original.chmod(0o640)
+                shutil.copy2(self.original, self.archive)
+                before = hashlib.sha256(self.original.read_bytes()).hexdigest()
+                members = contents(self.original)
+                self.assertEqual(save(self.archive, {'series':'Fixture', 'issue':'1'},
+                                      workdir=self.stage).state, 'saved')
+                output = self.stage/('verified-' + extension + '.cbz')
+                self.assertEqual(prepare(self.original, self.archive, output), 'added')
+                self.assertEqual(contents(output), members)
+                self.assertEqual(snapshot(output).mode, 0o640)
+                self.assertEqual(parse(snapshot(output).xml).findtext('Series'), 'Fixture')
+                self.assertEqual(hashlib.sha256(self.original.read_bytes()).hexdigest(), before)
+                with zipfile.ZipFile(output) as archive:
+                    with Image.open(io.BytesIO(archive.read('001.' + extension))) as decoded:
+                        decoded.load()
+                        self.assertEqual(decoded.size, (32, 24))
+                        self.assertEqual(decoded.mode, 'RGB')
 
     def test_real_cli_publication_and_repeated_job(self):
         _, before = self.fixture()
@@ -259,10 +424,11 @@ class ModernTaggerTest(unittest.TestCase):
     def test_corresponding_sources_match_installed_distributions(self):
         sources = Path('/opt/comictagger/sources')
         manifest = json.loads((sources/'manifest.json').read_text())
-        self.assertEqual({row['name'] for row in manifest}, {'comicfn2dict','chardet','isocodes'})
-        self.assertEqual(len(manifest), 3)
+        self.assertEqual({row['name'] for row in manifest}, {'comicfn2dict','chardet','isocodes','cpython'})
+        self.assertEqual(len(manifest), 4)
         for row in manifest:
-            self.assertEqual(row['version'], metadata.version(row['name']))
+            version = '.'.join(map(str, sys.version_info[:3])) if row['name'] == 'cpython' else metadata.version(row['name'])
+            self.assertEqual(row['version'], version)
             self.assertEqual(hashlib.sha256((sources/row['filename']).read_bytes()).hexdigest(), row['sha256'])
 
     def test_symlink_non_cbz_and_outside_workspace_rejected(self):

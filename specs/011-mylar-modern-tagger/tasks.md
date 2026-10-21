@@ -98,3 +98,29 @@ must be sequenced. No agent may change live services during fixture work.
   and simulated interruption fixtures. Real power-loss testing is excluded by the
   user. Keep physical/NFS server power-loss durability explicitly unproven.
   Never power-cycle hosts, storage, or virtual machines for this task.
+
+
+## Supported-runtime maintenance
+
+- [x] T025 Authenticate official CPython 3.13.16 source, pin the supported Modern
+  Python/Pillow artifacts, implement the private same-base runtime and retained
+  source/licenses, and prove the complete locked graph and real offline metadata
+  path on the host. Eight source/refusal controls pass on three interpreters;
+  real PNG/JPEG/TIFF CLI cases preserve originals and metadata. Host ICU 78.3 is
+  separate from target-image ICU 70.1; see `validation.md`.
+- [x] T026 Integrate the owning host runner and both current 428-entry source
+  maps, preserving prior order, metadata, the intentional alias and unrelated
+  requirements. Independent review and 21 focused controls pass; the complete
+  local delivery gate passes. Modern dynamically collects all 21 runtime tests,
+  retaining the prior controls and adding canonical SDK conversion/CRC coverage. Actual image proof is T027.
+- [ ] T027 Build and verify the reviewed linux/amd64 candidate image with
+  CPython 3.13.16/Pillow 13, Jammy ICU 70.1 and final-layer ELF closure. Require
+  the full owning gates, genuine CBR-to-normalized-CBZ processing, real CLI
+  metadata/page/member preservation and native failure/recovery controls.
+- [ ] T028 Complete normal current-head CI and publication, then the authorized
+  scoped live canary with verified backup/isolated restore, data preservation and
+  rollback readiness. Preserve backend preferences; no runtime deployment or
+  acceptance follows from the host fixtures alone.
+
+T025 precedes T026/T027. T026 and T027 precede T028. T001-T024 and their original
+acceptance records remain unchanged.

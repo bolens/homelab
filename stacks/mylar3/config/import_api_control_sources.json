@@ -69,7 +69,7 @@
   },
   {
     "path": "fetch_tagger_sources.py",
-    "sha256": "72324ce4c3d815c25a851e4ec7fe066fea3b248be0c81e9fd491eece7ee690ec"
+    "sha256": "28c9490e9c0006511f80d5c89fb74234236114a032850f4827679e347d9c2182"
   },
   {
     "path": "file_identity.py",
@@ -677,11 +677,11 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "3b15e05fd6b79ad214aa3e9c9429b72bae8e6bf8b706b2e7608a80529f10b4c8"
+    "sha256": "b8ee7cf014213d9c179214cf901ec4904be7c8df87a7423d1881c4fbb12018ad"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "1984263d0dbd3656a83871580ad2f1edaf31507e1db8aa296ef24b129390a3b2"
+    "sha256": "882f39a241f84ef28d77cf3c2390ca527dde0fc4deceec4620b7154bc044aa67"
   },
   {
     "path": "run_standalone_controls.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "615a2ea97bee12039f43b94fff8825d271dbdd86d34c75d1bd8cd37645d244d3"
+    "sha256": "e055f33096e97206020f7aa7777a8d7d73ac6a1ac5edc1acbf91771c85c760d2"
   },
   {
     "path": "story_arc_search.py",
@@ -1125,7 +1125,7 @@
   },
   {
     "path": "test_modern_tagger.py",
-    "sha256": "afb33ae03ea6811e421748a73f2ee8268564b2b81d5e4654202bf54d002730f1"
+    "sha256": "e32e3b405a6f3402f78a309687fdb0a4de8374c3d13e3e993cf0137b99585c62"
   },
   {
     "path": "test_native_terminal_dispatch.py",
@@ -1369,7 +1369,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "77f07500ca899e409c514a8c2f611b9e3fd2ba0311de1d482ec8983386b82ca5"
+    "sha256": "fce0668fbab787f735bce14f5659719a82fa80c162671838817ee59cbcf6f420"
   },
   {
     "path": "test_publication_reader_softdelete.py",
@@ -1546,6 +1546,10 @@
   {
     "path": "test_tagger_nfs.py",
     "sha256": "38e2c233f0d574083729d2b0a3c3d4e99a8ee5cc5e071916b23526bc040339e1"
+  },
+  {
+    "path": "test_tagger_python_runtime.py",
+    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2"
   },
   {
     "path": "test_tagger_runtime.py",

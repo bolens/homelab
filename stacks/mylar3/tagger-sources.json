@@ -19,5 +19,12 @@
     "filename": "isocodes-2025.8.25.tar.gz",
     "url": "https://files.pythonhosted.org/packages/bb/bb/2cf9cb80fe0bc345b751477757200bfa106d4f7f39a7f0c1d6b870063b43/isocodes-2025.8.25.tar.gz",
     "sha256": "c5ac855a69a5d4ea7f9b5781f17d6c0f70905d38e924182c263c8a00f9db94a2"
+  },
+  {
+    "name": "cpython",
+    "version": "3.13.16",
+    "filename": "Python-3.13.16.tar.xz",
+    "url": "https://www.python.org/ftp/python/3.13.16/Python-3.13.16.tar.xz",
+    "sha256": "f4b1bfb3c79b5bb11b8d228a12504163b4c0dab4d679828d8f5f26b6cb6ab35d"
   }
 ]

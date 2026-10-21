@@ -10,7 +10,11 @@ def fetch(manifest, destination):
     destination.mkdir(parents=True, exist_ok=True)
     for item in json.loads(manifest.read_text()):
         name = item['filename']
-        if Path(name).name != name or not item['url'].startswith('https://files.pythonhosted.org/'):
+        python_source = (item['name'] == 'cpython' and item['version'] == '3.13.16'
+                         and name == 'Python-3.13.16.tar.xz'
+                         and item['url'] == 'https://www.python.org/ftp/python/3.13.16/Python-3.13.16.tar.xz')
+        if (Path(name).name != name or (item['name'] == 'cpython' and not python_source)
+                or not (python_source or item['url'].startswith('https://files.pythonhosted.org/'))):
             raise ValueError('Unexpected source archive location')
         with urllib.request.urlopen(item['url'], timeout=30) as response:
             content = response.read(50 * 1024 * 1024 + 1)

@@ -495,3 +495,64 @@ conversions with deferred Mylar refreshes delivered.
 
 T018 remains a completed rejection of full Curl streaming, not D2/D3 acceptance.
 No live provider anti-bot bypass or physical storage power-loss guarantee is claimed.
+
+
+## Supported-runtime maintenance source evidence (2026-10-20)
+
+This is a source candidate for Modern, not a deployed-image result. T001-T024 and
+all earlier counts and live acceptance entries above retain their original scope.
+
+- The official CPython 3.13.16 archive passed Sigstore verification against
+  `thomas@python.org`, issuer `https://accounts.google.com`, before its SHA-256
+  was pinned in `tagger-sources.json`. The fetch helper admits only that exact
+  CPython release URL in addition to its existing PyPI source route. Source,
+  runtime licenses and incorporated-software notices are retained by the build.
+- Authenticated source compiled successfully in disposable host scratch. Its
+  Python 3.13.16 built and installed the complete hash-locked Modern dependency
+  graph, including Pillow 13.0.0; the dependency check passed. Other runtime
+  package blocks and build-tool versions remained unchanged.
+- Eight portable source/refusal controls passed on the system interpreter,
+  managed Python 3.10.22 and source-built Python 3.13.16, with zero skips.
+  Source lint and whitespace checks passed. Dockerfile lint exited successfully
+  with the existing unrelated libarchive WORKDIR warning.
+- The real host ComicTagger CLI and owning archive helpers processed PNG, JPEG
+  and TIFF CBZs. Originals, page bytes, sidecars, comments, mode, unknown XML,
+  notes, page bookmarks and paired story-arc order survived; repeated work was
+  unchanged. Host PyICU used ICU 78.3. This proves the host path, not the pinned
+  image's ICU 70.1, Jammy ABI, native publication or a live library operation.
+
+T026 integration is complete. The host validator runs the eight new source
+controls. Both 428-entry maps close with original ordering, target metadata and
+the nested standalone-map pin preserved. Independent review, 21 focused
+source/copy/installation controls and the full local delivery gate pass. Modern
+collects 20 tests dynamically, with all prior 18 tests and assertions retained.
+
+The isolated candidate image build is running against a frozen public-only
+context with no live application mounts. The Dockerfile contains build/final-layer checks for the private
+interpreter, unchanged daemon Python version, decoder features and ELF library
+resolution. Actual image execution, Jammy ICU 70.1/ELF closure, genuine CBR
+normalization to CBZ and full native metadata/publication gates remain unchecked
+under T027. Normal CI, publication and the scoped live canary remain unchecked
+under T028. No container, live configuration or library was accessed for this
+source/host evidence.
+
+
+## Target-image candidate check — 2026-10-20
+
+The reviewed candidate completes the owning native reliability gate, all 20 Modern controls and final-layer CPython 3.13.16, Pillow 13, ICU 70.1 and ELF checks. The original command returned 143 after image export; a cached confirmation of the exact same frozen source exits successfully without rerunning those gates. This distinction remains in private evidence.
+
+The subsequent disposable genuine stored-RAR4 test verifies native member decoding, then stops when the canonical SDK conversion child exits unsuccessfully. The original fixture reports only the child failure, so a diagnostic successor must retain its bounded error output before correcting any invocation or runtime issue. The exact exited test container is removed after profile verification. No live data is mounted. T027 remains unchecked until conversion and metadata preservation pass; no deployment, import or acknowledgement follows from these component checks.
+
+The bounded target-runtime diagnostic identifies the converter failure: the canonical archive SDK starts the daemon's Python 3.10 and calls `hashlib.file_digest`, which is unavailable there. The digest compatibility fix belongs in the SDK's portable hashing path; its broader declared Python 3.11+ baseline remains unchanged. Changing the system interpreter or selecting a different PATH would hide the compatibility defect. The second exact disposable container also exits and is removed; original failure evidence remains retained.
+
+
+## Published archive SDK correction — 2026-10-20
+
+Archive SDK PR #28 is merged and its main publication, source, CI and development-image checks pass. Mylar and the matching normalizer now pin the published immutable manifest `sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c`. Registry manifest/config and all compressed layers/uncompressed diff IDs verify; all 156 installed SDK source files match commit `8fe27b9a23fd939cce972f75da5082f8b4c41671` by bytes, modes and ownership. Provenance joins the successful official publication run, commit tag and exact source tree. The image has no revision label; no signed-attestation claim is made.
+
+The permanent Modern suite now collects 21 tests. The added test exercises the canonical SDK through the unchanged daemon Python 3.10 PATH, genuine stored-RAR4 conversion, exact pages/metadata/sidecar preservation and CRC refusal without output. Existing 20 tests remain intact. Independent review confirms that CRC classification reads the actual error field rather than matching the corrupt fixture's filename. Source-projected red/green checks do not grant target-image acceptance.
+
+A fresh public-only candidate build includes the corrected SDK and integrated recovery sources. No live application data is mounted and services remain running. T027 stays open until this rebuilt image passes all owning checks and genuine conversion/metadata continuity; T028 still requires normal CI/publication and scoped live acceptance.
+
+
+The matching normalizer candidate completes all 915 worker tests with zero skips; its 94 focused checks also pass as a subset. Independent final-image inspection confirms linux/amd64 and no declared persistent volume. A separate disposable final-image check verifies the exact 42 installed modules, canonical origins and type identities, unchanged source closure and the corrected SDK core. Its test container is absent afterward. This is installed worker component proof, not configured factory, import, ACK or live deployment acceptance.

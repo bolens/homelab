@@ -375,3 +375,33 @@ The new host-only producer consumes original image, executable, fixture and sour
 Review found and corrected two real image-compatibility defects before execution: the selected image declares `/config`, which requires private bounded tmpfs and explicit idle startup with health checks disabled; the historical native map supplies an exact name census, not current hashes for later corrected non-SDK modules. The original current 180-module map and separate 25-module SDK join remain checked before and after execution. Historical bytes are unchanged.
 
 Independent review and all 32 focused host/Python 3.10 controls pass with zero skips. The finite fixture-copy union contains 677 sources, about 11.1 MB within the existing 16 MiB limit. Thirteen owning copy/runner controls preserve collection and source closure. The full managed Python 3.10 recovery inventory passes 1,199 controls across 71 suites with zero skips and unchanged originals. The recovery manifest has 252 members, both outer maps retain 427 rows, and the timeout remains 8,580 seconds. This source proof does not establish actual selected-image execution, installed Parent/Birth or NFS/terminal acceptance; T012/T015–T018 remain open.
+
+
+## Active input and exact host intent integration — 2026-10-20
+
+The maintained host-only assembler joins existing reviewed inputs into the checked composer without producing scope approval, SourceCohort readiness, NFS facts or mutation authority. It holds original references and exclusive output descriptors through final closure. Public configuration references preserve their owning mode contract; private facts remain private. Fifteen controls cover original substitution, late drift, output custody and configuration permissions.
+
+The host-engine intent builder derives bounded exact inspect, native readiness, parity and mount queries from original roles and sources. Eleven controls preserve fixed users, exact arguments/stdin, finite consumption and denial of generic create/start. The existing registered birth/probe/lease/session route remains the only lifecycle route. Integration refreshes the reviewed engine pin in its lifecycle Parent and installer, the installer's Parent pin and the current-role producer's Parent pin.
+
+Independent source reviews pass. The combined recovery runner passes 1,219 controls across 72 suites under managed Python 3.10, with zero skips and unchanged original inputs. The fixture manifest has 254 members and the aggregate deadline is 8,700 seconds. Separate runner controls verify the changed collection and timeout contract. Repository validation passes. These establish source integration; installed factories, actual NFS, reader continuity and native/worker terminal consumption remain open under T012/T015.
+
+
+## Original disposable reader mount observation — 2026-10-20
+
+The effective-scope parent can now consume an optional original bootstrap plan and exact pinned bootstrap source. It derives only the private reader configuration bind and original library bound read-only at its unchanged absolute spelling. Original profile, epoch, image, process, nonce, role geometry and retained evidence descriptors close before output and through final release. Arbitrary, writable, duplicate or foreign mounts refuse, including self-consistent altered profiles. The production `original_service()` remains unchanged.
+
+Independent review passes. All 38 parent controls pass on managed Python 3.10 without skips. The complete source/compile gate passes with JDK 21 after refreshing the three reviewed source pins, including generated class inventory and negative missing-class checks. This is source compatibility evidence; packaged Spring cases, a fresh configured observation, actual NFS and connected application acceptance remain unverified.
+
+
+## Hosted fixture ownership correction — 2026-10-20
+
+The first current-head hosted gate fails because its user ID differs from the required operational owner. The new bootstrap tests created genuine files with the runner's ownership, causing the strict production reader to refuse before reaching the intended assertions. A test-only projection now models UID/GID 1000 for exactly the two declared bootstrap fixtures; all real byte, descriptor, mode, inode, link and timestamp checks remain intact. Production source is unchanged.
+
+Independent review passes. The added regression explicitly models foreign UID 1001 and requires genuine owner refusal, then verifies the finite operational-owner projection and wrong-hash refusal. All 39 parent controls pass on Python 3.10 and the host; the complete JDK 21 source/compile gate passes after the test pin is refreshed. Current-head hosted CI must pass before merge; no production ownership allowance or test assertion is removed.
+
+
+## Directory-relative hosted fixture check — 2026-10-20
+
+The next hosted run passes the earlier ownership cases but exposes one further fixture mismatch: a directory-relative `stat` resolves against a retained descriptor, while the ownership model incorrectly resolves the name against the current directory. The fixture now resolves relative names through their actual `dir_fd` before applying its existing two-file projection. Production source remains unchanged.
+
+A strengthened model presents hosted UID 1001 across real directory, leaf and descriptor metadata and reproduces the exact complete-main failure before the fix. The corrected model reaches the original injected pre-output failure and verifies both descriptor groups close. All 40 controls pass on Python 3.10 and the host, with zero skips; strict foreign-owner and wrong-hash refusals remain. Current-head hosted CI remains required.

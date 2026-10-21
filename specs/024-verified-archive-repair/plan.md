@@ -52,7 +52,14 @@ Host controls use real local files, descriptors and SQLite with explicitly
 substituted installed custody/NFS admission. The finite disposable creator, fresh bootstrap, native-data stages and explicit
 plan13 role/library mapping are implemented. The optional original-session SSE
 observer records bounded task-empty facts without granting quiescence or future
-work exclusion. Complete genuine plan production
-and actual application execution remain unproved. Selected-image installed factories,
+work exclusion. The maintained active-input assembler and exact host-engine intent
+producer are implemented and independently reviewed; combined source verification
+passes 1,219 controls across 72 suites on Python 3.10 without skips. The current configured entry already forwards original NFS inputs, and
+the birth/probe/lease/session producers are connected below it. The host engine currently refuses unbound create/start
+calls. The effective-scope observer's reviewed optional bootstrap-original join derives
+the disposable reader's exact original absolute NFS library mount and preserves
+the separate production mapping. Source/compile controls pass. These source
+contracts remain separate from actual configured observation and application
+execution. Selected-image installed factories,
 actual NFS and actual native/worker terminal/ACK execution remain required; this
 batch does not complete T012/T015 or authorize live repair.

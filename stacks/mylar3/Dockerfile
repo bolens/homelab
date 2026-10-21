@@ -1,24 +1,43 @@
 FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS tagger-build
-# The pinned final base already supplies ICU 70; compilation tools stay here.
+# Modern alone uses CPython 3.13, compiled against this same Jammy ABI/ICU.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential=12.9ubuntu3 libicu-dev=70.1-2 \
-        python3-dev=3.10.6-1~22.04.1 pkg-config=0.29.2-1ubuntu3 \
+        build-essential=12.9ubuntu3 libicu-dev=70.1-2 pkg-config=0.29.2-1ubuntu3 \
+        libssl-dev=3.0.2-0ubuntu1.30 libffi-dev=3.4.2-4 \
+        libsqlite3-dev=3.37.2-2ubuntu0.8 zlib1g-dev=1:1.2.11.dfsg-2ubuntu9.2 \
+        libbz2-dev=1.0.8-5ubuntu0.1 liblzma-dev=5.2.5-2ubuntu1.1 \
     && rm -rf /var/lib/apt/lists/*
-COPY requirements-build.txt requirements.txt /tmp/tagger-locks/
-RUN python3 -m venv --without-pip /opt/tagger-build \
-    && python3 -m pip --python /opt/tagger-build/bin/python install --no-cache-dir \
-        --require-hashes --no-deps -r /tmp/tagger-locks/requirements-build.txt \
-    && python3 -m pip --python /opt/tagger-build/bin/python wheel --no-cache-dir \
-        --require-hashes --no-deps --no-build-isolation \
-        -r /tmp/tagger-locks/requirements.txt --wheel-dir /tmp/tagger-wheels \
-    && python3 -m venv --without-pip /opt/comictagger \
-    && python3 -m pip --python /opt/comictagger/bin/python install --no-index --no-deps /tmp/tagger-wheels/*.whl \
-    && python3 -m pip --python /opt/comictagger/bin/python check
-
 COPY tagger-sources.json /tmp/tagger-sources.json
 COPY config/fetch_tagger_sources.py /tmp/fetch_tagger_sources.py
 RUN python3 /tmp/fetch_tagger_sources.py /tmp/tagger-sources.json /opt/comictagger/sources
+WORKDIR /tmp/tagger-python-source
+RUN tar -xf /opt/comictagger/sources/Python-3.13.16.tar.xz --strip-components=1 -C /tmp/tagger-python-source \
+    && CFLAGS='-O2 -g0' ./configure --prefix=/opt/tagger-python --without-static-libpython \
+        --disable-test-modules --with-ensurepip=install \
+    && make -j2 \
+    && make install \
+    && install -m 644 LICENSE /opt/tagger-python/LICENSE \
+    && install -m 644 Doc/license.rst /opt/tagger-python/LICENSES.rst \
+    && /opt/tagger-python/bin/python3.13 -I -B -c "import bz2,ctypes,hashlib,lzma,sqlite3,ssl,sys,zlib; assert sys.version_info[:3]==(3,13,16); assert sys._is_gil_enabled(); assert ssl.OPENSSL_VERSION_INFO[:2]==(3,0); assert sqlite3.sqlite_version_info>=(3,15,2)"
+WORKDIR /
+COPY requirements-build.txt requirements.txt /tmp/tagger-locks/
+RUN rm -rf /tmp/tagger-python-source \
+    && /opt/tagger-python/bin/python3.13 -m venv --without-pip /opt/tagger-build \
+    && /opt/tagger-python/bin/python3.13 -m pip --python /opt/tagger-build/bin/python install --no-cache-dir \
+        --require-hashes --no-deps -r /tmp/tagger-locks/requirements-build.txt \
+    && /opt/tagger-python/bin/python3.13 -m pip --python /opt/tagger-build/bin/python wheel --no-cache-dir \
+        --require-hashes --no-deps --no-build-isolation \
+        -r /tmp/tagger-locks/requirements.txt --wheel-dir /tmp/tagger-wheels \
+    && /opt/tagger-python/bin/python3.13 -m venv --without-pip /opt/comictagger \
+    && /opt/tagger-python/bin/python3.13 -m pip --python /opt/comictagger/bin/python install --no-index --no-deps /tmp/tagger-wheels/*.whl \
+    && /opt/tagger-python/bin/python3.13 -m pip --python /opt/comictagger/bin/python check \
+    && rm -rf /opt/tagger-python/include /opt/tagger-python/share \
+        /opt/tagger-python/lib/pkgconfig /opt/tagger-python/lib/python3.13/config-* \
+        /opt/tagger-python/lib/python3.13/ensurepip \
+        /opt/tagger-python/lib/python3.13/site-packages/pip \
+        /opt/tagger-python/lib/python3.13/site-packages/pip-*.dist-info \
+    && rm -f /opt/tagger-python/bin/pip* /opt/tagger-python/bin/*-config \
+    && find /opt/tagger-python /opt/comictagger -type d -name __pycache__ -prune -exec rm -rf '{}' +
 COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS ddl-build
@@ -33,7 +52,7 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
-FROM ghcr.io/bolens/archiving-utils@sha256:9598b387e007054db0ef3a1c7b27374539c6d80161cfd226606a91019d80aac5 AS archive-verifier
+FROM ghcr.io/bolens/archiving-utils@sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c AS archive-verifier
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS libarchive-build
 # Release tarball digest is published by the official v3.8.9 release asset.
@@ -64,6 +83,7 @@ FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends poppler-utils libarchive13=3.6.0-1ubuntu1.9 \
+        libssl3=3.0.2-0ubuntu1.30 libffi8=3.4.2-4 libsqlite3-0=3.37.2-2ubuntu0.8 \
         zlib1g=1:1.2.11.dfsg-2ubuntu9.2 libbz2-1.0=1.0.8-5ubuntu0.1 \
         liblzma5=5.2.5-2ubuntu1.1 libzstd1=1.4.8+dfsg-3build1 \
         liblz4-1=1.9.3-2build2 libacl1=2.3.1-1 \
@@ -80,6 +100,7 @@ FROM pdf-runtime AS checked
 ENV PYTHONDONTWRITEBYTECODE=1 \
     ARCHIVING_UTILS_ROOT=/opt/archiving-utils
 COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
+COPY --from=tagger-build /opt/tagger-python/ /opt/tagger-python/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
@@ -109,5 +130,9 @@ COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
 COPY --from=checked /opt/mylar3-fixes/publication_guard.py /opt/mylar3-fixes/publication_guard.py
 COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
 COPY --from=checked /opt/mylar3-fixes/tagger_runtime.py /opt/mylar3-fixes/tagger_metadata.py /opt/mylar3-fixes/tagger_cli.py /opt/mylar3-fixes/tagger_archive.py /opt/mylar3-fixes/tagger_adapter.py /opt/mylar3-fixes/
+COPY --from=tagger-build /opt/tagger-python/ /opt/tagger-python/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
+
+# Execute against the final runtime layer, not the host or a foreign builder ABI.
+RUN /opt/comictagger/bin/python -I -B -c "import ctypes,glob,os,platform,sqlite3,ssl,subprocess,sys; import icu; from PIL import Image,features; assert sys.version_info[:3]==(3,13,16) and sys._is_gil_enabled(); assert sys.base_prefix=='/opt/tagger-python'; assert platform.machine()=='x86_64' and os.confstr('CS_GNU_LIBC_VERSION')=='glibc 2.35'; assert icu.ICU_VERSION=='70.1' and Image.__version__=='13.0.0' and features.check('jpg') and features.check('libtiff'); assert ssl.OPENSSL_VERSION_INFO[:2]==(3,0) and sqlite3.sqlite_version_info>=(3,15,2); assert ctypes.sizeof(ctypes.c_void_p)==8; assert subprocess.check_output(['/usr/bin/python3','-I','-B','-c','import sys;print(sys.version_info[:2])'],text=True).strip()=='(3, 10)'; paths=['/opt/tagger-python/bin/python3.13']+glob.glob('/opt/tagger-python/lib/python3.13/lib-dynload/*.so')+glob.glob('/opt/comictagger/lib/python3.13/site-packages/**/*.so',recursive=True); assert len(paths)>20; results=[subprocess.run(['/usr/bin/ldd',p],check=True,capture_output=True,text=True,timeout=10) for p in paths]; assert all('not found' not in r.stdout+r.stderr and '/tmp/' not in r.stdout and '/opt/tagger-build/' not in r.stdout for r in results)"

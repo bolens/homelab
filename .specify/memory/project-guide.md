@@ -114,6 +114,21 @@ this version by changing only the JAR hash: preserve that historical schema and
 implement a reviewed versioned session-scope successor with actual target-image
 proof before recovery uses the new reader. Portable image delivery alone does
 not establish that compatibility.
+For NFS source audits, inspect the assigned current worktree rather than the shared
+primary checkout. `ExactCalls` deliberately refuses generic create/start calls.
+The configured path uses the existing `nfs-probe` and `nfs-lease` dialogues,
+`LifecycleParent.open_nfs_child`, `HostProbeReplies` and `HostWriterLease` for
+birth and session custody. Trace actual call sites before treating an obsolete
+comment or an unused public default as missing implementation.
+
+Copying the archive SDK source from its container does not copy its Python runtime.
+Its canonical wrapper selects `python3` from the consumer environment; in Mylar
+that remains daemon Python 3.10, even when Modern has a private newer interpreter.
+Verify the installed canonical conversion command with genuine archives and
+full member/directory preservation before accepting an SDK pin. A host test or
+source import alone misses interpreter-dependent calls such as `hashlib.file_digest`.
+A compatible helper does not extend the SDK's broader declared minimum version.
+
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
@@ -288,6 +303,23 @@ identify itself as fixture seeding. Provider metadata import, daemon processing
 and ordinary import acknowledgement require their own observed results.
 Keep archive metadata, catalog identities and filenames coherent for discovery;
 reader page verification alone does not prove native issue matching.
+
+Modern ComicTagger's private `/opt/comictagger` runtime and vendored Legacy are
+separate contracts. Moving Modern to a source-authenticated interpreter under
+`/opt/tagger-python` does not move Legacy or the daemon off Python 3.10. Check
+actual interpreter paths, native libraries, licenses and final-image ABI; a host
+CLI pass does not prove Jammy ICU compatibility. Shared system-library updates
+can still affect the daemon. Preserve backend preferences and archive owners.
+
+Do not assume `jobhistory.JobName` is unique: Mylar's inspected startup creator
+declares plain `JobName TEXT`, and `helpers.job_management` updates by job name.
+Verify the actual schema and retain duplicate multiplicity instead of collapsing
+rows into a name-keyed dictionary. `library_metadata.Maintenance.tick` uses a
+cyclic scan cursor: sweep completion resets it and schedules the next pass in
+one hour; a policy change starts a new pass. A lexical cursor decrease across
+passes is not by itself lost progress. Compare the owning policy, cursor and
+sweep timing together. A row matching a writer's predicate does not prove that
+actor ran; require its original causal evidence before attributing an invocation.
 The installed DB connection returns `sqlite3.Row`; normalize integrity-query
 results without changing its row factory. Acquire the original raw Writer and
 verify the existing catalog, held descriptor and companion namespace before
@@ -351,8 +383,10 @@ access. Capture ancestor identities before reading a protected leaf, then verify
 them again after the read; a later baseline can accept a replaced directory.
 Verify actual supplier ownership and modes through the strict reader before
 privileged execution, as well as checking hashes. A frozen `0444` source can fail
-a reader that accepts only `0600` or `0644`. Preserve the frozen original; use a
-distinct byte-identical supplier with the required mode and bind its exact path.
+a reader that accepts only `0600` or `0644`. This also applies to `0400` helpers.
+Preserve the frozen original; use a distinct byte-identical supplier with the
+required mode and bind its exact path. Exercise that exact producer-to-reader
+handoff in a regression: importing the helper directly does not test admission.
 Keep failure diagnostics in the called `main()` entry point when a cached loader
 bypasses the script guard; report fixed source frames and preserve the exception.
 Correct the owning directory without rewriting retained receipt bytes or

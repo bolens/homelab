@@ -86,7 +86,7 @@
   },
   {
     "path": "fetch_tagger_sources.py",
-    "sha256": "72324ce4c3d815c25a851e4ec7fe066fea3b248be0c81e9fd491eece7ee690ec",
+    "sha256": "28c9490e9c0006511f80d5c89fb74234236114a032850f4827679e347d9c2182",
     "target": "fetch_tagger_sources.py"
   },
   {
@@ -851,12 +851,12 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "3b15e05fd6b79ad214aa3e9c9429b72bae8e6bf8b706b2e7608a80529f10b4c8",
+    "sha256": "b8ee7cf014213d9c179214cf901ec4904be7c8df87a7423d1881c4fbb12018ad",
     "target": "run_publication_reader_controls.py"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "1984263d0dbd3656a83871580ad2f1edaf31507e1db8aa296ef24b129390a3b2",
+    "sha256": "882f39a241f84ef28d77cf3c2390ca527dde0fc4deceec4620b7154bc044aa67",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1406,7 +1406,7 @@
   },
   {
     "path": "test_modern_tagger.py",
-    "sha256": "afb33ae03ea6811e421748a73f2ee8268564b2b81d5e4654202bf54d002730f1",
+    "sha256": "e32e3b405a6f3402f78a309687fdb0a4de8374c3d13e3e993cf0137b99585c62",
     "target": "test_modern_tagger.py"
   },
   {
@@ -1711,7 +1711,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "77f07500ca899e409c514a8c2f611b9e3fd2ba0311de1d482ec8983386b82ca5",
+    "sha256": "fce0668fbab787f735bce14f5659719a82fa80c162671838817ee59cbcf6f420",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {
@@ -1933,6 +1933,11 @@
     "path": "test_tagger_nfs.py",
     "sha256": "38e2c233f0d574083729d2b0a3c3d4e99a8ee5cc5e071916b23526bc040339e1",
     "target": "test_tagger_nfs.py"
+  },
+  {
+    "path": "test_tagger_python_runtime.py",
+    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2",
+    "target": "test_tagger_python_runtime.py"
   },
   {
     "path": "test_tagger_runtime.py",

@@ -41,6 +41,30 @@ Every backup/publication/mutation flag remains false. The result covers five per
 
 All ten disposable cases passed against the reviewed public Komga 1.28.1 JAR and its exact 157 dependencies: defaults, precedence, profiles, a normal file import, configtree refusal, changed configuration refusal, missing JVM-default refusal, an explicit JVM default, an inactive document refusal and heap-only environment handling. These use the same collector classes, real ConfigData implementation and typed binder. Each test container exits and passes its exact profile before cleanup.
 
-The maintained source gate runs 85 host/JDK controls plus two compiled-binary reader projection controls. The two projection controls use the existing source fixture and do not prove configured Parent admission. Fresh original-process collection, same-pipe acknowledgement, SourceCohort installation and connected NFS/reader execution remain unverified. No task requiring those operations is complete.
+The earlier source gate ran 85 host/JDK controls plus two compiled-binary reader projection controls. This branch adds six Python parent controls, bringing that owning Python suite to 38; its complete host/JDK gate remains a separate check. The two projection controls use the existing source fixture and do not prove configured Parent admission. Fresh original-process collection, same-pipe acknowledgement, SourceCohort installation and connected NFS/reader execution remain unverified. No task requiring those operations is complete.
 
 Before a configured observation, bind the reviewed actual image, original container and new private output in a separate operator copy. Bind the six `supplier_pins` from the build artifacts: `owned.py`, collector source, collector class, its Held class, public metadata class and public dependency facts. The parent checks its own source separately. Preserve the exact supplier ownership/mode checks. Never put the binding or runtime output in this public directory. An image ID alone does not establish provenance. Join all original process JAR bytes to the public source facts and keep image platform/descriptor identities separate.
+
+## Explicit disposable reader originals
+
+The default service route retains its production mount destinations unchanged.
+For the maintained plan13 fixture, `PLAN` may additionally contain
+`bootstrap_originals: {plan, source}`. Both values are original
+`{path, sha256, signature9}` references. The source must match the pinned
+`genuine_application_bootstrap.py`; the plan remains a UID1000 private regular
+file. The observer retains their original descriptors, full9 and ancestor5
+through final closure. It does not execute bootstrap code.
+
+This branch requires the original nonce, purpose-labelled reader, image, complete
+static profile and runtime epoch. It derives exactly two bind mounts from the
+original declaration: private reader state at `/config` writable, and the
+original `G/L` library at its same absolute destination read-only. The declared
+`G/R` retention remains outside the library. Extra, duplicate, writable-library,
+foreign and application overlays refuse, even if repeated in a supplied profile.
+No caller mount list or generic destination-prefix exception is accepted.
+
+Only configuration is mounted into the observer child, read-only, as before.
+Historical bootstrap directory vectors are not refreshed or presented as fresh
+physical/NFS facts. Actual code JARs, process, configuration, report/ACK and all
+seven output-reference checks remain unchanged. This compatibility branch grants
+no connected factory, NFS, publication, mutation or reader-resume acceptance.

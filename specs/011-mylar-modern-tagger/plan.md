@@ -127,3 +127,32 @@ plugins add dependencies and different schemas, so assess separately rather than
 installing all extras. CLI success is not archive success. Conversion-only native
 behavior cannot simply be deleted before routing callers. Curl's unbounded stream
 queue and different timeout semantics block immediate full transport replacement.
+
+
+## Supported-runtime maintenance (2026-10-20)
+
+This follow-up replaces only Modern's isolated Python runtime. Pillow 13.0.0
+requires Python 3.11 or newer; installing it into the prior Python 3.10 venv is
+unsupported. Build normal-GIL CPython 3.13.16 from the authenticated official
+source in the same pinned LinuxServer/Jammy base, install it under
+`/opt/tagger-python`, and create Modern's `/opt/comictagger` venv with it.
+Retain ComicTagger 1.6.0b11.dev0, the exact cp313 linux/amd64 Pillow 13 wheel,
+corresponding sources and license notices. Keep compilation tools, private pip,
+headers, static libpython and test caches outside the final runtime.
+
+Mylar and vendored Legacy 1.3.5 retain Python 3.10. Do not replace `/usr/bin/python3`,
+change global PATH, copy an interpreter from another distribution, bypass
+Requires-Python, or change backend selection and archive ownership. The candidate
+also pins matching SSL, FFI and SQLite system libraries; their package updates
+can affect the daemon's shared dependencies even though its interpreter stays
+unchanged. ICU 70.1 and the final image's ELF closure require actual image proof.
+
+T025 records completed source authentication, implementation and host checks.
+T026 owns the runner/source-map integration now being handled separately.
+T027 requires the reviewed final amd64 image: private interpreter identity,
+Jammy glibc 2.35, ICU 70.1, dependency and ELF closure, genuine CBR conversion
+through the existing owner into normalized CBZ, real metadata preservation and
+failure controls. T028 owns normal CI/publication and the authorized scoped live
+canary, including verified backup/restore, preservation and rollback readiness.
+Earlier completed tasks and acceptance counts below their original headings
+remain historical evidence; they do not close these new runtime gates.

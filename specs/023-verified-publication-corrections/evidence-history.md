@@ -460,3 +460,40 @@ The published PR #405 image is running healthy after a verified affected-state b
 A count-only diagnostic then finds changes in issues and job history, with unchanged schema, table sets and row counts. Its eight focused runtime controls pass. A separate fresh exact-key diagnostic passes four additional runtime controls and closes all six independent source/preservation observations. All 16,432 unique issue keys remain present. Exactly 111 rows change only DateAdded, from NULL to an ISO date matching the observed native local day; all are Wanted before and after. Every other typed issue cell matches. The existing helpers.DateAddedFix backfill has this predicate and is reachable from the exposed upcoming route through fly_me_to_the_moon. These facts establish compatibility with that writer, not proof of its invocation.
 
 The diagnostic deliberately retains the original refusal and grants no acceptance, import or ACK. Job-history scheduling timestamps and one status still require source-specific classification. No backup, image update, comic import or canary start was repeated. Mylar and Komga remain available, the permanent worker remains inactive, and writer coordination pauses are released. The signed-in DDL preferences load and the post-processing monitor reports a running worker with no waiting jobs; unresolved downloaded singles, pack reviews and NZB handoffs remain visible. Aggregate tasks stay open.
+
+
+## Scheduler and cyclic scanner preservation — 2026-10-20
+
+The current native-image catalog comparison now classifies the exact Wanted/NULL DateAdded backfill and the duplicate-safe scheduler changes. JobName is not unique in the owning schema. The classifier preserves typed row multiplicities and every other cell; the five changed scheduling rows include one source-supported Running-to-Waiting transition. Seven focused controls pass in the actual Python 3.10 runtime.
+
+The first full readout then exposes an invalid verifier assumption: a library scan cursor cannot be ordered across completed sweeps. The owning scanner resets its cursor and revisits entries. Independent review and six actual-runtime controls verify removal of only that ordering assertion, retaining exact record shape, policy, time bounds, key sets, events and raw change evidence. The next full readout reaches a different protected workflow-record change and refuses acceptance. Its temporary comparison snapshots were discarded on failure, so a diagnostic must retain the relevant original record differences before classifying them; no new baseline is accepted.
+
+The verified affected-state backup and original image/source receipts are retained. No backup, restart, import, acknowledgement or worker start was repeated for these comparisons. Mylar and Komga remain available, the permanent worker remains inactive, and both brief coordinating pauses are released. Full native preservation, T030 configured cache closure and selected-pack recovery remain open.
+
+
+## Native405 data preservation accepted — 2026-10-20
+
+The original-bound full preservation check now passes against the running PR #405 image and the retained verified affected-state backup. Original image/publication/source proof, intended Compose/configuration, catalog schema and typed records, retained downloads, backup copies, stopped-canary history and peer profiles all close. The source-specific issue backfill, duplicate-safe scheduler bookkeeping and cyclic scan cursor remain explicit comparisons; actual raw row digests and change counts remain truthful.
+
+A same-context diagnostic retained both workflow projections before scratch cleanup. All 15,216 record keys remained present. Of 138 changed records, the only newly unclassified type was six library observations changing updated_at and their outer timestamp alone. Every path, identity, policy, phase and reason stayed exact. All eleven independent diagnostic closures and final source closure passed. The owning observation writer refreshes those timestamps. Its narrow successor requires the exact six-field shape, path-derived key, unchanged non-time payload and strict timestamp bounds. Independent review, predecessor-refusal regression and four new controls in the actual runtime pass; the subsequent full check exits successfully with no import or acknowledgement grant.
+
+Mylar and Komga stayed running throughout these comparisons; both coordinating chats are released. No backup, image update, canary or permanent-worker start was repeated. This closes current native image data preservation, not configured cache growth, selected-pack import/ACK, connected archive factories, NFS or bulk acceptance. Those retain their own unchecked tasks and original prerequisites.
+
+
+## Native405 cache observer accepted — 2026-10-20
+
+After full native preservation passed, one original no-payload observation succeeds against the current process and inactive worker. It saves raw health before predicates, joins current configuration and policy, and closes the original mount-source witnesses and independent post-inspection. Exactly one health call occurs; no Writer lock is acquired and zero payload bytes are written. This establishes temporal correlation and clears the observer prerequisite, not positive growth or publication authority. T030 still requires a fresh coordinated 64 KiB growth/capacity-refusal/accounting test with exact cleanup and all outer closures. Earlier refused attempts remain retained.
+
+
+## Native405 positive cache test and retained outer refusal — 2026-10-20
+
+One fresh, independently reviewed generation binds the current process, configuration, policy and source capture. The isolated configured test exits successfully and verifies positive 64 KiB allocation/removal, over-budget and extra-byte refusal, accounting and retained originals. Its source files, configuration and Writer namespace close. The parent then refuses cleanup acceptance because the native configuration's workflow.sqlite changes modification and change timestamps. No content change or responsible writer is established by that metadata observation alone.
+
+A separate read-only check confirms the exact owned test container is exited with code zero and no live process. The parent retains the empty owned leaf, original result and source-refusal evidence; the attempt is not replayed or promoted to full acceptance. Both coordinating pauses are released. T030 remains open for a contract-preserving outer-closure and exact directory cleanup solution that permits ordinary Mylar operation.
+
+
+## Workflow preservation controls and preflight refusal — 2026-10-20
+
+The new whole-interval workflow witness retains exact inode/namespace custody, two detached consistent snapshots, typed preservation and strict final source closure. It reports raw metadata equality separately rather than treating a semantic comparison as byte identity. Both independent reviews pass. Six source controls pass, and five public behavior controls pass in the running image's Python 3.10 runtime with zero skips and closed source witnesses. These isolated checks grant no configured acceptance.
+
+One separately reviewed fresh binding then stops at the initial metadata preflight with witness-original-changed after 1.43 seconds. It acquires no Writer lock, writes zero payload and starts no test child. The result does not identify the changed file or its writer. The attempt and earlier histories remain retained; both coordinating chats are immediately released. A bounded diagnostic must identify the metadata witness before any further growth attempt. Mylar and Komga stay running, and the permanent worker remains inactive. T030 remains open.
