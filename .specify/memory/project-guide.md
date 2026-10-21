@@ -317,6 +317,13 @@ A deleted inode can be reused before a pathname check, so device/inode tuples al
 do not preserve the original node. Close descriptors on capture and pre-output
 failures as well as normal completion. Live database content and timestamps remain
 separate from scope-node identity.
+`mkdir(parents=True, mode=0o700)` applies that mode only to the final leaf;
+new intermediate directories can still be 0755. Create every component of a new
+private source projection with its required mode and ownership before capturing
+full9 references. Check the complete directory census through the owning
+consumer, alongside file bytes and modes. Preserve failed capsules unchanged;
+correct packaging in a distinct successor rather than chmod a captured original.
+
 When binding a literal into a reviewed operational helper, replace only the exact
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;

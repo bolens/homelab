@@ -1062,3 +1062,26 @@ Original inputs and failed-attempt logs are preserved without replay. This
 isolated attempt changes no production service and does not invalidate the
 accepted generation-nine bootstrap. SourceCohort, connected factories and all
 16 remaining task acceptance gates stay open.
+
+## SourceFixture private-directory handoff correction - 2026-10-21
+
+The diagnostic-v3 attempt stops in the owning Emitter's unchanged bundle guard
+before control-suite execution. A directory census identifies exactly one
+supplier intermediate, `config/test_fixtures`, at 0755 instead of the required
+0700. A distinct supplier creates all 19 directories at 0700 and all 693 helper
+and payload files at 0600 before capturing references. Source bytes, maps and
+the admission guard remain unchanged. The complete genuine `_bundle` method
+reproduces the predecessor refusal and accepts the corrected projection;
+35 existing and three new focused controls pass on host and Python 3.10.
+
+The newest failed-generation census then confirms zero matching containers;
+the earlier failed attempt also retains its verified cleanup receipt. A fresh
+corrected batch then passes staging, genuine Emitter preparation and the
+separate installed verification phase. All 1,302 controls across 73 suites pass
+with zero skips. Installed-source/type checks pass before and after execution;
+source/runtime closure and exact owned-container cleanup with absence proof
+also pass. The original SourceCohort receipt is retained for the next consumer.
+Both failed histories stay retained without replay. Fresh effective-scope and
+current-role observations, connected factories, archive terminal, NFS, retained
+live import and ACK acceptance remain open, as do all 16 aggregate task markers.
+The accepted generation-nine bootstrap is unaffected.
