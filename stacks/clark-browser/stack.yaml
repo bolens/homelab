@@ -53,7 +53,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: No public image — run docker compose build first. CDP on port 9222. shm_size
-    1gb required.
+    1gb required. CDP hostname origins require an explicit CLARK_CDP_ORIGINS allowlist;
+    it is a DNS-rebinding guard, not authentication.
 runtime_security:
   privileged_services: []
   host_network_services: []

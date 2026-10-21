@@ -1,7 +1,5 @@
-# clark-browser container — builds from upstream source.
+# clark-browser container: pinned PyPI client, patched Chromium and CDP adapter.
 # Upstream: https://github.com/clark-labs-inc/clark-browser
-# Mirrors the upstream Dockerfile but downloads the clark-browser package from PyPI
-# at build time (no local source copy needed).
 
 FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS node
 FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
@@ -23,15 +21,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install clark-browser Python package (includes clarkserve entrypoint)
+# Install the hash-locked client package; the CDP adapter is installed below.
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt
 
-# Pre-download the stealth Chromium binary into the image layer.
-# If the download fails at build time (e.g. no network), it will be fetched
-# on first container startup instead (mount a named volume for /root/.clarkbrowser).
-RUN python -c "from clarkbrowser import ensure_binary; ensure_binary()" || \
-    echo "(binary pre-fetch skipped — will download at runtime)"
+# The PyPI wheel omits upstream's bin/clarkserve; install our attributed adapter.
+COPY clarkserve.py test_clarkserve.py /tmp/clark-check/
+COPY clarkserve-LICENSE /usr/local/share/licenses/clarkserve/LICENSE
+RUN python -I -B /tmp/clark-check/test_clarkserve.py \
+    && install -m 0755 /tmp/clark-check/clarkserve.py /usr/local/bin/clarkserve \
+    && rm -rf /tmp/clark-check
+
+# A usable published image must already contain the matching patched Chromium.
+RUN python -c "from clarkbrowser import ensure_binary; ensure_binary()"
 
 EXPOSE 9222
 
