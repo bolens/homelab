@@ -45,6 +45,13 @@ Metrics collection and storage. Scrapes cAdvisor (container metrics), optional W
 
 **Adding targets:** Edit your config file and add a `scrape_configs` entry. Reload without restart: `curl -X POST http://prometheus:9090/-/reload` (or from host via Caddy, or restart the stack).
 
+For optional IPTV health checks, copy
+`../dispatcharr/maintenance/alerts.yml` into the mounted rules directory under
+a distinct filename and add that container path to `rule_files`. The metrics
+arrive through Node Exporter's opt-in textfile collector, so no new scrape
+target or external listener is required. Validate rules and config with
+`promtool` before reloading. Existing alert routes and receivers still apply.
+
 ## Start
 
 `docker compose up -d` from this directory.

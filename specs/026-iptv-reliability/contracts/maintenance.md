@@ -1,0 +1,3 @@
+# Maintenance contract
+
+Preparation never enables jobs or starts services. Jobs are explicit operator actions, require private configuration, serialize through a lock and refuse missing expected mounts. A backup failure never prunes successful generations. Health checks remain read-only. Quarantine restores original grouping/membership on recovery, excludes protected local-news channels, and deletes only after the configured age and distinct-day admission. Existing recordings, source credentials and unrelated channel settings are preserved. Public diagnostic output contains fixed statuses and aggregate counts only.

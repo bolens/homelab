@@ -1,0 +1,11 @@
+--- a/channel.py
++++ b/channel.py
+@@ -316,7 +316,7 @@
+                                         gap = (self.clk_wall + pts_s - self.clk_pts) - now
+                                         if 0 < gap < 2.0:
+                                             time.sleep(gap)
+-                                        elif gap <= -2.0:
++                                        elif abs(gap) >= 2.0:
+                                             self.clk_pts, self.clk_wall = pts_s, time.monotonic()
+                                             with self.vlock:
+                                                 self.vframes.clear()

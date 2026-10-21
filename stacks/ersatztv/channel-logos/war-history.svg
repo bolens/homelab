@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="war-history-title">
+  <title id="war-history-title">War &amp; History</title>
+  <defs>
+    <linearGradient id="war-history-steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef3ec" />
+      <stop offset="0.4" stop-color="#afbdc5" />
+      <stop offset="0.7" stop-color="#768e9b" />
+      <stop offset="1" stop-color="#d1dcde" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#d0cf93" stroke-width="5" />
+  <g transform="translate(0 0.0)">
+    <g transform="translate(0 -9.5)">
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M209 122 254 82l45 40Z" fill="#e7d6b4" stroke="#b39d7f" stroke-width="5" />
+        <path d="M216 128h75v19h-75Z" fill="#f0dfc0" />
+        <path d="M225 147h58v148h-58Z" fill="#ac9d88" />
+        <path d="M225 147h17v148h-17Z" fill="#e5d8bd" />
+        <path d="M251 154v132m17-132v132" stroke="#f2e7ce" stroke-width="5" />
+        <path d="M208 295h92v26h-92Z" fill="#c8b797" stroke="#efe0c0" stroke-width="5" />
+        <path d="M50 192q-6-106 87-106 82 0 81 106l-20 15H66Z" fill="#74856a" stroke="#b7c69d" stroke-width="7" />
+        <path d="M136 89q71 5 77 100l-20 14h-24q21-55-33-114Z" fill="#4d6652" />
+        <path d="M48 192h172m-99-83q-37 22-42 60" fill="none" stroke="#b7c69d" stroke-width="7" />
+        <path d="M88 210v34q0 26 30 26h24" fill="none" stroke="#c2d2d8" stroke-width="5" />
+        <path d="m114 254 27-6 24 53-31 13-25-52Z" fill="url(#war-history-steel)" stroke="#3b5159" stroke-width="4" />
+        <path d="m151 250 28-3 18 54-32 11-20-54Z" fill="url(#war-history-steel)" stroke="#3b5159" stroke-width="4" />
+        <circle cx="124" cy="262" r="3" fill="#3b5159" />
+        <circle cx="160" cy="259" r="3" fill="#3b5159" />
+        <path d="m132 279 9 20m23-25 8 22" stroke="#728996" stroke-width="3" />
+      </g>
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#d0cf93">WAR &amp;</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#d0cf93">HISTORY</text>
+</svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="disney-cartoons-title">
+  <title id="disney-cartoons-title">Disney Cartoons</title>
+  <defs>
+    <linearGradient id="disney-cartoons-black-fur">
+      <stop offset="0" stop-color="#3d4853" />
+      <stop offset="0.4" stop-color="#19232d" />
+      <stop offset="1" stop-color="#080e17" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#84d0ff" stroke-width="5" />
+  <g transform="translate(0 9.5)">
+    <g stroke-linejoin="round">
+      <g fill="url(#disney-cartoons-black-fur)" stroke="#738391" stroke-width="5">
+        <circle cx="91" cy="105" r="55" />
+        <circle cx="259" cy="105" r="55" />
+        <circle cx="175" cy="219" r="96" />
+      </g>
+      <path d="M89 69q-25 1-30 24m198-24q25 1 30 24" stroke="#71808c" stroke-width="5" stroke-linecap="round" fill="none" />
+      <path d="M175 171c-16-27-48-23-52 6l-3 47c-36-4-45 25-19 50 22 23 49 33 74 33s52-10 74-33c26-25 17-54-19-50l-3-47c-4-29-36-33-52-6Z" fill="#ffe5c5" />
+      <path d="M233 231q18 15 5 36-16 27-49 33 31-1 60-26c22-23 17-46-16-43Z" fill="#edcaa5" />
+      <ellipse cx="154" cy="203" rx="13" ry="30" fill="#141a22" />
+      <ellipse cx="196" cy="203" rx="13" ry="30" fill="#141a22" />
+      <ellipse cx="150" cy="191" rx="4" ry="9" fill="#ffffff" />
+      <ellipse cx="192" cy="191" rx="4" ry="9" fill="#ffffff" />
+      <ellipse cx="175" cy="240" rx="30" ry="17" fill="#141a22" />
+      <path d="M153 234q9-7 22-6" stroke="#738391" stroke-width="4" stroke-linecap="round" fill="none" />
+      <path d="M127 259q48 33 96 0c-10 36-25 43-48 43s-38-7-48-43Z" fill="#141a22" />
+      <path d="M155 293q20-16 40 0" fill="#db6b77" />
+      <path d="m118 256 12-5m90 0 12 5" stroke="#141a22" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#84d0ff">DISNEY</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="56" font-weight="800" text-anchor="middle" fill="#84d0ff">CARTOONS</text>
+</svg>

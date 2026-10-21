@@ -1,0 +1,13 @@
+# Optional NVIDIA acceleration. Requires NVIDIA Container Toolkit on the host.
+# Enable explicitly alongside the base Compose file after verifying the GPU.
+services:
+  ersatztv:
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: video,compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${ERSATZTV_GPU_ID:-0}"]
+              capabilities: [gpu]

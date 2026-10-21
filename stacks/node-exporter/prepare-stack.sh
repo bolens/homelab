@@ -7,4 +7,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "telemetry" "true"
+prepare_stack_msg "Optional host metrics: review docker-compose.textfile.yml; preparation never enables host-generated metric jobs."
 prepare_stack_end

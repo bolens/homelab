@@ -119,7 +119,53 @@ headers shown in `caddy_snippet.conf.example`.
 The Caddy example contains placeholder names. Replace them in the local,
 ignored Caddy snippet; never commit a real hostname or API token.
 
+## Dedicated DVR storage
+
+Keep DVR recordings separate from movie/TV directories managed by other tools.
+The optional `docker-compose.dvr.yml` binds an existing `PLEX_DVR_PATH` to
+`/data/dvr` and refuses to create a missing source. Verify the intended remote
+filesystem before creating a directory such as `media/dvr/plex`, with `tv/`
+and `movies/` beneath it and ownership matching `PUID`/`PGID` and the export.
+Set the path in private `stack.env`, then explicitly combine the base Compose
+file, existing overrides and the DVR override when deploying. Preparation does
+not create this directory or enable the mount.
+
+Create dedicated TV/movie libraries pointing at `/data/dvr/tv` and
+`/data/dvr/movies`. Select the DVR library when scheduling a recording.
+Recording retention is a per-series setting, not a universal DVR default.
+Avoid applying it to an existing show library shared with Sonarr or other
+download tools. The opt-in [Dispatcharr maintenance jobs](../dispatcharr/README.md#optional-host-maintenance)
+can apply bounded retention to new series in explicitly selected DVR libraries.
+Use **Detect commercials and mark for skip** to preserve the recorded footage.
+Back up DVR files separately and include native Plex database snapshots when
+the service is live. Preserve existing libraries and recording rules when
+adding the optional mount.
+
 ## Media preparation prerequisite
+
+Fix confirmed library matches and tags through Plex's native metadata editor
+before adding downstream channel exceptions. Inspect the actual file and
+runtime when distinguishing remakes, combined editions and DVD compilations.
+Preserve rating keys, file bindings and watch history. Keep valid premiere or
+regional release dates, and lock a verified correction when the provider still
+supplies the wrong value. Do not invent ratings for unrated compilations.
+After synchronizing ErsatzTV, verify its imported fields, search membership
+and regenerated guide. See its [metadata and filter guidance](../ersatztv/README.md).
+
+Check **Edit show > Advanced > Episode ordering** against the numbering on disk.
+Plex's default TMDB order and TVDB's aired order can group pilots, split episodes
+and anthology seasons differently. A correct series match can still produce
+wrong titles or generic `Episode N` entries when the ordering differs. Apply a
+verified per-show override, refresh its metadata, and compare episode titles
+with the files while preserving rating keys and watch history. TVDB's Justice
+League order includes Unlimited as seasons 3–5, so that layout does not itself
+require moving or splitting the files. Keep genuinely untitled episodes intact.
+
+Use Plex labels for operator decisions that differ from a provider's valid
+secondary genres. For example, `ETV Sports Exclude` can keep a gaming crossover
+out of Sports Cinema without removing its genre tags. Label a confirmed corrupt
+copy `ETV Quarantine` until a replacement passes media checks. Remove that label
+after verifying the replacement and resynchronizing the channel library.
 
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="after-dark-tv-title">
+  <title id="after-dark-tv-title">Fright Night TV</title>
+  <defs />
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#c6a0ff" stroke-width="5" />
+  <g transform="translate(0 0.0)">
+    <g transform="translate(0 -2.00)">
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M266 59a49 49 0 1 0 42 74c-48 17-74-29-42-74Z" fill="#e0ddc8" stroke="#f0ebd0" stroke-width="3" />
+        <path d="M251 65q-42 22-28 64" stroke="#fff8df" stroke-width="5" fill="none" />
+        <path d="M75 308V196l54-44 38 39v-50l28-46 31 45v53l42-26 23 34v107Z" fill="#665e58" stroke="#c2b49e" stroke-width="4" />
+        <path d="M79 203h49v100H79Z" fill="#95816a" />
+        <path d="M197 143h25v161h-25Z" fill="#4f5862" />
+        <path d="M230 204h57v99h-57Z" fill="#6b6b66" />
+        <path d="m63 200 65-57 43 45m-12-44 36-59 39 57m-9 52 44-35 31 43" fill="none" stroke="#7b8c97" stroke-width="11" />
+        <path d="m63 195 65-58 43 46m-12-44 36-59 39 57m-9 52 44-35 31 43" fill="none" stroke="#bcc9c8" stroke-width="4" />
+        <path d="M195 88V62m-6 0h12" stroke="#c2b49e" stroke-width="4" />
+        <path d="M90 207h22v35H90Zm47 5h18v28h-18Zm54-66h18v27h-18Zm59 63h20v32h-20Z" fill="#ffe2ac" stroke="#c9aa72" stroke-width="3" />
+        <path d="M101 208v33m-10-17h20m35-11v26m-8-13h16m46-79v25m-8-13h16m52 51v30m-9-16h18" stroke="#5c605c" stroke-width="3" />
+        <path d="M170 307v-58q17-22 33 0v58Z" fill="#171f33" stroke="#7b8c97" stroke-width="3" />
+        <path d="M173 256v48h7v-55Z" fill="#ffe2ac" />
+        <path d="m175 307-32 24h72l-36-24Z" fill="#be9a6c" opacity="0.7" />
+        <path d="M67 311h236m-233 7h85m62 0h90" stroke="#c2b49e" stroke-width="5" />
+        <path d="M84 258h20m18 18h23m-51 13h17m127-30h20m-22 30h31m-75-93h16" stroke="#7b8c97" stroke-width="3" />
+        <path d="M54 309v-65l-15-15m15 37 16-14m-16 32-11-8" stroke="#766b5c" stroke-width="5" />
+        <path d="M235 95q9-13 17 0l-2 7q-7-7-15-7Zm46 55q9-12 17 0l-3 6q-6-6-14-6Z" fill="#252d3a" />
+      </g>
+    </g>
+  </g>
+  <g fill="#c6a0ff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">FRIGHT</text>
+    <text x="535" y="202" font-size="66">NIGHT</text>
+    <text x="535" y="278" font-size="66">TV</text>
+  </g>
+</svg>

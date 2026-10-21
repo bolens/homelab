@@ -1,0 +1,83 @@
+groups:
+  - name: dispatcharr-maintenance
+    rules:
+      - alert: IPTVHealthJobStale
+        expr: time() - iptv_maintenance_timestamp_seconds > 2100 or absent(iptv_maintenance_timestamp_seconds)
+        for: 10m
+        labels:
+          severity: warning
+          service: dispatcharr
+        annotations:
+          summary: IPTV maintenance health report is missing or stale
+      - alert: IPTVGuideUnhealthy
+        expr: iptv_guides_healthy == 0 or iptv_maintenance_success == 0
+        for: 20m
+        labels:
+          severity: warning
+          service: dispatcharr
+        annotations:
+          summary: IPTV guides or maintenance need attention
+      - alert: IPTVRecordingStorageUnhealthy
+        expr: iptv_recording_storage_healthy == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: dispatcharr
+        annotations:
+          summary: DVR storage is unavailable or below the configured free-space reserve
+      - alert: IPTVRecordingFailed
+        expr: iptv_failed_recordings_24h > 0 or iptv_plex_failed_recordings > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: dispatcharr
+        annotations:
+          summary: A DVR reports a failed recording
+      - alert: IPTVVerifiedBackupStale
+        expr: time() - iptv_backup_verified_timestamp_seconds > 129600 or iptv_backup_job_success == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: dispatcharr
+        annotations:
+          summary: No verified IPTV backup in the last 36 hours
+      - alert: ErsatzTVGuideIncorrect
+        expr: iptv_ersatztv_enabled == 1 and (iptv_ersatztv_guide_correct == 0 or iptv_ersatztv_check_success == 0)
+        for: 20m
+        labels:
+          severity: warning
+          service: ersatztv
+        annotations:
+          summary: ErsatzTV, Dispatcharr and Plex programme listings differ
+      - alert: ErsatzTVRestrictedContentMismatch
+        expr: iptv_ersatztv_enabled == 1 and iptv_ersatztv_restrictions_healthy == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: ersatztv
+        annotations:
+          summary: A restricted cartoon station violates its content or quiet-presentation policy
+      - alert: ErsatzTVRecipeDrift
+        expr: iptv_ersatztv_enabled == 1 and iptv_ersatztv_recipe_drift > 0
+        for: 20m
+        labels:
+          severity: warning
+          service: ersatztv
+        annotations:
+          summary: ErsatzTV channel definitions differ from their reviewed recipes
+      - alert: ErsatzTVGuideHorizonLow
+        expr: iptv_ersatztv_enabled == 1 and iptv_ersatztv_guide_hours_min < 144
+        for: 30m
+        labels:
+          severity: warning
+          service: ersatztv
+        annotations:
+          summary: An ErsatzTV station has less than six days of guide coverage
+      - alert: ErsatzTVVerifiedBackupStale
+        expr: iptv_ersatztv_enabled == 1 and (time() - iptv_ersatztv_backup_verified_timestamp_seconds > 129600)
+        for: 15m
+        labels:
+          severity: warning
+          service: ersatztv
+        annotations:
+          summary: No verified ErsatzTV application backup in the last 36 hours

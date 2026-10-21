@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="ridley-scott-cinema-title">
+  <title id="ridley-scott-cinema-title">Ridley Scott Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b8d7c9" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 -9.5)">
+    <path d="M55 294h246m-218-23 31-111 55 38 58-70 47 133Z" fill="#304a4a" stroke="#749c99" stroke-width="4" />
+    <path d="m80 212 69-12 36-60 44 18 44-40-15 59-39 23-18 86-22-37-49-8-22 47-22-9 19-63Z" fill="#8ab4ad" stroke="#d7e9d7" stroke-width="4" />
+    <path d="m149 200 37-10-1-50m1 50 33 10m-89 41 48 8 8-59m15 96-4-50 22-36m10-42 29 19" fill="none" stroke="#42686a" stroke-width="4" />
+    <path d="m185 140 16-44 15 58Z" fill="#d3e6cd" stroke="#8ab4ad" stroke-width="3" />
+    <path d="m200 179 11-5m28-14 9-5" stroke="#173039" stroke-width="4" />
+    <path d="M75 105h44m-22-22v44m163 88h24m-12-12v24" stroke="#b8d7c9" stroke-width="3" />
+    <path d="M63 318h236" stroke="#688a8c" stroke-width="7" />
+  </g>
+  <g fill="#b8d7c9" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 15.0)">
+    <text x="535" y="150" font-size="46">RIDLEY SCOTT</text>
+    <text x="535" y="238" font-size="68">CINEMA</text>
+  </g>
+</svg>

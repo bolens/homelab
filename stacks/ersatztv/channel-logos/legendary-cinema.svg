@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="legendary-cinema-title">
+  <title id="legendary-cinema-title">Legendary Cinema</title>
+  <defs>
+    <linearGradient id="legendary-cinema-steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="135" y2="154">
+      <stop offset="0" stop-color="#b2b8b6" />
+      <stop offset="0.18" stop-color="#faf8e9" />
+      <stop offset="0.37" stop-color="#a8b6bb" />
+      <stop offset="0.47" stop-color="#fafff5" />
+      <stop offset="0.6" stop-color="#889b9f" />
+      <stop offset="0.82" stop-color="#e9eee6" />
+      <stop offset="1" stop-color="#a3aca8" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ddc594" stroke-width="5" />
+  <g transform="translate(0 -1.0)">
+    <g transform="translate(55 67) scale(1.64)" fill="url(#legendary-cinema-steel)">
+      <path d="M39.851,55.801V39.994h38.797v-9.918H40.844c2.218-5.633,7.628-10.098,11.167-12.558c2.708-1.881,5.429-3.373,7.96-4.542   v12.92h9.923V0.028c-9.504,0-35.7,11.836-39.504,30.513C11.722,34.332,0,60.437,0,69.937l69.913-0.009V44.183h-9.942v15.798H12.886   c1.149-2.479,2.646-5.168,4.484-7.828C19.816,48.619,24.3,43.204,29.919,41v14.801H39.851" stroke="#b7a67a" stroke-width="1.2" stroke-linejoin="miter" />
+      <path d="M97.443,39.851h15.784v38.797h9.932V40.849c5.633,2.223,10.098,7.619,12.549,11.162c1.881,2.707,3.387,5.434,4.555,7.961   h-12.929v9.917h25.868c0-9.5-11.822-35.7-30.508-39.49C118.898,11.723,92.802,0,83.289,0l0.019,69.908h25.749v-9.937H93.258V12.891   c2.47,1.149,5.154,2.641,7.833,4.484c3.52,2.451,8.939,6.935,11.148,12.549H97.443V39.851" stroke="#b7a67a" stroke-width="1.2" stroke-linejoin="miter" />
+      <path d="M113.782,97.828v15.799H74.991v9.936h37.79c-2.208,5.615-7.614,10.107-11.147,12.549c-2.703,1.883-5.449,3.383-7.956,4.551   v-12.928h-9.932v25.867c9.514,0,35.7-11.838,39.504-30.514c18.677-3.789,30.39-29.895,30.39-39.404l-69.904,0.02v25.752h9.942   V93.658h47.08c-1.164,2.479-2.636,5.158-4.493,7.809c-2.441,3.543-6.916,8.959-12.559,11.182v-14.82H113.782" stroke="#b7a67a" stroke-width="1.2" stroke-linejoin="miter" />
+      <path d="M55.806,113.683H40.008V74.896h-9.922v37.799c-5.633-2.223-10.108-7.639-12.559-11.182   c-1.867-2.688-3.372-5.424-4.541-7.932h12.92v-9.938H0.038c0,9.5,11.836,35.701,30.508,39.51   c3.791,18.666,29.9,30.391,39.414,30.391l-0.019-69.918H44.183v9.955H59.99v47.061c-2.479-1.148-5.168-2.641-7.823-4.473   c-3.548-2.461-8.949-6.926-11.167-12.549h14.806V113.683" stroke="#b7a67a" stroke-width="1.2" stroke-linejoin="miter" />
+    </g>
+  </g>
+  <g fill="#ddc594" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 18.0)">
+    <text x="535" y="150" font-size="55">LEGENDARY</text>
+    <text x="535" y="238" font-size="68">CINEMA</text>
+  </g>
+</svg>

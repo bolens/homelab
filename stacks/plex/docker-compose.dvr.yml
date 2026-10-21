@@ -1,0 +1,9 @@
+# Optional dedicated DVR storage. Verify the remote mount before creating it.
+services:
+  plex:
+    volumes:
+      - type: bind
+        source: ${PLEX_DVR_PATH:?Set an existing dedicated DVR directory}
+        target: /data/dvr
+        bind:
+          create_host_path: false

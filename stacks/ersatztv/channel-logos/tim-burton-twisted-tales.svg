@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="tim-burton-twisted-tales-title">
+  <title id="tim-burton-twisted-tales-title">Tim Burton's Twisted Tales</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#c1b3ed" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 9.5)">
+    <circle cx="226" cy="115" r="65" fill="#c1b3ed" />
+    <path d="M52 310q78-53 117-121 54-85 113-52 42 33 6 61-32 23-50-3-10-20 11-28" fill="#4c435f" stroke="#c1b3ed" stroke-width="6" />
+    <path d="M53 310q91-40 143-103" fill="none" stroke="#8d7ca8" stroke-width="9" />
+    <path d="M80 280v-91l19-19 19 20v51m-38-49h38m-29 18h7m5 19h8" fill="none" stroke="#a296bb" stroke-width="5" />
+    <path d="M53 310h241m-159-36-5-46-16-11m15 16 14-17" fill="none" stroke="#c1b3ed" stroke-width="5" />
+    <path d="M187 171v-49m-9 3 19-9m-19 19 19-9" stroke="#171f30" stroke-width="8" />
+    <circle cx="188" cy="105" r="16" fill="#e0d7f6" stroke="#40394f" stroke-width="4" />
+    <path d="M178 103h6m7 0h7m-15 10 9 0" stroke="#40394f" stroke-width="3" />
+    <path d="m160 73-8-14m-14 28-15-4" stroke="#c1b3ed" stroke-width="4" />
+  </g>
+  <g fill="#c1b3ed" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 6.5)">
+    <text x="535" y="126" font-size="45">TIM BURTON’S</text>
+    <text x="535" y="202" font-size="68">TWISTED</text>
+    <text x="535" y="278" font-size="68">TALES</text>
+  </g>
+</svg>

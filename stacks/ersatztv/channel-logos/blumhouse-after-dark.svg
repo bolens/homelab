@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="blumhouse-after-dark-title">
+  <title id="blumhouse-after-dark-title">Blumhouse After Dark</title>
+  <defs>
+    <linearGradient id="blumhouse-after-dark-teal-light" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#86ddc2" />
+      <stop offset="0.55" stop-color="#35a494" />
+      <stop offset="1" stop-color="#0c4a50" />
+    </linearGradient>
+    <radialGradient id="blumhouse-after-dark-haze">
+      <stop offset="0" stop-color="#1f9d8f" stop-opacity="0.6" />
+      <stop offset="0.6" stop-color="#12665f" stop-opacity="0.3" />
+      <stop offset="1" stop-color="#123c3d" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#6ab9a9" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 2.5)">
+    <ellipse cx="178" cy="190" rx="140" ry="145" fill="url(#blumhouse-after-dark-haze)" />
+    <circle cx="245" cy="87" r="43" fill="#1a6964" />
+    <path d="M74 300V128l101-63 91 64v171Z" fill="#163a3e" stroke="#74c7b7" stroke-width="5" />
+    <path d="m174 66 92 63v171h30V150Z" fill="#102c32" stroke="#3a7d77" stroke-width="4" />
+    <path d="M61 132 175 53l103 76" fill="none" stroke="#74c7b7" stroke-width="8" />
+    <path d="M91 144h155v91H91Z" fill="#091c25" stroke="#438b80" stroke-width="4" />
+    <path d="M146 299v-44q20-13 40 0v44Z" fill="#111522" stroke="#438b80" stroke-width="3" />
+    <path d="m151 257 11-4v44h-11Z" fill="#7cd2a3" />
+    <path d="m163 298-24 20h68l-34-20Z" fill="#4b9d86" opacity="0.6" />
+    <path d="M81 247h35m-26 26h28m85-27h29m-26 24h32m-7-179V69h17v35" fill="none" stroke="#2f6f69" stroke-width="3" />
+    <path d="M58 307h246m-244 9h64m93 0h80" stroke="#74c7b7" stroke-width="5" />
+    <path d="m59 184 10 6m208 47 14 2M93 95l-12-14" stroke="#438b80" stroke-width="3" />
+    <g fill="none" stroke="#2f6f69" stroke-width="2">
+      <path d="m98 112 81-49 70 49m-129-12h116m-92-13h67m-112 49h147M83 240v55m11-44v44m13-15v15m103-57v58m16-56v56m15-54v54m-153-44h34m-25 17h21m83-10h39m-37 23h34" />
+      <path d="m274 163 14 10v38l-14-8Z" fill="#52b5a1" />
+      <path d="m280 169v37m-6-23 14 10" stroke="#183a40" />
+      <path d="m153 263 6-2m-6 11 6-2" stroke="#e5ad8c" />
+    </g>
+    <circle cx="166" cy="278" r="2.5" fill="#e6b58e" />
+    <g>
+      <path d="M135 151h19v29h30v-29h19v83h-19v-36h-30v36h-19Z" fill="url(#blumhouse-after-dark-teal-light)" stroke="#91dfca" stroke-width="1" />
+    </g>
+  </g>
+  <g fill="#8ed4bd" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 18.0)">
+    <text x="535" y="150" font-size="53">BLUMHOUSE</text>
+    <text x="535" y="238" font-size="52">AFTER DARK</text>
+  </g>
+</svg>

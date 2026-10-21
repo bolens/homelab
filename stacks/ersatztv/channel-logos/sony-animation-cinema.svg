@@ -1,0 +1,303 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="sony-animation-cinema-title">
+  <title id="sony-animation-cinema-title">Sony Animation Cinema</title>
+  <defs>
+    <linearGradient id="sony-animation-cinema-spectrum-0" gradientUnits="userSpaceOnUse" x1="67.0" y1="239.2" x2="67.0" y2="247.2">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-1" gradientUnits="userSpaceOnUse" x1="77.4" y1="230.22" x2="77.4" y2="246.82000000000002">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-2" gradientUnits="userSpaceOnUse" x1="87.8" y1="221.24" x2="87.8" y2="246.44">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-3" gradientUnits="userSpaceOnUse" x1="98.2" y1="212.26" x2="98.2" y2="246.06">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-4" gradientUnits="userSpaceOnUse" x1="108.6" y1="203.28000000000003" x2="108.6" y2="245.68">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-5" gradientUnits="userSpaceOnUse" x1="119.0" y1="194.3" x2="119.0" y2="245.3">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-6" gradientUnits="userSpaceOnUse" x1="129.4" y1="185.32" x2="129.4" y2="244.92000000000002">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-7" gradientUnits="userSpaceOnUse" x1="139.8" y1="176.34" x2="139.8" y2="244.54">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-8" gradientUnits="userSpaceOnUse" x1="150.2" y1="167.35999999999999" x2="150.2" y2="244.16">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-9" gradientUnits="userSpaceOnUse" x1="160.60000000000002" y1="158.38" x2="160.60000000000002" y2="243.77999999999997">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-10" gradientUnits="userSpaceOnUse" x1="171.0" y1="149.4" x2="171.0" y2="243.4">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-11" gradientUnits="userSpaceOnUse" x1="181.4" y1="140.42000000000002" x2="181.4" y2="243.01999999999998">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-12" gradientUnits="userSpaceOnUse" x1="191.8" y1="131.44" x2="191.8" y2="242.64">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-13" gradientUnits="userSpaceOnUse" x1="202.20000000000002" y1="122.45999999999998" x2="202.20000000000002" y2="242.26">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-14" gradientUnits="userSpaceOnUse" x1="212.6" y1="113.48000000000002" x2="212.6" y2="241.88">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-15" gradientUnits="userSpaceOnUse" x1="223.0" y1="104.5" x2="223.0" y2="241.5">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-16" gradientUnits="userSpaceOnUse" x1="233.4" y1="95.52" x2="233.4" y2="241.12">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-17" gradientUnits="userSpaceOnUse" x1="243.8" y1="86.53999999999999" x2="243.8" y2="240.73999999999998">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-18" gradientUnits="userSpaceOnUse" x1="254.20000000000002" y1="77.55999999999999" x2="254.20000000000002" y2="240.35999999999996">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-19" gradientUnits="userSpaceOnUse" x1="264.6" y1="68.57999999999997" x2="264.6" y2="239.97999999999996">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-20" gradientUnits="userSpaceOnUse" x1="275.0" y1="59.599999999999994" x2="275.0" y2="239.6">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+    <linearGradient id="sony-animation-cinema-spectrum-21" gradientUnits="userSpaceOnUse" x1="285.4" y1="50.62000000000002" x2="285.4" y2="239.22000000000003">
+      <stop offset="0" stop-color="#2572b6" />
+      <stop offset="0.1" stop-color="#4a3c95" />
+      <stop offset="0.18" stop-color="#bc3368" />
+      <stop offset="0.23" stop-color="#f49a2e" />
+      <stop offset="0.27" stop-color="#ffe994" />
+      <stop offset="0.32" stop-color="#ffffff" />
+      <stop offset="0.75" stop-color="#ffffff" />
+      <stop offset="0.8" stop-color="#ffdb76" />
+      <stop offset="0.87" stop-color="#df633a" />
+      <stop offset="1" stop-color="#4a65a6" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#89d3ff" stroke-width="5" />
+  <g stroke-linejoin="miter" stroke-linecap="butt" transform="translate(0 5.0)">
+    <g>
+      <path d="M63 149 301 42v183L63 332Z" fill="#0b1424" stroke="#7ab5dc" stroke-width="3" />
+    </g>
+    <path d="M67.00 145.20l6.8 -3.06V325.14l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-0)" />
+    <path d="M77.40 140.52l6.8 -3.06V320.46l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-1)" />
+    <path d="M87.80 135.84l6.8 -3.06V315.78l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-2)" />
+    <path d="M98.20 131.16l6.8 -3.06V311.10l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-3)" />
+    <path d="M108.60 126.48l6.8 -3.06V306.42l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-4)" />
+    <path d="M119.00 121.80l6.8 -3.06V301.74l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-5)" />
+    <path d="M129.40 117.12l6.8 -3.06V297.06l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-6)" />
+    <path d="M139.80 112.44l6.8 -3.06V292.38l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-7)" />
+    <path d="M150.20 107.76l6.8 -3.06V287.70l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-8)" />
+    <path d="M160.60 103.08l6.8 -3.06V283.02l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-9)" />
+    <path d="M171.00 98.40l6.8 -3.06V278.34l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-10)" />
+    <path d="M181.40 93.72l6.8 -3.06V273.66l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-11)" />
+    <path d="M191.80 89.04l6.8 -3.06V268.98l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-12)" />
+    <path d="M202.20 84.36l6.8 -3.06V264.30l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-13)" />
+    <path d="M212.60 79.68l6.8 -3.06V259.62l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-14)" />
+    <path d="M223.00 75.00l6.8 -3.06V254.94l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-15)" />
+    <path d="M233.40 70.32l6.8 -3.06V250.26l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-16)" />
+    <path d="M243.80 65.64l6.8 -3.06V245.58l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-17)" />
+    <path d="M254.20 60.96l6.8 -3.06V240.90l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-18)" />
+    <path d="M264.60 56.28l6.8 -3.06V236.22l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-19)" />
+    <path d="M275.00 51.60l6.8 -3.06V231.54l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-20)" />
+    <path d="M285.40 46.92l6.8 -3.06V226.86l-6.8 3.06Z" fill="url(#sony-animation-cinema-spectrum-21)" />
+  </g>
+  <g fill="#89d3ff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 15.0)">
+    <text x="535" y="126" font-size="68">SONY</text>
+    <text x="535" y="202" font-size="57">ANIMATION</text>
+    <text x="535" y="278" font-size="68">CINEMA</text>
+  </g>
+</svg>

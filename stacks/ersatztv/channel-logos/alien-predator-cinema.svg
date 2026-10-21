@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="alien-predator-cinema-title">
+  <title id="alien-predator-cinema-title">Alien &amp; Predator Cinema</title>
+  <defs>
+    <linearGradient id="alien-predator-cinema-new-dome" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a1a192" />
+      <stop offset="0.22" stop-color="#76878a" />
+      <stop offset="0.45" stop-color="#425860" />
+      <stop offset="0.78" stop-color="#233640" />
+      <stop offset="1" stop-color="#111e29" />
+    </linearGradient>
+    <linearGradient id="alien-predator-cinema-new-mask" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d0c3a4" />
+      <stop offset="0.32" stop-color="#999d89" />
+      <stop offset="0.62" stop-color="#526b70" />
+      <stop offset="0.85" stop-color="#9b9b80" />
+      <stop offset="1" stop-color="#b8a184" />
+    </linearGradient>
+    <linearGradient id="alien-predator-cinema-new-jaw" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#748b90" />
+      <stop offset="0.5" stop-color="#364c57" />
+      <stop offset="1" stop-color="#1c2f3b" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8fdc84" stroke-width="5" />
+  <g transform="translate(0 -4.0)">
+    <g stroke-linecap="round" stroke-linejoin="round">
+      <path d="M154 159c-18 22-34 41-39 61-8 19-3 31 18 39l20-5c-13-21 3-42 24-63l6-21Z" fill="#263d48" stroke="#657e85" stroke-width="4" />
+      <path d="M124 201q16 10 35 13m-41 1q14 11 34 13m-38 2q12 10 29 13m-28 1q11 8 23 10" fill="none" stroke="#91a3a4" stroke-width="5" />
+      <path d="M114 254c-55 10-65 53-19 65l75 1" fill="none" stroke="#4d6872" stroke-width="12" />
+      <path d="M109 255c-39 13-48 39-23 49" fill="none" stroke="#acbbba" stroke-width="3" />
+      <path d="M56 130C54 94 113 63 186 62c49-1 93 16 109 42 17 28-3 51-34 61l-25 4-11 17-29-8-8-16c-54 17-105 12-125-8-6-7-9-14-7-24Z" fill="url(#alien-predator-cinema-new-dome)" stroke="#819294" stroke-width="4" />
+      <path d="M70 124c12-32 91-55 157-37-60-5-115 11-150 45Z" fill="#a9ada0" opacity=".75" />
+      <path d="M84 141q70-29 176-20" stroke="#6c8388" stroke-width="2" fill="none" />
+      <path d="M97 157q63 13 120-9m-90 15 4-13m9 16 3-18m10 19 3-21m10 20 2-21m10 19 3-20" stroke="#7e9599" stroke-width="3" fill="none" />
+      <path d="m233 158 38-10 14 9-5 19-21 6-11 19-28-4-15-17Z" fill="url(#alien-predator-cinema-new-jaw)" stroke="#73898e" stroke-width="3" />
+      <path d="m233 166 43-7-3 15-39 12-17-5Z" fill="#071522" />
+      <path d="m234 167 4 10 6-11 4 8 6-10 4 7 6-9 5 6m-35 17 5-8 4 6 6-9 4 7 7-10 4 7" fill="#e5e4cd" stroke="#bac8c5" stroke-width="1.5" />
+      <path d="M216 191q22 13 40-2l13-13-8 26q-27 19-51 1Z" fill="#415e68" stroke="#7b9299" stroke-width="3" />
+      <path d="m247 177 17 0 3 7-14 5" fill="#a1b8b9" stroke="#e1e6d9" stroke-width="2" />
+      <g fill="none" stroke="#263944" stroke-width="10">
+        <path d="M211 219q-30 11-30 78m23-65q-27 28-17 81m17-66q-15 38-3 77m90-103q31 18 26 73m-25-62q29 35 15 82m-21-65q21 39 7 74" />
+      </g>
+      <g stroke="#6e7c7c" stroke-width="3" fill="none">
+        <path d="m184 279 9 3m-10 9 10 3m-5 12 8 2m111-31 9-3m-10 15 9-3m-12 18 8-3" />
+      </g>
+      <path d="M247 201c-26-1-47 10-51 34l5 43 17 31 29 21 29-18 19-37 4-39c-3-23-24-35-52-35Z" fill="url(#alien-predator-cinema-new-mask)" stroke="#aeb4a5" stroke-width="4" />
+      <path d="M247 207q-31-1-42 26l7 20 13-4 10-18 15-6 20 8 18-5q-11-20-41-21Z" fill="#b8b79b" opacity=".65" />
+      <path d="m206 245 26 7-9 13-15-5Zm55 8 28-9-3 16-17 6Z" fill="#0c222e" stroke="#d0d1b6" stroke-width="2" />
+      <path d="m210 249 15 8m-12-3 9 5m48-2 15-8m-13 12 12-8" stroke="#6d8790" stroke-width="1.5" />
+      <path d="m245 237-10 44 12 15 14-16-9-43" fill="#718586" stroke="#c8c8aa" stroke-width="3" />
+      <path d="m208 272 17 7 10 28m50-35-17 7-10 28m-31 5 20 11 20-13" fill="none" stroke="#d2cfb0" stroke-width="3" />
+      <path d="m212 283 10 4m-7 4 9 4m57-12-10 4m7 4-9 4m-34 15h23m-20 5h17" stroke="#3b535d" stroke-width="3" />
+      <path d="M218 215q30-14 58 1m-57 4 9-2m43 1 8 3" fill="none" stroke="#e5d8b7" stroke-width="2" />
+      <g fill="#ff7156" stroke="#ffc09b" stroke-width="1">
+        <circle cx="199" cy="213" r="3" />
+        <circle cx="207" cy="218" r="3" />
+        <circle cx="198" cy="223" r="3" />
+      </g>
+    </g>
+  </g>
+  <text x="535" y="137.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8fdc84">ALIEN &amp;</text>
+  <text x="535" y="213.5" font-family="DejaVu Sans, sans-serif" font-size="59" font-weight="800" text-anchor="middle" fill="#8fdc84">PREDATOR</text>
+  <text x="535" y="297.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8fdc84">CINEMA</text>
+</svg>

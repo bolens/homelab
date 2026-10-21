@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="bedtime-cartoons-title">
+  <title id="bedtime-cartoons-title">Bedtime Cartoons</title>
+  <defs>
+    <linearGradient id="bedtime-cartoons-tv-casing">
+      <stop offset="0" stop-color="#9b91d6" />
+      <stop offset="0.4" stop-color="#716aa9" />
+      <stop offset="1" stop-color="#464575" />
+    </linearGradient>
+    <radialGradient id="bedtime-cartoons-screen">
+      <stop offset="0" stop-color="#9bb9e0" />
+      <stop offset="0.5" stop-color="#617db9" />
+      <stop offset="1" stop-color="#344a79" />
+    </radialGradient>
+    <radialGradient id="bedtime-cartoons-pillow">
+      <stop offset="0" stop-color="#fff1d4" />
+      <stop offset="0.6" stop-color="#d8cbe4" />
+      <stop offset="1" stop-color="#9c9bca" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b8afff" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 4.0)">
+    <path d="m137 94-30-33m96 33 37-39" stroke="#a9b8dc" stroke-width="6" fill="none" />
+    <circle cx="106" cy="60" r="6" fill="#dce3ee" />
+    <circle cx="241" cy="54" r="6" fill="#dce3ee" />
+    <path d="m91 249-8 29m159-29 11 29" stroke="#514c83" stroke-width="10" />
+    <path d="M60 275q-10-21 20-27 88-18 200 1 31 8 19 30l-13 22q-93 29-208-1Z" fill="url(#bedtime-cartoons-pillow)" stroke="#ded5f3" stroke-width="4" />
+    <path d="M69 281q105 23 221-1m-208-17q79-11 148-2" fill="none" stroke="#aaa2cc" stroke-width="3" />
+    <rect x="63" y="87" width="235" height="177" rx="31" fill="url(#bedtime-cartoons-tv-casing)" stroke="#d3c9f6" stroke-width="5" />
+    <rect x="79" y="105" width="166" height="137" rx="22" fill="url(#bedtime-cartoons-screen)" stroke="#303b60" stroke-width="6" />
+    <path d="M91 136q-1-19 16-20h43" fill="none" stroke="#c2d3ee" stroke-width="4" opacity=".7" />
+    <path d="m109 166 15 9 18-9m39 0 15 9 17-9" fill="none" stroke="#172b50" stroke-width="6" />
+    <path d="M153 197q12 8 23-1" fill="none" stroke="#283d68" stroke-width="4" />
+    <ellipse cx="112" cy="192" rx="10" ry="6" fill="#d9a5b7" />
+    <ellipse cx="207" cy="192" rx="10" ry="6" fill="#d9a5b7" />
+    <g fill="#323955" stroke="#b1b8db" stroke-width="3">
+      <circle cx="270" cy="126" r="10" />
+      <circle cx="270" cy="158" r="10" />
+    </g>
+    <path d="m266 124 8 4m-8 28 8 4m-14 33h20m-20 9h20m-20 9h20m-20 9h20" stroke="#b9b2df" stroke-width="3" />
+    <circle cx="272" cy="243" r="4" fill="#a5d9c8" />
+    <path d="M92 297q73-20 179-5v24q-84 24-179-1Z" fill="#6679ad" stroke="#b8bef0" stroke-width="4" />
+    <path d="m108 300 15 13m8-17 16 16m12-18 16 16m13-18 16 15m13-16 16 13m11-15 15 12" stroke="#97a8d6" stroke-width="3" />
+    <path d="M263 49h25l-25 25h25m8 9h18l-18 19h18" stroke="#d1c6ff" stroke-width="5" fill="none" />
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="69" font-weight="800" text-anchor="middle" fill="#b8afff">BEDTIME</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="56" font-weight="800" text-anchor="middle" fill="#b8afff">CARTOONS</text>
+</svg>

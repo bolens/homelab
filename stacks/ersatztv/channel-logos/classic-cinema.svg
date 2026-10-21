@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="classic-cinema-title">
+  <title id="classic-cinema-title">Silver Screen Classics</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#f5dca3" stroke-width="5" />
+  <g transform="translate(0 5.5)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <defs>
+        <linearGradient id="classic-camera-metal" x1="90" y1="65" x2="285" y2="275" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#f8e9bb" />
+          <stop offset=".48" stop-color="#dbca91" />
+          <stop offset="1" stop-color="#a18f63" />
+        </linearGradient>
+      </defs>
+      <circle cx="121" cy="100" r="47" fill="url(#classic-camera-metal)" stroke="#f6e6b2" stroke-width="5" />
+      <circle cx="232" cy="100" r="47" fill="url(#classic-camera-metal)" stroke="#f6e6b2" stroke-width="5" />
+      <g fill="#26303b">
+        <circle cx="121" cy="76" r="11" />
+        <circle cx="97" cy="101" r="11" />
+        <circle cx="121" cy="124" r="11" />
+        <circle cx="145" cy="101" r="11" />
+        <circle cx="232" cy="76" r="11" />
+        <circle cx="208" cy="101" r="11" />
+        <circle cx="232" cy="124" r="11" />
+        <circle cx="256" cy="101" r="11" />
+      </g>
+      <circle cx="121" cy="100" r="6" fill="#f8e9bb" />
+      <circle cx="232" cy="100" r="6" fill="#f8e9bb" />
+      <path d="M114 147v18m111-18v18" stroke="#f6e6b2" stroke-width="8" />
+      <rect x="84" y="152" width="174" height="117" rx="13" fill="url(#classic-camera-metal)" stroke="#f6e6b2" stroke-width="6" />
+      <path d="M236 156h17v108h-17Z" fill="#9c895d" />
+      <path d="m258 182 46-21v99l-46-21Z" fill="#c3b078" stroke="#f6e6b2" stroke-width="5" />
+      <path d="m278 176 26-15v99l-26-13Z" fill="#9c895d" />
+      <rect x="101" y="170" width="126" height="42" rx="4" fill="#26303b" />
+      <path d="M110 180h107" stroke="#5e6256" stroke-width="4" />
+      <path d="M104 236h61m-61 11h40" stroke="#f6e6b2" stroke-width="5" />
+      <circle cx="213" cy="239" r="11" fill="#26303b" />
+      <circle cx="213" cy="239" r="5" fill="#dbca91" />
+      <path d="M158 270v15m0 0-26 34m53-49 26 49m-53-34 22 34m-48 0h79" stroke="#d7c38c" stroke-width="7" fill="none" />
+    </g>
+  </g>
+  <g fill="#f5dca3" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.00)">
+    <text x="535" y="126" font-size="66">SILVER</text>
+    <text x="535" y="202" font-size="66">SCREEN</text>
+    <text x="535" y="278" font-size="66">CLASSICS</text>
+  </g>
+</svg>

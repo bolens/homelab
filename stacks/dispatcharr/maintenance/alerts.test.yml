@@ -1,0 +1,232 @@
+rule_files:
+- alerts.yml
+evaluation_interval: 1m
+tests:
+- name: healthy
+  interval: 1m
+  input_series:
+  - series: iptv_maintenance_timestamp_seconds
+    values: 0+60x60
+  - series: iptv_maintenance_success
+    values: 1x60
+  - series: iptv_guides_healthy
+    values: 1x60
+  - series: iptv_recording_storage_healthy
+    values: 1x60
+  - series: iptv_failed_recordings_24h
+    values: '0x60'
+  - series: iptv_plex_failed_recordings
+    values: '0x60'
+  - series: iptv_backup_verified_timestamp_seconds
+    values: '0x60'
+  - series: iptv_backup_job_success
+    values: 1x60
+  alert_rule_test:
+  - eval_time: 30m
+    alertname: IPTVHealthJobStale
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: IPTVGuideUnhealthy
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: IPTVRecordingStorageUnhealthy
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: IPTVRecordingFailed
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: IPTVVerifiedBackupStale
+    exp_alerts: []
+- name: mount-or-reserve-failure
+  interval: 1m
+  input_series:
+  - series: iptv_maintenance_timestamp_seconds
+    values: 0+60x60
+  - series: iptv_maintenance_success
+    values: 1x60
+  - series: iptv_guides_healthy
+    values: 1x60
+  - series: iptv_recording_storage_healthy
+    values: '0x60'
+  - series: iptv_failed_recordings_24h
+    values: '0x60'
+  - series: iptv_plex_failed_recordings
+    values: '0x60'
+  - series: iptv_backup_verified_timestamp_seconds
+    values: '0x60'
+  - series: iptv_backup_job_success
+    values: 1x60
+  alert_rule_test:
+  - eval_time: 5m
+    alertname: IPTVHealthJobStale
+    exp_alerts: []
+  - eval_time: 5m
+    alertname: IPTVGuideUnhealthy
+    exp_alerts: []
+  - eval_time: 5m
+    alertname: IPTVRecordingStorageUnhealthy
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        service: dispatcharr
+      exp_annotations:
+        summary: DVR storage is unavailable or below the configured free-space reserve
+  - eval_time: 5m
+    alertname: IPTVRecordingFailed
+    exp_alerts: []
+  - eval_time: 5m
+    alertname: IPTVVerifiedBackupStale
+    exp_alerts: []
+- name: failed-backup
+  interval: 1m
+  input_series:
+  - series: iptv_maintenance_timestamp_seconds
+    values: 0+60x60
+  - series: iptv_maintenance_success
+    values: 1x60
+  - series: iptv_guides_healthy
+    values: 1x60
+  - series: iptv_recording_storage_healthy
+    values: 1x60
+  - series: iptv_failed_recordings_24h
+    values: '0x60'
+  - series: iptv_plex_failed_recordings
+    values: '0x60'
+  - series: iptv_backup_verified_timestamp_seconds
+    values: '0x60'
+  - series: iptv_backup_job_success
+    values: '0x60'
+  alert_rule_test:
+  - eval_time: 15m
+    alertname: IPTVHealthJobStale
+    exp_alerts: []
+  - eval_time: 15m
+    alertname: IPTVGuideUnhealthy
+    exp_alerts: []
+  - eval_time: 15m
+    alertname: IPTVRecordingStorageUnhealthy
+    exp_alerts: []
+  - eval_time: 15m
+    alertname: IPTVRecordingFailed
+    exp_alerts: []
+  - eval_time: 15m
+    alertname: IPTVVerifiedBackupStale
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: dispatcharr
+      exp_annotations:
+        summary: No verified IPTV backup in the last 36 hours
+- name: failed-guide
+  interval: 1m
+  input_series:
+  - series: iptv_maintenance_timestamp_seconds
+    values: 0+60x60
+  - series: iptv_maintenance_success
+    values: 1x60
+  - series: iptv_guides_healthy
+    values: '0x60'
+  - series: iptv_recording_storage_healthy
+    values: 1x60
+  - series: iptv_failed_recordings_24h
+    values: '0x60'
+  - series: iptv_plex_failed_recordings
+    values: '0x60'
+  - series: iptv_backup_verified_timestamp_seconds
+    values: '0x60'
+  - series: iptv_backup_job_success
+    values: 1x60
+  alert_rule_test:
+  - eval_time: 20m
+    alertname: IPTVHealthJobStale
+    exp_alerts: []
+  - eval_time: 20m
+    alertname: IPTVGuideUnhealthy
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: dispatcharr
+      exp_annotations:
+        summary: IPTV guides or maintenance need attention
+  - eval_time: 20m
+    alertname: IPTVRecordingStorageUnhealthy
+    exp_alerts: []
+  - eval_time: 20m
+    alertname: IPTVRecordingFailed
+    exp_alerts: []
+  - eval_time: 20m
+    alertname: IPTVVerifiedBackupStale
+    exp_alerts: []
+- name: missing-report
+  interval: 1m
+  input_series: []
+  alert_rule_test:
+  - eval_time: 10m
+    alertname: IPTVHealthJobStale
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: dispatcharr
+      exp_annotations:
+        summary: IPTV maintenance health report is missing or stale
+- name: ersatztv-disagreement-and-restriction
+  interval: 1m
+  input_series:
+  - series: iptv_ersatztv_enabled
+    values: 1x60
+  - series: iptv_ersatztv_guide_correct
+    values: '0x60'
+  - series: iptv_ersatztv_check_success
+    values: 1x60
+  - series: iptv_ersatztv_restrictions_healthy
+    values: '0x60'
+  - series: iptv_ersatztv_recipe_drift
+    values: 1x60
+  - series: iptv_ersatztv_guide_hours_min
+    values: 48x60
+  alert_rule_test:
+  - eval_time: 30m
+    alertname: ErsatzTVGuideIncorrect
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: ersatztv
+      exp_annotations:
+        summary: ErsatzTV, Dispatcharr and Plex programme listings differ
+  - eval_time: 5m
+    alertname: ErsatzTVRestrictedContentMismatch
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+        service: ersatztv
+      exp_annotations:
+        summary: A restricted cartoon station violates its content or quiet-presentation policy
+  - eval_time: 30m
+    alertname: ErsatzTVRecipeDrift
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: ersatztv
+      exp_annotations:
+        summary: ErsatzTV channel definitions differ from their reviewed recipes
+  - eval_time: 30m
+    alertname: ErsatzTVGuideHorizonLow
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        service: ersatztv
+      exp_annotations:
+        summary: An ErsatzTV station has less than six days of guide coverage
+- name: ersatztv-option-absent
+  interval: 1m
+  input_series: []
+  alert_rule_test:
+  - eval_time: 60m
+    alertname: ErsatzTVGuideIncorrect
+    exp_alerts: []
+  - eval_time: 60m
+    alertname: ErsatzTVRestrictedContentMismatch
+    exp_alerts: []
+  - eval_time: 60m
+    alertname: ErsatzTVRecipeDrift
+    exp_alerts: []

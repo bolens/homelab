@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="2010s-movies-title">
+  <title id="2010s-movies-title">2010s Movie Vault</title>
+  <defs>
+    <linearGradient id="2010s-movies-brushed-metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e7ebeb" />
+      <stop offset="0.45" stop-color="#a4b3bd" />
+      <stop offset="1" stop-color="#596d80" />
+    </linearGradient>
+    <linearGradient id="2010s-movies-housing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#52616c" />
+      <stop offset="0.4" stop-color="#2e3d4b" />
+      <stop offset="1" stop-color="#162534" />
+    </linearGradient>
+    <linearGradient id="2010s-movies-screen-color" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#253e7b" />
+      <stop offset="0.55" stop-color="#7a5596" />
+      <stop offset="1" stop-color="#db9876" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#64d6e6" stroke-width="5" />
+  <g transform="translate(0 -11.50)">
+    <g stroke-linejoin="round">
+      <rect x="84" y="78" width="204" height="251" rx="20" fill="url(#2010s-movies-housing)" stroke="url(#2010s-movies-brushed-metal)" stroke-width="6" />
+      <rect x="99" y="101" width="174" height="198" rx="5" fill="#122236" />
+      <path d="m108 113 151 155v-76l-77-79Z" fill="#24344a" />
+      <rect x="116" y="131" width="140" height="102" rx="12" fill="url(#2010s-movies-screen-color)" />
+      <path d="m168 155 43 28-43 28Z" fill="#fff3d9" />
+      <path d="M119 254h132m-132 16h88" stroke="#b6d1cf" stroke-width="6" />
+      <circle cx="186" cy="314" r="7" fill="#d5e2dd" />
+      <path d="M171 89h30" stroke="#b7c7ce" stroke-width="4" />
+      <g>
+        <circle cx="123" cy="285" r="3" fill="#e5bc7f" />
+        <circle cx="136" cy="285" r="3" fill="#c695b4" />
+        <circle cx="149" cy="285" r="3" fill="#84c4c3" />
+      </g>
+    </g>
+  </g>
+  <g fill="#64d6e6" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.00)">
+    <text x="535" y="126" font-size="66">2010s</text>
+    <text x="535" y="202" font-size="66">MOVIE</text>
+    <text x="535" y="278" font-size="66">VAULT</text>
+  </g>
+</svg>

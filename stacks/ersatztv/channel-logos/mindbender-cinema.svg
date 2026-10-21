@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="mindbender-cinema-title">
+  <title id="mindbender-cinema-title">Mindbender Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b7b0fb" stroke-width="5" />
+  <g transform="translate(0 -9.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M71 87h227v214H71Z" fill="#302d52" stroke="#928ac9" stroke-width="5" />
+      <path d="M89 105h191v178H89V124h171v140H110V143h131v102H131v-83h91v64h-72v-45h53" fill="none" stroke="#a8a0e2" stroke-width="8" />
+      <path d="M177 210v-49h37v68h-37Z" fill="#1a2338" stroke="#ded6ff" stroke-width="4" />
+      <path d="m177 161 27-9v69l-27 8Z" fill="#8b82ba" stroke="#dfd5ff" stroke-width="3" />
+      <circle cx="196" cy="187" r="3" fill="#ffdfab" />
+      <path d="M67 207q51-64 115-62t116 64q-53 63-115 61T67 207Z" fill="#b6a8df" fill-opacity="0.82" stroke="#ded4ff" stroke-width="5" />
+      <path d="M90 207q45-42 92-40t92 40q-44 43-92 41t-92-41Z" fill="#354268" stroke="#c5c3f3" stroke-width="4" />
+      <circle cx="183" cy="207" r="37" fill="#8b8acb" stroke="#ece4ff" stroke-width="4" />
+      <path d="M200 201c-5-20-31-21-40-5-11 20 12 40 29 27 16-13-2-31-13-19-7 8 4 14 8 7" fill="none" stroke="#ece6ff" stroke-width="4" />
+      <path d="m245 72-17 38 19 18-16 31m61 94-24 25 10 32-22 20" fill="none" stroke="#f0cba0" stroke-width="5" />
+      <path d="m68 87 23 18m188 178 19 18" stroke="#f4dfbd" stroke-width="4" />
+    </g>
+  </g>
+  <text x="535" y="165.0" font-family="DejaVu Sans, sans-serif" font-size="46" font-weight="800" text-anchor="middle" fill="#b7b0fb">MINDBENDER</text>
+  <text x="535" y="261.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#b7b0fb">CINEMA</text>
+</svg>

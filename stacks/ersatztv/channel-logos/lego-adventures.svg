@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="lego-adventures-title">
+  <title id="lego-adventures-title">LEGO Adventures</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#f6cb48" stroke-width="5" />
+  <g transform="translate(0 -21.50)">
+    <g stroke="#6c3a18" stroke-width="6" stroke-linejoin="round">
+      <path d="M64 178 203 143l111 55-139 38Z" fill="#ffe36b" />
+      <path d="m64 178 111 58v79L64 257Z" fill="#d74735" />
+      <path d="m175 236 139-38v79l-139 38Z" fill="#edaa2b" />
+      <path d="m100 187 83 41m15 21 93-27" stroke="#ffef9c" />
+      <g fill="#ffd359">
+        <path d="M99 163v-20h49v20c0 17-49 17-49 0Z" />
+        <ellipse cx="123.5" cy="143" rx="24.5" ry="12" />
+        <path d="M174 144v-20h49v20c0 17-49 17-49 0Z" />
+        <ellipse cx="198.5" cy="124" rx="24.5" ry="12" />
+        <path d="M164 190v-20h49v20c0 17-49 17-49 0Z" />
+        <ellipse cx="188.5" cy="170" rx="24.5" ry="12" />
+        <path d="M239 171v-20h49v20c0 17-49 17-49 0Z" />
+        <ellipse cx="263.5" cy="151" rx="24.5" ry="12" />
+      </g>
+      <path d="m94 209 51 27v36l-51-27Z" fill="#f56a49" />
+    </g>
+  </g>
+  <text x="535" y="173.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#f6cb48">LEGO</text>
+  <text x="535" y="253.0" font-family="DejaVu Sans, sans-serif" font-size="47" font-weight="800" text-anchor="middle" fill="#f6cb48">ADVENTURES</text>
+</svg>

@@ -1,0 +1,18 @@
+{
+  "container": "dispatcharr",
+  "plex_container": "plex",
+  "state_directory": "/path/to/dispatcharr-data/maintenance",
+  "state_mount": {"fstype": "btrfs", "source": "/dev/mapper/apps"},
+  "recordings_directory": "/path/to/media/dvr",
+  "recordings_mount": {"fstype": "nfs4", "source": "media-server:/media"},
+  "plex_root": "/path/to/plex-config/Library/Application Support/Plex Media Server",
+  "configuration_files": ["/path/to/private/maintenance.json"],
+  "protected_profiles": ["Plex Free TV"],
+  "quarantine_days": 14,
+  "minimum_failed_days": 3,
+  "backup_generations": 7,
+  "minimum_recording_free_bytes": 107374182400,
+  "metrics_file": "/var/lib/node_exporter/textfile_collector/dispatcharr.prom",
+  "dvr_library_ids": [],
+  "ersatztv": null
+}

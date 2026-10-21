@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="adult-animation-title">
+  <title id="adult-animation-title">Adult Animation TV</title>
+  <defs>
+    <linearGradient id="adult-animation-silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9e3e7" />
+      <stop offset="0.3" stop-color="#b9c8cf" />
+      <stop offset="0.7" stop-color="#7d929e" />
+      <stop offset="1" stop-color="#b4c5cd" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ff9cdb" stroke-width="5" />
+  <g transform="translate(0 0.0)">
+    <g transform="translate(0 22.50)">
+      <g stroke="#c4d2d8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M100 143v-22a78 78 0 0 1 156 0v22" fill="url(#adult-animation-silver)" />
+        <path d="M112 122a66 66 0 0 1 124-30" fill="none" stroke="#eef4f5" stroke-width="7" />
+        <path d="M100 143h156v127q-78 38-156 0Z" fill="url(#adult-animation-silver)" />
+        <path d="M234 146h22v124q-13 9-26 12Z" fill="#657c89" stroke="none" />
+        <path d="M177 43V27" stroke="#aabdc7" stroke-width="9" />
+        <circle cx="177" cy="21" r="10" fill="#d2dce0" />
+        <path d="M99 153c-32-6-35 54 0 53m158-53c32-6 35 54 0 53" fill="#839ba7" />
+        <rect x="107" y="130" width="141" height="69" rx="28" fill="#263640" />
+        <path d="M113 162q9-30 36-22l26 9q19-22 47-9 16 7 20 22v18q-30 18-64-1-35 19-65 1Z" fill="#fff0c5" stroke="#aebaa9" stroke-width="3" />
+        <path d="M143 159h11v17h-11Zm59 0h11v17h-11Z" fill="#111f2a" stroke="none" />
+        <path d="m115 147 59 9m9 0 57-9" stroke="#263640" stroke-width="6" />
+        <path d="M117 221q61-17 120 0v36q-59 22-120 0Z" fill="#f3e7c6" stroke="#4b5b60" stroke-width="4" />
+        <path d="M138 218v44m21-47v51m21-52v53m21-51v48m19-44v39m-101-21q58 8 116 0" fill="none" stroke="#7b8a8e" stroke-width="3" />
+        <path d="M139 288v24h77v-24" fill="#718995" />
+        <path d="M138 299h79" stroke="#d0dde0" stroke-width="4" />
+        <path d="M105 326q72-29 145 0" fill="none" stroke="#97acb7" stroke-width="9" />
+      </g>
+    </g>
+  </g>
+  <g fill="#ff9cdb" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">ADULT</text>
+    <text x="535" y="202" font-size="57">ANIMATION</text>
+    <text x="535" y="278" font-size="66">TV</text>
+  </g>
+</svg>
