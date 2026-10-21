@@ -8,13 +8,15 @@ services:
     cpus: 2.0
     mem_limit: 3g
     memswap_limit: 4g
-    pids_limit: 512
+    pids_limit: 1024
     cpu_shares: 256
     env_file:
       - path: ../../shared.env
         required: false
       - stack.env
     environment:
+      # aio keeps PostgreSQL, Redis and workers inside this service. Preserve
+      # the complete /data volume when backing up or changing image versions.
       DISPATCHARR_ENV: aio
       REDIS_HOST: localhost
       CELERY_BROKER_URL: redis://localhost:6379/0
@@ -27,7 +29,10 @@ services:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9191/', timeout=5)"
+        - >-
+          import json, urllib.request;
+          response = urllib.request.urlopen('http://127.0.0.1:9191/api/accounts/initialize-superuser/', timeout=5);
+          assert isinstance(json.load(response).get('superuser_exists'), bool)
       interval: 30s
       timeout: 10s
       retries: 3

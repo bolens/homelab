@@ -1,5 +1,48 @@
-# Copy to caddy_snippet.conf and adjust the hostname if needed.
-dispatcharr.yourdomain.com {
-    import common
-    reverse_proxy dispatcharr:9191
+# Copy to caddy_snippet.conf and replace placeholder hostnames.
+# The public hostname serves the management UI with Dispatcharr's form login.
+# Keep unauthenticated tuner, playlist and live-stream outputs on the private
+# connection used by Plex. Public browser stream previews are also excluded.
+
+dispatcharr.home, dispatcharr.local {
+    tls internal
+    reverse_proxy dispatcharr:9191 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://dispatcharr.example.com {
+    @private_outputs {
+        path /hdhr /hdhr/* /output /output/* /proxy/ts/stream/* /__library/* /iptv/artwork/*
+        # Optional library-artwork override: only these GET/HEAD image paths
+        # are relayed. The nginx bridge rejects other methods.
+        not path_regexp library_art ^/iptv/artwork/(posters|thumbnails|logos)/(plex/[0-9]+|[A-Fa-f0-9]+(\.jpg)?)$
+    }
+    respond @private_outputs 403
+    reverse_proxy dispatcharr:9191 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+dispatcharr.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    @private_outputs {
+        path /hdhr /hdhr/* /output /output/* /proxy/ts/stream/* /__library/* /iptv/artwork/*
+        not path_regexp library_art ^/iptv/artwork/(posters|thumbnails|logos)/(plex/[0-9]+|[A-Fa-f0-9]+(\.jpg)?)$
+    }
+    respond @private_outputs 403
+    reverse_proxy dispatcharr:9191 {
+        header_up Host {host}
+        transport http {
+            versions 1.1
+        }
+    }
 }

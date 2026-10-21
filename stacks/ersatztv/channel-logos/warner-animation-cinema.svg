@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="warner-animation-cinema-title">
+  <title id="warner-animation-cinema-title">Warner Animation Cinema</title>
+  <defs>
+    <linearGradient id="warner-animation-cinema-gold">
+      <stop offset="0" stop-color="#ffed9e" />
+      <stop offset="0.25" stop-color="#f6cb4f" />
+      <stop offset="0.48" stop-color="#ffe998" />
+      <stop offset="0.58" stop-color="#c58a24" />
+      <stop offset="0.8" stop-color="#f4c75a" />
+      <stop offset="1" stop-color="#9b6423" />
+    </linearGradient>
+    <linearGradient id="warner-animation-cinema-blue">
+      <stop offset="0" stop-color="#4169e9" />
+      <stop offset="0.5" stop-color="#213dae" />
+      <stop offset="1" stop-color="#071b58" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ebcf8d" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 -3.5)">
+    <path d="M65 110q111-88 230 0l-15 104q-22 67-100 112-81-45-102-112Z" fill="url(#warner-animation-cinema-gold)" stroke="#ffe8b3" stroke-width="5" />
+    <path d="M80 118q98-72 199 0l-14 92q-20 58-85 99-68-41-88-99Z" fill="url(#warner-animation-cinema-blue)" stroke="#e9bf51" stroke-width="4" />
+    <path d="M91 129q83-62 176-3" fill="none" stroke="#8aa9ff" stroke-width="4" />
+    <path d="m102 141 16 99 28-22 10-43 15 34 18-15-9-81-19 8 6 48-16-30-20 10 5 43-16-57Z" fill="url(#warner-animation-cinema-gold)" stroke="#b57d2b" stroke-width="2" />
+    <path d="m190 111 24-7q42 5 34 35-3 15-17 23 27 3 18 30-7 23-54 48Zm17 21-1 24 11-5q17-8 13-17-3-8-23-2Zm-1 45 1 30 15-9q18-12 11-20-7-10-27-1Z" fill="url(#warner-animation-cinema-gold)" stroke="#b57d2b" stroke-width="2" fill-rule="evenodd" />
+    <path d="M106 235q27 43 73 72" fill="none" stroke="#e5c984" stroke-width="4" />
+    <path d="M263 211q-17 40-57 72" fill="none" stroke="#d3b777" stroke-width="3" />
+    <g transform="rotate(20 290 247)">
+      <path d="M281 176h18v112l-9 26-9-26Z" fill="#bd8e56" stroke="#f0d49c" stroke-width="3" />
+      <path d="M286 181h5v106h-5Z" fill="#f3cf86" />
+      <path d="M281 287h18l-9 27Z" fill="#d8c6a7" />
+      <path d="m287 306 3 8 3-8Z" fill="#273a4e" />
+    </g>
+    <path d="M59 161q-9 38 4 63m-8 17 6 14m215-169 5-12m-24 3 1-13" fill="none" stroke="#ebcf8d" stroke-width="4" />
+    <path d="M70 112q109-84 220-1M86 123q92-65 187 0" fill="none" stroke="#fff0c5" stroke-width="2" />
+    <path d="m83 214q24 64 97 107 68-41 95-106" fill="none" stroke="#8a623a" stroke-width="4" />
+    <path d="m105 150 9 68m83-97 3 99m9-91 13-1m-11 59 15-3" fill="none" stroke="#fff1cf" stroke-width="2" />
+    <g transform="rotate(20 290 247)">
+      <path d="M281 176v-12q9-8 18 0v12Z" fill="#b77980" stroke="#edbbc1" stroke-width="2" />
+      <path d="M280 176h20v15h-20Z" fill="#b3c5d2" stroke="#e1e9ed" stroke-width="2" />
+      <path d="M282 181h16m-16 5h16m-5 7v91" stroke="#f4dfae" stroke-width="2" />
+    </g>
+  </g>
+  <g fill="#ebcf8d" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.5)">
+    <text x="535" y="126" font-size="68">WARNER</text>
+    <text x="535" y="202" font-size="57">ANIMATION</text>
+    <text x="535" y="278" font-size="68">CINEMA</text>
+  </g>
+</svg>

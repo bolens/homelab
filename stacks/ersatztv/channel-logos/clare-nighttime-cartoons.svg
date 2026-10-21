@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="clare-nighttime-cartoons-title">
+  <title id="clare-nighttime-cartoons-title">Clare's Nighttime Cartoons</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b8afff" stroke-width="5" />
+  <g transform="translate(0 8.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M194 57a123 123 0 1 0 93 203C176 289 107 151 194 57Z" fill="#8f87cf" stroke="#b8afff" stroke-width="4" />
+      <path d="M167 69C74 117 73 254 186 280 63 272 34 125 167 69Z" fill="#cfc8ff" />
+      <path d="M95 104q-43 52-18 114" fill="none" stroke="#e4dfff" stroke-width="5" />
+      <circle cx="91" cy="161" r="10" fill="#9d95d4" />
+      <circle cx="104" cy="235" r="7" fill="#9d95d4" />
+      <path d="M122 260c-8-57 40-90 100-76 60 14 67 88 20 115-37 21-106 11-120-39Z" fill="#6e67a3" stroke="#b8afff" stroke-width="4" />
+      <path d="M138 260c-11-37 26-70 71-66-25 7-38 24-38 51 0 27 28 44 59 43-55 12-86-1-92-28Z" fill="#827abb" />
+      <path d="m124 204-7-52 40 29 27-9 34 2 38-26-2 53c20 53-122 61-130 3Z" fill="#a99fe3" stroke="#544d85" stroke-width="5" />
+      <path d="m127 169 7 27 12-8Zm115 1-15 18 16 7Z" fill="#d7b7d9" />
+      <path d="M140 193q40-17 99 0-5 38-48 43-43-2-51-43Z" fill="#bdb3ef" />
+      <path d="M176 180v11m16-14v12m16-10v11" stroke="#8278ba" stroke-width="4" />
+      <path d="m143 204 11 7 13-7m45 0 12 7 12-7" fill="none" stroke="#45416c" stroke-width="5" />
+      <path d="m181 219 10 7 10-7Z" fill="#6b567f" />
+      <path d="M191 225v6m0 0q-8 7-14 0m14 0q8 7 14 0" fill="none" stroke="#6b567f" stroke-width="3" />
+      <path d="m138 218-16-3m18 11-17 3m119-11 15-3m-17 11 17 3" stroke="#e0d7f8" stroke-width="3" />
+      <path d="M240 282c-54 28-94 1-70-25 8-9 20-11 33-9" fill="none" stroke="#aaa0df" stroke-width="18" />
+      <path d="M238 279c-45 24-78 3-65-18" fill="none" stroke="#c8bef0" stroke-width="4" />
+      <ellipse cx="194" cy="284" rx="21" ry="10" fill="#c8bef0" />
+      <path d="M188 281v6m9-6v6" stroke="#8278ba" stroke-width="3" />
+      <path d="M258 73h33l-33 34h33m1 21h23l-23 24h23" stroke="#b8afff" stroke-width="6" fill="none" />
+      <path d="m226 66 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="#e1d9ff" />
+    </g>
+  </g>
+  <g fill="#b8afff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 13.5)">
+    <text x="535" y="126" font-size="64">CLARE'S</text>
+    <text x="535" y="202" font-size="60">NIGHTTIME</text>
+    <text x="535" y="278" font-size="60">CARTOONS</text>
+  </g>
+</svg>

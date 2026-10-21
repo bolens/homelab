@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="star-trek-cinema-title">
+  <title id="star-trek-cinema-title">Star Trek Cinema</title>
+  <defs>
+    <linearGradient id="star-trek-cinema-gold">
+      <stop offset="0" stop-color="#fff0b7" />
+      <stop offset="0.24" stop-color="#edcf78" />
+      <stop offset="0.4" stop-color="#ac7c2e" />
+      <stop offset="0.6" stop-color="#ffe4a0" />
+      <stop offset="0.8" stop-color="#c4984b" />
+      <stop offset="1" stop-color="#f4d489" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#88c6ff" stroke-width="5" />
+  <g transform="translate(0 3.5)">
+    <g stroke-linejoin="round">
+      <path d="M190 48C153 93 97 215 62 329c51-40 94-87 122-91 31-3 60 25 96 54-17-89-50-181-90-244Z" fill="url(#star-trek-cinema-gold)" stroke="#fff0ba" stroke-width="6" />
+      <path d="M190 48c40 63 73 155 90 244-36-29-65-57-96-54l-9-15 30 2c-1-54-8-111-15-177Z" fill="#947039" />
+      <path d="M180 78C142 144 104 232 80 296" fill="none" stroke="#fff7d4" stroke-width="5" stroke-linecap="round" />
+      <path d="m186 116 8 66 22 12-20 8 5 27-15-16-16 16 5-27-21-9 23-12 9-65Z" fill="#1a242c" />
+    </g>
+  </g>
+  <g id="star-trek-cinema-three-line-wordmark" font-family="DejaVu Sans, sans-serif" font-weight="800" text-anchor="middle" fill="#88c6ff">
+    <text x="535" y="137.5" font-size="70">STAR</text>
+    <text x="535" y="217.5" font-size="70">TREK</text>
+    <text x="535" y="297.5" font-size="70">CINEMA</text>
+  </g>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="tv-mix-title">
+  <title id="tv-mix-title">Channel Surf TV</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#bca7ff" stroke-width="5" />
+  <g transform="translate(0 -13.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <rect x="45" y="92" width="243" height="184" rx="16" fill="#69628d" stroke="#bca7ff" stroke-width="5" />
+      <path d="M61 100h210m-216 9v46" stroke="#e3d4ff" stroke-width="4" />
+      <rect x="58" y="107" width="217" height="151" rx="6" fill="#1a263c" />
+      <rect x="65" y="114" width="96" height="63" rx="5" fill="#8bc9e2" />
+      <path d="m73 122 79 1-79 30Z" fill="#d2edf0" opacity="0.45" />
+      <path d="m100 128 29 17-29 18Z" fill="#21354c" />
+      <rect x="170" y="114" width="98" height="63" rx="5" fill="#d8a8ca" />
+      <path d="m179 122 80 1-80 30Z" fill="#f9d5e1" opacity="0.45" />
+      <path d="m218 125 7 14 17 2-13 11 3 16-14-8-15 8 3-16-12-11 17-2Z" fill="#453349" />
+      <rect x="65" y="186" width="96" height="64" rx="5" fill="#a2d4ae" />
+      <circle cx="97" cy="206" r="4" fill="#24473e" />
+      <circle cx="131" cy="206" r="4" fill="#24473e" />
+      <path d="M90 218q24 15 48 0-3 21-24 21-22 0-24-21Z" fill="#24473e" />
+      <path d="M96 224q18 7 36 0" stroke="#d9eed0" stroke-width="3" />
+      <rect x="170" y="186" width="98" height="64" rx="5" fill="#e2c18a" />
+      <path d="M208 225v-25l27-5v25m-27-17 27-5" fill="none" stroke="#4b3c3d" stroke-width="5" />
+      <ellipse cx="200" cy="228" rx="9" ry="6" fill="#4b3c3d" />
+      <ellipse cx="227" cy="223" rx="9" ry="6" fill="#4b3c3d" />
+      <path d="M153 277v20h-37l-16 11h133l-16-11h-37v-20" fill="#5b527f" stroke="#bca7ff" stroke-width="5" />
+      <rect x="280" y="174" width="38" height="145" rx="14" fill="#4b456b" stroke="#d5c1ff" stroke-width="4" />
+      <path d="M290 185v118" stroke="#77698e" stroke-width="3" />
+      <circle cx="299" cy="190" r="5" fill="#edb0b5" />
+      <circle cx="299" cy="220" r="10" fill="#262c48" stroke="#bca7ff" stroke-width="2" />
+      <path d="M299 214v12m-6-6h12" stroke="#bca7ff" stroke-width="2" />
+      <rect x="292" y="242" width="6" height="15" rx="2" fill="#bca7ff" />
+      <rect x="303" y="242" width="6" height="15" rx="2" fill="#bca7ff" />
+      <path d="M293 272h12m-12 12h12m-12 12h12" stroke="#c6b8e3" stroke-width="3" />
+    </g>
+  </g>
+  <g fill="#bca7ff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">CHANNEL</text>
+    <text x="535" y="202" font-size="66">SURF</text>
+    <text x="535" y="278" font-size="66">TV</text>
+  </g>
+</svg>

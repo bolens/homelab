@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="illumination-animation-title">
+  <title id="illumination-animation-title">Illumination Animation</title>
+  <defs>
+    <linearGradient id="illumination-animation-yellow">
+      <stop offset="0" stop-color="#fff08b" />
+      <stop offset="0.3" stop-color="#ffe24b" />
+      <stop offset="0.7" stop-color="#f5c82a" />
+      <stop offset="1" stop-color="#d59b16" />
+    </linearGradient>
+    <linearGradient id="illumination-animation-goggle-metal">
+      <stop offset="0" stop-color="#fafaff" />
+      <stop offset="0.3" stop-color="#bdc8cf" />
+      <stop offset="0.5" stop-color="#eef2f3" />
+      <stop offset="0.73" stop-color="#85939d" />
+      <stop offset="1" stop-color="#d9e2e8" />
+    </linearGradient>
+    <linearGradient id="illumination-animation-denim">
+      <stop offset="0" stop-color="#6aadd4" />
+      <stop offset="0.4" stop-color="#377db1" />
+      <stop offset="1" stop-color="#245284" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffd967" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 11.0)">
+    <g>
+      <g stroke-linecap="round">
+        <path d="M98 207q-36 7-35 38m194-34q33-3 34-35" fill="none" stroke="#f4cc38" stroke-width="14" />
+        <path d="M53 240q-16 27 7 32 21 0 15-26Zm227-69q-8-20 5-23 7-9 15 3 12-1 13 11 8 14-7 24l-17 1Z" fill="#202b39" stroke="#5d6c7a" stroke-width="3" />
+      </g>
+    </g>
+    <path d="M91 137v-21a87 87 0 0 1 174 0v128a87 87 0 0 1-174 0Z" fill="url(#illumination-animation-yellow)" stroke="#f5dd81" stroke-width="5" />
+    <path d="M104 119q0-69 62-76" fill="none" stroke="#fff0aa" stroke-width="9" />
+    <path d="M237 78q26 28 26 69v94q0 52-48 75" fill="none" stroke="#c9941d" stroke-width="11" />
+    <path d="M91 234h174v45q-6 52-83 52-79-2-91-52Z" fill="url(#illumination-animation-denim)" stroke="#9ccde9" stroke-width="4" />
+    <path d="m91 230 31 23 1 51m142-74-31 23-1 51" fill="none" stroke="#243d65" stroke-width="9" />
+    <path d="M151 264h58v39h-58Z" fill="#2d6799" stroke="#9ccde9" stroke-width="3" />
+    <path d="M91 141h174v27H91Z" fill="#172330" />
+    <circle cx="177" cy="154" r="50" fill="url(#illumination-animation-goggle-metal)" stroke="#eff4f7" stroke-width="7" />
+    <circle cx="177" cy="154" r="36" fill="#fffdf0" stroke="#3e4b5e" stroke-width="4" />
+    <circle cx="178" cy="158" r="19" fill="#a05c2e" />
+    <circle cx="179" cy="157" r="10" fill="#1a2435" />
+    <circle cx="172" cy="149" r="5" fill="#fff" />
+    <g>
+      <path d="m140 43q13-20 36-19m-23 17q18-16 40-11m-28 12q17-11 31-8" fill="none" stroke="#30333a" stroke-width="3" />
+      <path d="M147 207q31 30 62-2-34-8-62 2Z" fill="#332322" stroke="#855a2d" stroke-width="2" />
+      <path d="M156 208q23-3 43-1l-5 9-13 1-1-8-2 9-15-2Z" fill="#fff7df" />
+      <g fill="#30445b" stroke="#a2c9df" stroke-width="2">
+        <circle cx="124" cy="253" r="6" />
+        <circle cx="234" cy="253" r="6" />
+      </g>
+      <path d="M154 269v28h51v-28m-48 32h45" fill="none" stroke="#abd1e6" stroke-width="2" stroke-dasharray="3 3" />
+      <g fill="#253040" stroke="#728497" stroke-width="3">
+        <path d="M119 318h40v20h-49q-4-12 9-20Zm78 0h39q17 11 9 20h-48Z" />
+      </g>
+      <path d="M164 274h27l-10 17-17-9Z" fill="#163955" />
+      <g fill="#6d7d88">
+        <circle cx="177" cy="107" r="3" />
+        <circle cx="223" cy="153" r="3" />
+        <circle cx="177" cy="201" r="3" />
+        <circle cx="130" cy="153" r="3" />
+      </g>
+    </g>
+  </g>
+  <g fill="#ffd967" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 15.5)">
+    <text x="535" y="150" font-size="46">ILLUMINATION</text>
+    <text x="535" y="238" font-size="57">ANIMATION</text>
+  </g>
+</svg>

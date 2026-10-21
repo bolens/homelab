@@ -1,0 +1,13 @@
+[Unit]
+Description=Verified media television database/configuration backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /path/to/maintenance/runner.py backup --config /etc/dispatcharr-maintenance.json
+TimeoutStartSec=30min
+Nice=15
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

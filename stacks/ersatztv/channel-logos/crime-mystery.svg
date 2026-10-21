@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="crime-mystery-title">
+  <title id="crime-mystery-title">Crime &amp; Mystery</title>
+  <defs>
+    <linearGradient id="crime-mystery-metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f1e9" />
+      <stop offset="0.3" stop-color="#93a9b7" />
+      <stop offset="0.55" stop-color="#e0e8eb" />
+      <stop offset="1" stop-color="#5f7b8e" />
+    </linearGradient>
+    <linearGradient id="crime-mystery-paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff4dc" />
+      <stop offset="1" stop-color="#dcc8a0" />
+    </linearGradient>
+    <linearGradient id="crime-mystery-folder" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c59d63" />
+      <stop offset="1" stop-color="#806548" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#87bfff" stroke-width="5" />
+  <g transform="translate(0 0.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M65 82h78l16 18h106v199H65Z" fill="url(#crime-mystery-folder)" stroke="url(#crime-mystery-metal)" stroke-width="5" />
+      <path d="M81 66h132l32 34v176H81Z" fill="url(#crime-mystery-paper)" stroke="#f1ddba" stroke-width="5" />
+      <path d="M213 66v34h32" fill="#fff9ec" stroke="#f1ddba" stroke-width="4" />
+      <path d="M94 73h45v30l-22-12-23 12Z" fill="#b64e45" stroke="#e5a47e" stroke-width="2" />
+      <path d="M103 120h88m-88 19h64m-64 19h79m-79 19h51m-51 74h43" stroke="#6c7072" stroke-width="5" />
+      <rect x="101" y="195" width="37" height="37" rx="4" fill="url(#crime-mystery-folder)" />
+      <path d="m108 213 7 7 16-17" fill="none" stroke="#fff3cc" stroke-width="4" />
+      <path d="m251 258 50 50" stroke="#354957" stroke-width="25" />
+      <path d="m258 265 43 43" stroke="url(#crime-mystery-metal)" stroke-width="15" />
+      <circle cx="209" cy="209" r="63" fill="#20374e" stroke="url(#crime-mystery-metal)" stroke-width="10" />
+      <circle cx="209" cy="209" r="49" fill="#213c4b" stroke="#f1f5e9" stroke-width="3" />
+      <g fill="none" stroke="#b8dcf4" stroke-width="4">
+        <path d="M179 226v-25c0-39 61-40 61 0v22" />
+        <path d="M188 235v-33c0-28 43-28 43 0v31" />
+        <path d="M198 242v-39c0-15 24-17 24 0v23q0 14 7 20" />
+        <path d="M209 204v30q0 10-5 17m8-17 6 15" />
+      </g>
+      <path d="M168 190q7-16 21-22" fill="none" stroke="#fff1cf" stroke-width="5" />
+    </g>
+  </g>
+  <g fill="#87bfff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800">
+    <text x="535" y="166" font-size="70">CRIME</text>
+    <text x="535" y="254" font-size="66">MYSTERY</text>
+  </g>
+</svg>

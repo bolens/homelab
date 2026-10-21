@@ -9,6 +9,8 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -56,6 +58,41 @@ class OptionalStackOverrideTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)["services"]
 
+    def test_plex_dvr_bind_is_explicit_and_refuses_missing_source(self):
+        override = "docker-compose.dvr.yml"
+        target = self.fixture("plex", override, f"PLEX_DVR_PATH={self.root}/missing-dvr\n")
+        base = self.render(target)["plex"]
+        self.assertNotIn("/data/dvr", {item["target"] for item in base["volumes"]})
+        enabled = self.render(target, override)["plex"]
+        mounts = {item["target"]: item for item in enabled["volumes"]}
+        self.assertFalse(mounts["/data/dvr"].get("bind", {}).get("create_host_path", False))
+        self.assertFalse((self.root / "missing-dvr").exists())
+        self.assertEqual(base["network_mode"], enabled["network_mode"])
+
+    def test_library_artwork_reuses_loopback_without_new_ports_or_networks(self):
+        override = "docker-compose.library-artwork.yml"
+        target = self.fixture("dispatcharr", override)
+        base = self.render(target)["dispatcharr"]
+        enabled = self.render(target, override)["dispatcharr"]
+        self.assertEqual(base.get("ports"), enabled.get("ports"))
+        self.assertEqual(base["networks"], enabled["networks"])
+        self.assertEqual(enabled["environment"]["LIBRARY_ARTWORK_ORIGIN"], "https://dispatcharr.example.com")
+        mounts = {v["target"]: v for v in enabled["volumes"]}
+        self.assertEqual(enabled["entrypoint"], ["/bin/bash", "/opt/dispatcharr-library-entrypoint.sh"])
+        for name in ["/opt/dispatcharr-library-entrypoint.sh", "/opt/dispatcharr-library-artwork.py"]:
+            self.assertTrue(mounts[name]["read_only"])
+            self.assertFalse(mounts[name]["bind"].get("create_host_path", False))
+
+    def test_node_textfile_uses_existing_readonly_mount_without_new_listener(self):
+        override = "docker-compose.textfile.yml"
+        target = self.fixture("node-exporter", override)
+        base = self.render(target)["node-exporter"]
+        enabled = self.render(target, override)["node-exporter"]
+        self.assertEqual(base["volumes"], enabled["volumes"])
+        self.assertFalse(enabled.get("ports"))
+        self.assertIn("--collector.textfile.directory=/host/var/lib/node_exporter/textfile_collector",
+                      enabled["command"])
+
     def test_local_backup_overrides_inherited_repository_and_success_policy(self):
         override = "docker-compose.local-backup.yml"
         target = self.fixture("restic", override, "\n".join([
@@ -85,6 +122,55 @@ class OptionalStackOverrideTests(unittest.TestCase):
                 self.assertFalse(mount.get("bind", {}).get("create_host_path", False))
         self.assertFalse((self.root / "missing-backup-disk").exists())
         self.assertFalse((self.root / "missing-media").exists())
+
+    def test_dispatcharr_plex_port_is_opt_in_and_loopback_only(self):
+        override = "docker-compose.plex.yml"
+        target = self.fixture("dispatcharr", override)
+        base = self.render(target)["dispatcharr"]
+        self.assertFalse(base.get("ports"))
+        connected = self.render(target, override)["dispatcharr"]
+        self.assertEqual(connected.pop("ports"), [{
+            "mode": "ingress", "host_ip": "127.0.0.1", "target": 9191,
+            "published": "9191", "protocol": "tcp",
+        }])
+        self.assertEqual(connected, base)
+        with (target / "stack.env").open("a", encoding="utf-8") as stream:
+            stream.write("\nDISPATCHARR_PLEX_PORT=19201\n")
+        changed = self.render(target, override)["dispatcharr"]["ports"]
+        self.assertEqual(changed[0]["host_ip"], "127.0.0.1")
+        self.assertEqual(changed[0]["published"], "19201")
+
+    def test_dispatcharr_dvr_storage_refuses_implicit_directory_creation(self):
+        override = "docker-compose.storage.yml"
+        recordings = self.root / "unmounted-media" / "dvr" / "dispatcharr"
+        target = self.fixture(
+            "dispatcharr", override,
+            f"DISPATCHARR_RECORDINGS_PATH={recordings}\n",
+        )
+        base = self.render(target)["dispatcharr"]
+        connected = self.render(target, override)["dispatcharr"]
+        mounts = connected.pop("volumes")
+        extra = [mount for mount in mounts if mount["target"] == "/data/recordings"]
+        self.assertEqual(len(extra), 1)
+        self.assertEqual(extra[0]["source"], str(recordings))
+        # Compose versions differ in whether false defaults appear in JSON.
+        self.assertFalse(extra[0].get("bind", {}).get("create_host_path", False))
+        declared = yaml.safe_load((target / override).read_text())
+        self.assertIs(declared["services"]["dispatcharr"]["volumes"][0]["bind"]["create_host_path"], False)
+        self.assertFalse(recordings.exists())
+        self.assertEqual([mount for mount in mounts if mount not in extra],
+                         base.pop("volumes"))
+        self.assertEqual(connected, base)
+        with (target / "stack.env").open("a", encoding="utf-8") as stream:
+            stream.write("\nDISPATCHARR_RECORDINGS_PATH=\n")
+        result = subprocess.run(
+            [self.docker, "compose", "--env-file", "stack.env",
+             "-f", "docker-compose.yml", "-f", override, "config", "--quiet"],
+            cwd=target, env={"PATH": os.environ["PATH"], "HOME": str(self.root)},
+            capture_output=True, text=True, check=False, timeout=30,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("DISPATCHARR_RECORDINGS_PATH", result.stderr)
 
     def test_mongodb_kernel_workaround_requires_explicit_override(self):
         override = "docker-compose.kernel-workaround.yml"

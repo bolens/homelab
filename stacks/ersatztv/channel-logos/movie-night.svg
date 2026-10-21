@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="movie-night-title">
+  <title id="movie-night-title">Movie Night</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#e8bc62" stroke-width="5" />
+  <g transform="translate(0 6.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M59 151h244v163H59Z" fill="#8f7040" stroke="#e8bc62" stroke-width="5" />
+      <path d="M65 202h232v105H65Z" fill="#9c7c46" />
+      <path d="M68 209h220L68 297Z" fill="#b08c50" />
+      <path d="M68 307h228" stroke="#d3a95a" stroke-width="4" />
+      <path d="M59 158h244v40H59Z" fill="#e8bc62" />
+      <path d="m91 158-27 40h26l28-40Zm63 0-27 40h26l28-40Zm63 0-27 40h26l28-40Zm63 0-27 40h26l24-34v-6Z" fill="#574b38" />
+      <path d="M66 160h229" stroke="#ffe5a7" stroke-width="3" />
+      <path d="m59 151-12-46 240-48 12 47Z" fill="#d7a951" stroke="#ffe5a7" stroke-width="4" />
+      <path d="m52 109 236-47 3 11-236 47Z" fill="#f3ce81" />
+      <path d="m79 99 38 39 23-5-39-39Zm62-13 38 40 23-5-39-40Zm62-12 38 39 23-5-39-39Zm62-13 29 30-5-21Z" fill="#574b38" />
+      <path d="m55 142 238-47" stroke="#bb8f43" stroke-width="3" />
+      <path d="M58 144h24v62H58Z" fill="#d2a65a" stroke="#ffe5a7" stroke-width="3" />
+      <circle cx="69" cy="155" r="5" fill="#574b38" stroke="#f5d797" stroke-width="2" />
+      <circle cx="69" cy="192" r="5" fill="#574b38" stroke="#f5d797" stroke-width="2" />
+      <path d="M87 222h185m-185 26h91m-91 24h62m-62 24h99" stroke="#f5d797" stroke-width="5" />
+      <path d="M196 235v64" stroke="#d8ad62" stroke-width="3" />
+      <path d="m246 239 10 21 23 3-17 16 4 22-20-11-20 11 4-22-17-16 23-3Z" fill="#e8bc62" stroke="#ffe5a7" stroke-width="2" />
+      <path d="m246 244 6 19-6 20-14 9 4-15-15-11 19-1Z" fill="#ffdf93" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#e8bc62">MOVIE</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#e8bc62">NIGHT</text>
+</svg>

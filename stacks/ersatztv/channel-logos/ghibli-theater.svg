@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="ghibli-theater-title">
+  <title id="ghibli-theater-title">Ghibli Theater</title>
+  <defs>
+    <linearGradient id="ghibli-theater-fur">
+      <stop offset="0" stop-color="#a3a4a0" />
+      <stop offset="0.4" stop-color="#777d7e" />
+      <stop offset="1" stop-color="#515b62" />
+    </linearGradient>
+    <radialGradient id="ghibli-theater-belly">
+      <stop offset="0" stop-color="#eee6c7" />
+      <stop offset="0.7" stop-color="#dfd2aa" />
+      <stop offset="1" stop-color="#c6b793" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a7e5b5" stroke-width="5" />
+  <g transform="translate(0 3.5)">
+    <g stroke-linejoin="round">
+      <path d="M91 157c-12-48-18-85-3-102 17 9 31 43 38 72 30-10 63-10 96 0 7-29 21-63 38-72 15 17 9 54-3 102 57 76 54 165-81 165S35 233 91 157Z" fill="url(#ghibli-theater-fur)" stroke="#b8c3b9" stroke-width="7" />
+      <path d="M85 78q-1 30 17 63m145 0q18-33 17-63" stroke="#4d5559" stroke-width="8" fill="none" stroke-linecap="round" />
+      <ellipse cx="176" cy="248" rx="78" ry="66" fill="url(#ghibli-theater-belly)" />
+      <ellipse cx="138" cy="162" rx="19" ry="23" fill="#f8f2d9" />
+      <ellipse cx="213" cy="162" rx="19" ry="23" fill="#f8f2d9" />
+      <circle cx="142" cy="162" r="6" fill="#182126" />
+      <circle cx="209" cy="162" r="6" fill="#182126" />
+      <path d="m161 174 15-9 15 9-15 6Z" fill="#182126" />
+      <path d="M125 190q51 22 102 0" fill="none" stroke="#4d5559" stroke-width="4" />
+      <path d="m125 230 13-10 13 10m12-8 13-10 13 10m12 8 13-10 13 10m-108 28 11-9 11 9m8 0 11-9 11 9m8 0 11-9 11 9m8 0 11-9 11 9" fill="none" stroke="#5a6265" stroke-width="6" stroke-linecap="round" />
+      <path d="m85 187-34-8m33 25-37 3m219-20 34-8m-33 25 37 3" stroke="#b8c3b9" stroke-width="5" stroke-linecap="round" />
+    </g>
+    <g>
+      <path d="M151 122q26-26 64-8l-13 14-26-4-17 7Z" fill="#75a34c" stroke="#adc977" stroke-width="3" />
+      <path d="m173 121 18-17 8-4" fill="none" stroke="#b9d18b" stroke-width="3" />
+      <path d="m81 229-7 12m11-2-6 14m187-25 7 12m-10 0 6 13" stroke="#a6b0ad" stroke-width="2" fill="none" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#a7e5b5">GHIBLI</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="69" font-weight="800" text-anchor="middle" fill="#a7e5b5">THEATER</text>
+</svg>

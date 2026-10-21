@@ -19,7 +19,7 @@ exposure:
   public_by_default: false
   recommended_hostname: plex.yourdomain.com
 data_profile:
-  contains_pii: false
+  contains_pii: true
   contains_logs_only: false
   recommended_backup: true
 host_requirements:
@@ -32,7 +32,7 @@ links:
   repo: null
 backup:
   priority: medium
-  schedule_hint: weekly
+  schedule_hint: daily
 volumes:
 - name: plex_config
   role: app_data

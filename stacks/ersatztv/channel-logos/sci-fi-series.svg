@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="sci-fi-series-title">
+  <title id="sci-fi-series-title">Sci-Fi &amp; Fantasy TV</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8acbff" stroke-width="5" />
+  <g transform="translate(0 -1.50)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M59 318V175c0-158 232-158 232 0v143Z" fill="#344f6b" stroke="#8acbff" stroke-width="5" />
+      <path d="M70 310V177c0-142 210-142 210 0v133Z" fill="#162d47" stroke="#b9e2ff" stroke-width="4" />
+      <path d="M83 310V177c0-123 184-123 184 0v133" fill="none" stroke="#69a8d7" stroke-width="5" />
+      <path d="M70 170q0-86 81-104" stroke="#d2edff" stroke-width="4" fill="none" />
+      <path d="M277 188v109" stroke="#213850" stroke-width="6" />
+      <path d="M55 321h241v10H55Z" fill="#4e7396" stroke="#8acbff" stroke-width="4" />
+      <path d="M69 319h214" stroke="#c9e5ff" stroke-width="4" />
+      <path d="m91 113 7 7-7 7-7-7Zm82-48 7 7-7 7-7-7Zm88 47 7 7-7 7-7-7Z" fill="#c9e5ff" />
+      <path d="M72 196h11m-11 50h11m185-50h11m-11 50h11" stroke="#8acbff" stroke-width="4" />
+      <g transform="rotate(34 177 191)">
+        <path d="m160 250-9 50 26-17 25 17-9-50Z" fill="#e8a86b" />
+        <path d="m168 252-4 33 13-12 13 12-4-33Z" fill="#ffe3a4" />
+        <path d="M147 215q-25 23-26 58l30-17m56-41q25 23 26 58l-30-17" fill="#659aca" stroke="#b9e2ff" stroke-width="4" />
+        <path d="M146 249v-72q0-53 31-79 31 26 31 79v72Z" fill="#c4d9ec" stroke="#8acbff" stroke-width="4" />
+        <path d="M177 103q-21 29-20 75v65h-10v-65q0-49 30-75Z" fill="#edf6ff" />
+        <path d="M181 106q27 27 27 71v72h-14v-73q0-41-13-70Z" fill="#8caccc" />
+        <path d="M153 139h48" stroke="#659aca" stroke-width="4" />
+        <circle cx="177" cy="174" r="17" fill="#6b9fc8" stroke="#edf6ff" stroke-width="5" />
+        <path d="M166 176q-3-14 13-15" stroke="#c8eaff" stroke-width="4" fill="none" />
+        <path d="M164 214h26m-26 10h26m-27 24h29" stroke="#659aca" stroke-width="4" />
+        <path d="M177 222v47" stroke="#8acbff" stroke-width="7" />
+      </g>
+      <path d="m113 160 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="#d9edff" />
+    </g>
+  </g>
+  <g id="sci-fi-series-three-line-wordmark" font-family="DejaVu Sans, sans-serif" font-weight="800" text-anchor="middle" fill="#8acbff" transform="translate(0 0.5)">
+    <text x="535" y="137.5" font-size="70">SCI-FI &amp;</text>
+    <text x="535" y="217.5" font-size="70">FANTASY</text>
+    <text x="535" y="297.5" font-size="70">TV</text>
+  </g>
+</svg>

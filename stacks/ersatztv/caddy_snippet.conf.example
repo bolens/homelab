@@ -1,5 +1,32 @@
-# Copy to caddy_snippet.conf and adjust the hostname if needed.
-ersatztv.yourdomain.com {
-    import common
-    reverse_proxy ersatztv:8409
+# Private administration and playback. Replace placeholder names only in the
+# ignored runtime snippet. There is no built-in username/password form login.
+ersatztv.home.arpa, ersatztv.local {
+    tls internal
+    reverse_proxy ersatztv:8409 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+# Tunnel management only: create an Access application and restricted Allow
+# policy before publishing DNS. Configure connector JWT validation for its AUD.
+# Replace the TEST-NET connector address with the actual connector source IP.
+# Do not add a direct public HTTPS origin route that bypasses this restriction.
+http://ersatztv.example.com {
+    header Cache-Control "private, no-store"
+    @connector remote_ip 192.0.2.2/32
+    handle @connector {
+        reverse_proxy ersatztv:8409 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {host}
+            transport http {
+                versions 1.1
+            }
+        }
+    }
+    handle {
+        respond "Forbidden" 403
+    }
 }

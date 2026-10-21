@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="thanksgiving-table-title">
+  <title id="thanksgiving-table-title">Thanksgiving Table</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#e8b66c" stroke-width="5" />
+  <g transform="translate(0 -15.0)"><g stroke-linejoin="round" stroke-linecap="round"><ellipse cx="175" cy="302" rx="128" ry="23" fill="#7e6d57" stroke="#f3c181" stroke-width="6"/><ellipse cx="175" cy="296" rx="111" ry="15" fill="#d5c396"/><path d="M77 275c-13-18-8-45 12-58 0-49 66-85 112-58 29 16 40 48 35 75 31 10 48 28 40 47-43 17-147 17-199-6Z" fill="#bf8750" stroke="#e9ba7e" stroke-width="6"/><path d="M165 158c53 8 82 58 60 94-13 24-55 34-106 25 65-6 97-56 46-119Z" fill="#a06c43"/><path d="M103 216q10-36 52-38m-48 55q9-18 28-20" stroke="#e7b878" stroke-width="7" fill="none"/><path d="M144 251q29-38 51-13-8 30-51 13Z" fill="#c99b62" stroke="#e9ba7e" stroke-width="5"/><path d="M225 266c-30-29-10-65 15-57l23 20-17 39Z" fill="#cf9a5d" stroke="#efc389" stroke-width="6"/><path d="m249 230 35-23m-3-6 8 12m-6-7 7-6m-7 6 8 6" stroke="#f5e8bf" stroke-width="9"/><path d="m77 287-14-10m24 14-6-16m181 14 18-14m-3 20 15-8" stroke="#9bbb77" stroke-width="7"/><path d="M125 123q-15-16 0-32m31 30q-15-16 0-32" stroke="#edc58e" stroke-width="5" fill="none"/></g></g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="46" font-weight="800" text-anchor="middle" fill="#e8b66c">Thanksgiving</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#e8b66c">Table</text>
+</svg>

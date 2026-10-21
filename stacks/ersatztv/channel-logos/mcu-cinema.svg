@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="mcu-cinema-title">
+  <title id="mcu-cinema-title">MCU Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ff7b7b" stroke-width="5" />
+  <g transform="translate(0 2.5)"><g stroke-linejoin="round"><defs><linearGradient id="mcu-emblem-face" x1="80" y1="70" x2="285" y2="310" gradientUnits="userSpaceOnUse"><stop stop-color="#ffc2be"/><stop offset=".5" stop-color="#ff7b7b"/><stop offset="1" stop-color="#c95063"/></linearGradient></defs><circle cx="175" cy="203" r="117" fill="#2c2638" stroke="#bf5363" stroke-width="5"/><circle cx="175" cy="203" r="108" fill="none" stroke="url(#mcu-emblem-face)" stroke-width="20"/><path d="M58 326 190 53h46v273h-39v-81h-70l-38 81Zm88-122h51V96Z" fill="url(#mcu-emblem-face)" fill-rule="evenodd" stroke="#111c2d" stroke-width="6"/><path d="M140 218h65v-22l49 44-49 44v-23h-84Z" fill="url(#mcu-emblem-face)" stroke="#111c2d" stroke-width="6"/><path d="M194 61h32m-143 85q24-44 67-54" fill="none" stroke="#ffd6d1" stroke-width="4" stroke-linecap="round"/></g></g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ff7b7b">MCU</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ff7b7b">CINEMA</text>
+</svg>

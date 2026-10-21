@@ -1,0 +1,20 @@
+# Optional private guide bridge with image-only public artwork for Plex/ErsatzTV.
+# Enable with docker-compose.plex.yml and the reviewed ingress image exception.
+services:
+  dispatcharr:
+    entrypoint: ["/bin/bash", "/opt/dispatcharr-library-entrypoint.sh"]
+    environment:
+      LIBRARY_ARTWORK_ORIGIN: ${DISPATCHARR_LIBRARY_ARTWORK_ORIGIN:?Set the public HTTPS Dispatcharr origin for program images}
+    volumes:
+      - type: bind
+        source: ./helpers/library-artwork-init.sh
+        target: /opt/dispatcharr-library-entrypoint.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./helpers/library_artwork.py
+        target: /opt/dispatcharr-library-artwork.py
+        read_only: true
+        bind:
+          create_host_path: false

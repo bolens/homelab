@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="family-animation-title">
+  <title id="family-animation-title">Family Toon Theater</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffe073" stroke-width="5" />
+  <g transform="translate(0 10.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M56 250q57-20 119 8 62-28 119-8v62q-60-19-119 5-62-24-119-5Z" fill="#f7e9b5" stroke="#ffe073" stroke-width="6" />
+      <path d="M175 260v56m-104-18q47-9 88 7m32 0q45-16 88-7" fill="none" stroke="#c9ac5e" stroke-width="4" />
+      <path d="m91 154-5-82 65 45q27-8 55 0l65-45-6 82q15 30 4 64-11 32-56 49l-36 22-37-22q-44-17-55-49-10-35 6-64Z" fill="#e7a257" stroke="#ffe073" stroke-width="5" />
+      <path d="m100 99 7 58 29-26Zm155 0-37 32 29 26Z" fill="#6b4661" />
+      <path d="M91 192q30 4 51 24l35 11 35-11q23-20 53-24-3 40-52 66l-36 20-36-20q-46-24-50-66Z" fill="#fff1c8" />
+      <path d="M121 169q11-12 23 1m66 0q11-13 23-1" fill="none" stroke="#5a3b46" stroke-width="7" />
+      <ellipse cx="134" cy="192" rx="6" ry="12" fill="#3e3340" />
+      <ellipse cx="220" cy="192" rx="6" ry="12" fill="#3e3340" />
+      <circle cx="136" cy="188" r="2" fill="#fff" />
+      <circle cx="222" cy="188" r="2" fill="#fff" />
+      <path d="M159 223q18-13 36 0l-18 14Z" fill="#65434d" />
+      <path d="M177 236v13m-20-3q20 19 40 0" fill="none" stroke="#65434d" stroke-width="4" />
+      <path d="m65 155 5-12 5 12 13 5-13 5-5 12-5-12-12-5Zm210-20 5-12 5 12 12 5-12 5-5 12-5-12-12-5Z" fill="#ffe073" />
+      <path d="m165 70 12-24 12 24 27 4-20 19 5 27-24-13-24 13 5-27-20-19Z" fill="#ffe073" stroke="#fff0bd" stroke-width="3" />
+    </g>
+  </g>
+  <g fill="#ffe073" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">FAMILY</text>
+    <text x="535" y="202" font-size="66">TOON</text>
+    <text x="535" y="278" font-size="66">THEATER</text>
+  </g>
+</svg>

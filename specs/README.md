@@ -32,3 +32,7 @@ Installation validation alone does not establish feature completion.
 - [Verified archive repair](024-verified-archive-repair/spec.md): prospective [plan](024-verified-archive-repair/plan.md), [contract](024-verified-archive-repair/contracts/archive-repair.md), [tasks](024-verified-archive-repair/tasks.md). Diagnostics and prepared copies do not establish adoption or live acceptance.
 
 - [Music integrity guards](025-music-integrity-guards/spec.md): [plan](025-music-integrity-guards/plan.md), [tasks](025-music-integrity-guards/tasks.md), [validation](025-music-integrity-guards/validation.md).
+
+- [IPTV reliability and recovery](026-iptv-reliability/spec.md): [plan](026-iptv-reliability/plan.md), [tasks](026-iptv-reliability/tasks.md), [validation](026-iptv-reliability/validation.md).
+
+- [ErsatzTV library channels](027-ersatztv-live-channels/spec.md): prospective [plan](027-ersatztv-live-channels/plan.md), [tasks](027-ersatztv-live-channels/tasks.md).

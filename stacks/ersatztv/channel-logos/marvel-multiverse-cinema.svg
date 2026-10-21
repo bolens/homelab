@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="marvel-multiverse-cinema-title">
+  <title id="marvel-multiverse-cinema-title">Marvel Multiverse Cinema</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#f16b65" stroke-width="5" />
+  <g transform="translate(0 -10.00)">
+    <g stroke="#fbbaa0" stroke-width="5" stroke-linejoin="round">
+      <path d="m72 95 220 13-9 201-221-17Z" fill="#9d384d" />
+      <path d="m86 111 90 5-5 96-91-7Z" fill="#ed625e" />
+      <path d="m187 117 90 6-4 96-92-6Z" fill="#37516e" />
+      <path d="m81 219 190 14-4 60-191-14Z" fill="#4b805c" />
+      <path d="M131 125c-22-1-33 18-31 39 0 21 14 36 29 38 20-2 32-18 33-39 1-21-10-36-31-38Z" fill="#dc4a4c" />
+      <path d="m106 147 19 10-4 17-13-8Zm47 0-19 10 4 17 13-8Z" fill="#fff1d4" />
+      <path d="m130 127-1 72m-26-57 53 41m-51 0 49-42m-51 23 53-1" fill="none" stroke="#8f3543" stroke-width="2.5" />
+      <path d="m211 138 41 4-2 28-42-4Z" fill="#d4dce0" />
+      <path d="m212 139 5 7 31 1m-23 24-2 30" fill="none" stroke="#f7d594" stroke-width="8" />
+      <path d="m252 177 10 6-13 9 9 6-18 11" fill="none" stroke="#f6d76b" stroke-width="4" />
+      <path d="m128 246 1-10 14-2 10 5 12-1 10 5 12 1 12 10-9 17-39-3-21-12Z" fill="#94cf85" stroke="#d4edac" stroke-width="3" />
+      <path d="m145 239 1 17m17-16-2 19m17-14-3 18" stroke="#5b9769" stroke-width="3" />
+      <path d="m78 98 24-14 221 16-30 9m30-9-7 207-31 13" fill="#683d51" />
+      <path d="m301 129 14 1m-15 22 14 1m-16 23 14 1m-15 22 14 1m-16 23 14 1m-15 22 14 1m-16 23 14 1" stroke="#efa782" stroke-width="3" />
+    </g>
+  </g>
+  <text x="535" y="137.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#f16b65">MARVEL</text>
+  <text x="535" y="210.5" font-family="DejaVu Sans, sans-serif" font-size="51" font-weight="800" text-anchor="middle" fill="#f16b65">MULTIVERSE</text>
+  <text x="535" y="297.5" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#f16b65">CINEMA</text>
+</svg>

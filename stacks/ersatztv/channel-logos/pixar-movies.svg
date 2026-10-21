@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="pixar-movies-title">
+  <title id="pixar-movies-title">Pixar Movies</title>
+  <defs>
+    <linearGradient id="pixar-movies-silver">
+      <stop offset="0" stop-color="#f4f6f5" />
+      <stop offset="0.3" stop-color="#c6cdd1" />
+      <stop offset="0.65" stop-color="#8a969f" />
+      <stop offset="1" stop-color="#d4dbdd" />
+    </linearGradient>
+    <radialGradient id="pixar-movies-reflector">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.45" stop-color="#eceee9" />
+      <stop offset="1" stop-color="#a6b1b8" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffd36d" stroke-width="5" />
+  <g transform="translate(0 -19.0)">
+    <g stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="145" cy="314" rx="87" ry="16" fill="url(#pixar-movies-silver)" stroke="#c8d5de" stroke-width="6" />
+      <path d="M145 305v-26l-34-48m14-2 30 45m-44-43 42-85m-28 90 42-84m-14-6 35-37m-22 43 33-38" fill="none" stroke="#dce2e5" stroke-width="8" />
+      <path d="m134 206 24-48" stroke="#61717e" stroke-width="6" />
+      <path d="m134 206 24-48" stroke="#c8d5de" stroke-width="2" stroke-dasharray="3 6" />
+      <path d="M145 279v28" stroke="#c8d5de" stroke-width="12" />
+      <circle cx="114" cy="232" r="12" fill="#f7f8ef" stroke="url(#pixar-movies-silver)" stroke-width="5" />
+      <circle cx="158" cy="148" r="11" fill="#f7f8ef" stroke="url(#pixar-movies-silver)" stroke-width="5" />
+      <circle cx="191" cy="111" r="10" fill="#f7f8ef" stroke="url(#pixar-movies-silver)" stroke-width="5" />
+      <g transform="rotate(-25 232 143)">
+        <path d="M208 89h29l29 58h-87Z" fill="url(#pixar-movies-silver)" stroke="#c8d5de" stroke-width="5" />
+        <path d="m213 96-22 43" stroke="#ffffff" stroke-width="6" />
+        <ellipse cx="222" cy="147" rx="44" ry="16" fill="url(#pixar-movies-reflector)" stroke="#c8d5de" stroke-width="5" />
+        <ellipse cx="222" cy="147" rx="24" ry="9" fill="#fff9e4" />
+      </g>
+      <circle cx="273" cy="275" r="31" fill="#ffda6b" stroke="#ffecad" stroke-width="4" />
+      <path d="M244 278q29-17 58-6" fill="none" stroke="#3984ca" stroke-width="11" />
+      <path d="m273 250 6 13 14 2-11 9 3 14-12-7-12 7 3-14-11-9 14-2Z" fill="#e2473c" />
+    </g>
+    <g>
+      <g stroke="#6f808c" stroke-width="2" fill="#e8edef">
+        <circle cx="114" cy="232" r="4" />
+        <circle cx="158" cy="148" r="4" />
+        <circle cx="191" cy="111" r="3" />
+      </g>
+      <path d="m132 207 10-4-6-7 10-3-6-7 10-3-6-7 10-3-6-7 10-3" fill="none" stroke="#f1f3ef" stroke-width="2" />
+      <path d="M82 312q53-10 118 0" fill="none" stroke="#eef2f0" stroke-width="3" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ffd36d">PIXAR</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#ffd36d">MOVIES</text>
+</svg>

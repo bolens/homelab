@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="fast-furious-cinema-title">
+  <title id="fast-furious-cinema-title">Fast &amp; Furious Cinema</title>
+  <defs>
+    <linearGradient id="fast-furious-cinema-metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0eadc" />
+      <stop offset="0.25" stop-color="#c4ced2" />
+      <stop offset="0.6" stop-color="#7f96a3" />
+      <stop offset="1" stop-color="#c3d0d1" />
+    </linearGradient>
+    <linearGradient id="fast-furious-cinema-charcoal-paint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#717b80" />
+      <stop offset="0.3" stop-color="#3d4b52" />
+      <stop offset="0.65" stop-color="#243743" />
+      <stop offset="1" stop-color="#142331" />
+    </linearGradient>
+    <linearGradient id="fast-furious-cinema-windshield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#476c83" />
+      <stop offset="0.3" stop-color="#233c51" />
+      <stop offset="1" stop-color="#11232e" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffd36d" stroke-width="5" />
+  <g transform="translate(0 -25.0)">
+    <g stroke="url(#fast-furious-cinema-metal)" stroke-linejoin="round">
+      <path d="m60 195 38-71h154l38 71 18 17v71H42v-71Z" fill="url(#fast-furious-cinema-charcoal-paint)" stroke-width="5" />
+      <path d="m93 184 20-45h124l20 45Z" fill="url(#fast-furious-cinema-windshield)" stroke-width="4" stroke="url(#fast-furious-cinema-metal)" />
+      <path d="M47 217h256v47H47Z" fill="#111c2d" stroke-width="4" stroke="url(#fast-furious-cinema-metal)" />
+      <path d="M114 228h121m-121 12h121m-121 12h121" stroke="#93a6af" stroke-width="3" />
+      <path d="M63 283v28h40v-28m144 0v28h40v-28" fill="#111c2d" stroke-width="6" stroke="#6f8591" />
+      <path d="M145 202v-39h60v39" fill="url(#fast-furious-cinema-metal)" stroke-width="3" stroke="#adbac0" />
+      <path d="M143 165h64v-18h-64Z" fill="url(#fast-furious-cinema-metal)" stroke-width="3" stroke="#adbac0" />
+      <g fill="#111c2d" stroke-width="3">
+        <ellipse cx="154" cy="156" rx="5" ry="6" />
+        <ellipse cx="175" cy="156" rx="5" ry="6" />
+        <ellipse cx="196" cy="156" rx="5" ry="6" />
+      </g>
+      <g fill="#fff1be" stroke="none">
+        <circle cx="66" cy="240" r="11" />
+        <circle cx="94" cy="240" r="11" />
+        <circle cx="256" cy="240" r="11" />
+        <circle cx="284" cy="240" r="11" />
+      </g>
+      <path d="M43 274h264" stroke-width="8" stroke-linecap="round" stroke="url(#fast-furious-cinema-metal)" />
+      <g>
+        <circle cx="66" cy="240" r="14" fill="none" stroke="#b8c7c7" stroke-width="3" />
+      </g>
+      <g>
+        <circle cx="94" cy="240" r="14" fill="none" stroke="#b8c7c7" stroke-width="3" />
+      </g>
+      <g>
+        <circle cx="256" cy="240" r="14" fill="none" stroke="#b8c7c7" stroke-width="3" />
+      </g>
+      <g>
+        <circle cx="284" cy="240" r="14" fill="none" stroke="#b8c7c7" stroke-width="3" />
+      </g>
+      <g>
+        <path d="m114 145-13 31m24-31-12 31m112-31 14 31" fill="none" stroke="#89aaba" stroke-width="3" opacity=".7" />
+        <path d="M64 265h36m153 0h35" fill="none" stroke="#df9e57" stroke-width="5" stroke-linecap="round" />
+        <path d="M76 205h55m89 0h55" fill="none" stroke="#718c9a" stroke-width="3" />
+        <path d="M150 174h49m-49 6h49m-49 6h49" fill="none" stroke="#5f7889" stroke-width="2" />
+      </g>
+    </g>
+  </g>
+  <g id="fast-furious-cinema-three-line-wordmark" font-family="DejaVu Sans, sans-serif" font-weight="800" text-anchor="middle" fill="#ffd36d">
+    <text x="535" y="137.5" font-size="70">FAST &amp;</text>
+    <text x="535" y="217.5" font-size="70">FURIOUS</text>
+    <text x="535" y="297.5" font-size="70">CINEMA</text>
+  </g>
+</svg>

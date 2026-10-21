@@ -1,0 +1,6 @@
+# Optional connection for Plex running on this same host with host networking.
+# Enable explicitly with -f, or copy to the ignored docker-compose.override.yml.
+services:
+  dispatcharr:
+    ports:
+      - "127.0.0.1:${DISPATCHARR_PLEX_PORT:-9191}:9191"

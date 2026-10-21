@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="holiday-movies-title">
+  <title id="holiday-movies-title">Holiday Movie Mix</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a0e8c2" stroke-width="5" />
+  <g transform="translate(0 1.5)">
+    <g transform="translate(0 3.5)">
+      <g stroke-linejoin="round">
+        <path d="m175 69 53 76h-27l59 73h-32l58 90H64l58-90H90l59-73h-27Z" fill="#6cb184" stroke="#b1e4bf" stroke-width="6" />
+        <path d="m175 69 53 76h-27l59 73h-32l58 90H175Z" fill="#4a8c67" />
+        <path d="M161 307h29v27h-29Z" fill="#b68658" />
+        <path d="m175 43 8 18 20 2-15 13 5 20-18-10-18 10 5-20-15-13 20-2Z" fill="#ffe0a0" />
+        <path d="m129 160 88 18m-106 59 119 26" stroke="#ffe0a0" stroke-width="7" stroke-linecap="round" />
+        <g fill="#f6a193">
+          <circle cx="150" cy="139" r="10" />
+          <circle cx="200" cy="212" r="10" />
+          <circle cx="139" cy="271" r="10" />
+        </g>
+        <circle cx="197" cy="280" r="9" fill="#d6eaff" />
+      </g>
+    </g>
+    <polygon points="175.0,43.0 181.3,59.3 198.8,60.3 185.2,71.3 189.7,88.2 175.0,78.8 160.3,88.2 164.8,71.3 151.2,60.3 168.7,59.3" fill="#ffe3a1" />
+  </g>
+  <g fill="#a0e8c2" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">HOLIDAY</text>
+    <text x="535" y="202" font-size="66">MOVIE</text>
+    <text x="535" y="278" font-size="66">MIX</text>
+  </g>
+</svg>

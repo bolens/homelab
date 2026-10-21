@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="blue-sky-animation-title">
+  <title id="blue-sky-animation-title">Blue Sky Animation</title>
+  <defs>
+    <linearGradient id="blue-sky-animation-nut">
+      <stop offset="0" stop-color="#e0aa6a" />
+      <stop offset="0.35" stop-color="#ba7f43" />
+      <stop offset="0.72" stop-color="#86502b" />
+      <stop offset="1" stop-color="#b87a3e" />
+    </linearGradient>
+    <linearGradient id="blue-sky-animation-cap">
+      <stop offset="0" stop-color="#d4b17c" />
+      <stop offset="0.45" stop-color="#987246" />
+      <stop offset="1" stop-color="#604626" />
+    </linearGradient>
+    <linearGradient id="blue-sky-animation-ice">
+      <stop offset="0" stop-color="#e4f8ff" />
+      <stop offset="0.4" stop-color="#a2dbf4" />
+      <stop offset="1" stop-color="#5592bd" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#93d7ff" stroke-width="5" />
+  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 -4.0)">
+    <path d="m55 287 40-93 43 35 37-113 43 78 24-35 61 128Z" fill="#315b87" stroke="#93d7ff" stroke-width="4" />
+    <path d="m95 194 15 37-16-8-18 14Zm80-78 24 45-19-7-18 13Z" fill="#d2f0ff" />
+    <path d="M64 289h235l-33 30H98Z" fill="url(#blue-sky-animation-ice)" stroke="#d6f2ff" stroke-width="4" />
+    <path d="m110 295 24 17m61-19-14 26m62-21 14 14" stroke="#426f9a" stroke-width="3" />
+    <path d="M125 146c-10 83 7 125 54 130 51-6 69-49 54-130Z" fill="url(#blue-sky-animation-nut)" stroke="#f0c397" stroke-width="5" />
+    <path d="M140 168c-5 48 4 77 21 89" fill="none" stroke="#d9a274" stroke-width="6" />
+    <path d="M219 169q5 61-29 91" fill="none" stroke="#81552f" stroke-width="9" />
+    <path d="M116 145q63-55 126 0l-7 29q-61-23-112 0Z" fill="url(#blue-sky-animation-cap)" stroke="#e7bd8c" stroke-width="5" />
+    <path d="m130 143 10 18 17-30 17 26 17-27 16 29 19-17" fill="none" stroke="#ddbf8b" stroke-width="4" />
+    <path d="M176 117q-4-33 21-41" fill="none" stroke="#e8bb86" stroke-width="10" />
+    <path d="m66 92 12 0m-6-6v12m193 8h16m-8-8v16" stroke="#d9f4ff" stroke-width="4" />
+    <g>
+      <g fill="none" stroke="#deb983" stroke-width="2">
+        <path d="m125 142 14-12 15 11 15-16 15 13 15-8 14 12 14-8m-98 22 14-14 15 14 15-17 15 16 14-14 16 14 16-12" />
+      </g>
+      <path d="m153 184q-4 49 11 65m10-65q-1 56 8 73m14-72q8 43-4 66" fill="none" stroke="#e4b573" stroke-width="2" opacity=".65" />
+      <path d="m96 288 31-7 28 7 27-12 31 12 26-8 31 8m-144 3 13 15m61-16-9 21" fill="none" stroke="#ecfcff" stroke-width="3" />
+    </g>
+  </g>
+  <g fill="#93d7ff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 23.5)">
+    <text x="535" y="150" font-size="68">BLUE SKY</text>
+    <text x="535" y="238" font-size="57">ANIMATION</text>
+  </g>
+</svg>

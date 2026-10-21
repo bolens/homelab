@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="unexplained-title">
+  <title id="unexplained-title">Unexplained Files</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#92d5c6" stroke-width="5" />
+  <g transform="translate(0 7.00)">
+    <g stroke="#467a75" stroke-width="5" stroke-linejoin="round">
+      <circle cx="182" cy="185" r="115" fill="#1b3543" stroke="#81c3b8" />
+      <path d="m169 144-47 142h129l-51-142Z" fill="#4b8d88" opacity="0.65" stroke="none" />
+      <path d="m169 144-21 140m52-140 28 140m-43-140v140" stroke="#a3e6c9" opacity="0.6" stroke-width="3" />
+      <path d="M129 124c3-58 104-58 109 0Z" fill="#72afbb" />
+      <path d="M143 116c8-29 58-39 77-5" fill="none" stroke="#c5f8df" stroke-width="6" />
+      <ellipse cx="184" cy="133" rx="91" ry="26" fill="#76a8a1" stroke="#b9ead4" />
+      <path d="M96 137c26 32 144 34 177-1-44 9-134 9-177 1Z" fill="#427c7b" />
+      <ellipse cx="184" cy="143" rx="56" ry="9" fill="#a4e8bf" stroke="none" />
+      <circle cx="118" cy="130" r="5" fill="#fff1be" stroke="none" />
+      <circle cx="148" cy="122" r="5" fill="#fff1be" stroke="none" />
+      <circle cx="218" cy="122" r="5" fill="#fff1be" stroke="none" />
+      <circle cx="249" cy="130" r="5" fill="#fff1be" stroke="none" />
+      <path d="m81 262 27-53 26 53Zm-14 27 40-57 39 57Zm176-22 20-51 22 51Zm-12 26 33-58 32 58Z" fill="#264e4c" stroke="#729c85" stroke-width="3" />
+      <path d="M154 302v-32l-9-13 2-19 10-14 19-3 16 12 3 22-9 16v31m-29-51 21 1m-8 18-2 30" fill="#6e8b72" stroke="#b1c3a0" stroke-width="4" />
+      <path d="m98 86 4-9 4 9 9 4-9 4-4 9-4-9-9-4Zm161-5 3-7 3 7 7 3-7 3-3 7-3-7-7-3Z" fill="#d7ead0" stroke="none" />
+    </g>
+  </g>
+  <g fill="#92d5c6" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="150" font-size="47">UNEXPLAINED</text>
+    <text x="535" y="238" font-size="70">FILES</text>
+  </g>
+</svg>

@@ -2,9 +2,13 @@ services:
   ersatztv:
     labels:
       logging: "true"
-    image: ghcr.io/ersatztv/legacy:latest@sha256:cb0383fdb22050bdaff19e94974e86151d289e56355ca77cde8f15c3b49895d7
+    image: ghcr.io/ersatztv/legacy:v26.11.3@sha256:cb0383fdb22050bdaff19e94974e86151d289e56355ca77cde8f15c3b49895d7
     container_name: ersatztv
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     cpus: 4.0
     mem_limit: 6g
     memswap_limit: 8g
@@ -16,11 +20,17 @@ services:
       - stack.env
     volumes:
       - ersatztv_config:/config
-      - ${ERSATZTV_MEDIA_PATH:-/mnt/unraid/media}:/media:ro
+      - type: bind
+        source: ${ERSATZTV_MEDIA_PATH:?Set ERSATZTV_MEDIA_PATH to an existing mounted library}
+        target: /media
+        read_only: true
+        bind:
+          create_host_path: false
     tmpfs:
       - /transcode:size=2g
     networks:
-      - ingress-public
+      - ingress-admin
+      - media-services
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8409/ >/dev/null"]
       interval: 30s
@@ -34,8 +44,11 @@ services:
         max-file: "3"
 
 networks:
-  ingress-public:
-    name: ingress-public
+  ingress-admin:
+    name: ingress-admin
+    external: true
+  media-services:
+    name: media-services
     external: true
 
 volumes:

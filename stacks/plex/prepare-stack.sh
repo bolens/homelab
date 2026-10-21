@@ -9,4 +9,5 @@ prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "media-services"
 prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_ensure_dir_from_env "PLEX_AUDIOBOOKS_PATH" "${MEDIA_ROOT:-/srv/media}/audiobooks" require-existing
+prepare_stack_msg "Optional DVR storage: verify the remote filesystem and review docker-compose.dvr.yml; preparation never creates or enables that mount."
 prepare_stack_end

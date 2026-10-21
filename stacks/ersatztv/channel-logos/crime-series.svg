@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="crime-series-title">
+  <title id="crime-series-title">Prime Crime TV</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#a7b8fa" stroke-width="5" />
+  <g transform="translate(0 -1.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <rect x="62" y="55" width="238" height="276" rx="23" fill="#596397" stroke="#a7b8fa" stroke-width="5" />
+      <path d="M78 64h208M70 78v222" stroke="#d7ddff" stroke-width="4" />
+      <path d="M78 322h205q9 0 9-10V82" stroke="#354269" stroke-width="5" fill="none" />
+      <rect x="79" y="79" width="204" height="225" rx="10" fill="#202e4a" stroke="#8395d0" stroke-width="3" />
+      <path d="M87 87h130L87 245Z" fill="#2b3b5b" />
+      <path d="M94 102h18m-18 0v17m175-17h-18m18 0v17M94 279h18m-18 0v-17m175 17h-18m18 0v-17" stroke="#a7b8fa" stroke-width="4" fill="none" />
+      <g fill="none" stroke="#cbd2ff" stroke-width="5">
+        <path d="M115 245v-70c0-36 28-64 64-64s65 27 65 64v65" />
+        <path d="M126 259v-83c0-30 22-53 53-53 30 0 54 23 54 53v64q0 12 8 20" />
+        <path d="M137 270v-93c0-24 17-42 42-42 24 0 43 18 43 42v66q0 16 10 27" />
+        <path d="M148 279v-101c0-17 12-31 31-31 17 0 32 14 32 31v63q0 22 12 37" />
+        <path d="M159 279v-99c0-12 7-22 20-22 12 0 21 10 21 22v60q0 24 10 39" />
+        <path d="M170 278v-97c0-13 19-13 19 0v56q0 24 9 42" />
+        <path d="M179 189v48q0 21 7 42" />
+      </g>
+      <rect x="86" y="211" width="190" height="15" rx="3" fill="#75e5df" opacity="0.15" />
+      <path d="M90 219h183" stroke="#75e5df" stroke-width="4" />
+      <circle cx="271" cy="219" r="5" fill="#c1fff6" />
+      <path d="M99 314h24m6 0h8m8 0h8" stroke="#75e5df" stroke-width="3" />
+      <rect x="242" y="309" width="28" height="10" rx="4" fill="#a7b8fa" />
+      <path d="M250 314h12" stroke="#354269" stroke-width="2" />
+    </g>
+  </g>
+  <g fill="#a7b8fa" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 14.50)">
+    <text x="535" y="126" font-size="66">PRIME</text>
+    <text x="535" y="202" font-size="66">CRIME</text>
+    <text x="535" y="278" font-size="66">TV</text>
+  </g>
+</svg>

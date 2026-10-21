@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="documentaries-title">
+  <title id="documentaries-title">Documentary Movies</title>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#9adfa1" stroke-width="5" />
+  <g transform="translate(0 -1.00)">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <circle cx="151" cy="159" r="102" fill="#397c7b" stroke="#b0e8b5" stroke-width="5" />
+      <path d="M79 91q72-58 145 14-73-29-139 15Z" fill="#65a499" />
+      <path d="m78 107 27-29 24 2 13 15-7 20 24 5-8 21-27 3-4 22-20-11-8-29-17-5Zm52 66 26 8 16 23-5 28-16 23-14-23 2-25-17-14Zm66-82 22 14 6 20 20 18-15 13-22-17-22-5-4-16Z" fill="#aad7a0" />
+      <path d="M51 159h200m-188-35h177M72 202h158M151 58q-65 100 0 203m0-203q65 100 0 203" stroke="#b5e0b6" opacity="0.67" stroke-width="3" fill="none" />
+      <path d="M74 115q18-30 44-39" stroke="#dbefc4" stroke-width="6" fill="none" />
+      <rect x="178" y="214" width="107" height="82" rx="9" fill="#79b394" stroke="#cfebbf" stroke-width="5" />
+      <path d="M185 222h92v13h-92Z" fill="#a1d5a7" />
+      <path d="M185 281h92v8h-92Z" fill="#50856e" />
+      <circle cx="203" cy="204" r="22" fill="#619d7c" stroke="#cfebbf" stroke-width="5" />
+      <circle cx="256" cy="204" r="22" fill="#619d7c" stroke="#cfebbf" stroke-width="5" />
+      <g fill="#234e48">
+        <circle cx="203" cy="204" r="5" />
+        <circle cx="203" cy="192" r="4" />
+        <circle cx="193" cy="210" r="4" />
+        <circle cx="213" cy="210" r="4" />
+        <circle cx="256" cy="204" r="5" />
+        <circle cx="256" cy="192" r="4" />
+        <circle cx="246" cy="210" r="4" />
+        <circle cx="266" cy="210" r="4" />
+      </g>
+      <path d="m285 239 30-14v61l-30-14Z" fill="#99c8a4" stroke="#cfebbf" stroke-width="4" />
+      <path d="M305 234v42" stroke="#dfedc6" stroke-width="3" />
+      <rect x="192" y="247" width="34" height="20" rx="3" fill="#3d7160" />
+      <circle cx="250" cy="256" r="9" fill="#c6e5b7" stroke="#3d7160" stroke-width="3" />
+      <path d="M227 296v10m-10 0h21m-10 0-20 23m20-23 26 23" stroke="#a1d9a7" stroke-width="6" />
+    </g>
+  </g>
+  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="40" font-weight="800" text-anchor="middle" fill="#9adfa1">DOCUMENTARY</text>
+  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#9adfa1">MOVIES</text>
+</svg>
