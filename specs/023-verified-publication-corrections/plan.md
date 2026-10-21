@@ -173,3 +173,18 @@ restricted activation. Prove a later capture without a second manual invocation,
 restart reconciliation, no uncertain replay, typed catalog-to-ACK completion and
 original preservation. Keep full/bulk activation and configured Parent/NFS gates
 separate. Capacity refusal remains a hold under FR-016.
+
+
+## Explicit disposable NFS searchability
+
+Creator request v3 and geometry v2 `searchable-common-root-nfs` address daemon
+path traversal on root-squashed NFS without changing live storage or exports.
+Only the fresh supplied NFS scratch parent and newly created common G use exact
+UID/GID1000 mode0711. Library/retention leaves and local state stay0700, credentials
+0600. Existing ancestors must already be searchable; existing failed generations
+are never chmodded or adopted. The single transient G bind, exact per-role L
+mounts, two-child namespace, full9/FD custody, mount-ID and role exclusions remain
+unchanged. Legacy Creator v1/v2 and geometry v1 keep their exact0700 contract.
+The owning source contract documents stat-visible names and the absence of
+non-owner enumeration/write rights. Component tests and a separate disposable
+bind probe do not establish full Creator, NFS lifecycle, import or ACK acceptance.

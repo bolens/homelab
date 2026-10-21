@@ -309,6 +309,41 @@ class Tests(unittest.TestCase):
         self.assertEqual(result['id'],101)
         # This tests parsing/joining captured rows only; not actual NFS support.
 
+    def searchable_geometry(self):
+        common=self.common.with_name('archive-publication-'+'a'*64)
+        self.common.rename(common);self.common=common
+        (common/'library').rename(common/'L');(common/'retention').rename(common/'R')
+        self.case.c.library=common/'L';self.case.c.source=common/'L'/'Series.001.cbz';self.case.retention=common/'R'
+        common.chmod(0o711)
+        self.geometry=dict(version=2,kind='searchable-common-root-nfs',**{role:dict(path=str(path),signature9=a.o.signature(path))for role,path in(('common_root',common),('library',self.case.c.library),('retention',self.case.retention))})
+        self.facts['geometry']=self.geometry
+
+    def test_searchable_disposable_geometry_uses_original_mount_join(self):
+        self.searchable_geometry();facts,transport=self.mount_fixture()
+        with transport:result=ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+        self.assertEqual(result['id'],101)
+        self.assertFalse((self.case.c.writer.root/a.PENDING).exists())
+
+    def test_searchable_geometry_modes_nonce_and_originals_refuse(self):
+        self.searchable_geometry()
+        for fault in ('root700','root755','leaf711','owner','foreignnonce','legacy711','rootdrift','shadow'):
+            with self.subTest(fault=fault):
+                for role,path in(('common_root',self.common),('library',self.case.c.library),('retention',self.case.retention)):self.geometry[role]['signature9']=a.o.signature(path)
+                facts,transport=self.mount_fixture(shadow=fault=='shadow');g=facts['geometry']
+                if fault in ('root700','root755'):
+                    self.common.chmod(0o700 if fault=='root700'else 0o755);g['common_root']['signature9']=a.o.signature(self.common)
+                elif fault=='leaf711':
+                    self.case.c.library.chmod(0o711);g['library']['signature9']=a.o.signature(self.case.c.library)
+                elif fault=='owner':g['common_root']['signature9'][6]=1001
+                elif fault=='foreignnonce':g['common_root']['path']=str(self.common.with_name('archive-publication-unknown'))
+                elif fault=='legacy711':g.update(version=1,kind='private-common-root-nfs')
+                elif fault=='rootdrift':g['common_root']['signature9'][3]+=1
+                try:
+                    with transport,self.assertRaises((a.o.Held,FileNotFoundError)):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+                finally:
+                    self.common.chmod(0o711);self.case.c.library.chmod(0o700)
+        self.assertFalse((self.case.c.writer.root/a.PENDING).exists())
+
     def test_same_device_separate_mount_ids_and_nested_shadow_refuse(self):
         for fault in ({'shadow':True},{'nested':True},{'readonly':True},{'source':'foreign:/export'}):
             facts,transport=self.mount_fixture(**fault)

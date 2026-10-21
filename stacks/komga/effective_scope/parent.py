@@ -305,7 +305,7 @@ def original_service(row, cid):
 
 
 # Only the maintained bootstrap declaration; never a caller-provided mount list.
-BOOTSTRAP_SOURCE_SHA = 'bf0d03fdd9bacff6b03ea23de5a1557e372296aa690f51ffdccda75c6f85cd3e'
+BOOTSTRAP_SOURCE_SHA = '7a8d8f203d7784a127ba5f0cccecc66193cdc55f4c92dc801afb504c13017bc5'
 
 
 class BootstrapOriginals(ConfigOriginals):
@@ -381,18 +381,17 @@ class BootstrapOriginals(ConfigOriginals):
         need(set(reader['profile']) == {'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created'}
              and all(row[key] == val for key,val in reader['profile'].items())
              and {k:v for k,v in state.items() if k != 'Health'} == reader['epoch'], 'bootstrap-original-profile-epoch')
-        def directory(ref):
+        def directory(ref, *, searchable=False):
             need(type(ref) is dict and set(ref) == {'path','signature9'} and type(ref['path']) is str, 'bootstrap-directory-ref')
             path = Path(ref['path']); frame = ref['signature9']
             need(path.is_absolute() and '..' not in path.parts and str(path) == ref['path']
                  and type(frame) is list and len(frame) == 9 and all(type(v) is int for v in frame)
-                 and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == 0o700 and frame[6:8] == [1000,1000], 'bootstrap-directory-declaration')
+                 and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == (0o711 if searchable else 0o700) and frame[6:8] == [1000,1000], 'bootstrap-directory-declaration')
             return path
         root = directory(value['state_root']); geometry = value['geometry']
         need(set(geometry) == {'version','kind','common_root','library','retention'}
-             and type(geometry['version']) is int and geometry['version'] == 1
-             and geometry['kind'] == 'private-common-root-nfs', 'bootstrap-geometry')
-        common, library, retention = (directory(geometry[key]) for key in ('common_root','library','retention'))
+             and type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')), 'bootstrap-geometry')
+        common, library, retention = (directory(geometry[key],searchable=geometry['version']==2 and key=='common_root') for key in ('common_root','library','retention'))
         need(root.name == 'archive-bootstrap-' + nonce and common.name == 'archive-publication-' + nonce
              and library == common/'L' and retention == common/'R'
              and root != common and root not in common.parents and common not in root.parents

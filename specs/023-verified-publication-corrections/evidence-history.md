@@ -533,3 +533,146 @@ The published native image passes one isolated public-source capture: all 180 na
 The matching worker passes all 42 installed-module/type checks and canonical SDK parity, with unchanged checker inputs, final source closure and temporary-container absence. The full 915-control checked-build evidence remains separate; this installed check does not claim the tests ship in the final image. Independent review corrected the private launcher's output custody before execution; production sources were unchanged.
 
 Mylar and Komga remain running on their prior accepted images, and the permanent worker remains inactive. No comic import, acknowledgement, live image rollout or connected NFS/factory acceptance follows from these isolated results. T026/T029 and the live acceptance tasks remain open.
+
+
+## Disposable reader-parent staging and network prerequisite — 2026-10-21
+
+The reviewed owning installer completes against the accepted published native and worker sources. Its separate required-102 SDK projection joins the current native180 map, while the Creator retains its complete current map. The worker observer's source, exact one-module map and original image metadata remain independently bound. All 27 generated original output references and final source closure are retained. Receipt SHA256: `e4aae88693e01977095431e2b7b6228ef8beec53022ff0e0e6dc91d8e309f881`. These are staged artifacts; no connected factory or runtime admission follows.
+
+The first disposable Creator generation verifies all three original images, then receives a nonzero Docker response at internal-bridge creation. No test container creation occurs. Independent read-only inspection confirms the expected network is absent. A separate fresh diagnostic confirms Docker reports `all predefined address pools have been fully subnetted`; it creates no network. Preserve the original failed generation and resolve this host prerequisite before starting a fresh generation. The source-only SourceCohort schema and 1,219-control/72-suite inventory are identified, but no actual causal source-fixture run, NFS, terminal, import or acknowledgement acceptance is claimed.
+
+No live service restart or library mutation occurred. T026/T029, feature 024 T012/T015 and the related live acceptance tasks remain open.
+
+
+## Disposable NFS bind prerequisite isolated — 2026-10-21
+
+After specific authorization, the unused unrelated network is removed only after
+its exact saved profile and zero references across the complete 255-container
+census are rechecked. Both coordinating chats are released immediately. The next
+fresh Creator generation successfully creates its own internal network, then
+refuses its first container creation. No test containers are created; all failed
+generation evidence remains retained.
+
+A bounded read-only diagnostic establishes that the daemon identity can stat the
+local configuration directory but receives EACCES at the NFS library source. A
+separate new empty fixture proves the limited alternative: searchable `0711`
+ancestor directories with a private `0700` library leaf permit the exact selected
+native image to bind that leaf read-only and access it as UID 1000. Its disposable
+container is independently confirmed absent and its three owned empty directories
+are removed. No existing directory permissions, exports, service images or live
+library contents change. This is a source-bind prerequisite result, not connected
+factory, NFS transaction, import or acknowledgement acceptance. The owning
+explicit disposable geometry contract and its regression coverage remain required.
+
+The private bind result and independent cleanup result are retained under SHA256
+`80ded3989ad527a29b5b89ebc70beded4863c2dee5f1d2924f2f608e2d467cd8`
+and `0404b940ff55977f0241b219968e1a507f67901209e0c0730bddb7c98a66f69a`,
+respectively. The original failed generation is not adopted or replayed.
+
+
+## Coupled disposable recovery source verified — 2026-10-21
+
+The initial combined correction changes the SourceCohort runtime predicate,
+retains bounded first-failure Docker diagnostics privately, and adds explicit
+Creator v3/searchable geometry v2 across every owning consumer. The runtime
+predicate is subsequently found incorrect: the probe invokes the daemon
+interpreter, which remains Python 3.10. Only Modern ComicTagger uses the private
+Python 3.13 interpreter. The source-run receipt below is historical and does not
+prove a correct native runtime predicate.
+Only new scratch/common ancestors permit traversal; library/retention leaves,
+local state, legacy production checks and exact mount/identity custody remain
+private and unchanged. Current operational source pins and generated maps close
+together. The earlier full run refused a stale consumer pin; that failure is
+retained rather than reclassified as a pass.
+
+The required adoption module changes, so the reviewed current supplier advances
+only its adoption hash in the complete SDK and existing-cohort closure, plus the
+correlated cohort digest. Historical base manifests and the original configured
+output references remain preserved. Regressions reject mismatched old/new bases
+and SDKs, and reject replacing an original output with equal bytes on a new inode.
+This prospective supplier is not installed-image evidence.
+
+The sealed combined source passes all 1,239 owning controls across 72 suites with
+zero skips under Python 3.10, with both the owning source closure and the entire
+packet's hash/full-metadata closure intact. Separate affected effective-scope and
+NFS-adoption suites also pass. Independent reviews cover the geometry consumers,
+runtime checks and diagnostic privacy. Source packet SHA256:
+`83df7f264596bb713fe1e86f18d38250839a8546f6ce9794641fdbd0b8d1f1d0`;
+actual full-run receipt SHA256:
+`055178f15cf7ac26ee94e0c830fdc0cc8be8ba3b22ffc63c55a986522229a899`.
+
+New matching native-image publication, actual installed-source capture and a new
+configured supplier generation remain prerequisites for connected execution.
+Earlier image evidence cannot cover changed adoption bytes. No live rollout,
+comic import, acknowledgement, full-worker start or final task acceptance follows
+from these source controls.
+
+## Hosted CI closure and interpreter correction — 2026-10-21
+
+Hosted CI on PR #461 rejects two stale source manifests: the effective-scope
+build inventory and the authenticated standalone native test bundle. Both
+failures remain recorded. The effective-scope repair refreshes current source
+hashes and adds a regression through the actual source reader. Its complete
+JDK 21 gate passes 61 Python controls and 37 Java cases without changing compiled
+hashes or public dependency facts.
+
+The same review catches an incorrect Python 3.13 assumption in SourceCohort.
+The tracked Dockerfile explicitly requires daemon Python 3.10 and private Modern
+Python 3.13.16. The probe invokes `/lsiopy/bin/python3`, so its predicate must
+remain 3.10. The earlier 1,239-control source result tested the wrong predicate
+and cannot establish installed runtime acceptance. The corrected predicate and current source-family pins pass independent review.
+The complete authenticated collection passes 148 controls without skips on
+system Python 3.14.8. Its seven copy controls, including the real 26-control
+broker subprocess, pass. Managed Python 3.10 passes 34 SourceCohort controls and
+nine Dockerfile/runtime-contract controls. That managed runtime lacks the
+`fcntl` sealing constants needed by the separate crypto collection, so it does
+not establish native authenticated-runtime acceptance. No constants or guards
+were changed to conceal that gap.
+
+Mandatory local validation now includes the authenticated-copy and effective-scope
+source-reader suites. Reviewed correction patches have SHA256
+`fade7a2d461b8706a4fefa6f9f04e35ed486cc4a179b317d17308211b3b4ce64`
+and `cea1e30c4ef3258e0d4639510011564d0ca9c22cb5865b2743ff5095f8c15aed`.
+The corrected integrated source passes all 1,239 controls across 72 suites under
+managed Python 3.10 with zero skips and unchanged original sources. Successor
+receipt SHA256:
+`76542eaf220c8173caf6cb653e3f5af079c2e38f397aecdcb7df82bbb4ff92cc`.
+Repository validation passes with the new owning checks enabled. Installed
+factory, publication and configured acceptance remain false. Required hosted
+image CI remains pending. No live service change occurred.
+
+## Next-generation preparation and Clark integration — 2026-10-21
+
+Clark PR #460 merges as `0c9018f` after all current-head checks pass. The actual
+isolated Chromium/CDP result verifies hostname attachment, page JavaScript,
+forwarded HTTPS discovery, prefetched browser preservation and launcher exit.
+The exact exited test container and private network are removed with absence
+verified. Its original attach CLI return code was not retained; the canonical
+result and daemon exit code zero remain the observed facts. This is not live
+ingress TLS or deployment acceptance. The media branch includes the reviewed
+Clark tree and requires fresh combined-head CI before its own merge.
+
+The public-source capture successor permits exactly the reviewed adoption leaf
+change among 180 expected module hashes based on the original capture, preserving
+the other 179 values and
+53 installers. The disabled supplier freezes the current installer, 13 source
+roles and 10 NFS roles. It requires a future original capture/map/publication
+join before deriving SDK102 from actual values. Twelve focused controls pass
+for each preparation on host and Python 3.10, with independent review. Neither
+has run its operational phase or refreshed the historical 27 output references.
+
+Review holds an earlier private request wrapper because its launch entry bypasses
+preparation checks and its source loader reopens mutable files. It was never
+activated. The reviewed replacement only assembles the existing 12-key Creator
+request data from pinned JSON templates. It has no loader, launch, activation,
+transport or output interface. Twelve data/composition controls pass on both
+host and Python 3.10 using disposable fixtures and explicit transport doubles.
+Reference shapes confer no authority: Root still must
+verify fresh originals and use the existing owning Creator for execution.
+
+New native publication/image/capture bindings and new-parent facts remain unset. No live
+service, import, ACK or configured factory acceptance follows from preparation.
+The capture, supplier and data-only packet seals are respectively
+`8577c51822335c154b1033ffc9c4befe3fabea5fd52b77845bcb46f01f293632`,
+`bcea7f299f5947252682d0728c4fa58d4c5f37be3b00564132a4a77ed4b249c3`
+and `7c609053419581087e0a0d7959301f28dc9f30cf601571e9b59541defc08ee30`.

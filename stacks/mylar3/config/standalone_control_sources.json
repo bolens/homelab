@@ -476,7 +476,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9",
+    "sha256": "0304108423c7e015cd9a14315d0a6cb5eba0af29a831ed8a35a9dc0dd74a44c8",
     "target": "publication_archive_adoption.py"
   },
   {
@@ -856,7 +856,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "882f39a241f84ef28d77cf3c2390ca527dde0fc4deceec4620b7154bc044aa67",
+    "sha256": "8d49f24cb9c44464af4e7b2bf04c33ec25e8dfa0167f8ba91deb1e82512900ad",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1511,7 +1511,7 @@
   },
   {
     "path": "test_publication_archive_nfs.py",
-    "sha256": "15bea83189e71e85470bd0c1a8592dfd6ccd12441b4d498a333d5a14a41ee4c9",
+    "sha256": "12393e9e81860f910fbe2edd5d3ead3dd4dcc4f2d2f8f28f2186cdf6871668dd",
     "target": "test_publication_archive_nfs.py"
   },
   {
@@ -1711,7 +1711,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "fce0668fbab787f735bce14f5659719a82fa80c162671838817ee59cbcf6f420",
+    "sha256": "b96db64eda8661a065e3b39ca4c6fcbe386a0d44cfee9a93fd279d091277a329",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {
@@ -1936,7 +1936,7 @@
   },
   {
     "path": "test_tagger_python_runtime.py",
-    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2",
+    "sha256": "66dec3625667e0f8f583a0def4b19eafa404acaa2a26cf2aad95454f3edafe4c",
     "target": "test_tagger_python_runtime.py"
   },
   {

@@ -106,6 +106,24 @@ class Controls(unittest.TestCase):
         receipt_ref=put(self.f.root/'FIXTURE-ONLY-readiness.json',receipt)
         cohort=dict(self.f.document['cohort'],receipt=two(receipt_ref),logs={k:receipt[k]for k in ('stdout','stderr')})
         return two(put(self.f.root/'FIXTURE-ONLY-cohort.json',cohort)),receipt
+    def runtime_version_guard(self):
+        # Execute the exact owning assertion AST, not a rewritten test predicate.
+        import ast
+        tree=ast.parse(g.RUNTIME_PROGRAM)
+        guards=[node for node in tree.body if isinstance(node,ast.Assert)
+                and 'sys.version_info' in ast.get_source_segment(g.RUNTIME_PROGRAM,node)]
+        self.assertEqual(len(guards),1)
+        return compile(ast.Module(body=guards,type_ignores=[]),'<owning-runtime-version>','exec')
+
+    def test_current_native310_runtime_guard_accepts(self):
+        from types import SimpleNamespace
+        exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,10,22))})
+
+    def test_modern_tagger313_is_not_native_runtime(self):
+        from types import SimpleNamespace
+        with self.assertRaises(AssertionError):
+            exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,13,16))})
+
     def test_connected_source_emitter_and_actual_consumer_keep_rights_false(self):
         emitted,receipt=self.fixture_payload();cohort=active.SourceCohort(emitted);cohort.close()
         self.assertTrue(all(receipt[k]is False for k in g.RIGHTS));self.assertEqual(receipt['count'],sum(n for _,n in self.f.inventory))

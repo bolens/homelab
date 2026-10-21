@@ -979,3 +979,8 @@ packaged Spring configuration loaders and typed properties without starting
 Komga. Source compilation and synthetic configuration tests grant no configured
 reader, NFS, publication or backup authority. Existing recovery gates still
 require fresh original-bound observer evidence.
+
+The observer's explicit disposable-bootstrap branch supports the separately
+reviewed searchable-common geometry while keeping library/retention leaves and
+reader state private. Its production route and read-only library mounts remain
+unchanged; see the [disposable originals contract](effective_scope/README.md#explicit-disposable-reader-originals).

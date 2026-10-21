@@ -74,6 +74,17 @@ def directory(ref):
     return path
 
 
+def searchable_directory(ref):
+    """Explicit disposable Creator v3 scratch parent; never a live-directory waiver."""
+    need(type(ref) is dict and set(ref) == {'path', 'signature9'}, 'directory-reference')
+    path = p.absolute(ref['path']); original = ref['signature9']
+    need(path.resolve(strict=True) == path and all(not x.is_symlink() for x in (path, *path.parents)), 'canonical-directory')
+    need(type(original) is list and len(original) == 9 and all(type(x) is int for x in original)
+         and p.nine(os.lstat(path)) == original and stat.S_ISDIR(original[5])
+         and stat.S_IMODE(original[5]) == 0o711 and original[6:8] == [1000, 1000], 'searchable-original-directory')
+    return path
+
+
 def plan(value):
     need(type(value) is dict and set(value) == {'version', 'kind', 'nonce', 'observed', 'seconds',
          'state_root', 'geometry', 'roles', 'images', 'network', 'native_sdk', 'native_ini',
@@ -97,7 +108,9 @@ def plan(value):
              and profile['Config']['Labels'].get(PURPOSE) == 'genuine-archive-fixture', 'disposable-role-purpose')
     geometry = value['geometry']; need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}, 'publication-geometry')
     need(geometry['common_root']['path'].endswith('/archive-publication-' + value['nonce']), 'disposable-publication-name')
-    for role in ('common_root', 'library', 'retention'):directory(geometry[role])
+    need(type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')), 'publication-geometry-kind')
+    for role in ('common_root', 'library', 'retention'):
+        (searchable_directory if geometry['version']==2 and role=='common_root' else directory)(geometry[role])
     need(type(value['network']) is dict and set(value['network']) == {'id', 'profile'} and p.digest(value['network']['id']), 'network-original')
     need(type(value['reader_port']) is int and 1 <= value['reader_port'] <= 65535
          and type(value['reader_host']) is str and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', value['reader_host']), 'reader-original-origin')

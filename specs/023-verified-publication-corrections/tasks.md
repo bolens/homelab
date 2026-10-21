@@ -8,11 +8,11 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-20.** Ordinary Mylar runs healthy on the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
+**Updated 2026-10-21.** The accepted ordinary Mylar baseline is the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; their combined source verification passes 1,219 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,239 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
 - **T031/T032 are complete; T017–T019 retain their aggregate gates:** identity recovery and control-state adoption are accepted. Current-library, reader, restart and second-pass acceptance precede bulk resumption and final cleanup. Keep one independently verified current backup and unresolved originals. See [recovery](evidence-history.md#combined-worker-recovery-and-pack-matching-2026-10-15) and the task dependencies below.
@@ -109,24 +109,30 @@ Build the immutable reviewed-registration MVP first, then prove every publicatio
 
 ## Evidence
 
-T001–T016 authority foundations and guarded publication paths are accepted. T022 is complete: the published PR #383 native image passes exact source/authentication parity, installed reader source/origin/type checks and the full maintained reliability gate without skips, following all 21 scope-Birth controls. Connected factories, retained-download reconciliation and configured release remain open. See [the portable reader milestone](evidence-history.md#portable-reader-milestone-complete--2026-10-18).
+T001–T016 authority foundations and guarded publication paths are accepted.
+T022's portable lifecycle/checked installation, T031 identity recovery, T032
+control-state adoption and T030 configured cache guard are complete. Published
+ordinary import/rename/metadata and worker component proofs remain in
+[evidence history](evidence-history.md); they do not complete current connected,
+retained-download or bulk acceptance.
 
-The published PR #383 worker proof covers 42 installed modules, 254 installed import, archive, terminal, reader and guard cases, and two unchanged permission-change cases on exact private source copies. The PR #390 diagnostic worker separately verifies 42 installed modules and 86 focused import/selected controls. These component checks grant no configured import or ACK acceptance. See [the broader worker milestone](evidence-history.md#current-worker-implementation-verification--2026-10-18) and [diagnostic installation](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
-
-The published PR #385 native image passes installed source/type checks and all four genuine discovery, first-import, lost-reply and import → release rename → preserved-metadata cases. Required hosted checks, final feedback/security review and matching publication are accepted. These installed cases do not complete configured retained-pack, connected reader or archive-repair acceptance. See [published ordinary-pipeline proof](evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18) and [current preservation](evidence-history.md#selected-backup-journal-hold--2026-10-18).
-
-The fourth selected canary has completed one guarded run with no import request or accepted ACK; its history is retained and cannot be replayed. The permanent worker remains inactive, while native and reader services remain available. Current preservation and responsiveness checks pass separately from selected-pack recovery, connected reader and cache-growth acceptance. See [the configured result](evidence-history.md#guarded-selected-run-and-configured-scope-observation--2026-10-18) and [preservation](evidence-history.md#selected-backup-journal-hold--2026-10-18).
-
-Historical duplicate-dispatch, cache-source preservation, ordinary rollout and failed-attempt details remain in [evidence history](evidence-history.md#evidence). Their component results and prior CI exceptions do not authorize current delivery or execution.
+The accepted native405 preservation baseline and the published449 source/startup
+and worker42 proofs remain valid for their recorded versions. The corrected
+current source passes the complete 1,239-control gate; its changed adoption bytes
+require a new matching image and original capture. See [the correction
+record](evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).
 
 ## Convergence assessment and evidence
 
-T022's portable lifecycle and checked installation are complete. T026 still requires genuine connected factories; T029 additionally requires actual archive terminal production and intended native/worker consumption. Feature 024's dependent connected-factory and live gates remain open. The dependencies and current hold-release work above remain authoritative.
+T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
+genuine connected factories and archive terminal consumption, T027 physical and
+reader acceptance, and T028/T033 selected import, fresh ACK and later automatic
+capture consumption. All selected histories remain retained; the permanent
+worker remains inactive. Component source tests do not complete these tasks.
 
-T032's original binding, configured-state comparison and control-only backup/restore are accepted; the permanent worker remains inactive. Earlier T017 ordinary rollout, READY and catalog-preservation evidence remains retained, without completing current archive recovery, bulk acceptance or T017–T019. See [verified rollout and pending comparison](evidence-history.md#verified-rollout-receipts-and-pending-data-comparison--2026-10-16), [post-rollout preservation](evidence-history.md#native-post-rollout-preservation-comparison--2026-10-16) and [the retained convergence record](evidence-history.md#convergence-assessment-and-evidence).
-
-Current native image data preservation is accepted: the complete original-bound check passes after source-specific catalog and timestamp-only workflow classifications, with all global closures intact. Mylar and Komga remain available. The verified backup and refusal history are retained. Selected-pack import/ACK and connected archive acceptance remain open under T017, T028 and T033; the independent configured cache guard is accepted under T030; see [the accepted preservation milestone](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
-
-T030 is complete after independent review of the retained source/image/restart/concurrency controls and the fresh configured growth/refusal/accounting/cleanup result. The explicit workflow snapshot endpoint and later custody checks preserve truthful raw differences without current-live or import authority. See [configured cache acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-
-Published449 native source/startup capture and matching worker installed42/SDK verification pass; see [published-image evidence](evidence-history.md#published449-image-verification--2026-10-20). Connected factories, NFS, selected import/ACK and live rollout remain unchecked.
+Clark PR #460 is merged and included in the media branch. Normal combined-head
+CI and publication precede new native180/startup capture, a fresh supplier and
+causal SourceCohort, new Creator v3 geometry, current-role/effective-scope evidence
+and the existing Parent/Birth/session route. Preserve the original 27 outputs
+and earlier failed generations. The limited NFS bind proof does not replace the
+connected proof. See [prepared current-generation inputs](evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).

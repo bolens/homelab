@@ -78,6 +78,40 @@ or preserved through cleanup. This bounded test contract supplies no current
 import, ACK, NFS, factory or worker-start authority and does not relax those
 operations' own preservation requirements.
 
+For disposable multi-service recovery fixtures, preserve the failed creator's
+original journal and namespace before diagnosing a Docker allocation failure.
+Exhausted default address pools are a host prerequisite, not archive or import
+acceptance. A network with no active endpoints can still be referenced by stopped
+or Created containers: inspect both NetworkSettings and HostConfig across the
+complete container census. Before specifically authorized unrelated-network
+removal, close that census under a brief coordinated lifecycle pause. Task-owned
+fixture cleanup follows its exclusive-resource contract and still verifies exact
+identity, references and absence. Keep the original network profile and use a
+fresh creator generation afterward.
+
+Before creating a disposable NFS-backed container, verify source-directory
+traversal from the Docker daemon's identity as well as the fixture owner. A
+root-squashed NFS export can admit the user while refusing the daemon at private
+ancestors. Do not retry a failed create, chmod an existing library or failed
+fixture, or change export privileges to bypass this refusal. Use only the owning
+explicit disposable geometry contract; keep library and retention leaves private
+and prove the actual bind with a new empty fixture before connected acceptance.
+
+The configured reader-parent installer and disposable Creator use different SDK
+inputs. Derive the installer's subset from its pinned base manifest's
+required_sdk_names, joined to the accepted current image map. Preserve the
+Creator's complete current SDK map separately. Optional historical-base hashes
+can differ; never replace current image hashes with historical values to make
+installation pass. Preserve the installer's original output_refs before source
+cohort execution and do not reinstall afterward.
+
+When a required installed module changes, advance the current base manifest and
+its fixed supplier hash through an explicitly reviewed source change. Preserve
+historical manifests and configured output references in their original frozen
+generations. A prospective source-derived base is not installed-image evidence:
+capture and join the newly published image before creating a new configured
+supplier generation. Never overwrite or refresh the old generation's references.
+
 Size disposable test filesystems above the production storage
 reserve plus fixture demand. A filesystem equal to the reserve correctly refuses
 positive allocation; increase fixture capacity without weakening the guard. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
@@ -323,7 +357,10 @@ Keep archive metadata, catalog identities and filenames coherent for discovery;
 reader page verification alone does not prove native issue matching.
 
 Modern ComicTagger's private `/opt/comictagger` runtime and vendored Legacy are
-separate contracts. Moving Modern to a source-authenticated interpreter under
+separate contracts. SourceCohort invokes `/lsiopy/bin/python3` and must verify
+daemon Python 3.10. Check the actual executable and final Dockerfile assertions
+before changing a runtime predicate. A private tagger version is not daemon
+version evidence. Moving Modern to a source-authenticated interpreter under
 `/opt/tagger-python` does not move Legacy or the daemon off Python 3.10. Check
 actual interpreter paths, native libraries, licenses and final-image ABI; a host
 CLI pass does not prove Jammy ICU compatibility. Shared system-library updates
@@ -378,6 +415,17 @@ Do not print environment values in diagnostics. For Docker's `OomKillDisable`,
 accept a verified `false` to `null` default representation change only when every
 other runtime field remains equal; reject `true`, missing fields and unknown
 values.
+A never-started Docker container may have empty network and endpoint IDs even
+when its HostConfig names the exact original network ID. Join that CREATED
+profile to a fresh inspection of the original network. Require the actual
+network ID after start; do not relax later lifecycle checks to accept emptiness.
+
+Request preparation may assemble data and check its shape. It does not verify
+publication, source, filesystem or installation facts. Keep execution in the
+owning validated entry point. Hashing a Python file and then reopening it with
+`exec_module` does not prove which bytes executed; a post-import check detects
+substitution only after code may already have run. Use the reviewed source
+cohort/loader boundary rather than adding an unguarded launch wrapper.
 
 Use the owning operation’s required access mode for the existing Writer file.
 Native Writer acquisition opens it read/write even when it changes no protocol

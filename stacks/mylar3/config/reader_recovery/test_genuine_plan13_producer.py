@@ -176,6 +176,15 @@ class Tests(unittest.TestCase):
         path = Path(self.f.refs['comic_archive_repair_action.py']['path']); path.write_bytes(path.read_bytes() + b'\n')
         with self.assertRaises(g.p.Held):self.f.compose()
 
+    def test_original_installed_output_same_bytes_recreated_is_not_adopted(self):
+        original=self.f.refs['comic_archive_repair_action.py']
+        path=Path(original['path']);raw=path.read_bytes()
+        path.rename(self.root/'retained-old-action.py')
+        replacement=self.f.raw(path,raw)
+        self.assertEqual(replacement['sha256'],original['sha256'])
+        self.assertNotEqual(replacement['signature9'],original['signature9'])
+        with self.assertRaises(g.p.Held):self.f.compose()
+
     def test_extra_installed_namespace_refuses(self):
         (self.f.output / 'unexpected').write_text('x')
         with self.assertRaisesRegex(g.p.Held, 'exact-namespace'):self.f.compose()

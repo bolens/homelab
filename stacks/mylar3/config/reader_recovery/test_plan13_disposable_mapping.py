@@ -75,6 +75,13 @@ class Mapping(unittest.TestCase):
         self.assertEqual(result['reader']['id'],self.rows[2]['Id'])
         with self.assertRaisesRegex(m.Held,'mylar-media-map'):m.live_mapping(self.rows,[self.library],self.roles)
 
+    def test_searchable_geometry_exact_variant_and_legacy_refusal(self):
+        self.common.chmod(0o711);self.geometry.update(version=2,kind='searchable-common-root-nfs')
+        self.geometry['common_root']['signature9']=m.stamp(self.common);self.seal()
+        self.assertEqual(self.mapping()['media_mounts'],[dict(source=str(self.library),destination=str(self.library),rw=False)])
+        self.geometry.update(version=1,kind='private-common-root-nfs');self.seal()
+        with self.assertRaises(m.Held):self.mapping()
+
     def test_additional_protected_config_root_preserved(self):
         self.assertEqual(self.mapping([self.state,self.library]),self.mapping())
 

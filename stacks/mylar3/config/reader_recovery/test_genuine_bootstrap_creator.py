@@ -4,6 +4,7 @@ No Docker, Polkit, NFS, native schema, daemon, ACK or factory acceptance is
 claimed. The connected path must stop at the missing actual startup database.
 """
 import ast
+import base64
 import copy
 import hashlib
 import io
@@ -181,6 +182,56 @@ class CreatorTests(unittest.TestCase):
         self.assertEqual(observed,[dict(native_catalog_helper=self.document['sources']['catalog_helper'],reader_queue_helper=self.document['sources']['reader_queue'])])
         for key in ('installed_factories_verified','publication_acceptance','actual_nfs_verified','ordinary_ack_verified',
                     'birth_verified','mutation_authority','reader_resume_authority','automatic_replay'):self.assertIs(result[key],False)
+    def searchable_request(self):
+        self.document['version']=3
+        self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
+        Path(self.document['nfs_parent']['path']).chmod(0o711)
+        self.document['nfs_parent']=c.Creator.directory_ref(Path(self.document['nfs_parent']['path']))
+
+    def test_v3_fresh_searchable_geometry_under_private_umask(self):
+        self.searchable_request();owner,_=self.creator()
+        before=os.umask(0o077)
+        try:owner.prepare()
+        finally:os.umask(before)
+        self.assertEqual(owner.common.stat().st_mode&0o777,0o711)
+        self.assertEqual([v.stat().st_mode&0o777 for v in(owner.root,owner.library,owner.retention)],[0o700]*3)
+        self.assertEqual(owner.geometry[1]['version'],2)
+        self.assertEqual(owner.geometry[1]['kind'],'searchable-common-root-nfs')
+        c.p.check_common_root(owner.geometry)
+
+    def test_v3_actual_bootstrap_constructor_keeps_queue_and_geometry(self):
+        self.searchable_request();owner,_=self.creator();seen=[]
+        def boundary(session,**options):
+            self.assertIs(type(session),c.b.Bootstrap);session.queue_originals()
+            self.assertEqual(session.geometry[1]['version'],2)
+            self.assertEqual(session.geometry[1]['kind'],'searchable-common-root-nfs')
+            seen.append(options);c.p.close_common_root(session.geometry)
+            return dict(boundary_double=True)
+        with patch.object(c.b.Bootstrap,'execute',boundary):result=owner.execute()
+        self.assertEqual(seen,[dict(native_catalog_helper=self.document['sources']['catalog_helper'],reader_queue_helper=self.document['sources']['reader_queue'])])
+        self.assertFalse(result['installed_factories_verified']);self.assertFalse(result['publication_acceptance'])
+
+    def test_v3_parent_contract_exact_and_legacy_parent_unchanged(self):
+        self.searchable_request()
+        for mode in(0o700,0o755,0o777,0o710):
+            parent=Path(self.document['nfs_parent']['path']);parent.chmod(mode)
+            self.document['nfs_parent']=c.Creator.directory_ref(parent)
+            with self.assertRaises(c.p.Held):self.creator()
+        parent.chmod(0o711);self.document['nfs_parent']=c.Creator.directory_ref(parent)
+        self.document['version']=2
+        with self.assertRaises(c.p.Held):self.creator()
+        self.document['version']=3
+        (parent/'existing').mkdir(mode=0o700)
+        self.document['nfs_parent']=c.Creator.directory_ref(parent)
+        with self.assertRaisesRegex(c.p.Held,'creator-empty-searchable-parent'):self.creator()
+
+    def test_v3_existing_common_never_chmod_or_adopt(self):
+        self.searchable_request();owner,driver=self.creator()
+        owner.common.mkdir(mode=0o700);original=c.p.nine(owner.common.lstat())
+        with self.assertRaises((FileExistsError,c.p.Held)):owner.directories()
+        self.assertEqual(c.p.nine(owner.common.lstat()),original)
+        self.assertEqual(driver.calls,[])
+
     def test_default_run_and_cli_refuse_before_engine_or_files(self):
         with patch.object(c,'Creator',side_effect=AssertionError('creator called')),self.assertRaises(c.p.Held):c.run(None)
         result=subprocess.run([sys.executable,'-I','-B',str(HERE/'genuine_bootstrap_creator.py')],capture_output=True,timeout=10)
@@ -338,6 +389,59 @@ urllib.request.build_opener=lambda *a:Opener()
         raw=(HERE/'genuine_bootstrap_creator.py').read_text();ast.parse(raw,feature_version=(3,10))
         for forbidden in ('object.__new__','_CORES[','initialize_publication(','complete_startup(','chmod(0o777','docker.sock:'):
             self.assertNotIn(forbidden,raw)
+
+    def failure_transport(self, code, *, stdout=b'PRIVATE-OUT', stderr=b'PRIVATE-ERR'):
+        original=subprocess.Popen;calls=[]
+        program='import sys;sys.stdout.buffer.write('+repr(stdout)+');sys.stdout.flush();sys.stderr.buffer.write('+repr(stderr)+');sys.stderr.flush();'+code
+        def child(command,**kwargs):
+            calls.append(command)
+            return original([sys.executable,'-I','-B','-c',program],**kwargs)
+        return child,calls
+
+    def test_nonzero_driver_retains_actual_bounded_pipes_and_fixed_reason(self):
+        child,calls=self.failure_transport('sys.exit(23)',stderr=b'PRIVATE-ERR\xff')
+        with patch.object(c.subprocess,'Popen',side_effect=child),self.assertRaisesRegex(c.p.Held,'^creator-engine-held-no-replay$')as caught:
+            c.Driver().docker(['create','fixture'],10)
+        diagnostic=caught.exception.creator_engine_failure
+        self.assertEqual(diagnostic['returncode'],23);self.assertEqual(base64.b64decode(diagnostic['stdout_base64']),b'PRIVATE-OUT');self.assertEqual(base64.b64decode(diagnostic['stderr_base64']),b'PRIVATE-ERR\xff')
+        self.assertFalse(diagnostic['stdout_truncated']);self.assertFalse(diagnostic['stderr_truncated']);self.assertNotIn('PRIVATE',str(caught.exception));self.assertEqual(len(calls),1)
+
+    def test_first_private_journal_failure_poison_blocks_replay_without_printing(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver();child,calls=self.failure_transport('sys.exit(23)')
+        with patch.object(c.subprocess,'Popen',side_effect=child),patch('sys.stdout',new_callable=io.StringIO)as stdout,patch('sys.stderr',new_callable=io.StringIO)as stderr:
+            with self.assertRaisesRegex(c.p.Held,'^creator-engine-held-no-replay$'):owner.engine.call('fixture-failure',1,['create','fixture'])
+            with self.assertRaisesRegex(c.p.Held,'^creator-unknown-outcome-held$'):owner.engine.call('fixture-failure',1,['create','fixture'])
+        path=owner.journal/'engine-failure.private.json';saved=json.loads(path.read_bytes());self.assertEqual(saved['operation'],'fixture-failure');self.assertEqual(saved['diagnostic']['returncode'],23);self.assertEqual(base64.b64decode(saved['diagnostic']['stderr_base64']),b'PRIVATE-ERR')
+        self.assertEqual(path.stat().st_mode&0o777,0o600);self.assertEqual(path.stat().st_uid,1000);self.assertEqual(path.stat().st_nlink,1);self.assertFalse(saved['automatic_replay']);self.assertFalse(saved['cleanup']);self.assertTrue(owner.engine.poisoned);self.assertEqual(len(calls),1);self.assertEqual(stdout.getvalue()+stderr.getvalue(),'')
+
+    def test_diagnostic_write_failure_preserves_primary_failure_and_poison(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver();child,calls=self.failure_transport('sys.exit(23)');put=c.b.put
+        def failed(path,value):
+            if path.name=='engine-failure.private.json':raise OSError('private-diagnostic-storage-failed')
+            return put(path,value)
+        with patch.object(c.subprocess,'Popen',side_effect=child),patch.object(c.b,'put',side_effect=failed),self.assertRaisesRegex(c.p.Held,'^creator-engine-held-no-replay$')as caught:
+            owner.engine.call('fixture-failure',1,['create','fixture'])
+        self.assertEqual(caught.exception.creator_diagnostic_failure,'OSError');self.assertEqual(caught.exception.creator_engine_failure['returncode'],23);self.assertTrue(owner.engine.poisoned);self.assertEqual(len(calls),1)
+
+    def test_output_bound_retains_only_bounded_prefix_and_never_accepts(self):
+        child,calls=self.failure_transport('sys.exit(23)',stdout=b'x'*4096,stderr=b'')
+        with patch.object(c.subprocess,'Popen',side_effect=child),patch.object(c,'LIMIT',1024),self.assertRaisesRegex(c.p.Held,'^creator-engine-output-bound$')as caught:
+            c.Driver().docker(['create','fixture'],10)
+        diagnostic=caught.exception.creator_engine_failure;self.assertEqual(len(base64.b64decode(diagnostic['stdout_base64'])),1024);self.assertTrue(diagnostic['stdout_truncated']);self.assertEqual(diagnostic['stream_byte_limit'],1024);self.assertEqual(len(calls),1)
+
+    def test_timeout_retains_partial_reply_with_unknown_returncode(self):
+        child,calls=self.failure_transport('import time;time.sleep(5)')
+        with patch.object(c.subprocess,'Popen',side_effect=child),self.assertRaisesRegex(c.p.Held,'^creator-engine-outcome-unknown-no-replay$')as caught:
+            c.Driver().docker(['create','fixture'],1)
+        diagnostic=caught.exception.creator_engine_failure;self.assertIsNone(diagnostic['returncode']);self.assertEqual(base64.b64decode(diagnostic['stdout_base64']),b'PRIVATE-OUT');self.assertEqual(base64.b64decode(diagnostic['stderr_base64']),b'PRIVATE-ERR');self.assertEqual(len(calls),1)
+
+    def test_later_readonly_failure_preserves_first_journal_without_overwrite(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.driver=c.Driver();child,calls=self.failure_transport('sys.exit(23)')
+        with patch.object(c.subprocess,'Popen',side_effect=child):
+            with self.assertRaises(c.p.Held):owner.engine.call('fixture-first',1,['inspect','fixture'],readonly=True)
+            path=owner.journal/'engine-failure.private.json';before=path.read_bytes();frame=c.p.nine(path.stat())
+            with self.assertRaises(c.p.Held):owner.engine.call('fixture-later',1,['inspect','fixture'],readonly=True)
+        self.assertFalse(owner.engine.poisoned);self.assertEqual(path.read_bytes(),before);self.assertEqual(c.p.nine(path.stat()),frame);self.assertEqual(len(calls),2)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
