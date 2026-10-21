@@ -11,7 +11,10 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+from contextlib import contextmanager
 
+# Preserve real syscalls before finite fixture ownership projections.
+HOST_STAT, HOST_LSTAT, HOST_FSTAT = os.stat, os.lstat, os.fstat
 HERE = Path(__file__).parent
 spec = importlib.util.spec_from_file_location('effective_parent', HERE / 'parent.py')
 p = importlib.util.module_from_spec(spec)
@@ -261,6 +264,8 @@ class DisposableOriginals(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.root.chmod(0o700);self.nonce='b'*64
         self.source=Path(__file__).parents[2]/'mylar3/config/reader_recovery/genuine_application_bootstrap.py'
+        self.plan_path=self.root/'bootstrap.json'
+        owner=self.owner_model();owner.__enter__();self.addCleanup(owner.__exit__,None,None,None)
         source_ref=self.ref(self.source)
         root='/fixture/state/archive-bootstrap-'+self.nonce
         common='/fixture/nfs/archive-publication-'+self.nonce
@@ -276,7 +281,32 @@ class DisposableOriginals(unittest.TestCase):
         self.document=dict(version=1,kind='approved-disposable-application-bootstrap',nonce=self.nonce,
             state_root=dict(path=root,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),geometry=dict(version=1,kind='private-common-root-nfs',common_root=dict(path=common,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),library=dict(path=library,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),retention=dict(path=retention,signature9=[1,2,0,1,1,0o40700,1000,1000,2])),
             roles=roles,images={name:p.IMAGE for name in roles})
-        self.plan_path=self.root/'bootstrap.json';self.write_plan();self.refs=dict(plan=self.plan_ref,source=source_ref)
+        self.write_plan();self.refs=dict(plan=self.plan_ref,source=source_ref)
+    @contextmanager
+    def owner_model(self, *, host_owner=None, project=True):
+        """Only two declared files model UID1000 evidence on any host account.
+
+        Real opens, bytes, modes, inode identities, nlink and all timestamps/ns
+        remain unchanged. Production bounded()/need()/owner checks run intact.
+        """
+        paths={str(self.plan_path.absolute()),str(self.source.resolve())}
+        actual=(os.getuid(),os.getgid());observed=actual if host_owner is None else host_owner
+        class View:
+            def __init__(self,row,owner):self.row=row;self.st_uid,self.st_gid=owner
+            def __getattr__(self,name):return getattr(self.row,name)
+        def view(row,path):
+            if path in paths and (row.st_uid,row.st_gid)==actual:
+                return View(row,(1000,1000) if project else observed)
+            return row
+        def stat(path,*args,**kwargs):return view(HOST_STAT(path,*args,**kwargs),os.path.abspath(os.fspath(path)))
+        def lstat(path,*args,**kwargs):return view(HOST_LSTAT(path,*args,**kwargs),os.path.abspath(os.fspath(path)))
+        def fstat(fd):
+            try:path=os.readlink('/proc/self/fd/'+str(fd))
+            except OSError:path=None
+            return view(HOST_FSTAT(fd),path)
+        # Python3.10 pathlib caches its accessor syscalls at import time.
+        with patch.object(p.os,'stat',side_effect=stat),patch.object(p.os,'lstat',side_effect=lstat),patch.object(p.os,'fstat',side_effect=fstat),patch.object(Path,'stat',stat),patch.object(Path,'lstat',lstat):yield
+
     def ref(self,path):return dict(path=str(path.resolve()),sha256=p.digest(path.read_bytes()),signature9=p.nine(path.stat()))
     def write_plan(self):
         self.plan_path.write_bytes(p.encode(self.document));self.plan_path.chmod(0o600);self.plan_ref=self.ref(self.plan_path)
@@ -348,5 +378,20 @@ class DisposableOriginals(unittest.TestCase):
         self.assertTrue(held)
         for fd in held:
             with self.assertRaises(OSError):os.fstat(fd)
+
+    def test_host_uid1001_model_preserves_real_foreign_owner_refusal(self):
+        with self.owner_model(host_owner=(1001,1001),project=False):
+            self.assertEqual(self.plan_path.stat().st_uid,1001)
+            refs=dict(plan=self.ref(self.plan_path),source=self.ref(self.source))
+            with self.assertRaisesRegex(ValueError,'original-owner'):p.BootstrapOriginals(refs)
+        with self.owner_model(host_owner=(1001,1001)):
+            refs=dict(plan=self.ref(self.plan_path),source=self.ref(self.source))
+            original=p.BootstrapOriginals(refs);self.addCleanup(original.release)
+            self.assertEqual(original.service(self.row,'a'*64),self.row['Mounts'][0]['Source'])
+            refs=copy.deepcopy(refs);refs['source']['sha256']='0'*64
+            with self.assertRaisesRegex(ValueError,'bootstrap-original-bytes'):p.BootstrapOriginals(refs)
+        # Check that the projection never changes non-ownership file metadata.
+        expected=p.nine(HOST_STAT(self.plan_path));observed=p.nine(self.plan_path.stat())
+        self.assertEqual(observed[:6]+observed[8:],expected[:6]+expected[8:])
 
 if __name__ == '__main__': unittest.main(verbosity=2)

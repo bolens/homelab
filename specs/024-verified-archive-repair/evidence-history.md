@@ -391,3 +391,10 @@ Independent source reviews pass. The combined recovery runner passes 1,219 contr
 The effective-scope parent can now consume an optional original bootstrap plan and exact pinned bootstrap source. It derives only the private reader configuration bind and original library bound read-only at its unchanged absolute spelling. Original profile, epoch, image, process, nonce, role geometry and retained evidence descriptors close before output and through final release. Arbitrary, writable, duplicate or foreign mounts refuse, including self-consistent altered profiles. The production `original_service()` remains unchanged.
 
 Independent review passes. All 38 parent controls pass on managed Python 3.10 without skips. The complete source/compile gate passes with JDK 21 after refreshing the three reviewed source pins, including generated class inventory and negative missing-class checks. This is source compatibility evidence; packaged Spring cases, a fresh configured observation, actual NFS and connected application acceptance remain unverified.
+
+
+## Hosted fixture ownership correction — 2026-10-20
+
+The first current-head hosted gate fails because its user ID differs from the required operational owner. The new bootstrap tests created genuine files with the runner's ownership, causing the strict production reader to refuse before reaching the intended assertions. A test-only projection now models UID/GID 1000 for exactly the two declared bootstrap fixtures; all real byte, descriptor, mode, inode, link and timestamp checks remain intact. Production source is unchanged.
+
+Independent review passes. The added regression explicitly models foreign UID 1001 and requires genuine owner refusal, then verifies the finite operational-owner projection and wrong-hash refusal. All 39 parent controls pass on Python 3.10 and the host; the complete JDK 21 source/compile gate passes after the test pin is refreshed. Current-head hosted CI must pass before merge; no production ownership allowance or test assertion is removed.
