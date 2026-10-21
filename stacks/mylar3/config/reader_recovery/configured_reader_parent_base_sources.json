@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "ae47b3786060f973eb507d74948442031357d9db44f6c4f55e4e176a2aa635dc",
+  "base_cohort_sha256": "faa2c2f013c2ef449bee714dca3df5c0ad73c0b4d4c169bb048e49069f0574b0",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -126,7 +126,7 @@
     "combined_cleanup.py": "9d6a91a25dbf6a84d4c937c5536874be976e0383001d6a97eca9a3c0a9f537df",
     "combined_publication.py": "13cf0f3d7572db2f8fe748f36c6ffec0adb90410aa5350aeb258d0a6343646af",
     "comic_format_preference.py": "134a033489a3bd8909cad5fdcc29864e296fd1e752ff596f7882fdb86a5ccedf",
-    "comic_retained_standalone_action.py": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "comic_retained_standalone_action.py": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
     "comicbookdb.py": "17ffa052c7988c30f6ea785edc577bd0253f82110ee14d4a92727bb9165a7823",
     "config.py": "2cb652ef535220bf71624c66089643c9f0396a13e76e4375e4d23a104e98876c",
     "converted_catalog.py": "3e33eb0424ca2c908c0153ad8b7a0a12267eb31ba3b4df8459c0bdb907a5d4b3",
@@ -329,7 +329,7 @@
         "owning_adapters": [
           "patch_publication_retained_standalone.py"
         ],
-        "tracked_source_sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680"
+        "tracked_source_sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e"
       },
       "converted_catalog": {
         "owning_adapters": [

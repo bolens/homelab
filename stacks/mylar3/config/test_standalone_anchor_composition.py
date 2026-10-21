@@ -87,7 +87,12 @@ class Anchors(unittest.TestCase):
     def test_placeholder_only_genuine_bootstrap_read_refuses(self):
         import ast
         import types
-        tree=ast.parse((HOST/'BOOTSTRAP.py').read_bytes())
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('error',DeprecationWarning)
+            warnings.simplefilter('error',SyntaxWarning)
+            tree=ast.parse((HOST/'BOOTSTRAP.py').read_bytes())
+        self.assertEqual([n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value==r'[a-z_]+\.py'],[r'[a-z_]+\.py'])
         names={'need','nine','read'}
         selected=ast.Module(body=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names],type_ignores=[])
         module=types.ModuleType('original_bootstrap_read');module.os=os

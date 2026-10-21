@@ -119,7 +119,7 @@ class Installation(unittest.TestCase):
         old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
         self.assertNotEqual(new,old)
         self.assertEqual(base['base_installed_sources'][name],new)
-        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0')
+        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680')
         self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         before=json.loads(historical)
         self.assertEqual(base['required_sdk_names'],before['required_sdk_names'])
@@ -130,7 +130,7 @@ class Installation(unittest.TestCase):
     def test_stale_adoption_base_and_sdk_refuse_new_reviewed_source_joins(self):
         raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path)
         new=sdk['publication_archive_adoption.py'];old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
-        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0')
+        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680')
         self.assertEqual(m.sha(stale),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,stale,files,receipt)
         old_sdk=dict(sdk);old_sdk['publication_archive_adoption.py']=old
@@ -178,13 +178,14 @@ class CurrentBase(unittest.TestCase):
     CURRENT_PINS=(
         ('publication_guard.py',
          'dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),
+        ('comic_retained_standalone_action.py','92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e'),
         ('api.py',
          'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b'),
         ('native_writers.py',
          '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'),
         ('pack_catalog.py',
          '00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f'))
-    OLD_PINS=(('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
+    OLD_PINS=(('comic_retained_standalone_action.py','3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
                   '23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d'),('native_writers.py','cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202'),('pack_catalog.py','908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20'))
     def setup_current(self):
         refs=json.loads(Path(__file__).with_name('INSTALLER-SOURCE-LOCATORS.json').read_text())
@@ -208,8 +209,15 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'ae47b3786060f973eb507d74948442031357d9db44f6c4f55e4e176a2aa635dc')
+        self.assertEqual(base['base_cohort_sha256'],'faa2c2f013c2ef449bee714dca3df5c0ad73c0b4d4c169bb048e49069f0574b0')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
+        fixes=Path(__file__).parent.parent
+        action=fixes/'reader_recovery/comic_retained_standalone_action.py'
+        tree=ast.parse((fixes/'patch_publication_retained_standalone.py').read_text())
+        sources=ast.literal_eval(next(n.value for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='SOURCES' for t in n.targets)))
+        relative,pin=sources['comic_retained_standalone_action']
+        self.assertEqual(fixes/relative,action);self.assertEqual(m.sha(action.read_bytes()),pin)
+        self.assertEqual(base['base_installed_sources'][action.name],pin)
         for name,pin in self.CURRENT_PINS:
             if name!='api.py':self.assertEqual(base['base_cohort']['existing_sdk_closure'][name[:-3]]['tracked_source_sha256'],pin)
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,raw+b' ',artifacts,receipt)

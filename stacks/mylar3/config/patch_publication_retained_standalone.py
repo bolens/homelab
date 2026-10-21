@@ -8,7 +8,7 @@ import sys
 
 SOURCES = {
     'publication_retained_standalone': ('publication_retained_standalone.py', 'bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60'),
-    'comic_retained_standalone_action': ('reader_recovery/comic_retained_standalone_action.py', '3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),
+    'comic_retained_standalone_action': ('reader_recovery/comic_retained_standalone_action.py', '92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e'),
 }
 ROOT = Path(__file__).resolve().parent
 

@@ -380,6 +380,12 @@ results without changing its row factory. Acquire the original raw Writer and
 verify the existing catalog, held descriptor and companion namespace before
 constructing that connection, which can otherwise create a missing database or
 recover a journal outside custody.
+SQLite connection context managers commit or roll back but do not close the
+connection. In disposable fixtures, use `closing(connection)` around the
+transaction context so cleanup follows transaction exit. A delayed
+`ResourceWarning` can point at unrelated garbage-collection code; use an
+allocation traceback before changing the reported production line. Close HTML
+cache handles with a context manager rather than filtering their warnings.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from

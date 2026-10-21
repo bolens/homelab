@@ -4,7 +4,7 @@ The fixture returns source-closed native observation shapes, not a claim of
 installed network authentication. Owning native rename/metadata export positives
 run separately in the native suite. No Writer or Authority type is substituted.
 """
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import hashlib
 import json
 import os
@@ -24,7 +24,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
     def setUp(self):
         AuthorityFixture.setUp(self)
         if getattr(self,'ANNUAL',False):
-            with sqlite3.connect(self.catalog) as db:
+            with closing(sqlite3.connect(self.catalog)) as db, db:
                 db.execute('DELETE FROM issues');db.execute('INSERT INTO annuals VALUES (?,?,?,?,?,0)',('123','456','789',self.source.name,'Downloaded'))
             self.owner=dict(table='annuals',issueid='123',parentcomicid='456',releasecomicid='789');self.native_owner=self.owner;self.seed()
         self.state=self.root/'state';self.state.mkdir();maint=self.state/'maintenance';maint.mkdir();(maint/'imports').mkdir()
@@ -58,7 +58,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         self.ack=dict(owner=self.owner,destination=dict(signature=old,sha256=checksum))
         self.original=(json.dumps(self.attempt),json.dumps(self.ack))
         self.history=self.config/'ordinary-import-v1.sqlite'
-        with sqlite3.connect(self.history) as db:
+        with closing(sqlite3.connect(self.history)) as db, db:
             db.execute('CREATE TABLE completions(token TEXT,attempt TEXT,ack TEXT)');db.execute('INSERT INTO completions VALUES (?,?,?)',(self.token,*self.original))
         self.history.chmod(0o600)
         p=patch.object(observation,'ENABLED',True);p.start();self.addCleanup(p.stop)
@@ -94,7 +94,9 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         with patch('publication_guard.scope',self.scope),patch('maintenance.request',transport or self.transport):return observation.dispatch(self.m)
     def test_locked_prepare_unlocked_transport_locked_consume_keeps_ack(self):
         self.prepare();self.assertEqual(self.dispatch(),1);self.assertEqual(self.confirmed(),self.token);self.assertEqual(self.calls,['getHealth','ordinaryImportObservation'])
-        with sqlite3.connect(self.history) as db:self.assertEqual(tuple(db.execute('SELECT attempt,ack FROM completions').fetchone()),self.original)
+        with closing(sqlite3.connect(self.history)) as db, db:self.assertEqual(tuple(db.execute('SELECT attempt,ack FROM completions').fetchone()),self.original)
+        with self.assertRaisesRegex(sqlite3.ProgrammingError,'closed database'):
+            db.execute('SELECT 1')
     def test_replaced_owning_authenticated_return_method_cannot_mint_witness(self):
         self.prepare()
         with patch.object(Maintenance,'mylar_observation',lambda *_:b'{"success":true,"data":{}}'):
@@ -214,7 +216,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         self.assertTrue(fired)
     def test_native_missing_catalog_claim_is_closed_after_transport(self):
         folder=self.library/'other';folder.mkdir();claim=folder/'missing.cbz'
-        with sqlite3.connect(self.catalog) as db:db.execute('INSERT INTO issues VALUES (?,?,?,?)',('321','456','other/missing.cbz','Wanted'))
+        with closing(sqlite3.connect(self.catalog)) as db, db:db.execute('INSERT INTO issues VALUES (?,?,?,?)',('321','456','other/missing.cbz','Wanted'))
         original=self.response
         def reply(request):
             value=original(request);value['evidence']['claims']=[[str(self.native_root/'other/missing.cbz'),None]];return value
@@ -271,7 +273,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         self.assertEqual(next(iter(observation._LIVE.values()))['reply_bytes'],returned[0]);self.assertEqual(self.confirmed(),self.token)
     def actual_cycle(self,*,pending_job=False,recreate=False,workflow_before=False):
         from writer_cycle import cycle
-        with sqlite3.connect(self.catalog) as db:
+        with closing(sqlite3.connect(self.catalog)) as db, db:
             db.execute('CREATE TABLE ddl_info(filename TEXT,tmp_filename TEXT,status TEXT)')
             for table,columns in (('issues',('Issue_Number','IssueDate')),('annuals',('Issue_Number','IssueDate','ReleaseComicName')),('comics',('ComicName','ComicYear'))):
                 for column in columns:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' TEXT DEFAULT \'\'')
@@ -291,7 +293,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         def naming():
             events.append('naming-before-fresh-admission')
             if workflow_before:
-                with sqlite3.connect(self.workflow) as db:db.execute('INSERT INTO events(value) VALUES (?)',('ordinary prior dispatch fixture',))
+                with closing(sqlite3.connect(self.workflow)) as db, db:db.execute('INSERT INTO events(value) VALUES (?)',('ordinary prior dispatch fixture',))
             if recreate:
                 with self.writer.hold(allow_pending=True):self.writer.mark_pending()
         self.worker.naming=SimpleNamespace(reconcile=lambda:None,tick=naming)
@@ -363,7 +365,7 @@ class Bridge(AuthorityFixture,unittest.TestCase):
         self.prepare();self.dispatch();self.assertEqual(self.confirmed(),self.token);self.assertIsNone(self.confirmed())
     def test_changed_history_after_return_is_held(self):
         self.prepare();self.dispatch()
-        with sqlite3.connect(self.history) as db:db.execute('UPDATE completions SET ack=NULL')
+        with closing(sqlite3.connect(self.history)) as db, db:db.execute('UPDATE completions SET ack=NULL')
         self.assertIsNone(self.confirmed())
 
 class Annual(Bridge):
@@ -373,7 +375,7 @@ class Annual(Bridge):
         self.assertNotEqual(self.owner['parentcomicid'],self.owner['releasecomicid'])
     def test_wrong_original_annual_ack_release_is_held(self):
         self.ack['owner']=dict(self.owner,releasecomicid='456')
-        with sqlite3.connect(self.history) as db:db.execute('UPDATE completions SET ack=?',(json.dumps(self.ack),))
+        with closing(sqlite3.connect(self.history)) as db, db:db.execute('UPDATE completions SET ack=?',(json.dumps(self.ack),))
         self.assertIsNone(self.confirmed());self.assertFalse(observation._PENDING)
 
 def load_tests(loader,tests,pattern):return unittest.TestSuite(cls(name) for cls in (Bridge,Annual) for name in cls.__dict__ if name.startswith('test_'))
