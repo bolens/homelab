@@ -119,7 +119,7 @@ class Installation(unittest.TestCase):
         old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
         self.assertNotEqual(new,old)
         self.assertEqual(base['base_installed_sources'][name],new)
-        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680')
+        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
         self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         before=json.loads(historical)
         self.assertEqual(base['required_sdk_names'],before['required_sdk_names'])
@@ -130,7 +130,7 @@ class Installation(unittest.TestCase):
     def test_stale_adoption_base_and_sdk_refuse_new_reviewed_source_joins(self):
         raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path)
         new=sdk['publication_archive_adoption.py'];old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
-        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680')
+        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
         self.assertEqual(m.sha(stale),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,stale,files,receipt)
         old_sdk=dict(sdk);old_sdk['publication_archive_adoption.py']=old
@@ -175,6 +175,11 @@ class Installation(unittest.TestCase):
 
 
 class CurrentBase(unittest.TestCase):
+    # Exact original449 / checked adapter / derived output source-only pins.
+    # The private derivation replays actual raw bytes; this is not image proof.
+    GETCOMICS_DERIVATION=('200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744',
+        '9e5a1e0a161a3c34ae17692ce4519c0f6d89439c8d7b766145ab02dccc082892',
+        'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866')
     CURRENT_PINS=(
         ('publication_guard.py',
          'dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),
@@ -185,7 +190,7 @@ class CurrentBase(unittest.TestCase):
          '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'),
         ('pack_catalog.py',
          '00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f'))
-    OLD_PINS=(('comic_retained_standalone_action.py','3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
+    OLD_PINS=(('getcomics.py','200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744'),('comic_retained_standalone_action.py','3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
                   '23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d'),('native_writers.py','cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202'),('pack_catalog.py','908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20'))
     def setup_current(self):
         refs=json.loads(Path(__file__).with_name('INSTALLER-SOURCE-LOCATORS.json').read_text())
@@ -201,6 +206,14 @@ class CurrentBase(unittest.TestCase):
         self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),180);self.assertEqual(len(base['required_sdk_names']),102)
         for name,pin in self.CURRENT_PINS:self.assertEqual(base['base_installed_sources'][name],pin)
         self.assertEqual([name for name in sdk if sdk[name]!=effective[name]],['publication_reader_admission.py'])
+        original,adapter,derived=self.GETCOMICS_DERIVATION
+        self.assertEqual(dict(self.OLD_PINS)['getcomics.py'],original)
+        self.assertNotEqual(original,derived);self.assertEqual(len(adapter),64)
+        self.assertNotIn('getcomics.py',base['required_sdk_names'])
+        self.assertEqual(base['base_installed_sources']['getcomics.py'],derived)
+        full=dict(sdk,**{'getcomics.py':derived})
+        joined,_=m.configured_maps(full,raw,artifacts,receipt)
+        self.assertEqual(joined['getcomics.py'],derived)
         self.assertFalse(cohort['runtime_acceptance']);self.assertFalse(cohort['publication_acceptance']);self.assertIsNone(base['image']);self.assertFalse(base['installed_acceptance'])
     def test_each_old_generation_sdk_digest_still_refuses(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()

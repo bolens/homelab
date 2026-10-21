@@ -710,3 +710,10 @@ child and requires its recorded return code. The owning 48 controls pass on
 Python 3.10 and 3.14 with zero skips and no subprocess ResourceWarnings after
 forced collection. Production subprocess handling is unchanged. Current finite
 copy maps include the corrected fixture.
+
+Pre-merge source review found the optional GetComics entry still used its prior
+hash. Replaying the checked adapter against the original captured public source
+derives `b19d1254…c5866`; reversing the change reconstructs the exact original.
+The current base, installer and regressions advance together, preserving the
+102 required/180 known names and historical manifests. This is a prospective
+source expectation; actual published-image capture remains required.
