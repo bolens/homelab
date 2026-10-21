@@ -32,7 +32,7 @@ class APICopy(unittest.TestCase):
         fired=[]
         def transport(argv,*,cwd,env):
             copied=Path(cwd)
-            for name in self.runner.STANDALONE_FIXTURES | self.runner.ORDINARY_PIPELINE_FIXTURES:
+            for name in self.runner.STANDALONE_FIXTURES | self.runner.ORDINARY_PIPELINE_FIXTURES | self.runner.NATIVE_PROCESSOR_FIXTURES:
                 self.assertEqual((copied/name).read_bytes(),(self.root/name).read_bytes())
             self.assertEqual((copied/self.runner.STANDALONE_MANIFEST).read_bytes(),(self.root/self.runner.STANDALONE_MANIFEST).read_bytes())
             self.assertEqual((copied/'tagging_stage_sources.json').read_bytes(),(self.root/'tagging_stage_sources.json').read_bytes())
@@ -54,6 +54,18 @@ class APICopy(unittest.TestCase):
     def test_unknown_reader_sibling_is_refused(self):self.unknown('reader_recovery/unreviewed.py')
     def test_unknown_root_json_is_refused(self):self.unknown('unreviewed_control_sources.json')
     def test_unknown_pipeline_sibling_is_refused(self):self.unknown('ordinary_pipeline/unreviewed.py')
+    def test_unknown_native_processor_sibling_is_refused(self):self.unknown('test_fixtures/ordinary_import/unreviewed.py')
+    def test_pinned_native_processor_copy_closes_before_transport(self):
+        name='test_fixtures/ordinary_import/PostProcessor.py';fired=[]
+        self.assertEqual(self.runner.NATIVE_PROCESSOR_FIXTURES,frozenset((name,)))
+        def transport(argv,*,cwd,env):
+            raw=(Path(cwd)/name).read_bytes()
+            self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                             '365bdc75327f8a82e75655e3017fbd70ff84858e515d0be5fee598b215da70cc')
+            fired.append(True);raise RuntimeError('exact native source copied before transport')
+        with patch.object(self.runner.subprocess,'run',transport):
+            with self.assertRaisesRegex(RuntimeError,'exact native source copied'):self.runner.main('observation')
+        self.assertEqual(fired,[True])
 
 
 if __name__=='__main__':unittest.main()

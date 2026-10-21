@@ -60,7 +60,7 @@ def snapshot(db):
 def rows(library):
     comics=[];issues=[]
     for comic,issue,title in zip(COMICS,ISSUES,SERIES):
-        comics.append(dict(ComicID=comic,ComicName=title,ComicSortName=title,ComicYear='2024',ComicLocation=str(Path(library)/title),ComicName_Filesafe=title,DateAdded='2024-01-01',LastUpdated='2024-01-01 00:00:00',LatestIssueID=issue,ComicPublisher='Runtime Fixture',ComicPublished='2024 - Present',Status='Active',Have=0,Total=1,ComicVersion='None',AlternateFileName='None',AlternateSearch='None',UseFuzzy='0',DynamicComicName=title.lower().replace(' ',''),ForceContinuing=0,cv_removed=0,AgeRating='Teen',Type='Comic',AllowPacks='0'))
+        comics.append(dict(ComicID=comic,ComicName=title,ComicSortName=title,ComicYear='2024',ComicLocation=str(Path(library)/title),ComicName_Filesafe=title,DateAdded='2024-01-01',LastUpdated='2024-01-01 00:00:00',LatestIssueID=issue,LatestDate='2024-01-01',LatestIssue='2',intLatestIssue=2000,ComicPublisher='Runtime Fixture',ComicPublished='2024 - Present',Status='Active',Have=0,Total=1,ComicVersion='None',AlternateFileName='None',AlternateSearch='None',UseFuzzy='0',DynamicComicName=title.lower().replace(' ',''),ForceContinuing=0,cv_removed=0,AgeRating='Teen',Type='Comic',AllowPacks='0'))
         issues.append(dict(IssueID=issue,ComicID=comic,ComicName=title,Issue_Number='2',IssueDate='2024-01-01',ReleaseDate='2024-01-01',Int_IssueNumber=2000,Status='Wanted',Location=None))
     return dict(comics=comics,issues=issues)
 

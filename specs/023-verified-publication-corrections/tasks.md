@@ -12,8 +12,8 @@
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,299 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
-- **Fresh isolated bootstrap:** actual Root identity, predecessor cleanup, fresh input binding, reader enrollment, virgin backup/restore, native initialization and restart pass. Catalog seeding exposed Mylar's genuine 0644 database mode inside its private 0700 DATA directory. The corrected helper and per-operation diagnostics pass the complete 1,299-control source gate. Deliver this source batch and use a fresh generation for configured execution. Preserve all refused attempts without replay. Connected factory, NFS, import and ACK acceptance remain open. See [the current runtime record](evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,302 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **Fresh isolated bootstrap:** actual identity, owned predecessor cleanup, enrollment, catalog seeding and native restart pass. The eighth fixture then stops after its one forceProcess request is consumed: the pinned consumer slices a null fixture LatestDate. Database quick_check passes; retain the native/reader, Created worker and all failure evidence without replay. The date-fixture correction passes its source gate; normal delivery and fresh configured execution remain pending. Connected factory, NFS, import and ACK gates stay open. See [the latest processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
 - **T031/T032 are complete; T017–T019 retain their aggregate gates:** identity recovery and control-state adoption are accepted. Current-library, reader, restart and second-pass acceptance precede bulk resumption and final cleanup. Keep one independently verified current backup and unresolved originals. See [recovery](evidence-history.md#combined-worker-recovery-and-pack-matching-2026-10-15) and the task dependencies below.
@@ -132,11 +132,10 @@ original installation outputs and failed generations remain retained.
 PR #463 scheduling and PR #464 cacheable stages are merged. The tagging stage's
 117 tests pass without skips, and an unrelated reader edit reuses that layer.
 See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
-The paired restart correction passes actual isolated execution. Catalog seeding
-then exposes the native database-mode mismatch. The corrected helper and
-per-operation diagnostics pass 1,299 controls across 73 suites and all 14 outer
-checks, with zero skips. Hosted delivery and fresh configured execution remain
-required. See [the current runtime checkpoint](evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+The retained catalog-permission source gate passes 1,299 controls across 73 suites
+and all 14 outer checks without skips. Later configured progress and its new
+fixture-date failure are recorded in [the latest processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).
+Normal delivery and fresh corrected execution remain required.
 
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
 genuine connected factories and archive terminal consumption, T027 physical and
@@ -155,13 +154,11 @@ history. Its exact patch and verified Git bundle are preserved privately, and
 the old worktree is removed without force.
 See [recovered storage notes](evidence-history.md#recovered-storage-notes-and-old-worktree-cleanup--2026-10-21).
 
-The actual single-authentication checks and predecessor fixture cleanup pass.
-A fresh isolated generation passes enrollment, virgin backup/restore,
-initialization and restart, then refuses catalog seeding because the helper
-required 0600 while genuine Mylar creates 0644 inside its private 0700 DATA
-root. The correction preserves database permissions and checks directory custody
-before commit. Per-operation diagnostics preserve later failures independently.
-The integrated source passes all 14 outer checks and 1,299 controls across 73
-suites with zero skips. Fresh configured execution, NFS, import and ACK gates
-remain open. Failed generations stay retained without replay. See [the current
-runtime record](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+The eighth isolated generation passes catalog seeding and native restart, then
+a once-submitted forceProcess request is consumed before processing fails on a
+null fixture LatestDate. The fixture database remains readable; its services,
+data and failure evidence are retained without replay. The seed now supplies
+coherent latest-date and issue fields; all 1,302 source controls and 14 outer
+checks pass under Python 3.10. Fresh configured execution, connected/NFS,
+import and ACK acceptance remain open. See [the latest
+processing record](evidence-history.md#seeded-catalog-date-contract-and-retained-processing-failure---2026-10-21).

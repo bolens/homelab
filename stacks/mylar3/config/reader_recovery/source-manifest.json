@@ -517,7 +517,7 @@
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
     },
     "genuine_native_catalog_helper.py": {
-      "sha256": "ba8695a8d0691de65944b64d299b22d2b05571c57e85de2fa1111ea8198b93f2"
+      "sha256": "c575da0ed25455784de2f9e6fb007d57ab3d5cd42c342e10cdd741b4fbd51212"
     },
     "genuine_plan13_producer.py": {
       "sha256": "53975b4e111d07e91c80586ee972c2df5c55ed13a0e99819bdc5d0425da53fdf"
@@ -646,7 +646,7 @@
       "sha256": "325b850891eab160b7c0142fbd846cf67684c976b7f4f1fad9b190e931438e1e"
     },
     "test_genuine_native_catalog.py": {
-      "sha256": "ca91bac8e8573787d6a67a003953aaf6fea1b7475aeba634a3da7e965c385475"
+      "sha256": "e38a2b93acd32678c2c95ce525a1c09f5bb949cd4dbda4cf26881d5f9ade76a5"
     },
     "test_genuine_plan13_producer.py": {
       "sha256": "54b99a45cec41263992ff0a81604c119e8bddba635de8c9d57b27078ffbb1355"
