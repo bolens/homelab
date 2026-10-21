@@ -120,8 +120,15 @@ _NFS_SELECTIONS=weakref.WeakKeyDictionary()
 
 def nfs_child_geometry(facts,source,retention):
     """Join original host export spelling to actual selected-child mount IDs."""
-    geometry=facts['geometry'];o.check(type(geometry) is dict and set(geometry)=={'version','kind','common_root','library','retention'} and geometry['version']==1 and geometry['kind']=='private-common-root-nfs','repair-nfs-common-geometry')
+    geometry=facts['geometry'];o.check(type(geometry) is dict and set(geometry)=={'version','kind','common_root','library','retention'} and type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'repair-nfs-common-geometry')
     root=Path(geometry['common_root']['path']);library=Path(geometry['library']['path']);retention=Path(retention)
+    if geometry['version']==1:
+        saved=geometry['common_root']['signature9'];o.check(type(saved) is list and len(saved)==9 and all(type(v) is int for v in saved) and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000],'repair-nfs-private-original-directory')
+    if geometry['version']==2:
+        o.check(root.name.startswith('archive-publication-') and len(root.name.removeprefix('archive-publication-'))==64 and all(c in '0123456789abcdef' for c in root.name.removeprefix('archive-publication-')) and library==root/'L' and retention==root/'R','repair-nfs-disposable-common-names')
+        for role in ('common_root','library','retention'):
+            ref=geometry[role];saved=ref['signature9'];path=Path(ref['path'])
+            o.check(type(ref) is dict and set(ref)=={'path','signature9'} and type(saved) is list and len(saved)==9 and all(type(v) is int for v in saved) and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==(0o711 if role=='common_root' else 0o700) and saved[6:8]==[1000,1000] and path.is_absolute() and path.resolve(strict=True)==path and all(not q.is_symlink() for q in (path,*path.parents)),'repair-nfs-searchable-original-directory')
     o.check(library==Path(facts['library']) and retention==Path(geometry['retention']['path']) and library.parent==root and retention.parent==root and library!=retention and Path(source).is_relative_to(library),'repair-nfs-common-direct-paths')
     expected=geometry['common_root']['signature9'];o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-original-common-root9')
     for role,path in (('library',library),('retention',retention)):

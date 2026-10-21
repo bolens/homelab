@@ -29,6 +29,20 @@ class Controls(unittest.TestCase):
    path=self.fixes/name;path.write_text('# fixture native health '+name+'\n');path.chmod(0o644)
   (self.fixes/'standalone_control_sources.json').write_text(json.dumps([dict(path=name,sha256=digest(self.fixes/name)) for name in ('queue_control.py','worker_health.py')]))
  def copy(self):return m.copy_fixtures(self.fixes,self.stage)
+ def test_current_operational_semantic_pins_match_actual_sources(self):
+  import ast
+  root=PUBLIC/'reader_recovery'
+  def literal(name,key):
+   tree=ast.parse((root/name).read_text())
+   values=[n.value for n in tree.body if isinstance(n,ast.Assign)and len(n.targets)==1 and isinstance(n.targets[0],ast.Name)and n.targets[0].id==key]
+   self.assertEqual(len(values),1);return ast.literal_eval(values[0])
+  for file,key in (('genuine_active_inputs.py','PINS'),('genuine_current_roles.py','SOURCE_PINS')):
+   for name,pin in literal(file,key).items():self.assertEqual(pin,digest(root/name),(file,name))
+  expected=literal('install_configured_reader_parent.py','EXPECTED')
+  self.assertEqual(expected['parent'],digest(root/'comic_reader_lifecycle_parent.py'))
+  nfs=literal('install_configured_reader_parent.py','EXPECTED_NFS')
+  self.assertEqual(nfs['comic_negative_nfs_active_parent.py'],digest(root/'comic_negative_nfs_active_parent.py'))
+  self.assertEqual(literal('comic_reader_lifecycle_parent.py','NFS_ACTIVE_SOURCE_SHA'),digest(root/'comic_negative_nfs_active_parent.py'))
  def test_public644_copy_private600_bytes_same(self):
   before={p: (p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in (self.source,self.module,self.scope)};tree,_,_=self.copy();self.assertEqual((tree/'fixture.py').read_bytes(),self.source.read_bytes());self.assertEqual((tree/'fixture.py').stat().st_mode&511,0o600);self.assertEqual((tree.parent/'publication_reader_admission.py').stat().st_mode&511,0o600);self.assertEqual(before,{p:(p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in before})
   self.assertEqual((tree.parent/'publication_native_configured_scope.py').read_bytes(),self.scope.read_bytes());self.assertEqual((tree.parent/'publication_native_configured_scope.py').stat().st_mode&511,0o600)
@@ -83,7 +97,7 @@ class Controls(unittest.TestCase):
   names={row['path']for row in rows}|{'reader_recovery/'+name for name in manifest['files']}|{'reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'}
   for name in names:
    dst=actual/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/name,dst);dst.chmod(0o644)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1219);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1239);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
  def extra_source(self):
   p=self.fixes/'extra.py';p.write_bytes(b'# exact explicit source\n');p.chmod(0o644)
   index=self.fixes/'standalone_control_sources.json';rows=json.loads(index.read_bytes());row=dict(path='extra.py',target='alias.py',sha256=digest(p));rows.extend((row,dict(row,target='another-alias.py')));index.write_text(json.dumps(rows));return p,index,rows
@@ -111,13 +125,13 @@ class Controls(unittest.TestCase):
   return parent
  def test_aggregate_budget_encloses_actual_serial_child_deadlines(self):
   # Only process scheduling/results are projected; actual fixture-copy and
-  # parent runner paths execute. This does not rerun or grant the 1219 controls.
+  # parent runner paths execute. This does not rerun or grant the 1239 controls.
   parent=self.parent();children=[];expected=dict(m.SUITES)
   def child(command,**kw):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],1219);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),72);self.assertEqual(m.SUITES[-1],('test_genuine_active_inputs.py',15))
+  self.assertEqual(value['tests'],1239);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),72);self.assertEqual(m.SUITES[-1],('test_genuine_active_inputs.py',15))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()

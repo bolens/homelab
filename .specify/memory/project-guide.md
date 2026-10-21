@@ -83,9 +83,19 @@ original journal and namespace before diagnosing a Docker allocation failure.
 Exhausted default address pools are a host prerequisite, not archive or import
 acceptance. A network with no active endpoints can still be referenced by stopped
 or Created containers: inspect both NetworkSettings and HostConfig across the
-complete container census. Close that census before any specifically authorized
-unused-network removal, under a brief coordinated lifecycle pause. Keep the full
-original network profile and use a fresh creator generation afterward.
+complete container census. Before specifically authorized unrelated-network
+removal, close that census under a brief coordinated lifecycle pause. Task-owned
+fixture cleanup follows its exclusive-resource contract and still verifies exact
+identity, references and absence. Keep the original network profile and use a
+fresh creator generation afterward.
+
+Before creating a disposable NFS-backed container, verify source-directory
+traversal from the Docker daemon's identity as well as the fixture owner. A
+root-squashed NFS export can admit the user while refusing the daemon at private
+ancestors. Do not retry a failed create, chmod an existing library or failed
+fixture, or change export privileges to bypass this refusal. Use only the owning
+explicit disposable geometry contract; keep library and retention leaves private
+and prove the actual bind with a new empty fixture before connected acceptance.
 
 The configured reader-parent installer and disposable Creator use different SDK
 inputs. Derive the installer's subset from its pinned base manifest's
@@ -94,6 +104,13 @@ Creator's complete current SDK map separately. Optional historical-base hashes
 can differ; never replace current image hashes with historical values to make
 installation pass. Preserve the installer's original output_refs before source
 cohort execution and do not reinstall afterward.
+
+When a required installed module changes, advance the current base manifest and
+its fixed supplier hash through an explicitly reviewed source change. Preserve
+historical manifests and configured output references in their original frozen
+generations. A prospective source-derived base is not installed-image evidence:
+capture and join the newly published image before creating a new configured
+supplier generation. Never overwrite or refresh the old generation's references.
 
 Size disposable test filesystems above the production storage
 reserve plus fixture demand. A filesystem equal to the reserve correctly refuses

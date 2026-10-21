@@ -112,6 +112,33 @@ class Installation(unittest.TestCase):
     def base_map(self):
         raw=Path(__file__).with_name('configured_reader_parent_base_sources.json').read_bytes();base=json.loads(raw)
         return raw,{name:base['base_installed_sources'][name] for name in base['required_sdk_names']}
+    def test_reviewed_adoption_base_successor_preserves_historical_membership(self):
+        raw,sdk=self.base_map();base=json.loads(raw)
+        name='publication_archive_adoption.py'
+        new=m.sha(Path(__file__).parent.parent.joinpath(name).read_bytes())
+        old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
+        self.assertNotEqual(new,old)
+        self.assertEqual(base['base_installed_sources'][name],new)
+        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0')
+        self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
+        before=json.loads(historical)
+        self.assertEqual(base['required_sdk_names'],before['required_sdk_names'])
+        self.assertEqual(set(base['base_installed_sources']),set(before['base_installed_sources']))
+        self.assertEqual(len(sdk),102);self.assertEqual(len(base['base_installed_sources']),180)
+        self.assertEqual(base['base_cohort'],json.loads(Path(__file__).parent.parent.joinpath('publication_reader_cohort.json').read_bytes()))
+
+    def test_stale_adoption_base_and_sdk_refuse_new_reviewed_source_joins(self):
+        raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path)
+        new=sdk['publication_archive_adoption.py'];old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
+        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0')
+        self.assertEqual(m.sha(stale),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
+        with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,stale,files,receipt)
+        old_sdk=dict(sdk);old_sdk['publication_archive_adoption.py']=old
+        with self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(old_sdk,raw,files,receipt)
+        effective,cohort=m.configured_maps(sdk,raw,files,receipt)
+        self.assertEqual(effective['publication_archive_adoption.py'],new)
+        self.assertFalse(cohort['runtime_acceptance']);self.assertFalse(cohort['publication_acceptance'])
+
     def test_effective_sdk_and_cohort_only_admission_hash_changes(self):
         raw,sdk=self.base_map();before=dict(sdk);files,receipt=m.build(self.sources,self.path)
         effective,cohort=m.configured_maps(sdk,raw,files,receipt)
@@ -181,7 +208,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0')
+        self.assertEqual(base['base_cohort_sha256'],'ae47b3786060f973eb507d74948442031357d9db44f6c4f55e4e176a2aa635dc')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         for name,pin in self.CURRENT_PINS:
             if name!='api.py':self.assertEqual(base['base_cohort']['existing_sdk_closure'][name[:-3]]['tracked_source_sha256'],pin)

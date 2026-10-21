@@ -16,7 +16,9 @@ must install the coherent new source closure before any runtime attempt.
 Plan13 adds `publication_geometry` with version1 kind
 `private-common-root-nfs` and original `{path, signature9}` references for G,
 its direct library child L, and its direct private retention child R. G/L/R
-must be distinct UID/GID1000 directories with mode0700. G's original full9,
+must be distinct UID/GID1000 directories with mode0700 in legacy geometry v1.
+Explicit geometry v2 `searchable-common-root-nfs` instead requires G mode0711
+and L/R mode0700; it retains every descriptor, namespace and mount exclusion below. G's original full9,
 all three directory descriptors and exact `{L,R}` namespace remain held.
 Only descendant changes inside L/R are expected; G timestamp drift refuses.
 The selected action gets one writable bind G→G, replacing separate L/R binds.
@@ -113,8 +115,17 @@ Unknown mutation replies retain evidence and refuse replay or automatic cleanup.
 
 UID1000 host access does not prove the root Docker daemon can resolve direct
 bind sources through root-squashed mode0700 NFS ancestors. Actual bindability is
-an unproved execution prerequisite. No permission, mount or socket workaround is
-added, and the legacy root-only bootstrap entry point remains unchanged.
+an execution prerequisite independent of UID1000 access. Explicit Creator request
+v3 accepts only a freshly supplied UID/GID1000 mode0711 NFS scratch parent and
+creates a new geometry-v2 G with mode0711 through its original descriptor, even
+under umask077. L/R and all local state remain0700; credentials remain0600.
+Search permission permits traversal, not directory enumeration or writing. Known
+child names can be stat-visible; this is not a confidentiality claim for names.
+Existing ancestors must already permit daemon traversal. No existing failed
+directory, live library, export, mount, port or privilege is changed. Legacy
+Creator v1/v2, geometry v1 and the root-only bootstrap route remain unchanged.
+A separate disposable bind probe can establish only its tested traversal; the
+complete fresh Creator and configured lifecycle still need actual evidence.
 
 Exact plan13 dispatch now consumes the original current-role plan/source references
 and the creator's actual canonical library path. It checks finite nonce-labelled

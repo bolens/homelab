@@ -11,6 +11,7 @@ process may mutate their files, containers or network during the operation.
 """
 import argparse
 import ast
+import base64
 import configparser
 import copy
 import hashlib
@@ -114,8 +115,20 @@ class Driver:
                             else:output[stream].extend(block);need(len(output[stream])<=LIMIT,'creator-engine-output-bound')
             need(process.wait(timeout=max(0.001,deadline-time.monotonic()))==0,'creator-engine-held-no-replay')
             return bytes(output[process.stdout])
-        except (OSError,subprocess.TimeoutExpired):
-            raise p.Held('creator-engine-outcome-unknown-no-replay')from None
+        except BaseException as error:
+            failure = (p.Held('creator-engine-outcome-unknown-no-replay')
+                       if isinstance(error, (OSError, subprocess.TimeoutExpired)) else error)
+            # Private diagnostic only: never retain input/argv or print pipe data.
+            # A missing return code is uncertainty, not evidence of no effects.
+            failure.creator_engine_failure = dict(
+                returncode=None if process is None else process.poll(),
+                stdout_base64=base64.b64encode(bytes(output.get(None if process is None else process.stdout, b''))[:LIMIT]).decode('ascii'),
+                stderr_base64=base64.b64encode(bytes(output.get(None if process is None else process.stderr, b''))[:LIMIT]).decode('ascii'),
+                stdout_truncated=process is not None and len(output.get(process.stdout, b'')) > LIMIT,
+                stderr_truncated=process is not None and len(output.get(process.stderr, b'')) > LIMIT,
+                stream_byte_limit=LIMIT)
+            if failure is error:raise
+            raise failure from None
         finally:
             if process is not None and process.poll()is None:
                 try:process.kill()
@@ -157,8 +170,18 @@ class PurposeEngine:
             self.owner.note('done', name, digest(raw))
             self.owner.check()
             return raw
-        except BaseException:
+        except BaseException as error:
             self.poisoned = not readonly
+            diagnostic = getattr(error, 'creator_engine_failure', None)
+            if diagnostic is not None and self.owner.journal is not None:
+                try:
+                    path = self.owner.journal/'engine-failure.private.json'
+                    if not os.path.lexists(path):
+                        b.put(path, dict(kind='creator-first-engine-failure', operation=name,
+                            diagnostic=diagnostic, automatic_replay=False, cleanup=False))
+                except BaseException as secondary:
+                    # Losing diagnostic storage must not hide the actual refusal.
+                    error.creator_diagnostic_failure = type(secondary).__name__
             raise
 
     def image(self, role):
@@ -240,7 +263,7 @@ class PurposeEngine:
         if args[0] == 'restart':
             need(args == ['restart', '--time', '30', self.ids['native']] and data is None, 'only-original-native-restart')
             return self.call('connected-restart', 1, args)
-        if self.owner.document['version']==2 and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
+        if self.owner.document['version'] in (2,3) and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
             need(data is None,'queue-reader-jar-no-input')
             return self.call('queue-reader-original-jar',2,args,readonly=True)
         need(args[0] == 'exec' and args[:5] == ['exec', '--interactive', '--user', '1000:1000', self.ids['native']]
@@ -269,7 +292,7 @@ class PurposeEngine:
             need(value.get('nonce') == self.owner.nonce and value.get('cid') == self.ids['native'] and value.get('root') == self.owner.child_data
                  and value.get('library') == str(self.owner.library) and value.get('sdk') == self.owner.sdk and value.get('action') in ('seed','observe'), 'fixed-catalog-scope')
             name, maximum = 'catalog-' + value['action'], 1 if value['action'] == 'seed' else 64
-        elif self.owner.document['version']==2 and program==sources['reader_queue'].decode():
+        elif self.owner.document['version'] in (2,3) and program==sources['reader_queue'].decode():
             from genuine_reader_quiescence import request as queue_request
             need(args[10:]==['--disposable-reader-queue-v1',self.owner.nonce,self.ids['native']],'fixed-queue-invocation')
             value=p.decode(data);queue_request(value)
@@ -285,18 +308,19 @@ class Creator:
     def __init__(self, document, *, driver=None):
         need(os.geteuid() == os.getegid() == 1000, 'creator-actual-uid1000-required')
         need(type(document) is dict and set(document) == {'version','kind','nonce','observed','seconds','state_parent','nfs_parent','nfs_mount','images','native_sdk','data_contract','sources'}, 'creator-schema')
-        need(type(document['version']) is int and document['version'] in (1,2) and document['kind'] == 'approved-disposable-three-role-creator'
+        need(type(document['version']) is int and document['version'] in (1,2,3) and document['kind'] == 'approved-disposable-three-role-creator'
              and p.digest(document['nonce']) and type(document['observed']) is int and 0 <= time.time()-document['observed'] <= 120
              and type(document['seconds']) is int and 30 <= document['seconds'] <= 900, 'creator-original-deadline')
         self.document = copy.deepcopy(document); self.nonce = document['nonce']; self.end = time.monotonic()+document['seconds']
         self.raw = {}
         source_names=dict(SOURCES)
-        if document['version']==2:source_names['reader_queue']='genuine_reader_quiescence.py'
+        if document['version'] in (2,3):source_names['reader_queue']='genuine_reader_quiescence.py'
         need(set(document['sources']) == set(source_names), 'creator-source-closure')
         for name, filename in source_names.items():
             ref = document['sources'][name]; need(Path(ref['path']) == HERE/filename, 'creator-source-path')
             self.raw[name] = p.read(ref, private=False)
-        self.state_parent = b.directory(document['state_parent']); self.nfs_parent = b.directory(document['nfs_parent'])
+        self.state_parent = b.directory(document['state_parent']); self.nfs_parent = (b.searchable_directory if document['version']==3 else b.directory)(document['nfs_parent'])
+        if document['version']==3:need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
         need(self.state_parent != self.nfs_parent and self.state_parent not in self.nfs_parent.parents and self.nfs_parent not in self.state_parent.parents, 'disjoint-creator-parents')
         self.root = self.state_parent/('archive-bootstrap-'+self.nonce); self.common = self.nfs_parent/('archive-publication-'+self.nonce)
         self.library = self.common/'L'; self.retention = self.common/'R'; self.reader_host = 'reader-'+self.nonce[:16]
@@ -363,16 +387,25 @@ class Creator:
             if role=='reader':need(self.reader_host in (next(iter(networks.values())).get('Aliases')or []), 'created-reader-alias')
 
     def directories(self):
-        self.check(); b.directory(self.document['state_parent']); b.directory(self.document['nfs_parent'])
+        self.check(); b.directory(self.document['state_parent']); (b.searchable_directory if self.document['version']==3 else b.directory)(self.document['nfs_parent'])
+        if self.document['version']==3:need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
         need(self.engine.mount(self.nfs_parent,self.seconds())==self.document['nfs_mount'],'nfs-parent-mount-changed')
         self.root.mkdir(mode=0o700)
         self.journal=self.root/'creator';self.journal.mkdir(mode=0o700)
         self.common.mkdir(mode=0o700)
+        if self.document['version']==3:
+            # Only this just-created directory is changed, never an existing path.
+            fd=os.open(self.common,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            try:
+                original=p.five(os.fstat(fd));need(original==p.five(os.lstat(self.common)) and original[3:]==[1000,1000] and stat.S_IMODE(original[2])==0o700 and not os.listdir(fd),'creator-fresh-searchable-common')
+                os.fchmod(fd,0o711)
+                need(p.five(os.fstat(fd))==p.five(os.lstat(self.common)) and stat.S_IMODE(os.fstat(fd).st_mode)==0o711,'creator-searchable-common-mode')
+            finally:os.close(fd)
         for path in (self.root/'native',self.root/'reader',self.root/'worker',self.library,self.retention):path.mkdir(mode=0o700)
         current=self.root/'native'
         for part in Path(self.contract['relative']).parts:
             current/=part;current.mkdir(mode=0o700)
-        self.geometry = p.admit_common_root(dict(version=1,kind='private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),[dict(host=str(self.common),child=str(self.common),write=True)],str(self.library),str(self.retention),[str(self.root)])
+        self.geometry = p.admit_common_root(dict(version=2 if self.document['version']==3 else 1,kind='searchable-common-root-nfs' if self.document['version']==3 else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),[dict(host=str(self.common),child=str(self.common),write=True)],str(self.library),str(self.retention),[str(self.root)])
 
     @staticmethod
     def directory_ref(path):return dict(path=str(path),signature9=p.nine(os.lstat(path)))
@@ -447,7 +480,7 @@ class Creator:
         need(stat.S_ISREG(z.st_mode)and z.st_uid==1000 and stat.S_IMODE(z.st_mode)==0o600 and z.st_nlink==1,'actual-virgin-config')
         need(not any(os.path.lexists(self.data/n)for n in ('mylar.db','workflow.sqlite','media-writer','publication-fresh-v1.json')),'actual-native-still-virgin')
         plan=dict(version=1,kind='approved-disposable-application-bootstrap',nonce=self.nonce,observed=int(time.time()),seconds=int(self.end-time.monotonic()),
-                  state_root=self.directory_ref(self.root),geometry=dict(version=1,kind='private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),
+                  state_root=self.directory_ref(self.root),geometry=dict(version=2 if self.document['version']==3 else 1,kind='searchable-common-root-nfs' if self.document['version']==3 else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),
                   roles=roles,images={k:v['id']for k,v in self.document['images'].items()},network=dict(id=self.engine.network,profile=net[0]),
                   native_sdk=self.document['native_sdk'],native_ini=dict(path=str(ini),sha256=digest(raw),signature9=p.nine(z)),helper=self.document['sources']['http'],
                   native_probe=self.document['sources']['probe'],scope_source=self.document['sources']['scope'],nfs_mount=self.document['nfs_mount'],reader_credentials=credentials,reader_host=self.reader_host,reader_port=25600)

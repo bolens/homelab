@@ -542,3 +542,63 @@ The reviewed owning installer completes against the accepted published native an
 The first disposable Creator generation verifies all three original images, then receives a nonzero Docker response at internal-bridge creation. No test container creation occurs. Independent read-only inspection confirms the expected network is absent. A separate fresh diagnostic confirms Docker reports `all predefined address pools have been fully subnetted`; it creates no network. Preserve the original failed generation and resolve this host prerequisite before starting a fresh generation. The source-only SourceCohort schema and 1,219-control/72-suite inventory are identified, but no actual causal source-fixture run, NFS, terminal, import or acknowledgement acceptance is claimed.
 
 No live service restart or library mutation occurred. T026/T029, feature 024 T012/T015 and the related live acceptance tasks remain open.
+
+
+## Disposable NFS bind prerequisite isolated — 2026-10-21
+
+After specific authorization, the unused unrelated network is removed only after
+its exact saved profile and zero references across the complete 255-container
+census are rechecked. Both coordinating chats are released immediately. The next
+fresh Creator generation successfully creates its own internal network, then
+refuses its first container creation. No test containers are created; all failed
+generation evidence remains retained.
+
+A bounded read-only diagnostic establishes that the daemon identity can stat the
+local configuration directory but receives EACCES at the NFS library source. A
+separate new empty fixture proves the limited alternative: searchable `0711`
+ancestor directories with a private `0700` library leaf permit the exact selected
+native image to bind that leaf read-only and access it as UID 1000. Its disposable
+container is independently confirmed absent and its three owned empty directories
+are removed. No existing directory permissions, exports, service images or live
+library contents change. This is a source-bind prerequisite result, not connected
+factory, NFS transaction, import or acknowledgement acceptance. The owning
+explicit disposable geometry contract and its regression coverage remain required.
+
+The private bind result and independent cleanup result are retained under SHA256
+`80ded3989ad527a29b5b89ebc70beded4863c2dee5f1d2924f2f608e2d467cd8`
+and `0404b940ff55977f0241b219968e1a507f67901209e0c0730bddb7c98a66f69a`,
+respectively. The original failed generation is not adopted or replayed.
+
+
+## Coupled disposable recovery source verified — 2026-10-21
+
+The combined correction aligns the SourceCohort probe with the selected Python
+3.13 runtime, retains bounded first-failure Docker diagnostics privately, and
+adds explicit Creator v3/searchable geometry v2 across every owning consumer.
+Only new scratch/common ancestors permit traversal; library/retention leaves,
+local state, legacy production checks and exact mount/identity custody remain
+private and unchanged. Current operational source pins and generated maps close
+together. The earlier full run refused a stale consumer pin; that failure is
+retained rather than reclassified as a pass.
+
+The required adoption module changes, so the reviewed current supplier advances
+only its adoption hash in the complete SDK and existing-cohort closure, plus the
+correlated cohort digest. Historical base manifests and the original configured
+output references remain preserved. Regressions reject mismatched old/new bases
+and SDKs, and reject replacing an original output with equal bytes on a new inode.
+This prospective supplier is not installed-image evidence.
+
+The sealed combined source passes all 1,239 owning controls across 72 suites with
+zero skips under Python 3.10, with both the owning source closure and the entire
+packet's hash/full-metadata closure intact. Separate affected effective-scope and
+NFS-adoption suites also pass. Independent reviews cover the geometry consumers,
+runtime checks and diagnostic privacy. Source packet SHA256:
+`83df7f264596bb713fe1e86f18d38250839a8546f6ce9794641fdbd0b8d1f1d0`;
+actual full-run receipt SHA256:
+`055178f15cf7ac26ee94e0c830fdc0cc8be8ba3b22ffc63c55a986522229a899`.
+
+New matching native-image publication, actual installed-source capture and a new
+configured supplier generation remain prerequisites for connected execution.
+Earlier image evidence cannot cover changed adoption bytes. No live rollout,
+comic import, acknowledgement, full-worker start or final task acceptance follows
+from these source controls.

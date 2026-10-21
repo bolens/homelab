@@ -554,7 +554,7 @@ _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
 NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'd18f96659df27f72e2bcc0a524ca043c790e185b03070e269b569ade48382791'}
-NFS_ACTIVE_SOURCE_SHA='c7ddc4dc4d4d66c96778ec9b0da51b5c257531749047c8ff257dfe9704e2febb'
+NFS_ACTIVE_SOURCE_SHA='63ec393ab36a5296ad717013a7318057ee13b83b4cbd7a9baed09a9bf2038a19'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -853,12 +853,13 @@ _ARCHIVE_COMMON_ROOTS=weakref.WeakKeyDictionary()
 
 def admit_common_root(value,mounts,library,retention,other_roots):
     """Plan13 only: one private NFS bind containing exactly library+retention."""
-    need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and value['version']==1 and value['kind']=='private-common-root-nfs','archive-common-schema')
+    need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and (value['version'],value['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'archive-common-schema')
     for role in ('common_root','library','retention'):
         ref=value[role];need(type(ref) is dict and set(ref)=={'path','signature9'},'archive-common-ref')
         path=absolute(ref['path']);need(path.resolve(strict=True)==path and all(not p.is_symlink() for p in (path,*path.parents)),'archive-common-canonical')
-        v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(os.lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==0o700 and v[6:8]==[1000,1000],'archive-common-original-directory9')
+        v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(os.lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==(0o711 if value['version']==2 and role=='common_root' else 0o700) and v[6:8]==[1000,1000],'archive-common-original-directory9')
     root=Path(value['common_root']['path']);left=Path(value['library']['path']);right=Path(value['retention']['path'])
+    if value['version']==2:need(root.name.startswith('archive-publication-') and digest(root.name.removeprefix('archive-publication-')) and left==root/'L' and right==root/'R','archive-common-disposable-names')
     need(str(left)==library and str(right)==retention and left.parent==root and right.parent==root and left!=right and len({tuple(value[k]['signature9'][:2]) for k in ('common_root','library','retention')})==3 and len({value[k]['signature9'][0] for k in ('common_root','library','retention')})==1,'archive-common-exact-two-direct-children')
     need(set(os.listdir(root))=={left.name,right.name},'archive-common-exact-namespace')
     need(all(not(root==Path(p) or root in Path(p).parents or Path(p) in root.parents) for p in other_roots),'archive-common-other-scope-overlap')

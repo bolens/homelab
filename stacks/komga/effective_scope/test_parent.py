@@ -322,6 +322,36 @@ class DisposableOriginals(unittest.TestCase):
         original=self.originals();self.addCleanup(original.release)
         self.assertEqual(original.service(self.row,'a'*64),self.row['Mounts'][0]['Source']);original.close()
         self.assertEqual(p.child_command('case','token','/cid',Path('/checks'),'/exact/config').count('/exact/config:/config:ro'),1)
+    def test_searchable_bootstrap_originals_pass_exact_finite_mounts(self):
+        self.document['geometry'].update(version=2,kind='searchable-common-root-nfs')
+        self.document['geometry']['common_root']['signature9'][5]=0o40711
+        self.write_plan();self.refs['plan']=self.plan_ref
+        original=self.originals();self.addCleanup(original.release)
+        self.assertEqual(original.service(self.row,'a'*64),self.row['Mounts'][0]['Source'])
+        original.close()
+        with self.assertRaisesRegex(ValueError,'supported-original-mount-destinations'):p.original_service(self.row,'a'*64)
+
+    def test_searchable_bootstrap_originals_refuse_modes_legacy_and_selfconsistent_mount(self):
+        base=copy.deepcopy(self.document)
+        for fault in ('common700','common755','leaf711','state711','legacy711','foreignmount','wrongkind'):
+            with self.subTest(fault=fault):
+                self.document=copy.deepcopy(base);geometry=self.document['geometry']
+                geometry.update(version=2,kind='searchable-common-root-nfs');geometry['common_root']['signature9'][5]=0o40711
+                row=copy.deepcopy(self.row)
+                if fault=='common700':geometry['common_root']['signature9'][5]=0o40700
+                elif fault=='common755':geometry['common_root']['signature9'][5]=0o40755
+                elif fault=='leaf711':geometry['library']['signature9'][5]=0o40711
+                elif fault=='state711':self.document['state_root']['signature9'][5]=0o40711
+                elif fault=='legacy711':geometry.update(version=1,kind='private-common-root-nfs')
+                elif fault=='wrongkind':geometry['kind']='private-common-root-nfs'
+                else:
+                    row['Mounts'][1]['Source']='/foreign';self.document['roles']['reader']['profile']['Mounts']=copy.deepcopy(row['Mounts'])
+                self.write_plan();self.refs['plan']=self.plan_ref
+                original=self.originals()
+                try:
+                    with self.assertRaises(ValueError):original.service(row,'a'*64)
+                finally:original.release()
+
     def test_no_caller_mount_list_overlays_writes_foreign_profile_or_nonce(self):
         for change in ('extra','write','source','duplicate','epoch','nonce'):
             with self.subTest(change=change):

@@ -571,14 +571,14 @@ def disposable_archive_mapping(rows, roots, roles, plan):
     check(type(nonce) is str and re.fullmatch('[a-f0-9]{64}', nonce), 'disposable-mapping-nonce')
     geometry = plan.get('publication_geometry')
     exact(geometry, ('version', 'kind', 'common_root', 'library', 'retention'))
-    check(type(geometry['version']) is int and geometry['version'] == 1
-          and geometry['kind'] == 'private-common-root-nfs', 'disposable-mapping-geometry')
+    check(type(geometry['version']) is int and (geometry['version'],geometry['kind'])
+          in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')), 'disposable-mapping-geometry')
     paths, frames = {}, {}
     for role in ('common_root', 'library', 'retention'):
         ref = geometry[role]; exact(ref, ('path', 'signature9'))
         path = canonical(ref['path']); frame = ref['signature9']
         check(type(frame) is list and len(frame) == 9 and all(type(v) is int for v in frame)
-              and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == 0o700
+              and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == (0o711 if geometry['version']==2 and role=='common_root' else 0o700)
               and frame[6:8] == [1000, 1000], 'disposable-mapping-directory')
         paths[role], frames[role] = path, frame
     common, library, retention = (paths[k] for k in ('common_root', 'library', 'retention'))

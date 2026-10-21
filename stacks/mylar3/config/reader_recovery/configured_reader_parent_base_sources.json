@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0",
+  "base_cohort_sha256": "ae47b3786060f973eb507d74948442031357d9db44f6c4f55e4e176a2aa635dc",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -181,7 +181,7 @@
     "prowlarr_identity.py": "f79b997d11da1c7b642d8d14b901b21374b367adc0e499f6a9507c77a0d7854d",
     "publication_api.py":
       "785f93d90903633ec72570b03926d2581df6fef837f5352a5e1aa651f78ca131",
-    "publication_archive_adoption.py": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9",
+    "publication_archive_adoption.py": "0304108423c7e015cd9a14315d0a6cb5eba0af29a831ed8a35a9dc0dd74a44c8",
     "publication_archive_derivative.py": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
     "publication_archive_diagnostics.py": "c71f0d71dcd2b69c1f4f392bd5aada3bb1a65794fd8f1c12ee16aa7489684577",
     "publication_archive_dispatch.py": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7",
@@ -444,7 +444,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9"
+        "tracked_source_sha256": "0304108423c7e015cd9a14315d0a6cb5eba0af29a831ed8a35a9dc0dd74a44c8"
       },
       "publication_archive_derivative": {
         "owning_adapters": [

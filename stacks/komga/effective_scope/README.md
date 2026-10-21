@@ -63,6 +63,13 @@ original `G/L` library at its same absolute destination read-only. The declared
 foreign and application overlays refuse, even if repeated in a supplied profile.
 No caller mount list or generic destination-prefix exception is accepted.
 
+The explicit disposable geometry v2 permits only a nonce-named common ancestor
+at `0711`, with library, retention and local reader state still `0700`. It matches
+Creator v3's separately reviewed scratch contract; legacy geometry v1 and the
+default production route retain their existing checks. This permits source-path
+traversal without listing or writing the private leaves. Current source pins,
+original bootstrap references and all role/profile checks remain required.
+
 Only configuration is mounted into the observer child, read-only, as before.
 Historical bootstrap directory vectors are not refreshed or presented as fresh
 physical/NFS facts. Actual code JARs, process, configuration, report/ACK and all

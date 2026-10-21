@@ -1489,8 +1489,8 @@ reader indexing, ordinary import or live repair acceptance.
 The disabled archive terminal path preserves the original live adoption or rollback capability, preparation, catalog and writer facts through the last physical checks. The reviewed same-child path uses that capability for fresh forward or rollback verification and history, then joins the original parent pipe and its current conversation sequence before acknowledging. Saved receipts cannot recreate the capability or pipe custody. The separate read-only worker path retains both original pipes and its own image ancestry through observation and release. Matching installed CLI and runtime, actual bind geometry, NFS and live acceptance remain required.
 
 The prospective archive plan13 path uses an explicit NFS rename/link protocol,
-selected before any pending marker. Its transient child binds one private common
-root containing exactly the scanned library and a disjoint private retention
+selected before any pending marker. Its transient child binds one nonce-scoped common
+root containing exactly the private scanned library and a disjoint private retention
 directory. Actual mount-ID/export joins, original directory FDs/full signatures,
 stopped reader, inactive worker and exclusive cooperating Writer are required.
 No independent process may write the selected names during that interval; file
@@ -1511,9 +1511,13 @@ connected-factory admission. The separately selected UID1000 creator adds only
 finite original disposable container/network creation and pinned reader
 enrollment, using the existing Polkit Docker prefix. It requires reviewed image,
 DATA and dedicated NFS-scratch inputs. Host UID1000 access does not prove daemon
-bindability through root-squashed private NFS ancestors; no mount, permission or
-socket workaround is added. The worker stays Created, and actual runtime
-acceptance remains open. An explicit native-catalog helper can seed finite distinct fixture
+bindability through private NFS ancestors. Explicit disposable Creator v3 uses
+new searchable `0711` scratch/common ancestors with private `0700` library and
+retention leaves; local state remains `0700`. Legacy and production geometry
+checks remain unchanged. Never change existing library, failed-fixture or export
+permissions to bypass a refusal. Matching published source, a fresh configured
+supplier generation and connected runtime evidence remain required. The worker
+stays Created, and actual runtime acceptance remains open. An explicit native-catalog helper can seed finite distinct fixture
 identities into the real startup-created empty schema under the installed
 Writer, then queue native processing. It requires actual completed catalog/file
 observations before the reader scans those outputs. This is disposable fixture

@@ -85,6 +85,50 @@ class Tests(unittest.TestCase):
         with self.assertRaises(p.Held):
             p.check_common_root(row)
 
+    def searchable(self):
+        if self.root.name=='common':
+            root=self.base/('archive-publication-'+'a'*64);self.root.rename(root);self.root=root
+            (root/'library').rename(root/'L');(root/'retention').rename(root/'R')
+            self.library=root/'L';self.retention=root/'R'
+            self.geometry.update(**{name:dict(path=str(path),signature9=p.nine(path.lstat()))for name,path in(('common_root',root),('library',self.library),('retention',self.retention))})
+            self.mounts=[dict(host=str(root),child=str(root),write=True)]
+        self.root.chmod(0o711)
+        value=copy.deepcopy(self.geometry)
+        value.update(version=2,kind='searchable-common-root-nfs')
+        value['common_root']['signature9']=p.nine(self.root.lstat())
+        return value
+
+    def test_searchable_variant_keeps_private_leaves_and_full_custody(self):
+        value=self.searchable();row=self.admit(value)
+        p.check_common_root(row)
+        self.assertEqual(value['common_root']['signature9'][5]&0o777,0o711)
+        self.assertEqual([os.fstat(fd).st_mode&0o777 for fd in row[2]],[0o700,0o700])
+        self.root.chmod(0o700)
+        with self.assertRaises(p.Held):p.check_common_root(row)
+
+    def test_searchable_variant_rejects_other_modes_and_leaf_access(self):
+        self.searchable()
+        for role,path in [('common_root',self.root),('library',self.library),('retention',self.retention)]:
+            for mode in (0o755,0o777,0o710,0o702):
+                with self.subTest(role=role,mode=mode):
+                    value=self.searchable();path.chmod(mode);value[role]['signature9']=p.nine(path.lstat())
+                    with self.assertRaises(p.Held):self.admit(value)
+                    path.chmod(0o700)
+
+    def test_legacy_geometry_does_not_accept_searchable_root(self):
+        value=self.searchable();value.update(version=1,kind='private-common-root-nfs')
+        with self.assertRaises(p.Held):self.admit(value)
+
+    def test_searchable_variant_retains_extra_shadow_and_foreign_owner_refusals(self):
+        self.root.chmod(0o711);wrong=copy.deepcopy(self.geometry);wrong.update(version=2,kind='searchable-common-root-nfs');wrong['common_root']['signature9']=p.nine(self.root.lstat())
+        with self.assertRaisesRegex(p.Held,'archive-common-disposable-names'):self.admit(wrong)
+        value=self.searchable()
+        with self.assertRaises(p.Held):self.admit(value,mounts=[*self.mounts,dict(host=str(self.library),child=str(self.library),write=False)])
+        foreign=copy.deepcopy(value);foreign['common_root']['signature9'][6]=1001
+        with self.assertRaises(p.Held):self.admit(foreign)
+        (self.root/'foreign').mkdir();value['common_root']['signature9']=p.nine(self.root.lstat())
+        with self.assertRaises(p.Held):self.admit(value)
+
 
 if __name__ == '__main__':
     unittest.main()

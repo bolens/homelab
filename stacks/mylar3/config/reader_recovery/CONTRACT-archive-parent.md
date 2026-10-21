@@ -222,3 +222,18 @@ actual input/pipe. Typed selection and actual child mountinfo precede pending.
 The [source checkpoint](GENUINE-ARCHIVE-SCENARIO.md) records phase details,
 exclusion limits, component evidence and the still-unbuilt genuine bootstrap.
 No genuine installed/NFS/worker terminal acceptance is claimed by this source.
+
+
+## Explicit searchable disposable geometry
+
+Creator request v3 selects geometry version2, kind
+`searchable-common-root-nfs`: a fresh UID/GID1000 NFS scratch parent and G have
+exact mode0711; direct L/R remain mode0700. Legacy geometry version1 still
+requires mode0700 for all three directories. The selected child still gets the
+same single G→G bind, and service roles retain their exact L mounts.
+All original full9/descriptor, exact two-child namespace, device/mount-ID,
+shadow-bind and other-role exclusions remain mandatory. Traversal permission
+adds neither enumeration nor write permission for other users; known names may
+be stat-visible. No existing directory or export is chmodded. A missing or
+inaccessible ancestor refuses; permission bits do not establish actual daemon
+bindability or configured acceptance. Local state and credentials stay private.
