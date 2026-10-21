@@ -440,6 +440,10 @@ refresh the affected copy manifests. The inner collection passing does not
 verify these outer regression checks. Run the outer operational semantic-pin
 test before the long collection after changing a pinned host producer; keep
 `genuine_current_roles.SOURCE_PINS` aligned with the actual bootstrap source.
+Search the entire tracked repository for the predecessor hash before editing a
+shared producer. Komga’s `effective_scope/parent.py::BOOTSTRAP_SOURCE_SHA` is a
+second bootstrap consumer outside the native control collection; refresh its
+source manifest and run its direct source-pin regression too.
 A never-started Docker container may have empty network and endpoint IDs even
 when its HostConfig names the exact original network ID. Join that CREATED
 profile to a fresh inspection of the original network. Require the actual

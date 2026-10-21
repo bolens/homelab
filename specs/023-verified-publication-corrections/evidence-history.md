@@ -849,3 +849,19 @@ controls with zero skips. The pinned [Komga claim controller](https://github.com
 requires email validation; the corresponding [validator](https://github.com/hibernate/hibernate-validator/blob/8.0.3.Final/engine/src/main/java/org/hibernate/validator/internal/constraintvalidators/AbstractEmailValidator.java)
 limits local parts to 64 characters. The earlier HTTP 400 remains a retained
 failed attempt, not evidence of successful or absent enrollment.
+
+PR #465 head `0b6e98a` then exposes a second bootstrap-hash consumer in Komga's
+effective-scope verifier, outside the native collection. Its exact semantic pin
+and the two affected manifest rows advance together; a direct current-source
+regression prevents silent drift. All 62 Python checks and 37 JDK 21 closure
+cases pass through the exact failed CI command, with no optional-tool skips.
+Spring replay and configured scope acceptance remain unverified. Normal CI must
+pass on the corrected head before merge.
+
+The original-bound INNER installation export also succeeds: all 27 original
+files, hashes, namespace and directory identity close unchanged. Only a new
+private six-key result and its original-wrapper reference are written. No
+installer, Docker or lifecycle runs. A separate one-GET diagnostic confirms
+the third fixture remains unclaimed, with all three role epochs unchanged.
+Historical Creator-source divergence is explicit; this diagnostic grants no
+factory or mutation authority.
