@@ -383,8 +383,10 @@ access. Capture ancestor identities before reading a protected leaf, then verify
 them again after the read; a later baseline can accept a replaced directory.
 Verify actual supplier ownership and modes through the strict reader before
 privileged execution, as well as checking hashes. A frozen `0444` source can fail
-a reader that accepts only `0600` or `0644`. Preserve the frozen original; use a
-distinct byte-identical supplier with the required mode and bind its exact path.
+a reader that accepts only `0600` or `0644`. This also applies to `0400` helpers.
+Preserve the frozen original; use a distinct byte-identical supplier with the
+required mode and bind its exact path. Exercise that exact producer-to-reader
+handoff in a regression: importing the helper directly does not test admission.
 Keep failure diagnostics in the called `main()` entry point when a cached loader
 bypasses the script guard; report fixed source frames and preserve the exception.
 Correct the owning directory without rewriting retained receipt bytes or

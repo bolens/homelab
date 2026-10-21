@@ -295,11 +295,17 @@ class DisposableOriginals(unittest.TestCase):
             def __init__(self,row,owner):self.row=row;self.st_uid,self.st_gid=owner
             def __getattr__(self,name):return getattr(self.row,name)
         def view(row,path):
-            if path in paths and (row.st_uid,row.st_gid)==actual:
-                return View(row,(1000,1000) if project else observed)
+            if (row.st_uid,row.st_gid)==actual:
+                raw=View(row,observed)
+                return View(raw,(1000,1000)) if path in paths and project else raw
             return row
-        def stat(path,*args,**kwargs):return view(HOST_STAT(path,*args,**kwargs),os.path.abspath(os.fspath(path)))
-        def lstat(path,*args,**kwargs):return view(HOST_LSTAT(path,*args,**kwargs),os.path.abspath(os.fspath(path)))
+        def resolved(path,kwargs):
+            path=os.fspath(path)
+            if not os.path.isabs(path) and kwargs.get('dir_fd') is not None:
+                path=os.path.join(os.readlink('/proc/self/fd/'+str(kwargs['dir_fd'])),path)
+            return os.path.abspath(path)
+        def stat(path,*args,**kwargs):return view(HOST_STAT(path,*args,**kwargs),resolved(path,kwargs))
+        def lstat(path,*args,**kwargs):return view(HOST_LSTAT(path,*args,**kwargs),resolved(path,kwargs))
         def fstat(fd):
             try:path=os.readlink('/proc/self/fd/'+str(fd))
             except OSError:path=None
@@ -393,5 +399,13 @@ class DisposableOriginals(unittest.TestCase):
         # Check that the projection never changes non-ownership file metadata.
         expected=p.nine(HOST_STAT(self.plan_path));observed=p.nine(self.plan_path.stat())
         self.assertEqual(observed[:6]+observed[8:],expected[:6]+expected[8:])
+
+    def test_full_host_uid1001_main_includes_dirfd_metadata_before_failure(self):
+        # Model every same-user stat, directory and FD as hosted UID1001,
+        # including ConfigOriginals' relative-name+dir_fd census. Exercise the
+        # complete existing main fixture with its unchanged failure assertion.
+        with self.owner_model(host_owner=(1001,1001)):
+            self.assertEqual(self.root.stat().st_uid,1001)
+            self.test_optional_main_refusal_releases_both_original_descriptor_groups()
 
 if __name__ == '__main__': unittest.main(verbosity=2)

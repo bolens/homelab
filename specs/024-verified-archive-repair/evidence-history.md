@@ -398,3 +398,10 @@ Independent review passes. All 38 parent controls pass on managed Python 3.10 wi
 The first current-head hosted gate fails because its user ID differs from the required operational owner. The new bootstrap tests created genuine files with the runner's ownership, causing the strict production reader to refuse before reaching the intended assertions. A test-only projection now models UID/GID 1000 for exactly the two declared bootstrap fixtures; all real byte, descriptor, mode, inode, link and timestamp checks remain intact. Production source is unchanged.
 
 Independent review passes. The added regression explicitly models foreign UID 1001 and requires genuine owner refusal, then verifies the finite operational-owner projection and wrong-hash refusal. All 39 parent controls pass on Python 3.10 and the host; the complete JDK 21 source/compile gate passes after the test pin is refreshed. Current-head hosted CI must pass before merge; no production ownership allowance or test assertion is removed.
+
+
+## Directory-relative hosted fixture check — 2026-10-20
+
+The next hosted run passes the earlier ownership cases but exposes one further fixture mismatch: a directory-relative `stat` resolves against a retained descriptor, while the ownership model incorrectly resolves the name against the current directory. The fixture now resolves relative names through their actual `dir_fd` before applying its existing two-file projection. Production source remains unchanged.
+
+A strengthened model presents hosted UID 1001 across real directory, leaf and descriptor metadata and reproduces the exact complete-main failure before the fix. The corrected model reaches the original injected pre-output failure and verifies both descriptor groups close. All 40 controls pass on Python 3.10 and the host, with zero skips; strict foreign-owner and wrong-hash refusals remain. Current-head hosted CI remains required.
