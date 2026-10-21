@@ -10,13 +10,15 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 FIXES = Path(__file__).parent
 # These owning suites use independent temporary source/database/media/cache roots.
 # Shared-source patch and legacy suites remain serialized.
 # Export/composed retained API suites run only in the mandatory copied API family,
 # where their exact generated api.py fixture exists; direct execution lacks that fixture.
-OWNING_SUITES = ('test_publication_conversion.py', 'test_publication_reconcile.py',
+# Start the longest isolated suite first so it cannot become a serial tail.
+OWNING_SUITES = ('test_publication_tagging.py', 'test_publication_conversion.py', 'test_publication_reconcile.py',
     'test_publication_lineage.py', 'test_publication_derivative.py',
     'test_reviewed_derivative.py', 'test_combined_publication.py',
     'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_publication_archive_repair.py',
@@ -113,15 +115,18 @@ def owning_sources(destination):
 
 def owning_suite(test, environment):
     assert test in OWNING_SUITES
+    started = time.monotonic()
     # Independent media roots do not isolate tests that deliberately chmod or
     # replace their loaded source. Give every parallel actor its own source too.
     with tempfile.TemporaryDirectory(prefix='mylar-owning-controls-') as directory:
         private = Path(directory) / 'fixes'
         private.mkdir()
         owning_sources(private)
-        return subprocess.run([sys.executable, '-B', str(private / test)],
+        result = subprocess.run([sys.executable, '-B', str(private / test)],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             env=environment)
+        print(f'Owning image suite duration: {test}: {time.monotonic() - started:.3f}s', flush=True)
+        return result
 
 
 def ordinary_pipeline_controls(source, directory):
@@ -294,7 +299,6 @@ with tempfile.TemporaryDirectory() as directory:
                    env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable,str(FIXES/'test_weekly_identity.py')],check=True,
                    env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
-    subprocess.run([sys.executable, str(FIXES / 'test_publication_tagging.py')], check=True, env=dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable, str(FIXES / 'test_tagger_legacy.py')],check=True)
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_publication_archive_installation.py')], check=True, env=environment)
     subprocess.run([sys.executable, '-c', "from pathlib import Path; import mylar; from mylar import publication_archive_history as h, publication_archive_owned as o; assert Path(h.__file__) == Path(mylar.__path__[0])/'publication_archive_history.py'; assert h.o is o; assert all(callable(getattr(h,n,None)) for n in ('initialize','prepared','executed','observe_terminal','status','record_vectors'))"], check=True, env=dict(os.environ, PYTHONPATH=str(source.parent) + ':/app/mylar3:/app/mylar3/lib'))
