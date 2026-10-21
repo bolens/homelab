@@ -490,10 +490,10 @@
       "sha256": "ce20e9cb0ea6b846a6956125851c19362ee8f9fe4724e995472b03d58456ea92"
     },
     "genuine_active_inputs.py": {
-      "sha256": "a9cc244c3214d3cc2527afdc427280ca873ba666bae976ae84bb8af532144c31"
+      "sha256": "c76f2aadc53be948ce39f46dbe918d5aef699bb11d7beac34182469a22772b03"
     },
     "genuine_application_bootstrap.py": {
-      "sha256": "18db2194bba4a369a2516c9e1f7658390a31dc58b8a623ab1a6bbea59cfb2b7d"
+      "sha256": "76c7812eb30af609b063b214840a586a6289f1ce4fe7e1a8f48727b9b60ade71"
     },
     "genuine_archive_fixture.py": {
       "sha256": "b2aebd9bb7388fb80d877b898b8b52a86a1d4f2c783d2544c23e641d6f0b3da3"
@@ -508,7 +508,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "c32326d52da0e62f60621ed01c9d30b2fa209e995b9ccfd52159da28d0aa2e78"
+      "sha256": "6be98a8955769f5c231528db89cc22317cfcaf6db8e66f6ca4fab2febc1cd801"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -523,7 +523,7 @@
       "sha256": "1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd"
     },
     "genuine_source_cohort.py": {
-      "sha256": "cf88fa4d04f151fbf348f397ddb0fce86a0bb1e7b1d3743c65a7cb8821c8037a"
+      "sha256": "9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
@@ -628,7 +628,7 @@
       "sha256": "2e3944b84972171861138cce0f87edf6331d59093720934d5bdcf607e159aa72"
     },
     "test_genuine_application_bootstrap.py": {
-      "sha256": "ce9fc63391e0d183b6cc1297393f1ef39b8567e8b2ce6f77aeefa344e39fe3e4"
+      "sha256": "efed1773260e623bd9eca0fb252a98a6857829a062ce9c5cbf81fdc6e70083aa"
     },
     "test_genuine_archive_fixture.py": {
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
@@ -649,7 +649,7 @@
       "sha256": "7c3cce082fb7d43dd01cf439e462a887223068292a7cdf2a69b7ba5f4b6e09c9"
     },
     "test_genuine_source_cohort.py": {
-      "sha256": "2cf2cb3005543c26875c0695cea6a0b7feaf4d29ee44c583d2207a64f7bd6368"
+      "sha256": "4c3098d9cf10f85673f3176d44407eaea55d1be201e18cb5a5bf2e90f9d404b6"
     },
     "test_hardlink_nfs_probe.py": {
       "sha256": "388f7ab2c6147b13457e9d9356848c40c19f290032fe2c9348eaba1d80df727d"

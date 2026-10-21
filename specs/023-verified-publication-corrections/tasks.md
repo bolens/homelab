@@ -12,7 +12,8 @@
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,252 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,260 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **Fresh isolated bootstrap:** reader enrollment/API-key creation, virgin backup/restore and native initialization pass. The planned restart stops at a preservation check because Docker changes the native MAC address. Paired container/network evidence agrees. The corrected paired successor passes source tests; fresh execution remains required. No replay, connected factory, NFS, import or ACK acceptance follows. See [the restart refusal](evidence-history.md#fresh-isolated-enrollment-and-restart-refusal--2026-10-21).
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
 - **T031/T032 are complete; T017–T019 retain their aggregate gates:** identity recovery and control-state adoption are accepted. Current-library, reader, restart and second-pass acceptance precede bulk resumption and final cleanup. Keep one independently verified current backup and unresolved originals. See [recovery](evidence-history.md#combined-worker-recovery-and-pack-matching-2026-10-15) and the task dependencies below.
@@ -121,29 +122,26 @@ ordinary import/rename/metadata and worker component proofs remain in
 [evidence history](evidence-history.md); they do not complete current connected,
 retained-download or bulk acceptance.
 
-The accepted native405 preservation baseline and the published449 source/startup
-and worker42 proofs remain valid for their recorded versions. The warning-fix
-PR #462 native180/startup capture and matching 27-output supplier pass. The
-current Creator correction passes the complete 1,241-control source gate; fresh
-Creator/SourceCohort and connected acceptance remain open. See [the current
-record](evidence-history.md#creator-configuration-ast-correction--2026-10-21).
+The accepted native405 preservation baseline and published449 component proofs
+remain valid for their recorded versions. The PR #462 native180/startup capture
+and matching 27-output supplier pass. Current source checks are summarized below;
+original installation outputs and failed generations remain retained.
 
 ## Convergence assessment and evidence
 
-CI scheduling passed hosted checks and merged in PR #463; observed verification
-time fell from 37m 57s to 20m 19s. Separate cacheable tagging and remaining-check
-branches merge in PR #464 after all 43 hosted checks pass and one expected skip.
-The real tagging stage passes all 117 tests with zero skips; an unrelated reader
-edit reuses the tagging layer. The PR #462 image's actual native180/startup
-capture and matching supplier preparation of all 27 original outputs pass.
-The host compatibility batch passes 50 Creator and 29 bootstrap controls plus
-all 14 outer checks, including the 1,252-control source collection. It preserves
-strict profile comparison, safe diagnostics and once-only enrollment. Actual
-startup reaches both services, then an enrollment POST returns HTTP 400. The
-bounded email correction is source-verified; fresh enrollment, SourceCohort and
-connected acceptance remain required. No aggregate checkbox changes. See [the
-latest checkpoint](evidence-history.md#creator-startup-diagnostics-and-pending-source-closure--2026-10-21).
+PR #463 scheduling and PR #464 cacheable stages are merged. The tagging stage's
+117 tests pass without skips, and an unrelated reader edit reuses that layer.
 See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
+The new host batch passes 33 bootstrap controls, 38 source-cohort controls and
+all 14 outer checks, including all 1,260 controls across 72 suites. It adds a
+paired own-restart endpoint/MAC successor and exact installed-file parity
+program derivation. Normal hosted CI and delivery remain required for this batch.
+
+The fresh isolated generation passes actual enrollment/API-key creation,
+virgin backup/restore and native initialization, then stops at the old restart
+check. Exact cleanup removes its test containers/network while retaining all
+data and evidence. The narrow successor passes the retained-data comparison;
+fresh connected execution is still required. See [the shared checkpoint](evidence-history.md#fresh-isolated-enrollment-and-restart-refusal--2026-10-21).
 
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
 genuine connected factories and archive terminal consumption, T027 physical and
@@ -151,9 +149,8 @@ reader acceptance, and T028/T033 selected import, fresh ACK and later automatic
 capture consumption. All selected histories remain retained; the permanent
 worker remains inactive. Component source tests do not complete these tasks.
 
-Clark PR #460 is merged and included in the media branch. Normal combined-head
-CI and publication precede new native180/startup capture, a fresh supplier and
-causal SourceCohort, new Creator v3 geometry, current-role/effective-scope evidence
-and the existing Parent/Birth/session route. Preserve the original 27 outputs
-and earlier failed generations. The limited NFS bind proof does not replace the
-connected proof. See [prepared current-generation inputs](evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
+Clark PR #460 and the original generation preparation remain recorded in
+[evidence history](evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
+Host-only control changes do not refresh the original 27 installation outputs
+or require another image pull when the installed SDK remains unchanged. Fresh
+source and connected runtime acceptance still precede their owning operations.

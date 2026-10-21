@@ -293,6 +293,61 @@ class BootstrapTests(unittest.TestCase):
         self.assertFalse(session.output.exists()); self.assertFalse(any(call[0] == 'http' for call in engine.calls))
 
 
+    def restart_pair(self):
+        native=self.plan['roles']['native']['id'];endpoint=self.plan['roles']['native']['profile']['NetworkSettings']['Networks']['private']
+        endpoint['MacAddress']='02:11:22:33:44:55';self.plan['network']['profile']['Containers'][native]['MacAddress']=endpoint['MacAddress']
+        session,engine=self.session();engine.run(['restart','--timeout','30',native],session.seconds())
+        engine.rows[native]['NetworkSettings']['Networks']['private']['MacAddress']='02:aa:bb:cc:dd:ee'
+        engine.network['Containers'][native]['MacAddress']='02:aa:bb:cc:dd:ee'
+        return session,engine,native
+
+    def test_own_restart_MAC_and_network_pair_commit_exact_successor(self):
+        session,engine,native=self.restart_pair();before=copy.deepcopy((session.profiles,session.epochs,session.network_profile))
+        session.roles(restarting=True)
+        self.assertEqual(session.profiles['native'],b.p.static(engine.rows[native]))
+        self.assertEqual(session.network_profile,engine.network)
+        for role in ('reader','worker'):
+            self.assertEqual(session.profiles[role],before[0][role]);self.assertEqual(session.epochs[role],before[1][role])
+        session.roles()
+
+    def test_restart_pair_refuses_unjoined_MAC_endpoint_and_foreign_fields_atomically(self):
+        for fault in ('member-mac','member-endpoint','IP','alias','networkID','native-config','reader-member','extra-member','network-label'):
+            with self.subTest(fault=fault):
+                fixture=type(self)();fixture.setUp();self.addCleanup(fixture.doCleanups)
+                session,engine,native=fixture.restart_pair();before=copy.deepcopy((session.profiles,session.epochs,session.network_profile))
+                endpoint=engine.rows[native]['NetworkSettings']['Networks']['private']
+                if fault=='member-mac':engine.network['Containers'][native]['MacAddress']='02:00:00:00:00:01'
+                elif fault=='member-endpoint':engine.network['Containers'][native]['EndpointID']='foreign'
+                elif fault=='IP':endpoint['IPAddress']='192.0.2.1'
+                elif fault=='alias':endpoint['Aliases']=['foreign']
+                elif fault=='networkID':endpoint['NetworkID']='foreign'
+                elif fault=='native-config':engine.rows[native]['Config']['Foreign']='unapproved'
+                elif fault=='reader-member':engine.network['Containers'][fixture.plan['roles']['reader']['id']]['MacAddress']='02:00:00:00:00:02'
+                elif fault=='extra-member':engine.network['Containers']['f'*64]={'EndpointID':'foreign'}
+                else:engine.network['Labels']['foreign']='unapproved'
+                with self.assertRaises(b.Held):session.roles(restarting=True)
+                self.assertEqual((session.profiles,session.epochs,session.network_profile),before)
+
+    def test_restart_MAC_rejects_missing_malformed_multicast_or_mismatched_old_origin(self):
+        session,engine,native=self.restart_pair();original=session.profiles['native'];projected=b.p.static(engine.rows[native]);oldnet=session.network_profile;newnet=engine.network
+        for fault in ('missing','malformed','multicast','old-member','old-endpoint'):
+            left,right,ln,rn=copy.deepcopy((original,projected,oldnet,newnet));ep=right['NetworkSettings']['Networks']['private']
+            if fault=='missing':del rn['Containers'][native]['MacAddress']
+            elif fault=='malformed':ep['MacAddress']=rn['Containers'][native]['MacAddress']='not-a-MAC'
+            elif fault=='multicast':ep['MacAddress']=rn['Containers'][native]['MacAddress']='01:00:00:00:00:01'
+            elif fault=='old-member':ln['Containers'][native]['MacAddress']='02:00:00:00:00:01'
+            else:ln['Containers'][native]['EndpointID']='foreign'
+            with self.subTest(fault=fault),self.assertRaises(b.Held):b.own_restart_successor(left,right,ln,rn,native)
+
+    def test_MAC_refresh_is_not_an_ordinary_or_other_role_exception(self):
+        session,engine,native=self.restart_pair();before=copy.deepcopy((session.profiles,session.epochs,session.network_profile))
+        with self.assertRaises(b.Held):session.roles()
+        self.assertEqual((session.profiles,session.epochs,session.network_profile),before)
+        reader=self.plan['roles']['reader']['id'];engine.rows[reader]['NetworkSettings']['Networks']['private']['MacAddress']='02:00:00:00:00:02'
+        with self.assertRaises(b.Held):session.roles(restarting=True)
+        self.assertEqual((session.profiles,session.epochs,session.network_profile),before)
+
+
 class HttpTests(unittest.TestCase):
     def value(self, **changes):
         return dict(dict(kind='reader', base='http://disposable-reader:25600', key='private-key', operation='principal', arguments={}, seconds=10), **changes)

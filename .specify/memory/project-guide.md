@@ -434,6 +434,12 @@ commands, updating paired argv producers and consumers together. Preserve exact
 acknowledgement checks rather than stripping unexpected output. Retain private
 CREATED and first-running profiles before comparing a startup transition; a
 response hash alone cannot identify which original field changed.
+An acknowledged own restart can also change Docker's generated native MAC.
+Join each old/new endpoint ID and MAC to that same native member in the paired
+original/current network records. Require all other network and container
+fields to remain equal, keep reader/worker checks exact, and commit the native
+profile, epoch and network successor together only after all guards pass.
+This exception belongs only to that recorded restart, never ordinary observation.
 When changing reader-recovery test counts, update the owning runner and both
 aggregate expectations in `test_publication_reader_recovery_controls.py`, then
 refresh the affected copy manifests. The inner collection passing does not
@@ -455,6 +461,17 @@ owning validated entry point. Hashing a Python file and then reopening it with
 `exec_module` does not prove which bytes executed; a post-import check detects
 substitution only after code may already have run. Use the reviewed source
 cohort/loader boundary rather than adding an unguarded launch wrapper.
+
+The active Parent's parity program is itself supplied on Python's stdin, so
+it cannot read a second stdin document for module names. Derive it through
+`genuine_source_cohort.derive_parity_program` from the exact owning probe and
+original native-map names. Embed no expected hashes; the Parent compares the
+complete observed hash map. Keep the original configured Parent reference and
+canonical core-test/writer-fixture sources as custody evidence, without
+claiming those references execute additional tests or grant admission.
+Host-only control changes may reuse an unchanged verified image/SDK capture.
+They still require fresh current-host source checks and connected acceptance;
+do not reinstall or refresh original installation outputs to update test counts.
 
 Use the owning operation’s required access mode for the existing Writer file.
 Native Writer acquisition opens it read/write even when it changes no protocol
