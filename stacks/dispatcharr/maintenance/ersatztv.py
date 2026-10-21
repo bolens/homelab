@@ -87,6 +87,10 @@ def derived_plan(recipe, actual):
     result = []
     for rule in recipe.get("derived", []):
         source, target = smart[rule["source_id"]], smart[rule["target_id"]]
+        for row in (source, target):
+            if {k: v for k, v in row.items() if k != "Query"} != {
+                    k: v for k, v in baseline[row["Id"]].items() if k != "Query"}:
+                raise RuntimeError("Derived filter has unreviewed non-query drift")
         if target["Query"] != baseline[target["Id"]]["Query"]:
             raise RuntimeError("Derived filter has an unreviewed independent edit")
         query = "(" + source["Query"] + ") AND type:movie AND library_id:" + str(rule["library_id"])
@@ -340,7 +344,7 @@ class ErsatzTV:
             for ident in [rule["source_id"], rule["target_id"]]:
                 row = next(r for r in updated["SmartCollection"] if r["Id"] == ident)
                 old = next(r for r in recipe["definitions"]["SmartCollection"] if r["Id"] == ident)
-                old.update(row)
+                old["Query"] = row["Query"]
         from runner import atomic_json
         atomic_json(self.recipe_path, recipe)
         shutil.rmtree(scratch)

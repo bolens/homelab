@@ -154,6 +154,59 @@ class MaintenanceTests(unittest.TestCase):
             self.assertEqual(state["history"], {})
             self.assertNotIn("pending_actions", state)
 
+    def test_pending_restore_survives_a_newer_checker_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = object.__new__(Maintenance)
+            runner.state = Path(directory)
+            runner.config = {}
+            history, _ = decide([CHANNEL], DEAD, {}, 1800000000)
+            path = runner.state / "quarantine.json"
+            atomic_json(path, {"history": history})
+            snapshot = {"channels": [CHANNEL], "results": [{**DEAD[0], "status": "Alive"}],
+                        "progress": {"status": "idle", "end_time": 1800086400}}
+            with patch.object(runner, "django", side_effect=RuntimeError("fixture")):
+                with self.assertRaises(RuntimeError):
+                    runner.quarantine(snapshot)
+            pending = json.loads(path.read_text())["pending_generation"]
+            snapshot["progress"]["end_time"] += 86400
+            with patch.object(runner, "django", return_value={"restore": 1}) as adapter:
+                runner.quarantine(snapshot)
+                actions = adapter.call_args.args[1]["actions"]
+                self.assertEqual(actions[0]["kind"], "restore")
+                self.assertEqual(actions[0]["original_group_id"], CHANNEL["group_id"])
+                self.assertEqual(json.loads(path.read_text())["completed_generation"], pending)
+                runner.quarantine(snapshot)
+                self.assertEqual(adapter.call_args.args[1]["actions"], [])
+            self.assertNotEqual(json.loads(path.read_text())["completed_generation"], pending)
+
+    def test_pending_delete_is_reassessed_after_newer_healthy_or_incomplete_check(self):
+        for results in [[{**DEAD[0], "status": "Alive"}], DEAD[:1]]:
+            with self.subTest(results=results), tempfile.TemporaryDirectory() as directory:
+                runner = object.__new__(Maintenance)
+                runner.state = Path(directory)
+                runner.config = {}
+                history = {}
+                for day in (0, 1):
+                    history, _ = decide([CHANNEL], DEAD, history, 1800000000 + day * 86400)
+                atomic_json(runner.state / "quarantine.json", {"history": history})
+                snapshot = {"channels": [CHANNEL], "results": DEAD,
+                            "progress": {"status": "idle", "end_time": 1801209600}}
+                with patch.object(runner, "django", side_effect=RuntimeError("fixture")):
+                    with self.assertRaises(RuntimeError):
+                        runner.quarantine(snapshot)
+                snapshot["progress"]["end_time"] += 86400
+                snapshot["results"] = results
+                with patch.object(runner, "django", return_value={}) as adapter:
+                    runner.quarantine(snapshot)
+                    actions = adapter.call_args.args[1]["actions"]
+                    self.assertFalse(any(row["kind"] == "delete" for row in actions))
+                    if results[0]["status"] == "Alive":
+                        self.assertEqual(actions[0]["kind"], "restore")
+                        self.assertEqual(actions[0]["original_name"], CHANNEL["name"])
+                    else:
+                        state = json.loads((runner.state / "quarantine.json").read_text())
+                        self.assertIn(CHANNEL["uuid"], state["history"])
+
     def test_retention_only_touches_new_dedicated_dvr_series(self):
         import xml.etree.ElementTree as ET
         with tempfile.TemporaryDirectory() as directory:

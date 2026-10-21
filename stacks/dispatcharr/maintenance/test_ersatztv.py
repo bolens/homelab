@@ -1,6 +1,7 @@
 """ErsatzTV correctness/recovery fixtures without Docker or network access."""
 
 import hashlib
+import json
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -59,6 +60,19 @@ class RecipeTests(unittest.TestCase):
         actual = {'SmartCollection': [original, {**target, 'Query': 'independent edit'}]}
         with self.assertRaises(RuntimeError):
             derived_plan(recipe, actual)
+
+    def test_unreviewed_source_or_target_name_drift_refuses_reconciliation(self):
+        baseline = {'SmartCollection': [
+            {'Id': 1, 'Name': 'Source', 'Query': 'A'},
+            {'Id': 2, 'Name': 'Target', 'Query': 'OLD'}]}
+        recipe = {'definitions': baseline,
+                  'derived': [{'source_id': 1, 'target_id': 2, 'library_id': 9}]}
+        for ident in (1, 2):
+            actual = {'SmartCollection': [
+                {**row, 'Name': 'UNREVIEWED'} if row['Id'] == ident else dict(row)
+                for row in baseline['SmartCollection']]}
+            with self.assertRaisesRegex(RuntimeError, 'non-query drift'):
+                derived_plan(recipe, actual)
 
     def test_unrelated_definition_drift_is_detected(self):
         self.assertEqual(definition_drift({'Channel': [1], 'Schedule': [2]},
@@ -138,6 +152,42 @@ class BackupTests(unittest.TestCase):
 
 
 class ReconcileGuardTests(unittest.TestCase):
+    def test_successful_apply_accepts_queries_without_absorbing_other_fields(self):
+        from ersatztv import ErsatzTV
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory:
+            observer = object.__new__(ErsatzTV)
+            observer.config = {'account_id': 1, 'source_id': 1}
+            observer.owner = Mock()
+            observer.owner.state = Path(directory)
+            observer.owner.plex_call.return_value = []
+            observer.owner.django.return_value = {'recordings': 0}
+            baseline = {'SmartCollection': [
+                {'Id': 1, 'Name': 'Source', 'Query': 'OLD SOURCE'},
+                {'Id': 2, 'Name': 'Target', 'Query': 'OLD TARGET'}]}
+            recipe = {'definitions': baseline,
+                      'derived': [{'source_id': 1, 'target_id': 2, 'library_id': 9}]}
+            actual = {'SmartCollection': [
+                {**baseline['SmartCollection'][0], 'Query': 'NEW SOURCE'},
+                dict(baseline['SmartCollection'][1])]}
+            updated = {'SmartCollection': [dict(actual['SmartCollection'][0]),
+                {**actual['SmartCollection'][1], 'Query': '(NEW SOURCE) AND type:movie AND library_id:9'}]}
+            # A concurrent unrelated rename must remain drift after query admission.
+            updated['SmartCollection'][0]['Name'] = 'UNREVIEWED'
+            observer.recipe = Mock(return_value=recipe)
+            observer.recipe_path = Path(directory) / 'recipe.json'
+            observer.database = Mock(return_value=Mock(close=Mock()))
+            observer.request = Mock(return_value=b'[]')
+            observer.backup = Mock()
+            with patch('ersatztv.definitions', side_effect=[actual, updated]), patch(
+                    'runner.command', return_value=b'PID COMMAND\n1 server\n'):
+                self.assertEqual(observer.reconcile(True)['updated_filters'], 1)
+            saved = json.loads(observer.recipe_path.read_text())['definitions']
+            self.assertEqual(saved['SmartCollection'][0]['Name'], 'Source')
+            self.assertEqual(saved['SmartCollection'][0]['Query'], 'NEW SOURCE')
+            self.assertEqual(definition_drift(saved, updated), 1)
+            self.assertFalse(list(Path(directory).glob('.recipe-recovery-*')))
+
     def test_native_session_refuses_before_backup_or_filter_mutation(self):
         from ersatztv import ErsatzTV
         from unittest.mock import Mock

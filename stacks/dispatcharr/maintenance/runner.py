@@ -115,19 +115,36 @@ class Maintenance:
         atomic_json(path, state)
 
     def quarantine(self, snapshot):
-        progress = snapshot["progress"]
-        observed = progress.get("end_time")
-        if progress.get("status") != "idle" or not observed or not snapshot["results"]:
-            return {"pending_first_check": True}
         path = self.state / "quarantine.json"
         state = json.loads(path.read_text()) if path.exists() else {"history": {}}
-        digest = hashlib.sha256(json.dumps(snapshot["results"], sort_keys=True).encode()).hexdigest()
-        generation = str(observed) + ":" + digest
-        if state.get("completed_generation") == generation:
-            return {"unchanged": True}
-        if state.get("pending_generation") == generation:
+        if "pending_generation" in state:
+            # Finish the persisted transaction even when the checker has advanced.
+            # The next invocation can then admit that newer snapshot.
+            generation = state["pending_generation"]
             history, actions = state["history"], state["pending_actions"]
+            deletes = {row["uuid"] for row in actions if row["kind"] == "delete"}
+            if deletes:
+                progress = snapshot["progress"]
+                observed = progress.get("end_time")
+                if progress.get("status") != "idle" or not observed or not snapshot["results"]:
+                    return {"pending_first_check": True}
+                # A failed DB call must not replay deletion after health or protection
+                # changes. Retain pending restores while reassessing destructive actions.
+                history, refreshed = decide(
+                    [row for row in snapshot["channels"] if row["uuid"] in deletes],
+                    snapshot["results"], history, float(observed),
+                    self.config.get("quarantine_days", 14),
+                    self.config.get("minimum_failed_days", 3))
+                actions = [row for row in actions if row["kind"] != "delete"] + refreshed
         else:
+            progress = snapshot["progress"]
+            observed = progress.get("end_time")
+            if progress.get("status") != "idle" or not observed or not snapshot["results"]:
+                return {"pending_first_check": True}
+            digest = hashlib.sha256(json.dumps(snapshot["results"], sort_keys=True).encode()).hexdigest()
+            generation = str(observed) + ":" + digest
+            if state.get("completed_generation") == generation:
+                return {"unchanged": True}
             history, actions = decide(snapshot["channels"], snapshot["results"], state["history"],
                                       float(observed), self.config.get("quarantine_days", 14),
                                       self.config.get("minimum_failed_days", 3))
