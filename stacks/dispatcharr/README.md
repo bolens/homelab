@@ -308,6 +308,10 @@ episode subtitles across native XMLTV, Dispatcharr and Plex for every recipe
 station over the configured window. Missing coverage, duplicate rows, gaps,
 overlaps, changed mappings, restricted content and definition drift produce
 numeric metrics. A successful import timestamp alone does not pass correctness.
+Plex window filters use `endsAt>` and `beginsAt<` as parameter names; URL
+encoding supplies the separating equals sign. Including an equals sign in the
+name makes Plex ignore the window and can exhaust the response limit on a
+large guide. The observer refuses truncated responses.
 The existing alerts include low guide horizon and missing verified ErsatzTV
 backups. Programme titles, endpoints and credentials are excluded from metrics.
 

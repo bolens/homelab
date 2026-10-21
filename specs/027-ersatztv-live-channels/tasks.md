@@ -1303,3 +1303,51 @@
   removed after acceptance; normal backup generations and retention are preserved.
   Private reports and synthetic QA frames remain under
   `ersatztv-reliability-20261021`.
+
+
+- [x] T079 Add Josh Gates: Expedition TV with a centered multicolor hat/compass
+  logo and a scoped, future-import-aware series filter. Preserve existing channel
+  identities, personal pools, recording rules and multiview positions.
+- [x] T080 Simplify the episode-only Morning Cartoons query and add outer
+  quarantine guards to fifteen active TV collections without losing legitimate
+  members. Correct Plex observer time-filter encoding with regression coverage.
+
+- T079–T080: the new station includes all 296 indexed episodes from Expedition
+  Unknown, its Hunt for Extraterrestrials miniseries, Expedition X, Expedition
+  Files and Josh Gates Tonight. Explicit future aliases cover Destination Truth,
+  Search for the Afterlife, Megalodon, Shark Secrets and Expedition: Back to the
+  Future. Forty-two native-analyzer fixtures verify future episode inclusion,
+  library/type boundaries, quarantine exclusion and unrelated-series rejection.
+  All sixteen changed filters preserve their legitimate native-index membership.
+  The new schedule rotates all five shows, retains chronological episodes and
+  multipart grouping, and has no gaps or overlaps. Eight seconds of video and
+  audio decode through Dispatcharr. SVG and PNG exports pass full-size and
+  guide-size review with the established 2:1 layout and vertical centering.
+
+  Josh Gates occupies output 182 beside Unexplained Files. Twelve cartoon
+  outputs move down one slot, retaining source identities and UUIDs. Custom
+  outputs span 100–194, with 195–199 reserved; favorites and multiviews retain
+  their positions. All 502 unique Plex bindings and the existing DVR identity
+  and recording rules pass comparison. All 95 native, Dispatcharr and Plex
+  programme guides agree, with zero missing channels, gaps, overlaps or field
+  differences, healthy restrictions and zero recipe drift. Actual XMLTV coverage
+  exceeds six days. Existing future airings and media identities are preserved.
+
+  A large-guide comparison exposed an observer defect: URL-encoded time-filter
+  names included an extra equals sign. Plex ignored the window and returned a
+  truncated 20,000 rows from 20,566 programmes. Correct operator keys return all
+  1,139 programmes in the requested two-hour window. The new regression fails
+  before the fix and passes afterward; all 32 portable maintenance tests pass.
+  Seven isolated checks using the installed helper sources pass before the
+  scoped live correction. The observer still refuses truncated responses.
+
+
+  Final acceptance also verifies actual Plex programme coverage six days ahead
+  for all 95 channels, the new logo through Plex's 240 × 120 image endpoint,
+  automatic expiry of the playback test, and unchanged container images,
+  environment, mounts and exposure. A fresh normal retained generation verifies
+  database restoration and file hashes with the updated private recipe. Native
+  SQLite integrity and foreign keys pass, all original media identities remain,
+  and existing recording rules are preserved. Operation-only backups, restore
+  copies and the disconnected test container are removed after acceptance;
+  established backup generations and retention remain intact.
