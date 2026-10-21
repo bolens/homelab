@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "2cce00827dbe40d38a05336ca62ced10a8f330f8041f58b02433a30cf4d6835c"
+    "sha256": "9032b9f1cedce1e87ee30a24e1b57d2d5f5269d990f39ba21f5ca6a9bb9ecb73"
   },
   {
     "path": "story_arc_search.py",
@@ -1589,7 +1589,7 @@
   },
   {
     "path": "test_verify_status_routing.py",
-    "sha256": "4aeb0755260890895b8a9e1ebcbea288ce9bdb533bc19adac8d6b2c80d9c852c"
+    "sha256": "2c15dad1f4934a89fe2d0e30653adadf9431fea228ed126b156a14e10c74eda8"
   },
   {
     "path": "test_weekly_identity.py",
@@ -1617,7 +1617,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "733a5fdbaeb2dbfaf04942a3d3551aafa4b1739ddc902b2bf061710387e36e9c"
+    "sha256": "3d6a103be8f89f94cc5b3a09c3ee8f01f9849dfb594d0ad57c5aa145d8830411"
   },
   {
     "path": "verify_publication_reader_cohort.py",

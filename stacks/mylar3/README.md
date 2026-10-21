@@ -270,6 +270,9 @@ patches in a disposable layer over the pinned upstream image before running this
 gate, so fresh interpreter checks exercise the actual application module paths.
 The full custom-image build also runs the gate with its installed dependencies.
 A source mismatch fails the gate and requires patch review.
+Independent owning suites use at most four subprocesses, each with its own
+source and fixture roots. The longest publication/tagging suite starts first;
+per-suite elapsed times are logged, and every result must pass before later gates.
 
 The full custom-image gate also runs [installed ordinary-pipeline checks](config/ordinary_pipeline/README.md)
 for discovery, first import, a reply lost after durable completion, and import

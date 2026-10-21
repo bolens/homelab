@@ -129,6 +129,9 @@ record](evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-1
 
 ## Convergence assessment and evidence
 
+CI scheduling work preserves all acceptance gates; its baseline and pending
+hosted comparison are in [CI verification scheduling](evidence-history.md#ci-verification-scheduling--2026-10-21).
+
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
 genuine connected factories and archive terminal consumption, T027 physical and
 reader acceptance, and T028/T033 selected import, fresh ACK and later automatic

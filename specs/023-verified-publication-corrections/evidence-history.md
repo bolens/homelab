@@ -717,3 +717,18 @@ derives `b19d1254…c5866`; reversing the change reconstructs the exact original
 The current base, installer and regressions advance together, preserving the
 102 required/180 known names and historical manifests. This is a prospective
 source expectation; actual published-image capture remains required.
+
+### CI verification scheduling — 2026-10-21
+
+The completed PR #461 Mylar build took 36m 3s; its verification layer took
+2,095.1s. Compilation dependencies were cached. The publication/tagging suite
+ran 117 tests in 624.003s after the parallel owning suites had finished. The
+Modern tagger's separate 21 tests took 47.489s. Repeated genuine archive/proof
+checks contribute to runtime; caching those freshness decisions is not valid.
+
+A separate scheduling candidate moves publication/tagging to the front of the
+existing four-worker pool, with an independent source copy and private fixtures.
+All tests, source checks and failure propagation remain mandatory. Per-suite
+elapsed times include source preparation and child execution. Hosted before/after
+measurement is required before claiming a speedup; no configured acceptance or
+formal task completion follows from this scheduling change.
