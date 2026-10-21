@@ -322,6 +322,31 @@ class CreatorTests(unittest.TestCase):
         self.assertEqual(c.config_sections(self.config_source,['API_KEY']),{'API_KEY':'API'})
         for raw in (b'import forbidden\n_CONFIG_DEFINITIONS = {}',b'_CONFIG_DEFINITIONS={"API_KEY":(str, compute(),None)}'):
             with self.assertRaises(c.p.Held):c.config_sections(raw,['API_KEY'])
+    def test_config_export_accepts_only_plain_or_owning_ordereddict_literal(self):
+        expected=c.config_sections(self.config_source,CONFIG_KEYS)
+        self.assertEqual(len(expected),23)
+        wrapped=self.config_source.replace(b'= {',b'= OrderedDict({').replace(b'}\n',b'})\n')
+        # These names deliberately cannot be imported: the parser only reads AST.
+        wrapped=b'import forbidden_config_provider\n'+wrapped
+        self.assertEqual(c.config_sections(wrapped,CONFIG_KEYS),expected)
+        plain=b'_CONFIG_DEFINITIONS={"API_KEY":(str,"API",None)}'
+        self.assertEqual(c.config_sections(plain,['API_KEY']),{'API_KEY':'API'})
+
+    def test_config_export_rejects_other_calls_wrappers_duplicates_and_missing_fields(self):
+        literal='{"API_KEY":(str,"API",None)}'
+        expressions=(f'Other({literal})',f'collections.OrderedDict({literal})',
+                     f'OrderedDict({literal}, {literal})',f'OrderedDict(items={literal})',
+                     f'OrderedDict({literal}, unexpected=True)', 'OrderedDict()',
+                     'OrderedDict([( "API_KEY", (str,"API",None))])',
+                     f'OrderedDict(Other({literal}))', 'OrderedDict({**provider})',
+                     'OrderedDict({"API_KEY":(str,"API",None),"API_KEY":(str,"General",None)})',
+                     'OrderedDict({})', 'OrderedDict({"API_KEY":(str,compute(),None)})')
+        for expression in expressions:
+            with self.subTest(expression=expression),self.assertRaises(c.p.Held):
+                c.config_sections(('_CONFIG_DEFINITIONS='+expression).encode(),['API_KEY'])
+        with self.assertRaises(c.p.Held):
+            c.config_sections(self.config_source,CONFIG_KEYS+['MISSING'])
+
     def test_copy_never_extracts_links_multientry_or_foreign_bytes(self):
         expected=dict(path='/config.py',sha256=hashlib.sha256(b'actual').hexdigest())
         self.assertEqual(c.copied_file(tar(b'actual','config.py'),expected),b'actual')

@@ -75,9 +75,15 @@ def config_sections(raw, names):
     """Read only owning literal section names; never import Config/read providers."""
     tree = ast.parse(raw, feature_version=(3, 10))
     nodes = [n for n in tree.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == '_CONFIG_DEFINITIONS' for t in n.targets)]
-    need(len(nodes) == 1 and isinstance(nodes[0].value, ast.Dict), 'original-config-definitions')
+    need(len(nodes) == 1, 'original-config-definitions')
+    definitions = nodes[0].value
+    if isinstance(definitions, ast.Call):
+        need(isinstance(definitions.func, ast.Name) and definitions.func.id == 'OrderedDict'
+             and len(definitions.args) == 1 and not definitions.keywords, 'original-config-definitions')
+        definitions = definitions.args[0]
+    need(isinstance(definitions, ast.Dict) and all(key is not None for key in definitions.keys), 'original-config-definitions')
     result = {}
-    for key, value in zip(nodes[0].value.keys, nodes[0].value.values):
+    for key, value in zip(definitions.keys, definitions.values):
         if isinstance(key, ast.Constant) and key.value in names:
             need(isinstance(value, (ast.Tuple, ast.List)) and len(value.elts) >= 2
                  and isinstance(value.elts[1], ast.Constant) and type(value.elts[1].value) is str, 'literal-config-section')

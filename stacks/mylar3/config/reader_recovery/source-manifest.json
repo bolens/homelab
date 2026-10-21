@@ -502,7 +502,7 @@
       "sha256": "f11083d2c43fb3b6e38d757ba57c410bdc1eaa0e9bf2505e04f160870c775fbd"
     },
     "genuine_bootstrap_creator.py": {
-      "sha256": "9440d8766abcb99fc35a0981770c1b9286dbf27f86a298111ff90184cfb593ad"
+      "sha256": "dcc3d246d0e66fcbe7962976a9881849cd1a1555bfe83d17054485c1dfb36ffe"
     },
     "genuine_bootstrap_http.py": {
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
@@ -634,7 +634,7 @@
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
     },
     "test_genuine_bootstrap_creator.py": {
-      "sha256": "3842070c52004c1ab224d1e4edb05c427f9b21b115d349cfc031ce4db9adc596"
+      "sha256": "fb2c9852edc0056dbc589877850a1a28f5389852a5fa3ded4a5bf777527bc0c9"
     },
     "test_genuine_current_roles.py": {
       "sha256": "325b850891eab160b7c0142fbd846cf67684c976b7f4f1fad9b190e931438e1e"

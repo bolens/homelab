@@ -749,7 +749,50 @@ A mandatory aggregate checks the tagging receipt against current source hashes.
 The default standalone verifier retains the full collection. Neither branch
 caches configured freshness decisions or grants operational acceptance.
 
-The manifest generator, verifier and routing controls pass locally, as do the
-Docker stage-graph tests. Actual target-image execution, full repository checks,
-independent review and hosted CI remain pending. No formal task checkbox advances
-from this implementation alone.
+PR #464 contains the split. Full repository validation, source lint and
+independent review pass. The actual `tagging-checked` image stage passes all
+117 tests with zero skips in 430.125 seconds; the stage takes 431.0 seconds.
+An unrelated reader-fixture edit reuses the complete tagging stage (BuildKit
+`CACHED`), without rerunning its tests. Changing one declared source invalidates
+the stage and refuses the stale manifest before test execution. All 43 hosted
+checks pass, with one expected Spec Kit update skip; feedback, unresolved threads
+and default/PR CodeQL alerts are clear. PR #464 merges as
+[`81ef39b010e11da7967ecb3f6d29cdd4a78c0eb7`](https://github.com/bolens/homelab/commit/81ef39b010e11da7967ecb3f6d29cdd4a78c0eb7).
+Local main and the authorized mirror are verified at the same merge commit.
+No formal task checkbox advances from this build-only proof.
+
+The warning-fix image published from PR #462, merge `335226b`, also completes
+its trusted main publication. Its
+actual daemon identity, registry provenance and new isolated source capture join:
+all 180 native sources and both startup scripts match, original source custody
+closes and the disposable container is removed. No application starts during
+this capture. SourceCohort and connected Parent acceptance remain required;
+the disabled prior source packets confer no configured authority.
+
+The matching original-bound supplier ran successfully: it derives the required
+102 SDK sources from the captured 180 and prepares a new generation of all 27
+original installation outputs. Source custody closes; no container or service
+changes occur, and lifecycle/configured admission remain false. Creator v3,
+current daemon-3.10 SourceCohort, NFS and import/ACK acceptance are still required.
+Superseded private bundles with the incorrect 3.13 daemon predicate stay inactive.
+
+
+### Creator configuration AST correction — 2026-10-21
+
+The fresh disposable Creator reaches the actual pinned configuration source,
+which declares `_CONFIG_DEFINITIONS = OrderedDict({...})`. Its parser expected a
+bare dictionary and refuses before any of the three created test containers
+starts. Scoped cleanup removes exactly those three never-started containers and
+the empty private network, with source closure and no force, volume or service
+changes. Failed-attempt evidence remains retained; no application processing,
+import or ACK occurs.
+
+The correction accepts only the existing literal dictionary or one exact
+`OrderedDict` call around that dictionary. It evaluates no configuration code;
+unknown wrappers, arguments and dynamic definitions still refuse. All 39 Creator
+controls pass, and the complete recovery collection passes 1,241 controls across
+72 suites on managed Python 3.10 with zero skips. The retained run's SHA256 is
+`a80c2cf193a9166df286ddb21c96c234e7ac6334d522bf3e5ee9b27ded1f7cf3`.
+These source results do not establish Creator startup, SourceCohort, connected
+Parent/NFS or terminal acceptance. Matching source pins and a fresh reviewed
+generation remain required before another operational attempt.
