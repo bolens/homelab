@@ -22,6 +22,32 @@ class CopyTests(unittest.TestCase):
         self.m=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.m);self.m.ROOT=self.root
     def invoke(self):
         with patch.object(sys,'argv',['runner','--family','broker','--backend','target']):self.m.main()
+    def test_current_source_families_close_against_actual_root_bytes(self):
+        # Same original reader used by verify_image's authenticated gate; never
+        # substitute target aliases or silently omit the separate launch map.
+        families=(('standalone_control_sources.json',{'path','target','sha256'}),
+                  ('import_api_control_sources.json',{'path','sha256'}),
+                  ('standalone_launch_control_sources.json',{'path','target','sha256'}))
+        for filename,keys in families:
+            manifest=ROOT/filename;stamp=self.m.full(manifest.lstat())
+            rows=json.loads(self.m.read_original(manifest,stamp,1024**2))
+            self.assertIs(type(rows),list);self.assertTrue(0<len(rows)<=1024)
+            # Existing standalone aliases may repeat one original path only
+            # with the identical pin; retain each declared target row.
+            seen={}
+            for row in rows:
+                if row['path']in seen:self.assertEqual(seen[row['path']],row['sha256'])
+                seen[row['path']]=row['sha256']
+            if filename=='standalone_launch_control_sources.json':
+                self.assertEqual(tuple((row['path'],row['target'])for row in rows),self.m.EXPECTED_ROWS)
+            for row in rows:
+                self.assertEqual(set(row),keys)
+                path=ROOT/row['path'];original=self.m.full(path.lstat())
+                raw=self.m.read_original(path,original,4*1024**2)
+                self.assertEqual(self.m.hashlib.sha256(raw).hexdigest(),row['sha256'],(filename,row['path']))
+                self.assertEqual(self.m.full(path.lstat()),original)
+            self.assertEqual(self.m.full(manifest.lstat()),stamp)
+
     def test_parser_held_rows_cannot_change_validated_copy_targets(self):
         real_json=self.m.json.loads;real_read=self.m.read_original;aliased=[];fired=[];observed=[]
         original_target=real_json(self.map.read_bytes())[0]['target']

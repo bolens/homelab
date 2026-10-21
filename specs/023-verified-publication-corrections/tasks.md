@@ -136,3 +136,9 @@ The configured reader-parent stages all 27 original artifacts, but disposable bo
 The address-pool prerequisite is resolved after specifically approved exact-network cleanup. A fresh Creator then isolates a daemon-specific NFS traversal refusal before container creation. A new empty `0711`-ancestor/`0700`-leaf bind test passes and is cleaned up; [dated evidence](evidence-history.md#disposable-nfs-bind-prerequisite-isolated--2026-10-21). The explicit disposable geometry amendment and full connected proof remain open under T026/T029.
 
 The coupled source correction now passes all 1,239 owning controls/72 suites with zero skips and complete source closure. The explicit geometry is integrated through Creator, Parent, effective-scope and adoption consumers, with current supplier/pin regressions; [dated source evidence](evidence-history.md#coupled-disposable-recovery-source-verified--2026-10-21). Changed native adoption bytes require new publication, actual source capture and a new configured supplier generation before T026/T029 and live acceptance can close.
+
+The initial PR #461 source result confused daemon Python 3.10 with Modern
+tagger Python 3.13. The corrected predicate and two stale manifests now pass
+owning regressions, the complete 1,239-control source gate and local validation.
+Required hosted image CI and fresh installed/configured acceptance remain
+pending. Existing open acceptance tasks remain open. See [the correction record](../023-verified-publication-corrections/evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).

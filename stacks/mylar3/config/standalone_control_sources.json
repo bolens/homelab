@@ -1936,7 +1936,7 @@
   },
   {
     "path": "test_tagger_python_runtime.py",
-    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2",
+    "sha256": "66dec3625667e0f8f583a0def4b19eafa404acaa2a26cf2aad95454f3edafe4c",
     "target": "test_tagger_python_runtime.py"
   },
   {

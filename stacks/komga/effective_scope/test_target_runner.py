@@ -90,6 +90,22 @@ class Tests(unittest.TestCase):
  def test_disabled_main(self):
   with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:r.main()
   self.assertEqual(caught.exception.code,2)
+ def test_actual_build_source_manifest_closes_and_stale_parent_refuses(self):
+  # Exercise the owning read/FD/hash path on every actual declared source.
+  import tempfile
+  spec=importlib.util.spec_from_file_location('owning_source_manifest',HERE/'build.py')
+  build=importlib.util.module_from_spec(spec);spec.loader.exec_module(build)
+  manifest,raw=build.sources()
+  self.assertEqual(raw['parent.py'],(HERE/'parent.py').read_bytes())
+  self.assertEqual(raw['test_parent.py'],(HERE/'test_parent.py').read_bytes())
+  self.assertEqual(manifest['compiled'],json.loads((HERE/'sources.json').read_bytes())['compiled'])
+  with tempfile.TemporaryDirectory()as directory:
+   root=Path(directory)
+   for name,value in raw.items():(root/name).write_bytes(value)
+   stale=copy.deepcopy(manifest);stale['files']['parent.py']='0'*64
+   (root/'sources.json').write_text(json.dumps(stale))
+   with patch.object(build,'HERE',root),self.assertRaisesRegex(AssertionError,'source-pin'):build.sources()
+
  def test_finite_ten_cases_and_source310(self):
   self.assertEqual(len(r.CASES),10);ast.parse((HERE/'run_target.py').read_text(),feature_version=(3,10))
 

@@ -46,6 +46,27 @@ class SourceContract(unittest.TestCase):
         self.assertIn('prefix=[sys.executable,SCRIPT', (STACK/'config/tagger_legacy.py').read_text())
         self.assertIn("EXECUTABLE = '/opt/comictagger/bin/comictagger'", (STACK/'config/tagger_cli.py').read_text())
 
+    def test_daemon_probe_version_is_separate_from_modern_tagger(self):
+        import ast
+        from types import SimpleNamespace
+        docker=(STACK/'Dockerfile').read_text()
+        self.assertIn("assert sys.version_info[:3]==(3,13,16)",docker)
+        self.assertIn("assert sys.base_prefix=='/opt/tagger-python'",docker)
+        self.assertIn("subprocess.check_output(['/usr/bin/python3','-I','-B','-c','import sys;print(sys.version_info[:2])'],text=True).strip()=='(3, 10)'",docker)
+        source=(STACK/'config/reader_recovery/genuine_source_cohort.py').read_text()
+        tree=ast.parse(source)
+        program=ast.literal_eval(next(n.value for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name)and t.id=='RUNTIME_PROGRAM'for t in n.targets)))
+        emitter=next(n for n in tree.body if isinstance(n,ast.ClassDef)and n.name=='Emitter')
+        probe=next(n for n in emitter.body if isinstance(n,ast.FunctionDef)and n.name=='probe')
+        argv_literals={n.value for n in ast.walk(probe)if isinstance(n,ast.Constant)and type(n.value)is str}
+        self.assertIn('/lsiopy/bin/python3',argv_literals)
+        self.assertNotIn('/opt/comictagger/bin/python',argv_literals)
+        assertions=[n for n in ast.parse(program).body if isinstance(n,ast.Assert)and'sys.version_info'in ast.get_source_segment(program,n)]
+        self.assertEqual(len(assertions),1)
+        guard=compile(ast.Module(body=assertions,type_ignores=[]),'<owning-native-version>','exec')
+        exec(guard,{'sys':SimpleNamespace(version_info=(3,10,22))})
+        with self.assertRaises(AssertionError):exec(guard,{'sys':SimpleNamespace(version_info=(3,13,16))})
+
     def test_runtime_library_pairs_are_exact_and_build_tools_not_copied(self):
         docker = (STACK/'Dockerfile').read_text()
         for dev, runtime, version in (('libssl-dev', 'libssl3', '3.0.2-0ubuntu1.30'),

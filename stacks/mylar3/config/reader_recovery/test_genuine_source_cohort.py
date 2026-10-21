@@ -115,14 +115,14 @@ class Controls(unittest.TestCase):
         self.assertEqual(len(guards),1)
         return compile(ast.Module(body=guards,type_ignores=[]),'<owning-runtime-version>','exec')
 
-    def test_current_native313_runtime_guard_accepts(self):
+    def test_current_native310_runtime_guard_accepts(self):
         from types import SimpleNamespace
-        exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,13,16))})
+        exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,10,22))})
 
-    def test_stale_native310_runtime_guard_refuses(self):
+    def test_modern_tagger313_is_not_native_runtime(self):
         from types import SimpleNamespace
         with self.assertRaises(AssertionError):
-            exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,10,22))})
+            exec(self.runtime_version_guard(),{'sys':SimpleNamespace(version_info=(3,13,16))})
 
     def test_connected_source_emitter_and_actual_consumer_keep_rights_false(self):
         emitted,receipt=self.fixture_payload();cohort=active.SourceCohort(emitted);cohort.close()

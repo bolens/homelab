@@ -92,3 +92,9 @@ The matching configured reader-parent artifact staging now passes with 27 retain
 The default-network exhaustion is resolved. Disposable bootstrap now isolates a daemon/NFS traversal prerequisite; the limited empty-directory bind alternative passes without live-library permission changes. Full geometry, connected factory and terminal acceptance remain pending; see the [shared prerequisite follow-up](../023-verified-publication-corrections/evidence-history.md#disposable-nfs-bind-prerequisite-isolated--2026-10-21).
 
 The shared coupled source/consumer correction passes the full 1,239-control gate with closed source custody. T012/T015 remain open for the changed native image and connected factory/terminal proof; [shared source evidence](../023-verified-publication-corrections/evidence-history.md#coupled-disposable-recovery-source-verified--2026-10-21).
+
+The initial PR #461 source result confused daemon Python 3.10 with Modern
+tagger Python 3.13. The corrected predicate and two stale manifests now pass
+owning regressions, the complete 1,239-control source gate and local validation.
+Required hosted image CI and fresh installed/configured acceptance remain
+pending. Existing open acceptance tasks remain open. See [the correction record](../023-verified-publication-corrections/evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).

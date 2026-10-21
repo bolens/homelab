@@ -42,7 +42,7 @@ IDLE_COMMAND = ['infinity']
 RUNTIME_PROGRAM = """import hashlib,json,os,pathlib,stat,sys
 v=json.load(sys.stdin);assert set(v)=={'nonce','modules','executable_sha256'}
 assert os.geteuid()==os.getegid()==1000 and sys.flags.isolated and sys.dont_write_bytecode
-assert sys.version_info[:2]==(3,13)
+assert sys.version_info[:2]==(3,10)
 def digest(path):
  z=path.lstat();assert stat.S_ISREG(z.st_mode) and z.st_nlink==1 and z.st_size<=32*1024**2
  fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)

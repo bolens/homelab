@@ -572,9 +572,13 @@ respectively. The original failed generation is not adopted or replayed.
 
 ## Coupled disposable recovery source verified — 2026-10-21
 
-The combined correction aligns the SourceCohort probe with the selected Python
-3.13 runtime, retains bounded first-failure Docker diagnostics privately, and
-adds explicit Creator v3/searchable geometry v2 across every owning consumer.
+The initial combined correction changes the SourceCohort runtime predicate,
+retains bounded first-failure Docker diagnostics privately, and adds explicit
+Creator v3/searchable geometry v2 across every owning consumer. The runtime
+predicate is subsequently found incorrect: the probe invokes the daemon
+interpreter, which remains Python 3.10. Only Modern ComicTagger uses the private
+Python 3.13 interpreter. The source-run receipt below is historical and does not
+prove a correct native runtime predicate.
 Only new scratch/common ancestors permit traversal; library/retention leaves,
 local state, legacy production checks and exact mount/identity custody remain
 private and unchanged. Current operational source pins and generated maps close
@@ -602,3 +606,37 @@ configured supplier generation remain prerequisites for connected execution.
 Earlier image evidence cannot cover changed adoption bytes. No live rollout,
 comic import, acknowledgement, full-worker start or final task acceptance follows
 from these source controls.
+
+## Hosted CI closure and interpreter correction — 2026-10-21
+
+Hosted CI on PR #461 rejects two stale source manifests: the effective-scope
+build inventory and the authenticated standalone native test bundle. Both
+failures remain recorded. The effective-scope repair refreshes current source
+hashes and adds a regression through the actual source reader. Its complete
+JDK 21 gate passes 61 Python controls and 37 Java cases without changing compiled
+hashes or public dependency facts.
+
+The same review catches an incorrect Python 3.13 assumption in SourceCohort.
+The tracked Dockerfile explicitly requires daemon Python 3.10 and private Modern
+Python 3.13.16. The probe invokes `/lsiopy/bin/python3`, so its predicate must
+remain 3.10. The earlier 1,239-control source result tested the wrong predicate
+and cannot establish installed runtime acceptance. The corrected predicate and current source-family pins pass independent review.
+The complete authenticated collection passes 148 controls without skips on
+system Python 3.14.8. Its seven copy controls, including the real 26-control
+broker subprocess, pass. Managed Python 3.10 passes 34 SourceCohort controls and
+nine Dockerfile/runtime-contract controls. That managed runtime lacks the
+`fcntl` sealing constants needed by the separate crypto collection, so it does
+not establish native authenticated-runtime acceptance. No constants or guards
+were changed to conceal that gap.
+
+Mandatory local validation now includes the authenticated-copy and effective-scope
+source-reader suites. Reviewed correction patches have SHA256
+`fade7a2d461b8706a4fefa6f9f04e35ed486cc4a179b317d17308211b3b4ce64`
+and `cea1e30c4ef3258e0d4639510011564d0ca9c22cb5865b2743ff5095f8c15aed`.
+The corrected integrated source passes all 1,239 controls across 72 suites under
+managed Python 3.10 with zero skips and unchanged original sources. Successor
+receipt SHA256:
+`76542eaf220c8173caf6cb653e3f5af079c2e38f397aecdcb7df82bbb4ff92cc`.
+Repository validation passes with the new owning checks enabled. Installed
+factory, publication and configured acceptance remain false. Required hosted
+image CI remains pending. No live service change occurred.

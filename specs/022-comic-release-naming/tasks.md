@@ -103,3 +103,9 @@ New installed-pipeline verification reaches preserved metadata after a verified 
 The corrected verification-only image now passes the genuine import → dotted release rename → preserved metadata case, including the original durable acknowledgement and preserved original/restore copies. All four ordinary pipeline cases pass without skips. This component proof leaves the configured combined pass and bulk-library acceptance open; see feature 023 evidence history.
 
 Shared feature 023 recovery source corrections pass 1,239 controls with zero skips; see [the source evidence](../023-verified-publication-corrections/evidence-history.md#coupled-disposable-recovery-source-verified--2026-10-21). This does not resume the combined naming/metadata pass: T019/T023/T024 still depend on matching installed and connected acceptance, with historical originals and deferred reading-progress safeguards retained.
+
+The initial PR #461 source result confused daemon Python 3.10 with Modern
+tagger Python 3.13. The corrected predicate and two stale manifests now pass
+owning regressions, the complete 1,239-control source gate and local validation.
+Required hosted image CI and fresh installed/configured acceptance remain
+pending. Existing open acceptance tasks remain open. See [the correction record](../023-verified-publication-corrections/evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).

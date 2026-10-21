@@ -357,7 +357,10 @@ Keep archive metadata, catalog identities and filenames coherent for discovery;
 reader page verification alone does not prove native issue matching.
 
 Modern ComicTagger's private `/opt/comictagger` runtime and vendored Legacy are
-separate contracts. Moving Modern to a source-authenticated interpreter under
+separate contracts. SourceCohort invokes `/lsiopy/bin/python3` and must verify
+daemon Python 3.10. Check the actual executable and final Dockerfile assertions
+before changing a runtime predicate. A private tagger version is not daemon
+version evidence. Moving Modern to a source-authenticated interpreter under
 `/opt/tagger-python` does not move Legacy or the daemon off Python 3.10. Check
 actual interpreter paths, native libraries, licenses and final-image ABI; a host
 CLI pass does not prove Jammy ICU compatibility. Shared system-library updates

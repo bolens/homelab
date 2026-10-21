@@ -490,7 +490,7 @@
       "sha256": "49579d5c6191ff4540c533a020579f49b8f8b8d5e9dfc879088d06b1f11d3055"
     },
     "genuine_active_inputs.py": {
-      "sha256": "76da0028746f9a2c8f93780d7e05d2e6ae4ab086701792ad4e692ea88775cf20"
+      "sha256": "a9cc244c3214d3cc2527afdc427280ca873ba666bae976ae84bb8af532144c31"
     },
     "genuine_application_bootstrap.py": {
       "sha256": "7a8d8f203d7784a127ba5f0cccecc66193cdc55f4c92dc801afb504c13017bc5"
@@ -523,7 +523,7 @@
       "sha256": "1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd"
     },
     "genuine_source_cohort.py": {
-      "sha256": "70c3daf8bcff1b90813cbb8e7c9eca397a8da2f84e6e865ecf85c580e87b59b3"
+      "sha256": "cf88fa4d04f151fbf348f397ddb0fce86a0bb1e7b1d3743c65a7cb8821c8037a"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
@@ -649,7 +649,7 @@
       "sha256": "7c3cce082fb7d43dd01cf439e462a887223068292a7cdf2a69b7ba5f4b6e09c9"
     },
     "test_genuine_source_cohort.py": {
-      "sha256": "6e51feec1a28efb31bb6808e7a3550f440ee527653cc5cb8c6a11e6d5ecfb77b"
+      "sha256": "2cf2cb3005543c26875c0695cea6a0b7feaf4d29ee44c583d2207a64f7bd6368"
     },
     "test_hardlink_nfs_probe.py": {
       "sha256": "388f7ab2c6147b13457e9d9356848c40c19f290032fe2c9348eaba1d80df727d"

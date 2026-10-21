@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "32fa63284155198e49d3e63bc040b91ff2596f91631f56fb5d2767c4b65d0f18"
+    "sha256": "576f0bcb1e4043b55d62fcb6afaafe9766fb18eb5fa00120053faa43012daca3"
   },
   {
     "path": "story_arc_search.py",
@@ -1549,7 +1549,7 @@
   },
   {
     "path": "test_tagger_python_runtime.py",
-    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2"
+    "sha256": "66dec3625667e0f8f583a0def4b19eafa404acaa2a26cf2aad95454f3edafe4c"
   },
   {
     "path": "test_tagger_runtime.py",
