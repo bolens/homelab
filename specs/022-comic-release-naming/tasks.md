@@ -19,6 +19,11 @@ The shared single-authentication launcher and ninth isolated bootstrap pass
 actual execution checks. T019/T023 remain held on their broader configured and
 current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 
+The subsequent SourceCohort attempt stops in preparation before invocation;
+its failure and any test-resource cleanup remain unverified. Preserve it without
+replay. The successful bootstrap remains accepted, with no additional task
+completion. See [the current preparation result](../023-verified-publication-corrections/evidence-history.md#sourcecohort-preparation-held---2026-10-21).
+
 ## Phase 1: Setup
 
 **Purpose**: Record preferences, preservation requirements and prospective contracts.

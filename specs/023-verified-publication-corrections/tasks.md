@@ -33,6 +33,11 @@ steps requires holding ordinary Mylar unavailable throughout implementation.
 The next unexecuted gate is SourceCohort verification against the retained
 installation, followed by fresh observations within their 120-second window.
 
+The subsequent SourceCohort attempt stops in preparation before invocation;
+its failure and any test-resource cleanup remain unverified. Preserve it without
+replay. The successful bootstrap remains accepted, with no additional task
+completion. See [the current preparation result](evidence-history.md#sourcecohort-preparation-held---2026-10-21).
+
 ## Phase 1: Setup
 
 - [x] T001 Validate prospective requirements, researched source boundaries and complete contracts in `specs/023-verified-publication-corrections/spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/publication-corrections.md` and `quickstart.md`; complete independent design review before implementation.

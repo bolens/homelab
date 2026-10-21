@@ -12,6 +12,11 @@
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
 
+The subsequent SourceCohort attempt stops in preparation before invocation;
+its failure and any test-resource cleanup remain unverified. Preserve it without
+replay. The successful bootstrap remains accepted, with no additional task
+completion. See [the current preparation result](../023-verified-publication-corrections/evidence-history.md#sourcecohort-preparation-held---2026-10-21).
+
 ## Phase 1: Setup
 
 - [x] T001 Complete independent prospective design and preservation review of `specs/024-verified-archive-repair/spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/archive-repair.md` and `quickstart.md`; keep private preliminary proof separate from production acceptance.

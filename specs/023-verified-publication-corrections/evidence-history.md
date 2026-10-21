@@ -1051,3 +1051,14 @@ remain unchanged. The remaining execution order separates delivered components
 from SourceCohort/connected proof, physical and aggregate acceptance, fresh DDL
 ACK/recurring consumption, and final library/bulk/retention checks. All task IDs
 and completion states are preserved, and local evidence links resolve.
+
+## SourceCohort preparation held - 2026-10-21
+
+The next finite source-verification batch completes its fresh input-staging
+phase, then stops in preparation with a ValueError. The invocation phase never
+starts. The retained error output does not identify the refusing check or prove
+test-container cleanup; both remain unverified pending bounded diagnosis.
+Original inputs and failed-attempt logs are preserved without replay. This
+isolated attempt changes no production service and does not invalidate the
+accepted generation-nine bootstrap. SourceCohort, connected factories and all
+16 remaining task acceptance gates stay open.
