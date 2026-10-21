@@ -495,7 +495,7 @@ class ConfiguredRuntime:
     def quiesce(self):
         need(not self.quiescent and self.selected is None, 'standalone-quiesce-once')
         # No unknown-ACK replay: any exception retains stopped/paused state.
-        self.command(['pause',self.ids['native']]);self.command(['stop','--time','30',self.ids['reader']])
+        self.command(['pause',self.ids['native']]);self.command(['stop','--timeout','30',self.ids['reader']])
         self.native_state=self.inspect(self.ids['native'])['State'];self.reader_state=self.inspect(self.ids['reader'])['State']
         self.quiescent=True;self.close()
 

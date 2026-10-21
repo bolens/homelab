@@ -322,6 +322,31 @@ class CreatorTests(unittest.TestCase):
         self.assertEqual(c.config_sections(self.config_source,['API_KEY']),{'API_KEY':'API'})
         for raw in (b'import forbidden\n_CONFIG_DEFINITIONS = {}',b'_CONFIG_DEFINITIONS={"API_KEY":(str, compute(),None)}'):
             with self.assertRaises(c.p.Held):c.config_sections(raw,['API_KEY'])
+    def test_config_export_accepts_only_plain_or_owning_ordereddict_literal(self):
+        expected=c.config_sections(self.config_source,CONFIG_KEYS)
+        self.assertEqual(len(expected),23)
+        wrapped=self.config_source.replace(b'= {',b'= OrderedDict({').replace(b'}\n',b'})\n')
+        # These names deliberately cannot be imported: the parser only reads AST.
+        wrapped=b'import forbidden_config_provider\n'+wrapped
+        self.assertEqual(c.config_sections(wrapped,CONFIG_KEYS),expected)
+        plain=b'_CONFIG_DEFINITIONS={"API_KEY":(str,"API",None)}'
+        self.assertEqual(c.config_sections(plain,['API_KEY']),{'API_KEY':'API'})
+
+    def test_config_export_rejects_other_calls_wrappers_duplicates_and_missing_fields(self):
+        literal='{"API_KEY":(str,"API",None)}'
+        expressions=(f'Other({literal})',f'collections.OrderedDict({literal})',
+                     f'OrderedDict({literal}, {literal})',f'OrderedDict(items={literal})',
+                     f'OrderedDict({literal}, unexpected=True)', 'OrderedDict()',
+                     'OrderedDict([( "API_KEY", (str,"API",None))])',
+                     f'OrderedDict(Other({literal}))', 'OrderedDict({**provider})',
+                     'OrderedDict({"API_KEY":(str,"API",None),"API_KEY":(str,"General",None)})',
+                     'OrderedDict({})', 'OrderedDict({"API_KEY":(str,compute(),None)})')
+        for expression in expressions:
+            with self.subTest(expression=expression),self.assertRaises(c.p.Held):
+                c.config_sections(('_CONFIG_DEFINITIONS='+expression).encode(),['API_KEY'])
+        with self.assertRaises(c.p.Held):
+            c.config_sections(self.config_source,CONFIG_KEYS+['MISSING'])
+
     def test_copy_never_extracts_links_multientry_or_foreign_bytes(self):
         expected=dict(path='/config.py',sha256=hashlib.sha256(b'actual').hexdigest())
         self.assertEqual(c.copied_file(tar(b'actual','config.py'),expected),b'actual')
@@ -341,7 +366,7 @@ class Opener:
 urllib.request.build_opener=lambda *a:Opener()
 """
         for operation in ('status','claim','key'):
-            value=dict(nonce=nonce,cid=cid,operation=operation,email='bootstrap-'+nonce+'@example.invalid',password='b'*64,seconds=10)
+            value=dict(nonce=nonce,cid=cid,operation=operation,email='bootstrap-'+nonce[:48]+'@example.invalid',password='b'*64,seconds=10)
             script=wrapper+"\nexec("+repr(c.ENROLL_PROGRAM)+")\nprint('\\n'+json.dumps(captured))"
             result=subprocess.run([sys.executable,'-I','-B','-c',script,'--disposable-reader-claim-v1',nonce,cid],input=c.p.encode(value),capture_output=True,timeout=10)
             self.assertEqual(result.returncode,0,result.stderr.decode());request=json.loads(result.stdout.splitlines()[-1])
@@ -350,12 +375,40 @@ urllib.request.build_opener=lambda *a:Opener()
                 self.assertEqual(request['method'],'POST');self.assertEqual(request['body'],'')
                 self.assertEqual(request['headers']['X-komga-email'],value['email']);self.assertEqual(request['headers']['X-komga-password'],value['password'])
             elif operation=='key':
-                self.assertTrue(request['headers']['Authorization'].startswith('Basic '));self.assertEqual(json.loads(request['body']),dict(comment='bootstrap-'+nonce))
+                self.assertEqual(base64.b64decode(request['headers']['Authorization'].removeprefix('Basic ')).decode(),value['email']+':'+value['password']);self.assertEqual(json.loads(request['body']),dict(comment='bootstrap-'+nonce))
                 self.assertTrue(request['url'].endswith('/api/v2/users/me/api-keys'))
             else:self.assertEqual(request['method'],'GET');self.assertIsNone(request['body'])
+    def test_claim_email_fits_validator_bound_and_old_or_foreign_inputs_never_dispatch(self):
+        # Komga1.28.1 ClaimController @Email; its Boot3.5.16 BOM selects
+        # HibernateValidator8.0.3, whose local-part limit is64 characters.
+        nonce='a'*64;cid='1'*64
+        valid=dict(nonce=nonce,cid=cid,operation='claim',email='bootstrap-'+nonce[:48]+'@example.invalid',password='b'*64,seconds=10)
+        self.assertEqual(len(valid['email'].split('@')[0]),58)
+        wrapper="""import urllib.request
+urllib.request.build_opener=lambda *args:(_ for _ in ()).throw(RuntimeError('TRANSPORT-MUST-NOT-BE-REACHED'))
+"""
+        old=dict(valid,email='bootstrap-'+nonce+'@example.invalid')
+        wrong_nonce=dict(valid,nonce='c'*64)
+        wrong_cid=dict(valid,cid='2'*64)
+        for value in (old,wrong_nonce,wrong_cid):
+            with self.subTest(case=value['email'][:12],nonce=value['nonce'][:1],cid=value['cid'][:1]):
+                result=subprocess.run([sys.executable,'-I','-B','-c',wrapper+'\nexec('+repr(c.ENROLL_PROGRAM)+')','--disposable-reader-claim-v1',nonce,cid],input=c.p.encode(value),capture_output=True,timeout=10)
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn(b'AssertionError',result.stderr)
+                self.assertNotIn(b'TRANSPORT-MUST-NOT-BE-REACHED',result.stderr)
+        owner,driver=self.creator();original=driver.docker;sent=[]
+        def capture(args,seconds,data=None):
+            if len(args)>9 and args[0]=='exec'and args[9]==c.ENROLL_PROGRAM:sent.append(c.p.decode(data))
+            return original(args,seconds,data)
+        driver.docker=capture;owner.prepare()
+        login=json.loads((owner.journal/'reader-login.json').read_bytes())
+        self.assertEqual(login['email'],'bootstrap-'+owner.nonce[:48]+'@example.invalid')
+        self.assertEqual(sum(v['operation']=='claim'for v in sent),1)
+        self.assertTrue(all(v['email']==login['email'] and v['nonce']==owner.nonce and v['cid']==owner.engine.ids['native']for v in sent))
+
     def test_closed_lifetime_and_mutating_call_budget_never_dispatch_again(self):
         owner,driver=self.creator();owner.prepare();before=len(driver.calls)
-        args=['restart','--time','30',owner.engine.ids['native']]
+        args=['restart','--timeout','30',owner.engine.ids['native']]
         owner.engine.run(args,10)
         with self.assertRaises(c.p.Held):owner.engine.run(args,10)
         self.assertEqual(len(driver.calls),before+1)
@@ -442,6 +495,137 @@ urllib.request.build_opener=lambda *a:Opener()
             path=owner.journal/'engine-failure.private.json';before=path.read_bytes();frame=c.p.nine(path.stat())
             with self.assertRaises(c.p.Held):owner.engine.call('fixture-later',1,['inspect','fixture'],readonly=True)
         self.assertFalse(owner.engine.poisoned);self.assertEqual(path.read_bytes(),before);self.assertEqual(c.p.nine(path.stat()),frame);self.assertEqual(len(calls),2)
+
+
+    def test_held_diagnostic_authenticates_creator_frame_without_private_values(self):
+        owner,driver=self.creator();driver.fail='start'
+        with self.assertRaises(c.p.Held)as caught:owner.execute()
+        saved=json.loads((owner.journal/'held.json').read_bytes());failure=saved['failure']
+        self.assertEqual(failure['exception_class'],'Held')
+        frame=failure['source_frame'];self.assertIsNotNone(frame)
+        self.assertEqual(set(frame),{'function','line','source_sha256'})
+        self.assertEqual(frame['source_sha256'],owner.document['sources']['creator']['sha256'])
+        self.assertGreater(frame['line'],0)
+        encoded=json.dumps(saved)
+        for private_value in (str(owner.root),str(HERE),str(caught.exception),'PRIVATE-FIXTURE-KEY'):
+            self.assertNotIn(private_value,encoded)
+        self.assertFalse(saved['cleanup']);self.assertFalse(saved['automatic_replay'])
+        self.assertEqual(sum(args[0]=='start'for args in driver.calls),1)
+
+    def test_foreign_traceback_and_dynamic_exception_name_are_not_disclosed(self):
+        owner,driver=self.creator()
+        scope={};exec(compile("def private_local():\n raise RuntimeError('PRIVATE-MESSAGE')\n",str(HERE/'genuine_bootstrap_creator.py'),'exec'),scope)
+        try:scope['private_local']()
+        except RuntimeError as error:result=owner.failure_diagnostic(error)
+        self.assertEqual(result,dict(exception_class='RuntimeError',source_frame=None))
+        private_error=type('PRIVATE_CLASS',(Exception,),{})('PRIVATE-MESSAGE')
+        self.assertEqual(owner.failure_diagnostic(private_error),dict(exception_class='unclassified-exception',source_frame=None))
+
+    def test_changed_original_source_cannot_authenticate_traceback(self):
+        owner,driver=self.creator();driver.fail='start';read=c.p.read
+        def changed(ref,**options):
+            raw=read(ref,**options)
+            return raw+b'\n'if ref==owner.document['sources']['creator']else raw
+        # Only the diagnostic read is changed; the primary failing operation is genuine.
+        diagnostic=owner.failure_diagnostic
+        with patch.object(owner,'failure_diagnostic',side_effect=lambda error:self._changed_diagnostic(diagnostic,error,changed)),self.assertRaises(c.p.Held):owner.execute()
+        self.assertIsNone(json.loads((owner.journal/'held.json').read_bytes())['failure']['source_frame'])
+
+    def _changed_diagnostic(self,diagnostic,error,read):
+        with patch.object(c.p,'read',side_effect=read):return diagnostic(error)
+
+    def test_held_write_failure_preserves_exact_primary_exception(self):
+        owner,driver=self.creator();owner.prepare();primary=RuntimeError('PRIVATE-PRIMARY');put=c.b.put
+        def failed(path,value):
+            if path.name=='held.json':raise KeyboardInterrupt('PRIVATE-SECONDARY')
+            return put(path,value)
+        with patch.object(owner,'prepare',side_effect=primary),patch.object(c.b,'put',side_effect=failed),self.assertRaises(RuntimeError)as caught:owner.execute()
+        self.assertIs(caught.exception,primary);self.assertTrue(owner.closed)
+        self.assertFalse((owner.journal/'held.json').exists())
+
+    def test_existing_held_diagnostic_is_not_rewritten(self):
+        owner,driver=self.creator();owner.prepare();path=owner.journal/'held.json'
+        c.b.put(path,dict(original='PRIVATE-ORIGINAL'));before=ref(path)
+        primary=RuntimeError('PRIVATE-PRIMARY')
+        with patch.object(owner,'prepare',side_effect=primary),self.assertRaises(RuntimeError)as caught:owner.execute()
+        self.assertIs(caught.exception,primary);self.assertEqual(ref(path),before)
+
+    def test_first_profiles_retain_raw_false_to_null_transition_without_overwrite(self):
+        owner,driver=self.creator();original=driver.docker
+        def changed(args,seconds,data=None):
+            raw=original(args,seconds,data)
+            if args[0]=='start':driver.rows[args[1]]['HostConfig']['OomKillDisable']=None
+            return raw
+        # Raw created false and running null remain distinct diagnostic evidence.
+        def seeded(args,seconds,data=None):
+            raw=changed(args,seconds,data)
+            if args[0]=='create':driver.rows[raw.decode()]['HostConfig']['OomKillDisable']=False
+            return raw
+        driver.docker=seeded
+        # Only the confirmed false-to-null transition is accepted; the connected
+        # run still reaches the original missing-schema refusal, never success.
+        with self.assertRaises(c.p.Held)as caught:owner.execute()
+        self.assertNotEqual(str(caught.exception),'created-original-static-drift')
+        created=owner.journal/'first-created-native.private.json';running=owner.journal/'first-running-native.private.json'
+        before=ref(created);left=json.loads(created.read_bytes());right=json.loads(running.read_bytes())
+        self.assertIs(left['profile']['HostConfig']['OomKillDisable'],False)
+        self.assertIsNone(right['profile']['HostConfig']['OomKillDisable'])
+        self.assertEqual(ref(created),before)
+        for path,value in ((created,left),(running,right)):
+            self.assertEqual(path.stat().st_mode&0o777,0o600)
+            self.assertEqual(value['response_sha256'],hashlib.sha256(c.p.encode([value['profile']])).hexdigest())
+        self.assertEqual(sum(args[0]=='start'for args in driver.calls),2)
+
+    def test_profile_diagnostic_storage_failure_does_not_change_admission(self):
+        owner,driver=self.creator();put=c.b.put
+        def failed(path,value):
+            if path.name.startswith('first-'):raise OSError('PRIVATE-STORAGE')
+            return put(path,value)
+        with patch.object(c.b,'put',side_effect=failed):plan=owner.prepare()
+        self.assertEqual(set(plan['roles']),{'native','reader','worker'})
+        self.assertFalse(any(owner.journal.glob('first-*.private.json')))
+
+
+    def test_oom_start_transition_rejects_missing_true_integer_and_other_drift(self):
+        for mutation in ('missing','true','zero','config','mount'):
+            with self.subTest(mutation=mutation):
+                fixture=CreatorTests();fixture.setUp();self.addCleanup(fixture.doCleanups)
+                owner,driver=fixture.creator();original=driver.docker
+                def changed(args,seconds,data=None):
+                    raw=original(args,seconds,data)
+                    if args[0]=='create':driver.rows[raw.decode()]['HostConfig']['OomKillDisable']=False
+                    if args[0]=='start':
+                        row=driver.rows[args[1]];row['HostConfig']['OomKillDisable']=None
+                        if mutation=='missing':del row['HostConfig']['OomKillDisable']
+                        elif mutation=='true':row['HostConfig']['OomKillDisable']=True
+                        elif mutation=='zero':row['HostConfig']['OomKillDisable']=0
+                        elif mutation=='config':row['Config']['Foreign']='unapproved'
+                        elif mutation=='mount':row['Mounts'][0]['RW']=False
+                    return raw
+                driver.docker=changed
+                with self.assertRaises(c.p.Held):owner.execute()
+                self.assertEqual(sum(args[0]=='start'for args in driver.calls),1)
+
+    def test_oom_transition_is_not_allowed_prestart_or_between_running_observations(self):
+        owner,driver=self.creator();owner.prepare();cid=owner.engine.ids['native']
+        # The fixture originally omitted this field; freeze an explicit raw baseline.
+        row=driver.rows[cid];row['HostConfig']['OomKillDisable']=False
+        owner.engine.created_static['native']['HostConfig']['OomKillDisable']=False
+        owner.engine.runtime_static['native']['HostConfig']['OomKillDisable']=False
+        row['HostConfig']['OomKillDisable']=None
+        running=copy.deepcopy(row['State']);row['State'].update(Status='created',Running=False,Pid=0)
+        with self.assertRaisesRegex(c.p.Held,'created-original-static-drift'):owner.engine.inspect('native',running=False)
+        row['State']=running
+        with self.assertRaisesRegex(c.p.Held,'created-runtime-static-drift'):owner.engine.inspect('native',running=True)
+
+    def test_restart_timeout_flag_contract_rejects_deprecated_flag_without_dispatch(self):
+        owner,driver=self.creator();owner.prepare();owner.engine.connected=True
+        before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'only-original-native-restart'):
+            owner.engine.run(['restart','--time','30',owner.engine.ids['native']],30)
+        self.assertEqual(len(driver.calls),before)
+        owner.engine.run(['restart','--timeout','30',owner.engine.ids['native']],30)
+        self.assertEqual(driver.calls[-1],['restart','--timeout','30',owner.engine.ids['native']])
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

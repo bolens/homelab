@@ -339,7 +339,7 @@ class Bootstrap:
         need(committed.get('token') == token and committed.get('outcome') == 'committed', 'actual-bootstrap-commit')
         self.roles(); self.steps += 1; prefix = str(self.steps).zfill(2) + '-native-restart'
         put(self.output / (prefix + '-intent.json'), dict(id=self.plan['roles']['native']['id'], automatic_replay=False))
-        result = self.engine.run(['restart', '--time', '30', self.plan['roles']['native']['id']], self.seconds()).decode().strip()
+        result = self.engine.run(['restart', '--timeout', '30', self.plan['roles']['native']['id']], self.seconds()).decode().strip()
         need(result == self.plan['roles']['native']['id'], 'original-restart-ack')
         self.roles(restarting=True)
         while True:

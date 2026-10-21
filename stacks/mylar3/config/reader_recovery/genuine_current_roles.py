@@ -24,7 +24,7 @@ p = b.p
 need = p.need
 HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
-    'genuine_application_bootstrap.py': '7a8d8f203d7784a127ba5f0cccecc66193cdc55f4c92dc801afb504c13017bc5',
+    'genuine_application_bootstrap.py': '18db2194bba4a369a2516c9e1f7658390a31dc58b8a623ab1a6bbea59cfb2b7d',
     'genuine_plan13_producer.py': '53975b4e111d07e91c80586ee972c2df5c55ed13a0e99819bdc5d0425da53fdf',
     'comic_reader_lifecycle_parent.py': '80621f2efd5e11c0509d7139016fbd986fa892711381e427d15fd9fc8f413359',
 }

@@ -48,7 +48,7 @@ assert sys.flags.isolated and sys.dont_write_bytecode and os.geteuid()==1000
 assert len(sys.argv)==4 and sys.argv[1]=='--disposable-reader-claim-v1'
 v=json.load(sys.stdin);assert set(v)=={'nonce','cid','operation','email','password','seconds'}
 assert sys.argv[2:]==[v['nonce'],v['cid']] and all(re.fullmatch('[a-f0-9]{64}',v[k])for k in ('nonce','cid'))
-assert v['email']=='bootstrap-'+v['nonce']+'@example.invalid' and re.fullmatch('[a-f0-9]{64}',v['password'])
+assert v['email']=='bootstrap-'+v['nonce'][:48]+'@example.invalid' and re.fullmatch('[a-f0-9]{64}',v['password'])
 assert type(v['seconds'])is int and 1<=v['seconds']<=30
 base='http://reader-'+v['nonce'][:16]+':25600';headers={};data=None
 if v['operation']=='status':route='/api/v1/claim';method='GET'
@@ -75,9 +75,15 @@ def config_sections(raw, names):
     """Read only owning literal section names; never import Config/read providers."""
     tree = ast.parse(raw, feature_version=(3, 10))
     nodes = [n for n in tree.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == '_CONFIG_DEFINITIONS' for t in n.targets)]
-    need(len(nodes) == 1 and isinstance(nodes[0].value, ast.Dict), 'original-config-definitions')
+    need(len(nodes) == 1, 'original-config-definitions')
+    definitions = nodes[0].value
+    if isinstance(definitions, ast.Call):
+        need(isinstance(definitions.func, ast.Name) and definitions.func.id == 'OrderedDict'
+             and len(definitions.args) == 1 and not definitions.keywords, 'original-config-definitions')
+        definitions = definitions.args[0]
+    need(isinstance(definitions, ast.Dict) and all(key is not None for key in definitions.keys), 'original-config-definitions')
     result = {}
-    for key, value in zip(nodes[0].value.keys, nodes[0].value.values):
+    for key, value in zip(definitions.keys, definitions.values):
         if isinstance(key, ast.Constant) and key.value in names:
             need(isinstance(value, (ast.Tuple, ast.List)) and len(value.elts) >= 2
                  and isinstance(value.elts[1], ast.Constant) and type(value.elts[1].value) is str, 'literal-config-section')
@@ -214,12 +220,31 @@ class PurposeEngine:
         self.inspect(role, running=False)
 
     def inspect(self, role, *, running):
-        cid = self.ids[role]; rows = p.decode(self.call('inspect-' + role, 1024, ['inspect', cid], readonly=True))
+        cid = self.ids[role]; raw = self.call('inspect-' + role, 1024, ['inspect', cid], readonly=True); rows = p.decode(raw)
         need(type(rows) is list and len(rows) == 1, 'one-created-role')
-        row = rows[0]; self.owner.profile(role, row, running)
+        row = rows[0]
+        # First observations are private diagnostics, never admission substitutes.
+        try:
+            path = self.owner.journal/('first-'+('running' if running else 'created')+'-'+role+'.private.json')
+            if not os.path.lexists(path):
+                b.put(path, dict(kind='creator-first-profile-diagnostic', role=role,
+                                phase='running' if running else 'created',
+                                response_sha256=digest(raw), profile=row,
+                                automatic_replay=False, cleanup=False))
+        except BaseException:pass
+        self.owner.profile(role, row, running)
         projected=p.static(row)
         fixed={k:v for k,v in projected.items()if k!='NetworkSettings'}
-        if role in self.created_static:need(fixed==self.created_static[role],'created-original-static-drift')
+        if role in self.created_static:
+            original=self.created_static[role]; compared=copy.deepcopy(fixed)
+            old_host=original['HostConfig']; new_host=fixed['HostConfig']
+            if 'OomKillDisable' in old_host:
+                need('OomKillDisable' in new_host,'created-original-static-drift')
+                before,after=old_host['OomKillDisable'],new_host['OomKillDisable']
+                transition=running and before is False and after is None
+                need((type(before)is type(after) and before==after) or transition,'created-original-static-drift')
+                if transition:compared['HostConfig']['OomKillDisable']=False
+            need(compared==original,'created-original-static-drift')
         else:self.created_static[role]=copy.deepcopy(fixed)
         if running:
             if role in self.runtime_static:need(projected==self.runtime_static[role],'created-runtime-static-drift')
@@ -241,7 +266,7 @@ class PurposeEngine:
         need(self.started == {'native', 'reader'} and not self.connected, 'original-enrollment-phase')
         for role in ('native', 'reader'):self.inspect(role, running=True)
         packet = dict(nonce=self.owner.nonce, cid=self.ids['native'], operation=operation,
-                      email='bootstrap-' + self.owner.nonce + '@example.invalid', password=password, seconds=self.owner.seconds())
+                      email='bootstrap-' + self.owner.nonce[:48] + '@example.invalid', password=password, seconds=self.owner.seconds())
         args = ['exec', '--interactive', '--user', '1000:1000', self.ids['native'], '/lsiopy/bin/python3', '-I', '-B', '-c', ENROLL_PROGRAM,
                 '--disposable-reader-claim-v1', self.owner.nonce, self.ids['native']]
         return p.decode(self.call('enroll-' + operation, 128 if operation == 'status' else 1, args, p.encode(packet), readonly=operation=='status'))
@@ -261,7 +286,7 @@ class PurposeEngine:
             need(args == ['network', 'inspect', self.network] and data is None, 'original-network-selector')
             return self.call('connected-network', 2048, args, readonly=True)
         if args[0] == 'restart':
-            need(args == ['restart', '--time', '30', self.ids['native']] and data is None, 'only-original-native-restart')
+            need(args == ['restart', '--timeout', '30', self.ids['native']] and data is None, 'only-original-native-restart')
             return self.call('connected-restart', 1, args)
         if self.owner.document['version'] in (2,3) and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
             need(data is None,'queue-reader-jar-no-input')
@@ -456,7 +481,7 @@ class Creator:
         # Retry only the read-only unclaimed readiness request. A mutation is
         # never retried, even if its reply was lost after the server committed.
         password=secrets.token_hex(32)
-        b.put(self.journal/'reader-login.json',dict(email='bootstrap-'+self.nonce+'@example.invalid',password=password))
+        b.put(self.journal/'reader-login.json',dict(email='bootstrap-'+self.nonce[:48]+'@example.invalid',password=password))
         self.virgin_process()
         status=None
         for _ in range(128):
@@ -489,17 +514,55 @@ class Creator:
         self.engine.connected=True
         return plan
 
+    def failure_diagnostic(self, error):
+        """Only fixed exception tokens and authenticated public Creator locations."""
+        classes = (AssertionError, ValueError, TypeError, KeyError, RuntimeError,
+                   OSError, TimeoutError, PermissionError, FileNotFoundError,
+                   UnicodeError, SystemExit, KeyboardInterrupt)
+        token = next((kind.__name__ for kind in classes if type(error) is kind),
+                     'Held' if type(error) is p.Held else 'unclassified-exception')
+        answer = dict(exception_class=token, source_frame=None)
+        try:
+            ref = self.document['sources']['creator']
+            path = HERE/'genuine_bootstrap_creator.py'
+            need(Path(ref['path']) == path, 'diagnostic-original-source-path')
+            raw = p.read(ref, private=False)
+            need(raw == self.raw['creator'], 'diagnostic-original-source-bytes')
+            root = compile(raw, str(path), 'exec')
+            codes = []; pending = [(root, 0)]
+            while pending:
+                code, depth = pending.pop()
+                need(depth <= 12 and len(codes) < 512, 'diagnostic-code-bound')
+                codes.append(code)
+                pending.extend((item, depth+1) for item in code.co_consts if isinstance(item, type(root)))
+            trace = error.__traceback__; count = 0; selected = None
+            while trace is not None and count < 64:
+                frame = trace.tb_frame; code = frame.f_code
+                if (frame.f_globals is globals() and code.co_filename == str(path)
+                        and code in codes and re.fullmatch('[A-Za-z_][A-Za-z0-9_]{0,79}', code.co_name)):
+                    selected = dict(function=code.co_name, line=trace.tb_lineno,
+                                    source_sha256=hashlib.sha256(raw).hexdigest())
+                trace = trace.tb_next; count += 1
+            if trace is None:
+                answer['source_frame'] = selected
+            # Close the same original source after traceback/code inspection.
+            p.read(ref, private=False)
+        except BaseException:
+            answer['source_frame'] = None
+        return answer
+
     def execute(self):
         try:
             plan=self.prepare()
             options={} if self.document['version']==1 else dict(reader_queue_helper=self.document['sources']['reader_queue'])
             result=b.Bootstrap(plan,self.engine).execute(native_catalog_helper=self.document['sources']['catalog_helper'],**options)
             return dict(bootstrap=result,installed_factories_verified=False,publication_acceptance=False,actual_nfs_verified=False,ordinary_ack_verified=False,birth_verified=False,mutation_authority=False,reader_resume_authority=False,automatic_replay=False)
-        except BaseException:
+        except BaseException as error:
             try:
                 if self.journal is not None and not os.path.lexists(self.journal/'held.json'):
-                    b.put(self.journal/'held.json',dict(kind='creator-held-all-resources-retained',automatic_replay=False,cleanup=False))
-            except Exception:pass  # Preserve the original failure and all partial resources.
+                    b.put(self.journal/'held.json',dict(kind='creator-held-all-resources-retained',automatic_replay=False,cleanup=False,
+                                                     failure=self.failure_diagnostic(error)))
+            except BaseException:pass  # Diagnostic failure cannot replace the original failure.
             raise
         finally:
             if self.geometry is not None:p.close_common_root(self.geometry);self.geometry=None

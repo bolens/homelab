@@ -12,7 +12,7 @@
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,239 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the corrected integrated successor passes 1,252 controls across 72 suites under Python 3.10, with zero skips. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
 - **T031/T032 are complete; T017–T019 retain their aggregate gates:** identity recovery and control-state adoption are accepted. Current-library, reader, restart and second-pass acceptance precede bulk resumption and final cleanup. Keep one independently verified current backup and unresolved originals. See [recovery](evidence-history.md#combined-worker-recovery-and-pack-matching-2026-10-15) and the task dependencies below.
@@ -122,17 +122,27 @@ ordinary import/rename/metadata and worker component proofs remain in
 retained-download or bulk acceptance.
 
 The accepted native405 preservation baseline and the published449 source/startup
-and worker42 proofs remain valid for their recorded versions. The corrected
-current source passes the complete 1,239-control gate; its changed adoption bytes
-require a new matching image and original capture. See [the correction
-record](evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-10-21).
+and worker42 proofs remain valid for their recorded versions. The warning-fix
+PR #462 native180/startup capture and matching 27-output supplier pass. The
+current Creator correction passes the complete 1,241-control source gate; fresh
+Creator/SourceCohort and connected acceptance remain open. See [the current
+record](evidence-history.md#creator-configuration-ast-correction--2026-10-21).
 
 ## Convergence assessment and evidence
 
 CI scheduling passed hosted checks and merged in PR #463; observed verification
 time fell from 37m 57s to 20m 19s. Separate cacheable tagging and remaining-check
-branches are implemented locally, with target-image execution, full validation
-and review pending. All configured acceptance gates remain open as listed above.
+branches merge in PR #464 after all 43 hosted checks pass and one expected skip.
+The real tagging stage passes all 117 tests with zero skips; an unrelated reader
+edit reuses the tagging layer. The PR #462 image's actual native180/startup
+capture and matching supplier preparation of all 27 original outputs pass.
+The host compatibility batch passes 50 Creator and 29 bootstrap controls plus
+all 14 outer checks, including the 1,252-control source collection. It preserves
+strict profile comparison, safe diagnostics and once-only enrollment. Actual
+startup reaches both services, then an enrollment POST returns HTTP 400. The
+bounded email correction is source-verified; fresh enrollment, SourceCohort and
+connected acceptance remain required. No aggregate checkbox changes. See [the
+latest checkpoint](evidence-history.md#creator-startup-diagnostics-and-pending-source-closure--2026-10-21).
 See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
 
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require

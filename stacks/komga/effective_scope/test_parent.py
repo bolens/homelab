@@ -23,6 +23,12 @@ assert p.IMAGE is None, "portable-unbound-image"
 p.IMAGE = "sha256:" + "a" * 64
 
 
+class BootstrapSourcePin(unittest.TestCase):
+    def test_current_bootstrap_source_matches_semantic_pin(self):
+        source = HERE.parents[1] / 'mylar3/config/reader_recovery/genuine_application_bootstrap.py'
+        self.assertEqual(p.BOOTSTRAP_SOURCE_SHA, p.digest(source.read_bytes()))
+
+
 class Tests(unittest.TestCase):
     def snapshot(self):
         return dict(cmd=b'java\0-Dspring.profiles.include=docker\0--enable-native-access=ALL-UNNAMED\0-jar\0application.jar\0--spring.config.additional-location=file:/config/\0', env=b'KOMGA_CONFIGDIR=/config\0PATH=/bin\0', uid=1000, cwd='/app')
