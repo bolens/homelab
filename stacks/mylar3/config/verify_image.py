@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import argparse
 
 FIXES = Path(__file__).parent
 # These owning suites use independent temporary source/database/media/cache roots.
@@ -162,7 +163,21 @@ def config_scope_preflight(source, *, installed):
         assert (source / 'publication_native_configured_scope.py').read_bytes() == scope, 'Installed configured scope source differs'
 
 
+def selected_owning_suites(phase):
+    assert phase in ('all', 'remaining'), 'Unknown verification phase'
+    return tuple(name for name in OWNING_SUITES
+                 if phase == 'all' or name != 'test_publication_tagging.py')
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--phase', choices=('all', 'remaining'), default='all')
+PHASE = parser.parse_args().phase
+# A separate BuildKit branch uses one child; keep combined owning concurrency at four.
+OWNING_WORKERS = 3 if PHASE == 'remaining' else 4
+
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_verify_status_routing.py')], check=True)
+subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_tagging_stage_inputs.py')], check=True)
+subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_tagging_stage.py')], check=True)
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'ordinary_pipeline/test_gate.py')], check=True)
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
     config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
@@ -264,8 +279,8 @@ with tempfile.TemporaryDirectory() as directory:
             continue
         subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     environment = dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source), PYTHONDONTWRITEBYTECODE='1')
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [(test, executor.submit(owning_suite, test, environment)) for test in OWNING_SUITES]
+    with ThreadPoolExecutor(max_workers=OWNING_WORKERS) as executor:
+        futures = [(test, executor.submit(owning_suite, test, environment)) for test in selected_owning_suites(PHASE)]
         results = []
         for test, future in futures:
             try:
@@ -315,4 +330,7 @@ else:
 if Path('/opt/ddl-transport/bin/python').exists():
     subprocess.run(['/opt/ddl-transport/bin/python', str(FIXES / 'evaluate_ddl_streaming.py')], check=True, timeout=15)
 
-print('Candidate image passed the isolated Mylar reliability gate')
+if PHASE == 'all':
+    print('Candidate image passed the isolated Mylar reliability gate')
+else:
+    print('Remaining reliability phase passed; separate tagging proof and aggregate gate still required')

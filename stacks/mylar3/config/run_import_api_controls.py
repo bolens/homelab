@@ -74,7 +74,7 @@ def main(family="all"):
         assert (len(rel.parts) == 1 and rel.suffix == '.py'
                 or row['path'] == 'import_api_fixtures/api_predecessor.py'
                 or row['path'] in PACK_FIXTURES or row['path'] in DDL_STATUS_FIXTURES or row['path'] in CACHE_FIXTURES or row['path'] in HOST_SOURCES
-                or row['path'] in STANDALONE_FIXTURES or row['path'] in ORDINARY_PIPELINE_FIXTURES or row['path'] == STANDALONE_MANIFEST)
+                or row['path'] in STANDALONE_FIXTURES or row['path'] in ORDINARY_PIPELINE_FIXTURES or row['path'] in {STANDALONE_MANIFEST, 'tagging_stage_sources.json'})
         path = ROOT / rel
         assert path not in files
         st = os.lstat(path)

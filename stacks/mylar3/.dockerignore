@@ -22,6 +22,7 @@ config/**
 !config/history_ui.js
 !config/catalog_ui.js
 !config/import_api_control_sources.json
+!config/tagging_stage_sources.json
 !config/ordinary_pipeline/
 config/ordinary_pipeline/**
 !config/ordinary_pipeline/README.md

@@ -129,8 +129,11 @@ record](evidence-history.md#hosted-ci-closure-and-interpreter-correction--2026-1
 
 ## Convergence assessment and evidence
 
-CI scheduling work preserves all acceptance gates; its baseline and pending
-hosted comparison are in [CI verification scheduling](evidence-history.md#ci-verification-scheduling--2026-10-21).
+CI scheduling passed hosted checks and merged in PR #463; observed verification
+time fell from 37m 57s to 20m 19s. Separate cacheable tagging and remaining-check
+branches are implemented locally, with target-image execution, full validation
+and review pending. All configured acceptance gates remain open as listed above.
+See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
 
 T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
 genuine connected factories and archive terminal consumption, T027 physical and
