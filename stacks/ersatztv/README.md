@@ -122,7 +122,7 @@ reordering output numbers, then compare station UUIDs, programmes and recording
 rules separately from those changed positions.
 
 `channel-logos/` contains editable SVG originals and 768 × 384 PNG exports for
-94 stations, including personalized nighttime and morning cartoons, Halloween
+95 stations, including personalized nighttime and morning cartoons, Halloween
 and holiday movies,
 television genres, movie decades, studio and franchise films, sports movies,
 network-themed cartoons, fighting movies, classic cinema, nature documentaries,
@@ -131,7 +131,7 @@ Ninja Turtles, LEGO adventures, Alien/Predator, Marvel multiverse films, adult
 animation films, Mission: Impossible, the 2010s/2020s movie decades, Anime Action,
 Unexplained, Mindbender Cinema, Wes Anderson Cinema, Illumination, Blue Sky,
 Sony Animation, LAIKA/Aardman, Spielberg, Tim Burton, Nolan, Ridley Scott and
-Villeneuve, Amblin, Blumhouse, Legendary, New Line and Warner Animation. The 2:1 artwork puts a large symbol beside the station name to use more of a guide's horizontal space.
+Villeneuve, Amblin, Blumhouse, Legendary, New Line, Warner Animation and Josh Gates. The 2:1 artwork puts a large symbol beside the station name to use more of a guide's horizontal space.
 Use a recognizable motif for each theme, with enough space between strokes to
 read at guide size. Keep detailed features secondary to the main silhouette.
 Check target channel names and IDs against the live inventory before installing
@@ -179,6 +179,20 @@ Keep normal guide entries and no custom block title. Verify contiguous playout
 and XMLTV entries, then compare Plex's
 actual show names, episode names and airtimes. Channel-name placeholder blocks
 can represent scheduling gaps even when the guide imported successfully.
+Apply the quarantine exclusion outside each complete television query, including
+curated show lists. Simplify obsolete movie branches when a station has become
+episode-only, then verify native-index membership is preserved.
+
+Josh Gates: Expedition TV rotates the reviewed Expedition Unknown, Expedition X,
+Expedition Files and Josh Gates Tonight series, including the separately titled
+Hunt for Extraterrestrials miniseries. Its Smart Collection also admits future
+Destination Truth episodes and the separately titled Search for the Afterlife,
+Megalodon, Shark Secrets and Expedition: Back to the Future series. Match explicit
+series titles inside the selected TV library and episode type, with the quarantine guard applied to the entire pool.
+Do not use an `Expedition*` wildcard, which also admits unrelated series. The
+schedule shuffles show groups, keeps episodes chronological within each group
+and preserves multipart stories. Use actual episode titles in the guide.
+
 Keep Family Toon Theater animation-only. A separate Family Movie Matinee can
 combine the reviewed family-animation pool with G/PG and suitable television-rated
 family movies, including live-action films. Require the selected Movies library

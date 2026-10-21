@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="josh-gates-title">
+  <title id="josh-gates-title">Josh Gates: Expedition TV</title>
+  <defs>
+    <linearGradient id="jg-hat" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#c79557"/><stop offset="1" stop-color="#765036"/>
+    </linearGradient>
+    <linearGradient id="jg-brass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffde91"/><stop offset="0.5" stop-color="#ba8545"/><stop offset="1" stop-color="#edc773"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d"/>
+  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#e7bf79" stroke-width="5"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="182" cy="192" r="119" fill="#243f44" stroke="#527d78" stroke-width="4"/>
+    <path d="M91 188q44-22 75 12t67 9 47 25M112 260q39-27 77-9t75 17" fill="none" stroke="#76978b" stroke-width="3" opacity="0.6"/>
+    <path d="m93 229 25-10 15 13 15-7 8 13-23 18-25-10Zm150-72 24 10-6 20-19 7-16-13Z" fill="#527d70"/>
+    <path d="M83 279q37-45 59-16t59 21" fill="none" stroke="#f1d699" stroke-width="4" stroke-dasharray="3 10"/>
+    <circle cx="182" cy="226" r="83" fill="#142b33" stroke="url(#jg-brass)" stroke-width="10"/>
+    <circle cx="182" cy="226" r="70" fill="#315c5b" stroke="#edd39c" stroke-width="2"/>
+    <path d="M182 160v15m0 102v15m-66-66h15m102 0h15m-112-46 9 9m75 75 9 9m0-93-9 9m-75 75-9 9" stroke="#edd39c" stroke-width="3"/>
+    <path d="m182 179 12 35 35 12-35 12-12 35-12-35-35-12 35-12Z" fill="#b6cebd" stroke="#102e33" stroke-width="3"/>
+    <path d="m182 179 12 35-12 12-12-12Z" fill="#df7958"/>
+    <path d="m182 226 12 12-12 35-12-35Z" fill="#e9d7aa"/>
+    <circle cx="182" cy="226" r="8" fill="#f4d898" stroke="#9d713f" stroke-width="3"/>
+    <path d="M103 132q9-25 13-54 31-18 58 2 27-12 52 5l23 46Z" fill="url(#jg-hat)" stroke="#e6bc77" stroke-width="4"/>
+    <path d="m125 87 15 10 32-6 24 9 23-9" fill="none" stroke="#65422f" stroke-width="7"/>
+    <path d="m108 115 65 8 68-7 7 17-74 10-70-11Z" fill="#48392e" stroke="#d4a569" stroke-width="2"/>
+    <path d="M72 132q36 9 104 9t111-7q-1 16-49 26-63 13-113-2-39-11-53-26Z" fill="url(#jg-hat)" stroke="#e6bc77" stroke-width="4"/>
+    <path d="M91 142q88 24 177 1" fill="none" stroke="#e1b873" stroke-width="3"/>
+    <path d="m269 85 4-11 4 11 11 4-11 4-4 11-4-11-11-4Z" fill="#e8c98e"/>
+  </g>
+  <g fill="#e7bf79" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800">
+    <text x="535" y="133" font-size="48">JOSH GATES</text>
+    <text x="535" y="209" font-size="46">EXPEDITION</text>
+    <text x="535" y="285" font-size="62">TV</text>
+  </g>
+</svg>

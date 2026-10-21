@@ -267,8 +267,9 @@ class ErsatzTV:
         if provider is None:
             raise RuntimeError("Plex DVR is missing")
         provider = provider.get("epgIdentifier")
+        # The comparison operator is part of the key; urlencode supplies "=".
         grid = self.owner.plex_call("/" + provider + "/grid", params={
-            "type": "1,4", "sort": "beginsAt", "endsAt>=": start, "beginsAt<=": end,
+            "type": "1,4", "sort": "beginsAt", "endsAt>": start, "beginsAt<": end,
             "X-Plex-Container-Start": 0, "X-Plex-Container-Size": 20000})
         if int(grid.get("totalSize", str(len(grid)))) > len(grid):
             raise RuntimeError("Plex programme response is truncated")
