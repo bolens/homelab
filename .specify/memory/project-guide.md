@@ -60,7 +60,25 @@ Validate private operational helpers in the selected application’s actual Pyth
 runtime before protected execution. Host-only tests do not prove container runtime
 compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
-acceptance. Size disposable test filesystems above the production storage
+acceptance.
+
+For privileged diagnostic output under a user-owned parent, retain the original
+parent and output directory descriptors. Create exclusive no-follow report files
+relative to that output descriptor, and verify directory identity, ancestry and
+namespace before and after writes. A private mode and final-leaf `O_NOFOLLOW`
+alone do not prevent parent-path replacement. Preserve the primary operation
+error when later output or cleanup custody also refuses.
+
+For the health-only cache allocation test, state the observation endpoint
+explicitly: verified child termination and payload removal precede the sole
+consistent AFTER snapshot and typed comparison. Keep exact source checks through
+that endpoint. Later custody and owned-directory cleanup are separate evidence;
+report subsequent live database drift without claiming its contents are verified
+or preserved through cleanup. This bounded test contract supplies no current
+import, ACK, NFS, factory or worker-start authority and does not relax those
+operations' own preservation requirements.
+
+Size disposable test filesystems above the production storage
 reserve plus fixture demand. A filesystem equal to the reserve correctly refuses
 positive allocation; increase fixture capacity without weakening the guard. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
 the module directory containing `search.py`, `api.py` and `queues/`, not its

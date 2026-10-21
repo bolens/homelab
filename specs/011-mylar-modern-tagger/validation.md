@@ -556,3 +556,10 @@ A fresh public-only candidate build includes the corrected SDK and integrated re
 
 
 The matching normalizer candidate completes all 915 worker tests with zero skips; its 94 focused checks also pass as a subset. Independent final-image inspection confirms linux/amd64 and no declared persistent volume. A separate disposable final-image check verifies the exact 42 installed modules, canonical origins and type identities, unchanged source closure and the corrected SDK core. Its test container is absent afterward. This is installed worker component proof, not configured factory, import, ACK or live deployment acceptance.
+
+
+## Rebuilt supported-runtime candidate — 2026-10-20
+
+The new candidate with the published SDK correction completes its build with exit zero. Its full owning native gate passes, including 1,219 reader controls, installed reader source/origin/type proof, all 21 Modern controls and the native failure/recovery suites. Final-layer checks verify CPython 3.13.16, Pillow 13.0.0, Jammy ICU 70.1, glibc 2.35, unchanged daemon Python 3.10, image decoder features and complete ELF library resolution. The frozen public context contains 788 regular source files; no live application state is mounted.
+
+The candidate index is `sha256:7b8e49067935a80041baa3913ba5ac73c8c1fc79fed8ac48f32a2eae0406a41c`, platform manifest `sha256:675ba5b09954630ff9cb21a05cb7b6e3678dd026b5e3b9eb7e52867b4b1351e8`, and config `sha256:8272b5832322ada53295011b2b5b0e98fa651865f02d4ad137140f1c8bba8cb3`. The complete build log has SHA-256 `4c93ec862c21c5040aa513639bacacfa3d27bc902e0570fcd0c8ac585c5c7b95`. Independent final-image genuine CBR-to-CBZ/Modern preservation remains the last T027 check; hosted publication and live acceptance remain separate T028 requirements.
