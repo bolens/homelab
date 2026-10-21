@@ -114,6 +114,13 @@ this version by changing only the JAR hash: preserve that historical schema and
 implement a reviewed versioned session-scope successor with actual target-image
 proof before recovery uses the new reader. Portable image delivery alone does
 not establish that compatibility.
+For NFS source audits, inspect the assigned current worktree rather than the shared
+primary checkout. `ExactCalls` deliberately refuses generic create/start calls.
+The configured path uses the existing `nfs-probe` and `nfs-lease` dialogues,
+`LifecycleParent.open_nfs_child`, `HostProbeReplies` and `HostWriterLease` for
+birth and session custody. Trace actual call sites before treating an obsolete
+comment or an unused public default as missing implementation.
+
 Copying the archive SDK source from its container does not copy its Python runtime.
 Its canonical wrapper selects `python3` from the consumer environment; in Mylar
 that remains daemon Python 3.10, even when Modern has a private newer interpreter.

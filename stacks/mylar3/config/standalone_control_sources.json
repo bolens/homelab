@@ -851,12 +851,12 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "3b15e05fd6b79ad214aa3e9c9429b72bae8e6bf8b706b2e7608a80529f10b4c8",
+    "sha256": "b8ee7cf014213d9c179214cf901ec4904be7c8df87a7423d1881c4fbb12018ad",
     "target": "run_publication_reader_controls.py"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "1984263d0dbd3656a83871580ad2f1edaf31507e1db8aa296ef24b129390a3b2",
+    "sha256": "882f39a241f84ef28d77cf3c2390ca527dde0fc4deceec4620b7154bc044aa67",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1406,7 +1406,7 @@
   },
   {
     "path": "test_modern_tagger.py",
-    "sha256": "422b59ef0be41af844381d4532d4a4fd0487817f2deb130cc6d051b445ee0dd5",
+    "sha256": "e32e3b405a6f3402f78a309687fdb0a4de8374c3d13e3e993cf0137b99585c62",
     "target": "test_modern_tagger.py"
   },
   {
@@ -1711,7 +1711,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "77f07500ca899e409c514a8c2f611b9e3fd2ba0311de1d482ec8983386b82ca5",
+    "sha256": "fce0668fbab787f735bce14f5659719a82fa80c162671838817ee59cbcf6f420",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {

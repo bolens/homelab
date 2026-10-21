@@ -303,6 +303,106 @@ def original_service(row, cid):
     return mounts[0]['Source']
 
 
+
+# Only the maintained bootstrap declaration; never a caller-provided mount list.
+BOOTSTRAP_SOURCE_SHA = 'bf0d03fdd9bacff6b03ea23de5a1557e372296aa690f51ffdccda75c6f85cd3e'
+
+
+class BootstrapOriginals(ConfigOriginals):
+    """Retain exact bootstrap evidence, not a new bootstrap or NFS admission.
+
+    Original geometry vectors stay historical. No library/state payload is read
+    or restamped; the observer still mounts only the original config directory.
+    """
+    def __init__(self, refs):
+        self.anchors = {}; self.frames = {}; self.parents = {}; self.refs = {}
+        try:
+            need(type(refs) is dict and set(refs) == {'plan', 'source'}, 'bootstrap-original-refs')
+            raw = {}
+            for role, ref in refs.items():
+                need(type(ref) is dict and set(ref) == {'path', 'sha256', 'signature9'}
+                     and type(ref['path']) is str and re.fullmatch('[a-f0-9]{64}', ref['sha256'])
+                     and type(ref['signature9']) is list and len(ref['signature9']) == 9
+                     and all(type(v) is int for v in ref['signature9']), 'bootstrap-original-ref')
+                path = Path(ref['path'])
+                need(path.is_absolute() and '..' not in path.parts and str(path) == ref['path'], 'bootstrap-original-path')
+                for node in reversed((path.parent, *path.parent.parents)):
+                    z = node.lstat(); need(stat.S_ISDIR(z.st_mode), 'bootstrap-original-parent')
+                    if node not in self.anchors:
+                        self.hold(node, five(z), self.anchors.get(node.parent)); self.parents[node] = five(z)
+                    else:self.original_node(node, self.parents[node], 'bootstrap-original-parent-drift')
+                need(path not in self.anchors, 'bootstrap-original-distinct')
+                z = path.lstat(); self.hold(path, five(z), self.anchors[path.parent])
+                value, frame = bounded(path, 2*1024**2, owner=(1000, 1000))
+                need(frame == ref['signature9'] and stat.S_IMODE(frame[5]) in ((0o600,) if role == 'plan' else (0o600, 0o644))
+                     and digest(value) == ref['sha256'], 'bootstrap-original-bytes')
+                self.frames[path] = frame; self.refs[role] = dict(ref); raw[role] = value
+            need(self.refs['source']['sha256'] == BOOTSTRAP_SOURCE_SHA
+                 and Path(self.refs['source']['path']).name == 'genuine_application_bootstrap.py', 'bootstrap-source-pin')
+            def pairs(rows):
+                result = {}
+                for key, value in rows:
+                    need(key not in result, 'bootstrap-duplicate-key'); result[key] = value
+                return result
+            self.document = json.loads(raw['plan'], object_pairs_hook=pairs,
+                parse_constant=lambda _: (_ for _ in ()).throw(ValueError('bootstrap-nonfinite')))
+            self.document_raw = encode(self.document)
+            self.close()
+        except BaseException:
+            self.release(); raise
+
+    def close(self):
+        need(bool(self.anchors) and encode(self.document) == self.document_raw, 'bootstrap-originals-released-or-changed')
+        for path, frame in self.frames.items():
+            need(nine(os.fstat(self.anchors[path])) == frame == nine(path.lstat()), 'bootstrap-original-final9')
+        for path, frame in self.parents.items():self.original_node(path, frame, 'bootstrap-original-final5')
+
+    def service(self, row, cid):
+        self.close(); value = self.document
+        need(type(value) is dict and type(value.get('version')) is int and value['version'] == 1
+             and value.get('kind') == 'approved-disposable-application-bootstrap'
+             and type(value.get('nonce')) is str and re.fullmatch('[a-f0-9]{64}', value['nonce']), 'bootstrap-original-kind')
+        nonce = value['nonce']; roles = value['roles']; images = value['images']
+        need(type(roles) is dict and type(images) is dict and set(roles) == set(images) == {'native', 'reader', 'worker'}
+             and len({r['id'] for r in roles.values()}) == 3, 'bootstrap-original-role-set')
+        for name, role in roles.items():
+            need(type(role) is dict and set(role) == {'id', 'image', 'profile', 'epoch'}
+                 and re.fullmatch('[a-f0-9]{64}', role['id']) and role['image'] == images[name]
+                 and re.fullmatch('sha256:[a-f0-9]{64}', role['image']), 'bootstrap-original-role')
+            profile = role['profile']
+            need(profile['Id'] == role['id'] and profile['Image'] == role['image']
+                 and profile['Name'] == '/archive-bootstrap-' + nonce[:16] + '-' + name
+                 and profile['Config']['Labels'].get('com.homelab.archive.bootstrap') == nonce
+                 and profile['Config']['Labels'].get('com.homelab.archive.purpose') == 'genuine-archive-fixture', 'bootstrap-original-purpose')
+        reader = roles['reader']; state = row['State']
+        need(row['Id'] == cid == reader['id'] and row['Image'] == IMAGE == reader['image']
+             and state['Running'] is True and state['Paused'] is False and state['Restarting'] is False
+             and type(state['Pid']) is int and state['Pid'] > 1, 'bootstrap-original-reader-running')
+        need(set(reader['profile']) == {'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created'}
+             and all(row[key] == val for key,val in reader['profile'].items())
+             and {k:v for k,v in state.items() if k != 'Health'} == reader['epoch'], 'bootstrap-original-profile-epoch')
+        def directory(ref):
+            need(type(ref) is dict and set(ref) == {'path','signature9'} and type(ref['path']) is str, 'bootstrap-directory-ref')
+            path = Path(ref['path']); frame = ref['signature9']
+            need(path.is_absolute() and '..' not in path.parts and str(path) == ref['path']
+                 and type(frame) is list and len(frame) == 9 and all(type(v) is int for v in frame)
+                 and stat.S_ISDIR(frame[5]) and stat.S_IMODE(frame[5]) == 0o700 and frame[6:8] == [1000,1000], 'bootstrap-directory-declaration')
+            return path
+        root = directory(value['state_root']); geometry = value['geometry']
+        need(set(geometry) == {'version','kind','common_root','library','retention'}
+             and type(geometry['version']) is int and geometry['version'] == 1
+             and geometry['kind'] == 'private-common-root-nfs', 'bootstrap-geometry')
+        common, library, retention = (directory(geometry[key]) for key in ('common_root','library','retention'))
+        need(root.name == 'archive-bootstrap-' + nonce and common.name == 'archive-publication-' + nonce
+             and library == common/'L' and retention == common/'R'
+             and root != common and root not in common.parents and common not in root.parents
+             and all(not (v == Path('/app') or Path('/app') in v.parents or v == Path('/config') or Path('/config') in v.parents) for v in (root,common)), 'bootstrap-finite-geometry')
+        expected = [(str(root/'reader'), '/config', True), (str(library), str(library), False)]
+        need(len(row['Mounts']) == 2 and all(m['Type'] == 'bind' and type(m['RW']) is bool for m in row['Mounts'])
+             and sorted((m['Source'],m['Destination'],m['RW']) for m in row['Mounts']) == sorted(expected), 'bootstrap-exact-reader-mounts')
+        self.close(); return str(root/'reader')
+
+
 def static_service(row):
     return {k: row[k] for k in ('Id', 'Image', 'Config', 'HostConfig', 'Mounts', 'RestartCount')} | {
         'state': {k: row['State'][k] for k in ('Running', 'Paused', 'Restarting', 'Pid', 'StartedAt')}}
@@ -369,7 +469,8 @@ def pending_report(raw, runtime_sha, producer_sha, original):
 def main():
     need(ACTIVATE is True and IMAGE is not None and PLAN is not None and SUPPLIER_PINS is not None and os.geteuid() == 0 and
          sys.flags.isolated and sys.dont_write_bytecode, 'disabled')
-    need(set(PLAN) == {'container_id', 'output'} and re.fullmatch('[a-f0-9]{64}', PLAN['container_id']), 'plan')
+    need(set(PLAN) in ({'container_id', 'output'}, {'container_id', 'output', 'bootstrap_originals'})
+         and re.fullmatch('[a-f0-9]{64}', PLAN['container_id']), 'plan')
     suppliers = Suppliers(SUPPLIER_PINS)
     owned_path = HERE / 'owned.py'
     spec = importlib.util.spec_from_file_location('_effective_owned', owned_path)
@@ -382,7 +483,13 @@ def main():
                  'child.stderr', 'result.private.json'}
     original = owned.inspect(PLAN['container_id'])
     need(original is not None, 'original-container')
-    config = ConfigOriginals(original_service(original, PLAN['container_id']))
+    bootstrap = BootstrapOriginals(PLAN['bootstrap_originals']) if 'bootstrap_originals' in PLAN else None
+    try:
+        config = ConfigOriginals(bootstrap.service(original, PLAN['container_id']) if bootstrap is not None
+                                 else original_service(original, PLAN['container_id']))
+    except BaseException:
+        if bootstrap is not None:bootstrap.release()
+        raise
     try:
         process = process_snapshot(original['State']['Pid'])
         passwd_path = Path('/proc') / str(process['pid']) / 'root/etc/passwd'
@@ -394,6 +501,7 @@ def main():
         source, source_frame = bounded(__file__, 131072, owner=(1000, 1000), mode=0o600)
         parent_sha = digest(source)
         def close():
+            if bootstrap is not None:bootstrap.close()
             suppliers.close()
             need(nine(Path(__file__).lstat()) == source_frame, 'parent-source-final')
             need(static_service(owned.inspect(PLAN['container_id'])) == service and
@@ -521,11 +629,16 @@ def main():
                 # Preserve the original refusal; no success result or acceptance is inferred.
     finally:
         primary = sys.exc_info()[1]
+        release_error = None
         try:
             config.release()
-        except BaseException:
-            if primary is None:
-                raise
+        except BaseException as error:
+            release_error = error
+        if bootstrap is not None:
+            try:bootstrap.release()
+            except BaseException as error:
+                release_error = release_error or error
+        if primary is None and release_error is not None:raise release_error
 
 
 if __name__ == '__main__':

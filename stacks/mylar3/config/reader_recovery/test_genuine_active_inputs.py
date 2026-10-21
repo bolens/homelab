@@ -1,0 +1,283 @@
+"""Original graph assembly controls; synthetic evidence never proves NFS/factories."""
+import copy
+import hashlib
+from pathlib import Path
+import sys
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).parent))
+import genuine_active_inputs as g
+
+
+class Fixture:
+    def __init__(self, root, config_ref=None):
+        self.root = root; self.refs = {}; self.serial = 0; self.nonce = 'a' * 64
+        self.facts = root / 'facts'; self.facts.mkdir(mode=0o700)
+        self.library = root / 'L'; self.library.mkdir(mode=0o700)
+        self.config = root / 'config'; self.config.mkdir(mode=0o700)
+        self.index = self.config / 'index'; self.index.mkdir(mode=0o700)
+        self.fonts = self.config / 'fonts'
+        self.native = root / 'native'; self.native.mkdir(mode=0o700)
+        self.parent = root / 'nfs'; self.parent.mkdir(mode=0o700)
+        self.output_parent = root / 'outputs'; self.output_parent.mkdir(mode=0o700)
+        self.output = self.output_parent / 'assembled'
+        now = int(time.time()); images = {role: 'sha256:' + str(n) * 64 for n, role in enumerate(('native', 'reader', 'worker'), 1)}
+        self.roles = {}
+        for n, role in enumerate(('native', 'reader', 'worker'), 1):
+            cid = str(n) * 64
+            state = dict(Status='created' if role == 'worker' else 'running', Running=role != 'worker', Pid=0 if role == 'worker' else 100 + n, StartedAt='original-epoch', Paused=False, Restarting=False)
+            profile = dict(Id=cid, Image=images[role], Name='/archive-bootstrap-' + self.nonce[:16] + '-' + role,
+                Path='original-disposable', Args=[], Config=dict(Labels={g.composer.bootstrap.LABEL: self.nonce, g.composer.bootstrap.PURPOSE: 'genuine-archive-fixture'}),
+                HostConfig={}, Mounts=[], NetworkSettings={})
+            self.roles[role] = dict(id=cid, image=images[role], profile=profile, epoch=state)
+        current = self.fact(dict(nonce=self.nonce, observed=now, roles=self.roles, native_process=dict(process='explicit-source-fixture')))
+        self.current = current
+        cfg = self.fact(dict(komga=dict(url='http://reader:25600', api_key='disposable-fixture-key')))
+        self.query = self.fact(dict(version=1, kind='approved-active-komga-library-query', configuration=g.pair(cfg), expected_base_url='http://reader:25600'))
+        reader = self.roles['reader']; service = dict(reader['profile'], State=reader['epoch'])
+        runtime = self.fact(dict(kind='reviewed-komga-effective-scope-runtime', observed=now, container=service, pid=102, start_time=456, jar_sha256='b' * 64, source_commit='c' * 40))
+        producer = self.raw('producer.class', b'explicit source-mode compiled fixture')
+        parent_source = self.raw('parent.py', b'# explicit source-mode parent fixture\n')
+        database = self.config / 'main.sqlite'; database.write_bytes(b'source-fixture-only')
+        tasks = self.config / 'tasks.sqlite'; tasks.write_bytes(b'source-fixture-only')
+        scopes = {k: dict(host_path=str(v)) for k, v in dict(config=self.config, database=database, tasks=tasks, index=self.index, fonts=self.fonts).items()}
+        identities = {str(v): list(g.p.five(v.lstat())) for v in (self.config, database, tasks, self.index)}
+        config_files = {}
+        if config_ref is not None:
+            self.refs[config_ref['path']] = config_ref
+            config_files[config_ref['path']] = {k: config_ref[k] for k in ('sha256', 'signature9')}
+        report = self.fact(dict(kind='komga-effective-persistent-scope-observation', image=images['reader'], container_id=reader['id'], pid=102, start_time=456,
+            jar_sha256='b' * 64, source_commit='c' * 40, runtime_sha256=runtime['sha256'], source_sha256=producer['sha256'], scope_observation_verified=False, final_ack_required=True,
+            scopes=scopes, scope_presence={k: k != 'fonts' for k in scopes}, scope_identities=identities,
+            optional_absent_scopes={str(self.fonts): dict(nearest_existing_ancestor=str(self.config), ancestor_identity=list(g.p.five(self.config.lstat())))}, config_files=config_files, absent_config_files=[]))
+        rights = {k: False for k in g.RIGHTS}
+        ack = self.fact(dict(scope_observation_verified=True, report_sha256=report['sha256'], **rights))
+        acceptance = self.fact(dict(kind='accepted-komga-effective-scope', scope_observation_verified=False, final_ack_required=True, same_process_verified=True,
+            report_sha256=report['sha256'], source_sha256=parent_source['sha256'], helper_sha256=producer['sha256'], **rights))
+        parent_ack = self.fact(dict(scope_observation_verified=True, same_process_verified=True, report_sha256=report['sha256'], acceptance_sha256=acceptance['sha256'], **rights))
+        review = self.fact({k: g.pair(v) for k, v in dict(producer=producer, parent_source=parent_source, report=report, ack=ack, runtime=runtime, acceptance=acceptance, parent_ack=parent_ack).items()})
+        self.review = review
+        sources = {role: g.pair(self.fact(dict(explicit_source_fixture=role))) for role in g.cohort_source.ROLES}
+        sources.update(effective_helper=g.pair(producer), effective_parent=g.pair(parent_source))
+        logs = {name: g.pair(self.raw(name + '.log', b'explicit source-mode log')) for name in ('stdout', 'stderr')}
+        cohort_parent = self.raw('cohort-parent.py', b'# source-mode fixture\n')
+        cimages = dict(images, selected=images['native'])
+        receipt = self.fact(dict(kind='owned-nfs-current-source-fixture-readiness', images=cimages, parent_sha256=cohort_parent['sha256'],
+            source_pins={k: v['sha256'] for k, v in sources.items()}, exit_code=0, zero_skips=True, count=1, **{k: False for k in g.cohort_source.RIGHTS}))
+        cohort = self.fact(dict(version=1, kind='approved-disposable-nfs-current-source-cohort', images=cimages, sources=sources, logs=logs, parent=g.pair(cohort_parent), receipt=g.pair(receipt)))
+        # Discard overwritten unused source fixture references from the finite graph.
+        used_source_paths = {x['path'] for x in sources.values()}
+        for path in tuple(self.refs):
+            value = g.p.decode(g.p.read(self.refs[path])) if path.endswith('.json') else {}
+            if type(value) is dict and value.get('explicit_source_fixture') in ('effective_helper', 'effective_parent') and path not in used_source_paths:self.refs.pop(path)
+        scope_sources = {name: g.pair(self.fact(dict(explicit_source_fixture=name))) for name in ('current_mylar_hold', 'current_worker_created', 'protected_catalog_cache_recovery_scope', 'continuous_raw_writer_lease')}
+        scope_sources.update(current_runtime_bracket=g.pair(current), current_komga_libraries=g.pair(self.query), current_komga_effective_scope=g.pair(report))
+        scope = self.fact(dict(version=2, kind='root-reviewed-nfs-active-disposable-scope', approved_disposable_diagnostic=True, observed=now,
+            current_active_scanner_publication_paths_reviewed=True, future_mylar_destination_verified=False, future_mylar_destination=None,
+            writer_lifecycle_resume_authorized=False, forbidden_roots=[str(self.library), str(self.config)], sources=scope_sources))
+        self.scope = scope
+        mount = dict(source='source-fixture:/export', target=str(root), fstype='nfs4', fsroot='/', options='rw,source-fixture', **{'maj:min': '0:123'})
+        device = self.library.lstat().st_dev
+        probe = dict(version=2, kind='approved-negative-nfs-active-probe-parent', scope=g.pair(scope), fixture_parent=str(self.parent), fixture_name='.comic-nfs-probe-' + 'd' * 32,
+            fixture_parent_signature=g.p.nine(self.parent.lstat()), library_root=str(self.library), expected_device=device, mount_identity=mount, output_root=str(self.output_parent / 'probe'))
+        self.document = dict(version=1, kind='disposable-original-active-input-assembly', nonce=self.nonce, observed=now, current_roles=current,
+            active_scope=scope, query=self.query, native_controls=receipt, effective_observer_review=review, source_cohort=cohort,
+            parent_admission=dict(expected_device=device, mount_identity=mount), probe_plan=probe, operation_output=str(self.output_parent / 'nfs-operation'),
+            originals=self.refs, sources={name: self.ref(g.HERE / name) for name in (*g.PINS, 'genuine_active_inputs.py')})
+
+    def ref(self, path):return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(), signature9=g.p.nine(path.lstat()))
+    def raw(self, name, raw):
+        path = self.facts / name; path.write_bytes(raw); path.chmod(0o600); ref = self.ref(path); self.refs[str(path)] = ref; return ref
+    def fact(self, value):
+        self.serial += 1
+        return self.raw('fact-' + str(self.serial) + '.json', g.p.encode(value))
+    def request(self):
+        return self.raw('request.json', g.p.encode(self.document))
+    def change(self, role, modify):
+        old = self.document[role]; value = g.p.decode(g.p.read(old)); modify(value)
+        ref = self.fact(value); self.refs.pop(old['path']); self.document[role] = ref
+        return ref
+
+
+class ActiveInputsTests(unittest.TestCase):
+    def fixture(self):
+        directory = tempfile.TemporaryDirectory(); self.addCleanup(directory.cleanup)
+        return Fixture(Path(directory.name))
+
+    def request(self, f):
+        # The assembly request is an original, not part of its nested graph.
+        ref = f.request(); f.refs.pop(ref['path']); return ref
+
+    def test_genuine_composer_consumes_fresh_graph_without_grants(self):
+        f = self.fixture(); ref = self.request(f); result = g.assemble(ref, f.output)
+        originals = g.composer.Originals(); active, docs = g.composer.nested_originals(originals, result['active_input'], result['originals']); originals.close()
+        self.assertEqual(active['probe_plan'], f.document['probe_plan']); self.assertEqual(docs['effective_observer_review'], g.p.decode(g.p.read(f.review)))
+        for key in ('publication_acceptance', 'actual_nfs_verified', 'installed_factories_verified', 'mutation_authority', 'automatic_replay'):self.assertIs(result[key], False)
+        self.assertEqual(set(x.name for x in f.output.iterdir()), {'active-input.json', 'composer-inputs.json'})
+
+    def test_missing_unknown_and_conflicting_facts_refuse_before_output(self):
+        for change in ('missing', 'unknown', 'conflict'):
+            with self.subTest(change=change):
+                f = self.fixture()
+                if change == 'missing':f.refs.pop(f.query['path'])
+                elif change == 'unknown':f.fact(dict(unreviewed=True))
+                else:f.refs[f.query['path']] = dict(f.query, sha256='0' * 64)
+                ref = self.request(f)
+                with self.assertRaises(ValueError):g.assemble(ref, f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_expired_or_foreign_nonce_and_roles_refuse(self):
+        for change in ('expired', 'nonce', 'image', 'role'):
+            with self.subTest(change=change):
+                f = self.fixture()
+                if change == 'expired':f.document['observed'] -= 121
+                if change == 'nonce':f.document['nonce'] = 'f' * 64
+                if change in ('image', 'role'):
+                    f.change('current_roles', lambda v: v['roles']['reader'].update(**({'image': 'sha256:' + 'f' * 64} if change == 'image' else {'id': v['roles']['native']['id']})))
+                    # Original runtime bracket deliberately remains the previous reference.
+                ref = self.request(f)
+                with self.assertRaises(ValueError):g.assemble(ref, f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_unreviewed_scope_or_foreign_probe_refuses(self):
+        for change in ('review', 'probe', 'output'):
+            with self.subTest(change=change):
+                f = self.fixture()
+                if change == 'review':f.change('active_scope', lambda v: v.update(approved_disposable_diagnostic=False))
+                if change == 'probe':f.document['probe_plan']['expected_device'] += 1
+                if change == 'output':f.document['operation_output'] = str(f.output)
+                ref = self.request(f)
+                with self.assertRaises(ValueError):g.assemble(ref, f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_missing_ack_source_pin_and_changed_original_refuse(self):
+        for change in ('ack', 'source', 'original'):
+            with self.subTest(change=change):
+                f = self.fixture(); ref = self.request(f)
+                if change == 'ack':
+                    review = g.p.decode(g.p.read(f.review)); Path(review['parent_ack']['path']).unlink()
+                if change == 'source':
+                    value = copy.deepcopy(f.document); value['sources']['genuine_plan13_producer.py']['sha256'] = '0' * 64
+                    Path(ref['path']).write_bytes(g.p.encode(value)); ref = f.ref(Path(ref['path']))
+                if change == 'original':Path(f.query['path']).write_bytes(b'changed')
+                with self.assertRaises((ValueError, OSError)):g.assemble(ref, f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_output_parent_replacement_does_not_adopt_new_directory(self):
+        f = self.fixture(); actor = g.Assembly(self.request(f), f.output)
+        f.output_parent.rename(f.root / 'old-outputs'); f.output_parent.mkdir(mode=0o700)
+        with self.assertRaises(ValueError):actor.execute()
+        self.assertFalse(f.output.exists()); self.assertFalse((f.root / 'old-outputs' / 'assembled').exists())
+
+    def test_late_original_and_absence_changes_refuse(self):
+        for change in ('file', 'fonts'):
+            with self.subTest(change=change):
+                f = self.fixture(); actor = g.Assembly(self.request(f), f.output)
+                if change == 'file':Path(f.query['path']).write_bytes(b'changed')
+                else:f.fonts.mkdir()
+                with self.assertRaises(ValueError):actor.execute()
+                self.assertFalse(f.output.exists())
+
+    def test_postwrite_drift_refuses_and_keeps_partial_evidence(self):
+        f = self.fixture(); actor = g.Assembly(self.request(f), f.output); original = g.composer.nested_originals
+        def change(*args):
+            value = original(*args); (f.output / 'active-input.json').write_bytes(b'changed'); return value
+        with patch.object(g.composer, 'nested_originals', change), self.assertRaises(ValueError):actor.execute()
+        self.assertTrue((f.output / 'active-input.json').exists()); self.assertFalse((f.output / 'composer-inputs.json').exists())
+
+    def test_exclusive_output_refuses_replay(self):
+        f = self.fixture(); ref = self.request(f); g.assemble(ref, f.output)
+        with self.assertRaises(ValueError):g.assemble(ref, f.output)
+
+    def test_real_host_owner_originals_do_not_enter_uid1000_child_guard(self):
+        import os
+        f = self.fixture(); ref = self.request(f)
+        self.assertEqual(ref['signature9'][6], os.geteuid())
+        self.assertEqual(g.p.read(ref), Path(ref['path']).read_bytes())
+        with patch.object(g.active, 'validate', side_effect=AssertionError('child phase must not run')):
+            result = g.assemble(ref, f.output)
+        self.assertEqual(result['active_input']['signature9'][6], os.geteuid())
+        self.assertFalse(result['actual_nfs_verified'])
+        self.assertFalse(result['installed_factories_verified'])
+
+    def test_expiry_after_validation_and_unknown_outcome_never_replay(self):
+        f = self.fixture(); actor = g.Assembly(self.request(f), f.output)
+        with patch.object(g.time, 'time', return_value=f.document['observed'] + 121), self.assertRaises(ValueError):actor.execute()
+        self.assertFalse(f.output.exists())
+        f = self.fixture(); ref = self.request(f)
+        with patch.object(g.composer, 'nested_originals', side_effect=TimeoutError('unknown composer validation outcome')):
+            with self.assertRaises(TimeoutError):g.assemble(ref, f.output)
+        self.assertEqual(set(x.name for x in f.output.iterdir()), {'active-input.json'})
+        with self.assertRaises(ValueError):g.assemble(ref, f.output)
+
+    def test_foreign_final_ack_and_scope_physical_drift_refuse(self):
+        for change in ('ack', 'parent'):
+            with self.subTest(change=change):
+                f = self.fixture()
+                if change == 'ack':
+                    review = g.p.decode(g.p.read(f.review)); full = f.refs[review['parent_ack']['path']]
+                    value = g.p.decode(g.p.read(full)); value['acceptance_sha256'] = '0' * 64
+                    Path(full['path']).write_bytes(g.p.encode(value)); newer = f.ref(Path(full['path']))
+                    f.refs.pop(full['path']); f.refs[newer['path']] = newer
+                    review['parent_ack'] = g.pair(newer)
+                    old = f.document['effective_observer_review']; replacement = f.fact(review)
+                    f.refs.pop(old['path']); f.document['effective_observer_review'] = replacement
+                else:
+                    # A same-spelled replacement is not the reviewed parent9.
+                    f.parent.rename(f.root / 'retained-parent'); f.parent.mkdir(mode=0o700)
+                ref = self.request(f)
+                with self.assertRaises(ValueError):g.assemble(ref, f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_original_nonprivate_config_mode_is_retained_and_drift_refuses(self):
+        for changed in (False, True):
+            with self.subTest(changed=changed):
+                directory = tempfile.TemporaryDirectory(); self.addCleanup(directory.cleanup)
+                root = Path(directory.name); path = root / 'original-application.properties'
+                path.write_bytes(b'original.public.fixture.setting=true\n'); path.chmod(0o640)
+                ref = dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(), signature9=g.p.nine(path.lstat()))
+                f = Fixture(root, config_ref=ref); request = self.request(f)
+                if changed:path.write_bytes(b'changed.public.fixture.setting=true\n')
+                if changed:
+                    with self.assertRaises(ValueError):g.assemble(request, f.output)
+                    self.assertFalse(f.output.exists())
+                else:
+                    result = g.assemble(request, f.output)
+                    self.assertEqual(result['originals'][str(path)], ref)
+                    self.assertEqual(g.p.nine(path.lstat()), ref['signature9'])
+                    self.assertEqual(path.read_bytes(), b'original.public.fixture.setting=true\n')
+
+    def test_public_root_owned_source_config_reference_when_available(self):
+        # An installed public stdlib SOURCE file supplies a different owner on
+        # normal unprivileged hosts; no system configuration/personal data read.
+        import os
+        import unittest as standard_unittest
+        candidates = [Path(standard_unittest.__file__).resolve(strict=True),
+                      *(x.resolve(strict=True) for x in Path('/usr/lib').glob('python3.*/unittest/__init__.py'))]
+        path = next((x for x in candidates if x.lstat().st_uid != os.geteuid()), candidates[0])
+        ref = dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(), signature9=g.p.nine(path.lstat()))
+        directory = tempfile.TemporaryDirectory(); self.addCleanup(directory.cleanup)
+        f = Fixture(Path(directory.name), config_ref=ref)
+        result = g.assemble(self.request(f), f.output)
+        self.assertEqual(result['originals'][str(path)], ref)
+        self.assertEqual(g.p.nine(path.lstat()), ref['signature9'])
+        if ref['signature9'][6] != os.geteuid():
+            with self.assertRaises(ValueError):g.p.read(ref, private=True)
+        # Every private evidence fact still uses private=True.
+        f = self.fixture(); request = self.request(f); calls = []; original = g.composer.Originals.read
+        def observe(owner, ref, *, private=True):
+            calls.append((ref['path'], private)); return original(owner, ref, private=private)
+        with patch.object(g.composer.Originals, 'read', observe):g.assemble(request, f.output)
+        self.assertTrue(all(private for name, private in calls if name in f.document['originals']))
+
+    def test_source_contains_no_transport_or_admission_entry(self):
+        import ast
+        tree = ast.parse((g.HERE / 'genuine_active_inputs.py').read_text(), feature_version=(3, 10))
+        names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        self.assertFalse({'subprocess', 'sqlite3', 'urllib', 'Writer', 'ScopedDocker'} & names)
+
+
+if __name__ == '__main__':unittest.main()

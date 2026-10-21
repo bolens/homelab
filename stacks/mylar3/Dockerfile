@@ -52,7 +52,7 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
-FROM ghcr.io/bolens/archiving-utils@sha256:9598b387e007054db0ef3a1c7b27374539c6d80161cfd226606a91019d80aac5 AS archive-verifier
+FROM ghcr.io/bolens/archiving-utils@sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c AS archive-verifier
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS libarchive-build
 # Release tarball digest is published by the official v3.8.9 release asset.

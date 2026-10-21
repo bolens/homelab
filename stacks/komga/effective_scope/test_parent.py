@@ -254,4 +254,99 @@ class Tests(unittest.TestCase):
         self.assertIn('unclosed-config-origin', source)
 
 
+
+class DisposableOriginals(unittest.TestCase):
+    """Disposable files and source-original references, never runtime admission."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.root.chmod(0o700);self.nonce='b'*64
+        self.source=Path(__file__).parents[2]/'mylar3/config/reader_recovery/genuine_application_bootstrap.py'
+        source_ref=self.ref(self.source)
+        root='/fixture/state/archive-bootstrap-'+self.nonce
+        common='/fixture/nfs/archive-publication-'+self.nonce
+        library=common+'/L';retention=common+'/R'
+        self.row=dict(Id='a'*64,Name='/archive-bootstrap-'+self.nonce[:16]+'-reader',Image=p.IMAGE,Created='original',Path='java',Args=[],
+            Config=dict(Labels={'com.homelab.archive.bootstrap':self.nonce,'com.homelab.archive.purpose':'genuine-archive-fixture'}),
+            HostConfig={},Mounts=[dict(Type='bind',Source=root+'/reader',Destination='/config',RW=True),dict(Type='bind',Source=library,Destination=library,RW=False)],
+            State=dict(Running=True,Paused=False,Restarting=False,Pid=42,StartedAt='original'))
+        profile={key:self.row[key]for key in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created')}
+        roles={name:dict(id=letter*64,image=p.IMAGE,profile=copy.deepcopy(profile),epoch=copy.deepcopy(self.row['State']))for name,letter in zip(('native','reader','worker'),'cad')}
+        for name,value in roles.items():
+            value['profile']['Id']=value['id'];value['profile']['Name']='/archive-bootstrap-'+self.nonce[:16]+'-'+name
+        self.document=dict(version=1,kind='approved-disposable-application-bootstrap',nonce=self.nonce,
+            state_root=dict(path=root,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),geometry=dict(version=1,kind='private-common-root-nfs',common_root=dict(path=common,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),library=dict(path=library,signature9=[1,2,0,1,1,0o40700,1000,1000,2]),retention=dict(path=retention,signature9=[1,2,0,1,1,0o40700,1000,1000,2])),
+            roles=roles,images={name:p.IMAGE for name in roles})
+        self.plan_path=self.root/'bootstrap.json';self.write_plan();self.refs=dict(plan=self.plan_ref,source=source_ref)
+    def ref(self,path):return dict(path=str(path.resolve()),sha256=p.digest(path.read_bytes()),signature9=p.nine(path.stat()))
+    def write_plan(self):
+        self.plan_path.write_bytes(p.encode(self.document));self.plan_path.chmod(0o600);self.plan_ref=self.ref(self.plan_path)
+    def originals(self):return p.BootstrapOriginals(self.refs)
+    def test_default_refuses_but_exact_original_disposable_mounts_pass(self):
+        with self.assertRaisesRegex(ValueError,'supported-original-mount-destinations'):p.original_service(self.row,'a'*64)
+        original=self.originals();self.addCleanup(original.release)
+        self.assertEqual(original.service(self.row,'a'*64),self.row['Mounts'][0]['Source']);original.close()
+        self.assertEqual(p.child_command('case','token','/cid',Path('/checks'),'/exact/config').count('/exact/config:/config:ro'),1)
+    def test_no_caller_mount_list_overlays_writes_foreign_profile_or_nonce(self):
+        for change in ('extra','write','source','duplicate','epoch','nonce'):
+            with self.subTest(change=change):
+                row=copy.deepcopy(self.row)
+                if change=='extra':row['Mounts'].append(dict(Type='bind',Source='/foreign',Destination='/app/x',RW=False))
+                elif change=='write':row['Mounts'][1]['RW']=True
+                elif change=='source':row['Mounts'][1]['Source']='/foreign'
+                elif change=='duplicate':row['Mounts'].append(copy.deepcopy(row['Mounts'][1]))
+                elif change=='epoch':row['State']['Pid']+=1
+                else:row['Config']['Labels']['com.homelab.archive.bootstrap']='c'*64
+                original=self.originals();self.addCleanup(original.release)
+                with self.assertRaises(ValueError):original.service(row,'a'*64)
+    def test_wrong_pin_original_replacement_and_duplicate_json_refuse(self):
+        refs=copy.deepcopy(self.refs);refs['source']['sha256']='0'*64
+        with self.assertRaises(ValueError):p.BootstrapOriginals(refs)
+        original=self.originals();self.addCleanup(original.release)
+        self.plan_path.write_bytes(self.plan_path.read_bytes()+b' ')
+        with self.assertRaises(ValueError):original.close()
+        self.plan_path.write_bytes(b'{"nonce":1,"nonce":2}');self.plan_path.chmod(0o600)
+        refs=copy.deepcopy(self.refs);refs['plan']=self.ref(self.plan_path)
+        with self.assertRaises(ValueError):p.BootstrapOriginals(refs)
+
+    def test_self_consistent_foreign_mount_or_geometry_still_refuses(self):
+        for change in ('extra', 'writable', 'library', 'state', 'memory'):
+            with self.subTest(change=change):
+                row=copy.deepcopy(self.row);document=copy.deepcopy(self.document)
+                if change=='extra':row['Mounts'].append(dict(Type='bind',Source='/foreign',Destination='/foreign',RW=False))
+                elif change=='writable':row['Mounts'][1]['RW']=True
+                elif change=='library':document['geometry']['library']['path']='/foreign'
+                elif change=='state':document['state_root']['path']='/app/archive-bootstrap-'+self.nonce
+                document['roles']['reader']['profile']['Mounts']=copy.deepcopy(row['Mounts'])
+                self.plan_path.write_bytes(p.encode(document));self.plan_path.chmod(0o600)
+                refs=copy.deepcopy(self.refs);refs['plan']=self.ref(self.plan_path)
+                original=p.BootstrapOriginals(refs);self.addCleanup(original.release)
+                if change=='memory':original.document['nonce']='c'*64
+                with self.assertRaises(ValueError):original.service(row,'a'*64)
+
+    def test_refusal_releases_evidence_descriptors(self):
+        before=set(os.listdir('/proc/self/fd'))
+        refs=copy.deepcopy(self.refs);refs['source']['sha256']='0'*64
+        with self.assertRaises(ValueError):p.BootstrapOriginals(refs)
+        self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
+    def test_optional_main_refusal_releases_both_original_descriptor_groups(self):
+        held=[];bootstrap=p.BootstrapOriginals;config=p.ConfigOriginals
+        root=self.root;row=self.row
+        class RecordedBootstrap(bootstrap):
+            def __init__(self,refs):
+                super().__init__(refs);held.extend(self.anchors.values())
+        class LocalConfig(config):
+            def __init__(self,source):
+                if source != row['Mounts'][0]['Source']:raise AssertionError('wrong config source')
+                super().__init__(root);held.extend(self.anchors.values())
+        supplier=type('SourceDouble',(),{'raw':{'owned.py':b'inspect=lambda cid: ORIGINAL\nclass JarOutput: pass\n'}})()
+        # Only inspected transport and process effects are projected. The exact
+        # original bootstrap source/plan and both FD groups are really consumed.
+        import builtins
+        with patch.object(builtins,'ORIGINAL',row,create=True), patch.object(p,'ACTIVATE',True), patch.object(p,'SUPPLIER_PINS',{}), patch.object(p.os,'geteuid',return_value=0), patch.object(p,'Suppliers',return_value=supplier), patch.object(p,'PLAN',dict(container_id='a'*64,output=str(root/'out'),bootstrap_originals=self.refs)), patch.object(p,'BootstrapOriginals',RecordedBootstrap), patch.object(p,'ConfigOriginals',LocalConfig), patch.object(p,'process_snapshot',side_effect=ValueError('fixed-pre-output-failure')):
+            with self.assertRaisesRegex(ValueError,'fixed-pre-output-failure'):p.main()
+        self.assertTrue(held)
+        for fd in held:
+            with self.assertRaises(OSError):os.fstat(fd)
+
 if __name__ == '__main__': unittest.main(verbosity=2)
