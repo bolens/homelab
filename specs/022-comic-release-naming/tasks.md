@@ -26,6 +26,14 @@ cleanup. Preserve both failed histories without replay. Fresh effective scope,
 current roles and connected factory/archive-terminal acceptance remain next;
 no aggregate task is complete on this source proof alone. See [the current handoff correction](../023-verified-publication-corrections/evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21).
 
+The host assembler now matches the owning Parent's precreation phase: it retains
+an absent nonce-named parent and the existing grandparent's full identity, while
+only the Parent creates the directory and derives its signature. All 1,306
+source controls across 73 suites pass on Python 3.10 with zero skips; the 14
+owning runner checks and independent review also pass. The earlier installed
+SourceFixture proof remains its unchanged 1,302-control generation. Connected
+execution and the aggregate task gates remain open. See [the phase correction](../023-verified-publication-corrections/evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
+
 ## Phase 1: Setup
 
 **Purpose**: Record preferences, preservation requirements and prospective contracts.
