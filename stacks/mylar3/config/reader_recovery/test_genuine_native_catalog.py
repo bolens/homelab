@@ -1,6 +1,8 @@
 """Finite SQL/Writer/transport contract doubles; no image/daemon/ACK proof."""
 from contextlib import contextmanager
 import copy
+import ast
+import re
 import hashlib
 import io
 import json
@@ -50,6 +52,10 @@ class Transactions(unittest.TestCase):
         # TABLE and instead requires the actual prior daemon schema byte-for-byte.
         for table,row in h.rows('/library').items():
             self.db.execute('CREATE TABLE '+table+'('+','.join(k+(' INTEGER' if type(v)is int else ' TEXT') for k,v in row[0].items())+')')
+        # Full native schema already owns these fields even when a seed omits them.
+        existing={row[1] for row in self.db.execute('PRAGMA table_info(comics)')}
+        for name,kind in (('LatestDate','TEXT'),('LatestIssue','TEXT'),('intLatestIssue','INTEGER')):
+            if name not in existing:self.db.execute('ALTER TABLE comics ADD COLUMN '+name+' '+kind)
         self.db.execute('CREATE TABLE annuals(IssueID TEXT)');self.db.execute('CREATE TABLE ddl_info(ID TEXT)');self.db.execute('CREATE TABLE snatched(ID TEXT)')
         for n in range(5):self.db.execute('CREATE TABLE untouched'+str(n)+'(value TEXT)')
         self.db.execute("INSERT INTO untouched0 VALUES('preserve')");self.db.commit();self.path.chmod(0o600)
@@ -63,6 +69,55 @@ class Transactions(unittest.TestCase):
         for key in ['ordinary_ack_verified','daemon_operation_identity','installed_factories_verified','publication_acceptance']:self.assertIs(result[key],False)
         self.assertEqual(self.db.execute('SELECT count(*) FROM annuals').fetchone()[0],0)
         self.assertFalse(any(Path(str(self.path)+s).exists()for s in ('-journal','-wal','-shm')))
+    def processor_latest(self, comic):
+        # Execute the exact pinned owning processor block, not a rewritten model.
+        # This is source/SQLite coverage; full installed/native processing is separate.
+        path=HERE.parent/'test_fixtures/ordinary_import/PostProcessor.py'
+        raw=path.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         '365bdc75327f8a82e75655e3017fbd70ff84858e515d0be5fee598b215da70cc')
+        source=raw.decode();tree=ast.parse(source)
+        # First paired latest-date SELECT and its owning conditional.
+        ld=min((n for n in ast.walk(tree) if isinstance(n,ast.Assign)
+                and any(isinstance(t,ast.Name) and t.id=='ld_check'for t in n.targets)),
+               key=lambda n:n.lineno)
+        highest=min((n for n in ast.walk(tree)if isinstance(n,ast.Assign)
+                     and any(isinstance(t,ast.Name)and t.id=='highest_issue_check'for t in n.targets)
+                     and n.lineno>ld.lineno),key=lambda n:n.lineno)
+        branch=min((n for n in ast.walk(tree)if isinstance(n,ast.If)
+                    and isinstance(n.test,ast.Name)and n.test.id=='ld_check'
+                    and n.lineno>highest.lineno),key=lambda n:n.lineno)
+        program=ast.Module(body=[ld,highest,branch],type_ignores=[])
+        previous=self.db.row_factory;self.db.row_factory=sqlite3.Row
+        try:wv=dict(self.db.execute('SELECT * FROM comics WHERE ComicID=?',(comic,)).fetchone())
+        finally:self.db.row_factory=previous
+        class NativeDB:
+            def selectone(inner,sql,args):return self.db.execute(sql,args)
+        scope=dict(myDB=NativeDB(),mylar=SimpleNamespace(CONFIG=SimpleNamespace(ANNUALS_ON=False)),
+                   logger=SimpleNamespace(fdebug=lambda *args:None),re=re,wv=wv,
+                   wv_latestissue=wv['LatestIssue'],wv_intlatestissue=wv['intLatestIssue'])
+        exec(compile(program,str(path),'exec'),scope)
+        return scope
+
+    def test_seed_latest_fields_match_finite_issue_metadata(self):
+        self.seed()
+        for comic in h.COMICS:
+            actual=self.db.execute('SELECT LatestDate,LatestIssue,intLatestIssue,LatestIssueID FROM comics WHERE ComicID=?',(comic,)).fetchone()
+            issue=self.db.execute('SELECT ReleaseDate,Issue_Number,Int_IssueNumber,IssueID FROM issues WHERE ComicID=?',(comic,)).fetchone()
+            self.assertEqual(tuple(actual),tuple(issue))
+
+    def test_genuine_processor_latest_selection_accepts_both_seeded_series(self):
+        self.seed()
+        for comic in h.COMICS:
+            result=self.processor_latest(comic)
+            self.assertEqual((result['latestdate'],result['latestissue'],result['latestissue_int']),
+                             ('2024-01-01','2',2000))
+        self.assertEqual(self.db.execute('SELECT DISTINCT Status,Location FROM issues').fetchall(),[('Wanted',None)])
+
+    def test_genuine_processor_reproduces_null_latestdate_failure(self):
+        self.seed();self.db.execute('UPDATE comics SET LatestDate=NULL WHERE ComicID=?',(h.COMICS[0],));self.db.commit()
+        with self.assertRaises(TypeError):self.processor_latest(h.COMICS[0])
+
     def test_no_reseed_existing_native_rows(self):
         self.seed();before=h.snapshot(self.db)
         with self.assertRaisesRegex(ValueError,'empty-only'):self.seed()

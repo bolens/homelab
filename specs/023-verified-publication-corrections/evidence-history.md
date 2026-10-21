@@ -998,3 +998,32 @@ complete 1,299-control collection across 73 suites, with zero skips. Source maps
 and aggregate counts change together. Hosted delivery, fresh configured
 execution and eventual import/catalog-to-ACK acceptance remain pending. These
 results do not complete the remaining feature 022-024 acceptance tasks.
+
+
+## Seeded catalog date contract and retained processing failure - 2026-10-21
+
+Exact owned cleanup of the seventh fixture stops only its reader, removes all
+three test containers and their private network, and retains the original data
+and journals. The eighth isolated generation then passes catalog seeding with
+the startup-created 0644 database inside its private 0700 DATA directory, and
+its native restart passes. One forceProcess request is submitted and consumed
+by the post-processing queue. Processing stops with a TypeError when the pinned
+consumer slices a fixture row's null LatestDate; a valid ReleaseDate did not
+satisfy that separate field contract.
+
+The retained fixture database passes quick_check. The native and reader remain
+retained, and the worker remains Created. No request is replayed, and no import,
+ACK, connected-factory or NFS acceptance is inferred. PR #470 consolidates the
+committed catalog correction and passes all required hosted checks on candidate
+`3b6f74f5`. It is squash-merged as `4a2670f9`; PR #468 is closed as superseded.
+GitHub, local main and the configured mirror agree on that revision. The separate
+date-fixture source correction supplies LatestDate, LatestIssue
+and intLatestIssue matching each seeded issue. Three added regressions verify
+cross-table coherence, execute the pinned genuine processor date-selection
+block and reproduce the null-date TypeError. The processor fixture differs from
+the installed image, so this is source-block coverage, not installed-processing
+proof. All 36 catalog controls pass on host and Python 3.10; all 14 outer checks
+pass, including 1,302 controls across 73 suites without skips. The finite checked
+copy adds only that existing processor fixture and closes at 690 source files.
+Fresh configured execution remains required. All 16 remaining aggregate task
+markers stay open.

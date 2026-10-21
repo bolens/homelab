@@ -189,6 +189,13 @@ of forcing every fixture to `0600`. Keep expected early probe failures separate
 from later errors: retain bounded diagnostics per original intent, without
 changing the first record or replaying an operation.
 
+Seed catalog fixtures from every field consumed by the pinned ordinary processing
+route. A valid release date alone does not satisfy a consumer that slices
+`LatestDate`; verify that field through the real seeded constructor/processing
+path. A queued request consumed before a fixture exception is not an import or
+ACK. Retain its original intent and failure evidence; never replay it to test
+a source correction.
+
 Copying the archive SDK source from its container does not copy its Python runtime.
 Its canonical wrapper selects `python3` from the consumer environment; in Mylar
 that remains daemon Python 3.10, even when Modern has a private newer interpreter.

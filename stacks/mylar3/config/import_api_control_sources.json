@@ -685,7 +685,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "7de028d080b4b8f84a71537dfa5c31791c7ec13d783ab966085a4ae88f38b521"
+    "sha256": "cd222c92a1b9e77e445cc238aeda244d87cfc589015ac1aacd02f8a874db880a"
   },
   {
     "path": "run_standalone_controls.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "69f82a54a8da6d4fef9825ef9656d626a32aa61ad25f731b1217b6d9703c7299"
+    "sha256": "c102629369998ecda5fc6112ebaa3b21574db1e498b2d2e6e7c8a785d12e138f"
   },
   {
     "path": "story_arc_search.py",
@@ -1113,7 +1113,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "11d8a0cc46b2d0ed1d30df65c5988f08352d9e07872ab868e939b2cb37eef773"
+    "sha256": "df1e8e3010079030cdca946a961f4e5ade9b544338ca69fa79dfb8444f7089b7"
   },
   {
     "path": "test_library_metadata.py",
@@ -1377,7 +1377,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "38bc1116537cd4ab14146ca10eeb4586564d44726015c20929185ea1ac84c8dc"
+    "sha256": "b70725c36edbb97dd1a312481d7e75d962d1a371e409435ffa4dba6773b476cb"
   },
   {
     "path": "test_publication_reader_softdelete.py",
@@ -1738,5 +1738,9 @@
   {
     "path": "test_tagging_stage.py",
     "sha256": "a40b6ab968870a3487765dc00792d9cbcc0370c5bea31f60a17953be6a734cd6"
+  },
+  {
+    "path": "test_fixtures/ordinary_import/PostProcessor.py",
+    "sha256": "365bdc75327f8a82e75655e3017fbd70ff84858e515d0be5fee598b215da70cc"
   }
 ]
