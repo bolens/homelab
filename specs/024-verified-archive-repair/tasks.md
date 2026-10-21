@@ -4,10 +4,10 @@
 
 ## Current remaining work
 
-**Updated 2026-10-21.** T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
+**Updated 2026-10-21.** 13 of 18 tasks are complete; 5 retain their full acceptance gates. T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
 
 - **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the current source verification passes 1,302 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
-- **Existing source milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. These are source/component milestones, with actual selected-image execution still required. See [producer evidence](evidence-history.md#causal-source-cohort-producer--2026-10-20), [plan composition](evidence-history.md#checked-plan13-original-reference-composition--2026-10-20) and [task observation](evidence-history.md#original-reader-task-observation-source--2026-10-20).
+- **Existing source and runtime milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. Published native/worker component proofs remain accepted for their recorded generations, and the ninth isolated bootstrap completes genuine queue imports, reader scan/progress and restart. These do not complete the connected installed factories, NFS or archive-terminal acceptance required by T012/T015. See [published component evidence](../023-verified-publication-corrections/evidence-history.md#published449-image-verification--2026-10-20) and [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 - **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
@@ -73,7 +73,7 @@ Bounded source proposals and independent preservation/failure reviews may run co
 
 ## Implementation strategy
 
-Deliver truthful diagnostics first while implementing the separate owning capability. Preserve all existing ordinary and nested boundaries. Continue the already authorized feature 023 negative-publication recovery in a separate source scope; both flows share final library, reader and writer-release acceptance.
+Retain delivered diagnostics and the implemented owning capability; finish their connected acceptance before live repair. Preserve all existing ordinary and nested boundaries. Continue the already authorized feature 023 negative-publication recovery in a separate source scope; both flows share final library, reader and writer-release acceptance.
 
 ## Evidence
 
@@ -83,10 +83,10 @@ published source/type/reliability milestone is accepted. T012/T015 still require
 genuine connected factories and terminal consumption; T016–T018 require the
 verified live rollout, repair/import and final preservation/retention checks.
 
-The accepted PR #462 native capture preserves all 180 sources and startup
-files, with its matching 27-output supplier. Current source verification and the
-latest configured catalog refusal are recorded in [the shared runtime
-checkpoint](../023-verified-publication-corrections/evidence-history.md#catalog-runtime-contract-and-per-operation-diagnostics---2026-10-21).
+The accepted PR #462 native capture and matching 27-output supplier remain
+preserved. Current source verification and the successful ninth isolated
+bootstrap are recorded in [the shared bootstrap
+checkpoint](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 SourceCohort and connected acceptance remain open.
 
 Docker address-pool exhaustion is resolved. The isolated new-directory NFS bind

@@ -1043,3 +1043,11 @@ PR #471 merges as `84573600b2c5457f2c29e51a301c3ab885fcf7c9` after passing
 normal hosted CI. Local main, GitHub and the configured mirror are synchronized.
 The 1,302-control/73-suite source proof remains distinct from this genuine
 isolated execution and from the remaining configured acceptance gates.
+
+The complete 022–024 task lists are reconciled against this checkpoint: 21/24,
+25/33 and 13/18 tasks are complete, respectively (59/75 overall). Stale current
+failure and unimplemented-capability summaries are replaced; historical failures
+remain unchanged. The remaining execution order separates delivered components
+from SourceCohort/connected proof, physical and aggregate acceptance, fresh DDL
+ACK/recurring consumption, and final library/bulk/retention checks. All task IDs
+and completion states are preserved, and local evidence links resolve.
