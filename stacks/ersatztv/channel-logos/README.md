@@ -119,7 +119,7 @@ and Bedtime Cartoons. Movie Night then leads into movie genres, decades, studios
 and animation films, franchises,
 seasonal programming, television and cartoons. Portlandia sits beside Sitcom
 Shuffle; Teenage Mutant Ninja Turtles sits beside Transformers TV and Anime
-Action. Custom stations occupy 100–192, 193–199 remain reserved, and multiviews
+Action. Custom stations occupy 100–194, 195–199 remain reserved, and multiviews
 occupy 300–309 after the existing local-news groups. The following news block
 occupies 310–330, preserving its original order.
 
@@ -293,3 +293,9 @@ wordmark. A shaded blue bowl, white milk and brighter cereal rings distinguish
 the breakfast illustration from the yellow sun and text. Its geometry and
 vertical centering remain unchanged; full-size and guide-size previews preserve
 the existing suite layout.
+
+Josh Gates: Expedition TV uses a custom multicolor expedition hat, brass compass,
+map and dotted trail. The complete icon is vertically centered, with a three-line
+wordmark checked at 768 × 384 and 240 × 120. It sits beside Unexplained Files in
+the television group, ahead of cartoons. Existing channel identities stay stable
+when the cartoon output positions move down one slot.
