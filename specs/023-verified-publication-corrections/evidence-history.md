@@ -967,3 +967,34 @@ only identity and cleanup as completed, exits nonzero and never enters
 activation. The incomplete generation and all outputs remain retained. No
 request, cleanup or activation is replayed. Fresh connected fixture execution,
 factory/NFS acceptance, live imports and acknowledgements remain unproved.
+
+
+## Catalog runtime contract and per-operation diagnostics - 2026-10-21
+
+The second single-authentication batch passes its Root identity check and the
+corrected fresh-directory binder. The seventh isolated generation passes reader
+enrollment, virgin backup/restore, native initialization and its planned restart.
+Catalog seeding then refuses before connected recovery. The worker remains
+never-started. This attempt changes no production service. Its request, journal,
+partial catalog operation and all earlier histories stay retained without replay.
+
+Read-only examination of the retained fixture identifies the contract mismatch:
+Mylar creates its database at mode 0644 inside its UID/GID 1000 DATA directory at
+0700. Its schema and integrity checks pass. The helper had required mode 0600,
+and its old unit fixture manually set that mode. The corrected helper accepts
+only 0600 or 0644 under the retained private DATA directory, preserves the exact
+database mode, and verifies directory custody before committing. Real SQLite
+creation with umask 022 reproduces the old refusal and passes the correction.
+Directory replacement or permission drift before commit rolls back.
+
+The Creator now retains a separate bounded private failure record for each
+original operation intent. An expected earlier probe failure can no longer hide
+a later catalog failure. The original first-failure record stays unchanged.
+Fixed diagnostic function/line reporting adds no configuration or row values.
+
+The integrated source passes 53 Creator controls, 33 catalog controls and 24
+privilege-batch controls in Python 3.10. All 14 outer checks pass, including the
+complete 1,299-control collection across 73 suites, with zero skips. Source maps
+and aggregate counts change together. Hosted delivery, fresh configured
+execution and eventual import/catalog-to-ACK acceptance remain pending. These
+results do not complete the remaining feature 022-024 acceptance tasks.

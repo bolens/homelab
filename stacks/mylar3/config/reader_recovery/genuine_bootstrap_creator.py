@@ -183,6 +183,7 @@ class PurposeEngine:
         count = self.counts.get(name, 0); need(count < maximum, 'creator-call-budget')
         self.counts[name] = count + 1
         self.owner.note('intent', name)
+        operation_id = self.owner.serial
         try:
             raw = self.driver.docker(args, self.owner.seconds(), data)
             self.owner.note('done', name, digest(raw))
@@ -192,14 +193,40 @@ class PurposeEngine:
             self.poisoned = not readonly
             diagnostic = getattr(error, 'creator_engine_failure', None)
             if diagnostic is not None and self.owner.journal is not None:
+                # One immutable record per original intent, not just the first
+                # expected probe refusal. No argv/input/exception message is saved.
+                reports = []
+                try:
+                    need(type(operation_id) is int and 1 <= operation_id <= 65535,
+                         'creator-diagnostic-operation-bound')
+                    bounded = dict(diagnostic)
+                    for stream in ('stdout', 'stderr'):
+                        raw = base64.b64decode(diagnostic[stream+'_base64'], validate=True)
+                        need(len(raw) <= LIMIT, 'creator-diagnostic-stream-bound')
+                        bounded[stream+'_base64'] = base64.b64encode(raw[:65536]).decode('ascii')
+                        bounded[stream+'_truncated'] = diagnostic[stream+'_truncated'] or len(raw) > 65536
+                    bounded['retained_stream_byte_limit'] = 65536
+                    reports.append((self.owner.journal/(str(operation_id).zfill(4)+'-engine-failure.private.json'),
+                        dict(kind='creator-operation-engine-failure', journal_operation_id=operation_id,
+                             operation=name, diagnostic=bounded, automatic_replay=False, cleanup=False)))
+                except BaseException as secondary:
+                    error.creator_diagnostic_failure = type(secondary).__name__
+                # Retain the existing first-record bytes and metadata unchanged.
                 try:
                     path = self.owner.journal/'engine-failure.private.json'
                     if not os.path.lexists(path):
-                        b.put(path, dict(kind='creator-first-engine-failure', operation=name,
-                            diagnostic=diagnostic, automatic_replay=False, cleanup=False))
+                        reports.append((path, dict(kind='creator-first-engine-failure', operation=name,
+                            diagnostic=diagnostic, automatic_replay=False, cleanup=False)))
                 except BaseException as secondary:
-                    # Losing diagnostic storage must not hide the actual refusal.
-                    error.creator_diagnostic_failure = type(secondary).__name__
+                    if not hasattr(error, 'creator_diagnostic_failure'):
+                        error.creator_diagnostic_failure = type(secondary).__name__
+                for path, report in reports:
+                    try:
+                        b.put(path, report)
+                    except BaseException as secondary:
+                        # Independent diagnostic attempts never mask the refusal.
+                        if not hasattr(error, 'creator_diagnostic_failure'):
+                            error.creator_diagnostic_failure = type(secondary).__name__
             raise
 
     def image(self, role):

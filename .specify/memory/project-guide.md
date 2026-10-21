@@ -180,6 +180,15 @@ The configured path uses the existing `nfs-probe` and `nfs-lease` dialogues,
 birth and session custody. Trace actual call sites before treating an obsolete
 comment or an unused public default as missing implementation.
 
+The native catalog fixture must preserve the startup-created database mode.
+The pinned producer uses `sqlite3.connect` without chmod and can create `0644` under
+umask `022`. Admit only `0600`/`0644` under the original retained UID/GID1000 DATA `0700`
+directory, with unchanged database identity and all Writer/schema/authority
+checks. Test actual SQLite creation and the genuine constructor path instead
+of forcing every fixture to `0600`. Keep expected early probe failures separate
+from later errors: retain bounded diagnostics per original intent, without
+changing the first record or replaying an operation.
+
 Copying the archive SDK source from its container does not copy its Python runtime.
 Its canonical wrapper selects `python3` from the consumer environment; in Mylar
 that remains daemon Python 3.10, even when Modern has a private newer interpreter.

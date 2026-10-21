@@ -104,6 +104,19 @@ is insufficient. This fixture seed is not provider metadata import or ordinary
 import acknowledgement. Host tests explicitly double transport and grant no
 genuine daemon or connected-factory acceptance.
 
+The existing catalog may retain its native SQLite mode `0600` or `0644`. Both require
+the same canonical UID/GID1000 DATA directory at `0700`, retained through config
+and SDK reads, constructor, transaction and final checks with original directory
+FDs and ancestor identities. The helper never normalizes permissions. It checks
+DATA custody and the database node before commit, retaining every existing
+Writer, schema, rollback-header, companion and authority check. Detected drift
+before commit rolls back. A later refusal does not claim rollback or completion.
+
+Each failed Creator intent gets a separate exclusive private diagnostic, bounded
+to 64 KiB per output stream. The original first-failure record stays unchanged.
+Catalog helper stderr reports only a finite exception type and authenticated
+public function/line. Held stdout, exit status and replay refusal stay unchanged.
+
 The opt-in `genuine_bootstrap_creator.py` adds a UID1000 actor with a finite
 Polkit Docker adapter. It creates three original labelled disposable roles and
 one internal network, starts only native and reader, enrolls the pinned Komga
