@@ -132,6 +132,40 @@ def nfs_mount(value, common):
     return value
 
 
+
+def own_restart_successor(original, projected, original_network, network, native):
+    """Validate only the same acknowledged native restart's paired network changes."""
+    need(original['Id'] == projected['Id'] == native
+         and {k:v for k,v in original.items() if k!='NetworkSettings'}
+         == {k:v for k,v in projected.items() if k!='NetworkSettings'}, 'own-restart-static-successor')
+    before=copy.deepcopy(original['NetworkSettings']);after=copy.deepcopy(projected['NetworkSettings'])
+    need(type(before.get('Networks')) is dict and type(after.get('Networks')) is dict
+         and len(before['Networks']) == 1 and set(before['Networks']) == set(after['Networks'])
+         and original_network['Id'] == network['Id'], 'own-restart-network-identity')
+    old=next(iter(before['Networks'].values()));new=next(iter(after['Networks'].values()))
+    need(old.get('NetworkID') == new.get('NetworkID') == original_network['Id']
+         and native in original_network.get('Containers',{}) and native in network.get('Containers',{}), 'own-restart-native-network')
+    left=copy.deepcopy(original_network);right=copy.deepcopy(network)
+    old_member=left['Containers'][native];new_member=right['Containers'][native]
+    for endpoint,member in ((old,old_member),(new,new_member)):
+        need(type(endpoint.get('EndpointID')) is str and endpoint['EndpointID']
+             and endpoint['EndpointID'] == member.get('EndpointID'), 'own-restart-endpoint-join')
+    mac_present=any('MacAddress' in value for value in (old,new,old_member,new_member))
+    if mac_present:
+        for endpoint,member in ((old,old_member),(new,new_member)):
+            mac=endpoint.get('MacAddress')
+            need(type(mac) is str and re.fullmatch(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}',mac)
+                 and int(mac[:2],16)&1 == 0 and mac != '00:00:00:00:00:00'
+                 and mac == member.get('MacAddress'), 'own-restart-MAC-join')
+            endpoint.pop('MacAddress');member.pop('MacAddress')
+    for value in (before,after):
+        value.pop('SandboxID',None);value.pop('SandboxKey',None)
+        next(iter(value['Networks'].values())).pop('EndpointID',None)
+    old_member.pop('EndpointID');new_member.pop('EndpointID')
+    need(before == after, 'own-restart-static-successor')
+    need(left == right, 'own-restart-network-successor')
+
+
 class Docker:
     """Direct client only; no pkexec, pull or operational fallback."""
     def mount(self, path, seconds):
@@ -226,14 +260,8 @@ class Bootstrap:
             result = p.decode(self.engine.run(['inspect', expected['id']], self.seconds()))
             need(type(result) is list and len(result) == 1, 'one-original-role')
             row = result[0]; original = self.profiles[role]
-            if restarting and role == 'native':
-                projected = p.static(row); before = copy.deepcopy(original['NetworkSettings']); after = copy.deepcopy(projected['NetworkSettings'])
-                for item in (before,after):
-                    item.pop('SandboxID',None);item.pop('SandboxKey',None)
-                    for endpoint in item.get('Networks',{}).values():endpoint.pop('EndpointID',None)
-                need(before==after and {k:v for k,v in projected.items() if k!='NetworkSettings'}=={k:v for k,v in original.items() if k!='NetworkSettings'},'own-restart-static-successor')
-                self.profiles[role]=projected
-            else:need(p.static(row) == original, 'original-role-static')
+            if not (restarting and role == 'native'):
+                need(p.static(row) == original, 'original-role-static')
             host = row['HostConfig']; state = row['State']
             need(not host.get('Privileged') and not host.get('Devices') and not host.get('DeviceRequests') and not host.get('CapAdd')
                  and all(x=='no-new-privileges' for x in (host.get('SecurityOpt') or []))
@@ -247,17 +275,14 @@ class Bootstrap:
             epoch = {k: v for k, v in state.items() if k != 'Health'}
             if restarting and role == 'native':
                 need(epoch['StartedAt'] != self.epochs[role]['StartedAt'], 'native-own-restart-epoch')
-                self.epochs[role] = epoch
             else:need(epoch == self.epochs[role], 'original-role-epoch')
             rows[role] = row
         net = p.decode(self.engine.run(['network', 'inspect', self.plan['network']['id']], self.seconds()))
         need(type(net) is list and len(net) == 1, 'one-original-network')
         if restarting:
-            before=copy.deepcopy(self.network_profile);after=copy.deepcopy(net[0]);native=self.plan['roles']['native']['id']
-            for item in (before,after):
-                if native in item.get('Containers',{}):item['Containers'][native].pop('EndpointID',None)
-            need(before==after,'own-restart-network-successor');self.network_profile=net[0]
-        need(net[0] == self.network_profile
+            native=self.plan['roles']['native']['id']
+            own_restart_successor(self.profiles['native'],p.static(rows['native']),self.network_profile,net[0],native)
+        need((restarting or net[0] == self.network_profile)
              and net[0].get('Internal') is True and net[0].get('Driver') == 'bridge'
              and net[0].get('Labels',{}).get(LABEL)==self.plan['nonce']
              and net[0]['Labels'].get(PURPOSE)=='genuine-archive-fixture'
@@ -267,6 +292,11 @@ class Bootstrap:
             need(len(networks) == 1 and next(iter(networks.values()))['NetworkID'] == self.plan['network']['id'], 'same-private-network')
         aliases = next(iter(rows['reader']['NetworkSettings']['Networks'].values())).get('Aliases') or []
         need(self.plan['reader_host'] in aliases, 'original-reader-alias')
+        if restarting:
+            # Commit this one successor only after every role and network join passed.
+            self.profiles['native']=p.static(rows['native'])
+            self.epochs['native']={k:v for k,v in rows['native']['State'].items() if k!='Health'}
+            self.network_profile=copy.deepcopy(net[0])
         return rows
 
     def http(self, kind, operation, arguments=None):

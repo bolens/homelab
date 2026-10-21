@@ -35,6 +35,8 @@ class Fixture:
         source={k:ref(generic) for k in g.ROLES}
         for name, filename in [('probe','comic_negative_nfs_hardlink_child.py'),('hardlink_kernel','comic_negative_nfs_hardlink_probe.py'),('scope_projection','publication_native_configured_scope.py'),('readiness','comic_native_process_probe.py'),('lifecycle','comic_negative_nfs_active_lifecycle.py')]:source[name]=ref(HERE/filename)
         source['native_map']=native;source['selected_sdk']=selected
+        parity=root/'parity.py';parity.write_bytes(g.derive_parity_program(g.producer.bootstrap.IMAGE_PROGRAM,self.sdk));parity.chmod(0o600);source['parity']=ref(parity)
+        source['core_tests']=ref(HERE/'test_reader_lifecycle_parent.py');source['writer_fixture']=ref(HERE.parent/'test_media_writer.py')
         source['readiness_input']=put(root/'request.json',dict(version=1,nonce=self.nonce,source_sha256=source['readiness']['sha256'],seconds=30,module_pins={},scope_source='fixture only, never executed'))
         source['writer']=ref(HERE.parent/'media_writer.py');source['tests']=ref(HERE/'test_nfs_current_source.py')
         source['scope_projection']=ref(HERE.parent/'publication_native_configured_scope.py')
@@ -114,6 +116,54 @@ class Controls(unittest.TestCase):
                 and 'sys.version_info' in ast.get_source_segment(g.RUNTIME_PROGRAM,node)]
         self.assertEqual(len(guards),1)
         return compile(ast.Module(body=guards,type_ignores=[]),'<owning-runtime-version>','exec')
+
+    def test_parity_is_exact_owning_template_with_literal_original_names(self):
+        import ast
+        template=g.producer.bootstrap.IMAGE_PROGRAM
+        program=g.derive_parity_program(template,self.f.sdk)
+        self.assertEqual(program,template.replace('names=json.load(sys.stdin)','names='+repr(sorted(self.f.sdk)),1).encode())
+        tree=ast.parse(program);self.assertEqual(ast.literal_eval(tree.body[1].value),sorted(self.f.sdk))
+        self.assertNotIn(b'json.load(sys.stdin)',program)
+        self.assertTrue(all(pin.encode() not in program for pin in self.f.sdk.values()))
+        reverse=dict(reversed(list(self.f.sdk.items())))
+        self.assertEqual(g.derive_parity_program(template,reverse),program)
+        alternate=dict(self.f.sdk);alternate['Alternate.py']=alternate.pop('PostProcessor.py')
+        self.assertNotEqual(g.derive_parity_program(template,alternate),program)
+
+    def test_parity_refuses_changed_template_or_non_original_map_shape(self):
+        template=g.producer.bootstrap.IMAGE_PROGRAM
+        with self.assertRaisesRegex(g.p.Held,'owning-template'):
+            g.derive_parity_program(template+'# changed\n',self.f.sdk)
+        for mutation in ('missing','extra','unsafe','hash','boolean','not-map'):
+            value=copy.deepcopy(self.f.sdk)
+            if mutation=='missing':value.pop('PostProcessor.py')
+            elif mutation=='extra':value['Extra.py']='a'*64
+            elif mutation=='unsafe':value['../bad.py']=value.pop('PostProcessor.py')
+            elif mutation=='hash':value['PostProcessor.py']='not-a-digest'
+            elif mutation=='boolean':value['PostProcessor.py']=True
+            else:value=list(value)
+            with self.subTest(mutation=mutation),self.assertRaisesRegex(g.p.Held,'original-map'):
+                g.derive_parity_program(template,value)
+
+    def test_hash_bound_arbitrary_map_printer_is_not_parity(self):
+        q=copy.deepcopy(self.f.document)
+        path=self.f.root/'arbitrary-parity.py';path.write_text('print('+repr(g.p.encode(self.f.sdk).decode())+')\n');path.chmod(0o600)
+        old=q['cohort']['sources']['parity']['path'];original=ref(path)
+        q['cohort']['sources']['parity']=two(original)
+        q['originals']=[r for r in q['originals'] if r['path']!=old]+[original]
+        with self.assertRaisesRegex(g.p.Held,'owning-parity-program'):
+            g.Emitter(put(self.f.root/'bad-parity.json',q),self.f.output,transport=self.f.transport)
+        self.assertEqual(self.f.calls,[])
+
+    def test_core_test_and_writer_fixture_require_canonical_source_bytes(self):
+        for role in ('core_tests','writer_fixture'):
+            q=copy.deepcopy(self.f.document);old=q['cohort']['sources'][role]['path']
+            path=self.f.root/(role+'.py');path.write_text('# unrelated fixture\n');path.chmod(0o600);original=ref(path)
+            q['cohort']['sources'][role]=two(original)
+            q['originals']=[r for r in q['originals'] if r['path']!=old]+[original]
+            with self.subTest(role=role),self.assertRaisesRegex(g.p.Held,'owning-role-bytes'):
+                g.Emitter(put(self.f.root/'bad-role.json',q),self.f.output,transport=self.f.transport)
+        self.assertEqual(self.f.calls,[])
 
     def test_current_native310_runtime_guard_accepts(self):
         from types import SimpleNamespace

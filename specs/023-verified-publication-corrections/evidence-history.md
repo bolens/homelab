@@ -865,3 +865,44 @@ installer, Docker or lifecycle runs. A separate one-GET diagnostic confirms
 the third fixture remains unclaimed, with all three role epochs unchanged.
 Historical Creator-source divergence is explicit; this diagnostic grants no
 factory or mutation authority.
+
+### Fresh isolated enrollment and restart refusal — 2026-10-21
+
+The third generation's two test services stop, all three containers and its
+private network are removed, and its files and failure evidence remain intact.
+A fresh fourth generation using Creator `1804072a` and Bootstrap `18db2194`
+passes actual reader enrollment/API-key creation, virgin configuration
+backup/restore and native initialization. Its planned native restart succeeds,
+then the preservation verifier refuses a changed MAC address. No attempt is
+replayed, and no production service changes.
+
+The retained native capture `22e79151` and network capture `aff075f1` agree on
+the new native endpoint ID and MAC address. Only the native sandbox, endpoint
+and MAC fields change; all other network fields and non-network container
+configuration remain equal. The native epoch changes as intended. Exact owned cleanup then stops both
+test services, removes their three containers and private network, and retains
+all initialized data and evidence. A narrow paired restart successor is being
+implemented; SourceCohort, connected factories, NFS, import and ACK acceptance
+remain open.
+
+Independent review also corrects the prospective private SourceFixture helper's
+verified-byte imports, final original closure and cleanup after a lost start
+reply. Its 23 host/Python 3.10 controls pass, with targeted independent rechecks.
+The helper remains disabled and grants no runtime or publication acceptance.
+Original installation outputs and earlier failed generations stay retained.
+
+The combined source correction joins native endpoint/MAC changes to the same
+original network and commits profile, epoch and network together only after all
+role checks pass. It also derives the stdin parity program from the owning
+installed-file probe and original 180 filenames, without embedding expected
+hashes. Arbitrary map printers refuse; the existing Parent still compares the
+complete observed map. Core tests and writer-fixture sources require canonical
+bytes and grant no execution rights. Original configured Parent custody stays
+bound to the original installation.
+
+Independent reviews pass for both changes. Bootstrap 33 and SourceCohort 38
+controls pass on Python 3.10. The integrated 14 outer checks pass in 90.856s,
+including all 1,260 controls across 72 suites with zero skips. The direct semantic
+pins, all current copy maps, Komga's 62 Python/37 JDK 21 checks, Source lint and
+full local CI pass. The new batch still requires hosted CI, delivery and fresh
+connected execution. No aggregate acceptance checkbox changes.
