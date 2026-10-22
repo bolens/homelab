@@ -33,6 +33,8 @@ updates:
       - "/stacks/flood"
       - "/stacks/ghunt"
       - "/stacks/hashcat"
+      - "/stacks/kavita/independent"
+      - "/stacks/kavita/providers"
       - "/stacks/komga/normalizer"
       - "/stacks/komga/ui"
       - "/stacks/lidarr"

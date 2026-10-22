@@ -1,0 +1,16 @@
+# Optional host workflow; configure exact existing mounts before enabling.
+[Service]
+ExecStart=
+ExecStart=/usr/bin/python3 /usr/local/libexec/calibre-kavita-catalog-runner.py
+TimeoutStartSec=20min
+Environment=CALIBRE_AUTO_REGISTER=true
+Environment=CALIBRE_LIBRARY_PATH=/srv/media/books
+Environment=CALIBRE_SOURCE_MOUNT=/srv/media
+Environment=CALIBRE_SYNC_STATE=/srv/backups/calibre-kavita-sync
+Environment=CALIBRE_SYNC_STATE_MOUNT=/srv/backups
+Environment=CALIBRE_CONTAINER=calibre-web
+Environment=CALIBRE_WRITER_CONTAINER=readarr
+Environment=CALIBRE_WEB_SERVICE=/run/service/svc-calibre-web
+Environment=CALIBRE_INCLUDE_UNREGISTERED_EPUBS=false
+Environment=CALIBRE_NORMALIZE_LEGACY_EPUBS=true
+Environment=KAVITA_SYNC_LOCK=/srv/backups/calibre-kavita-sync/publication.lock

@@ -1,0 +1,8 @@
+*
+!gateway.py
+!metadata.py
+!sync.py
+!transport.py
+!oauth.py
+!cbr.py
+!Dockerfile

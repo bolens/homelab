@@ -1,0 +1,6 @@
+{
+  "AniList": {"clientId": "", "clientSecret": ""},
+  "MyAnimeList": {"clientId": "", "clientSecret": ""},
+  "MangaBaka": {"clientId": "", "clientSecret": ""},
+  "Hardcover": {"clientId": "", "clientSecret": ""}
+}

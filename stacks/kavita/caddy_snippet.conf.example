@@ -1,4 +1,5 @@
 # Kavita — split-horizon + public TLS: kavita.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# The optional independent-provider gateway is private. Do not add an ingress route for it.
 
 kavita.home, kavita.local {
 	tls internal
