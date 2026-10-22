@@ -100,6 +100,11 @@ predecessor recovery and pack-binding implementations already exist. Historical
 2,867-file acceptance and seven completed predecessor-bound repairs remain evidence,
 not work to replay. A new source defect gets its own focused repair only if the
 current-source checks demonstrate one.
+The current shared blocker is feature 023’s genuine connected recovery profile
+check before reader stop; feature 023’s evidence history owns its diagnosis.
+Naming implementation remains delivered, and these three tasks await their
+explicit configured/current-library prerequisites rather than another naming
+rewrite.
 
 | Task | Inputs and next bounded action | Observable completion evidence |
 | --- | --- | --- |
@@ -154,3 +159,8 @@ passing hosted CI. This is bootstrap execution proof, with original data and
 receipts retained; connected factories, NFS, publication, retained live-DDL and
 fresh ACK acceptance remain open. See [the current bootstrap
 record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
+
+The shared isolated-child lifecycle correction passes its complete source/local
+checks. Hosted delivery, fresh installation/cohort and connected acceptance are
+next; naming and bulk markers still require their own configured/library proof.
+See [the shared correction evidence](../023-verified-publication-corrections/evidence-history.md#typed-isolated-child-lifecycle-correction--2026-10-22).

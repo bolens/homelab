@@ -14,6 +14,8 @@ import weakref
 
 HELPER_SHA='2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21'
 _WINDOWS=weakref.WeakKeyDictionary()
+_FULL_PROFILES=weakref.WeakKeyDictionary()
+_PROFILE_CONTRACTS=weakref.WeakKeyDictionary()
 MAX=4*1024**2
 class Held(ValueError):pass
 
@@ -178,6 +180,9 @@ class HostWriterLease:
         g=owner.left.__func__.__globals__
         need(os.geteuid()==0 and type(owner) is g.get('LifecycleParent') and g.get('_CORES',{}).get(owner)==owner.core
              and type(owner.engine) is g.get('ScopedDocker'),'lease-owning-root-parent')
+        need(owner.left.__func__ is g['LifecycleParent'].left,'lease-source-profile-helpers')
+        guard=g.get('none_network_profile_contract');need(callable(guard)and guard.__globals__ is g,'lease-source-profile-contract')
+        contract=(guard,guard.__code__,guard())
         need(callable(getattr(owner,'begin_nfs_writer_window',None)) and callable(getattr(owner,'end_nfs_writer_window',None)),'lease-parent-window-unbound')
         need(helper_ref['sha256']==HELPER_SHA and helper_ref['path'] in owner.files
              and tuple(helper_ref['signature9'])==tuple(owner.files[helper_ref['path']]),'lease-retained-helper-original')
@@ -190,7 +195,7 @@ class HostWriterLease:
              and empty_ref['signature9'][6:8]==[1000,1000] and stat.S_IMODE(empty_ref['signature9'][5])==0o700 and not os.listdir(empty),'lease-empty-owned-config');tree.check()
         sdk=g['decode'](g['read'](owner.plan['sdk_map']));sha=sdk.get('media_writer.py');need(g['digest'](sha),'lease-installed-writer-source')
         need(namespace(root)==(root5,writer_files),'lease-preprojection-writer-original')
-        self.owner,self.g,self.tree=owner,g,tree;self.helper=copy.deepcopy(helper_ref);self.projected=copy.deepcopy(projected)
+        self.owner,self.g,self.tree=owner,g,tree;_PROFILE_CONTRACTS[self]=contract;self.helper=copy.deepcopy(helper_ref);self.projected=copy.deepcopy(projected)
         self.empty_nodes=tuple((str(q),five(os.lstat(q))) for q in Path(empty).parents)
         self.admitted_empty=copy.deepcopy(admitted_empty);self.empty=str(empty);self.empty9=tuple(empty_ref['signature9']);self.root=root;self.root5=root5;self.writer_files=writer_files;self.writer_nodes=writer_nodes;self.writer_sha=sha;self.image=owner.plan['selected_image']
         self.token=uuid.uuid4().hex+uuid.uuid4().hex;self.name='comic-nfs-lease-'+uuid.uuid4().hex
@@ -199,10 +204,16 @@ class HostWriterLease:
         args=['create','--pull','never','--name',self.name,'--label','com.homelab.nfs.lease='+self.name,'--user','1000:1000','--read-only','--network','none','--ipc','private','--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','32','--memory','64m','--cpus','0.25','--env','PYTHONDONTWRITEBYTECODE=1','--interactive','--entrypoint','/lsiopy/bin/python3']
         for src,dst,rw in self.mounts:
             need(not any(c in src+dst for c in ',\n\r'),'lease-mount-spelling');args+=['--mount','type=bind,src='+src+',dst='+dst+('' if rw else ',readonly')]
-        self.create_args=tuple(args+[self.image,*self.command]);self.channel=None;self.process=None;self.cid=None;self.cid_original=None;self.epoch=None;self.profile_original=None
+        self.create_args=tuple(args+[self.image,*self.command]);self.channel=None;self.process=None;self.cid=None;self.cid_original=None;self.epoch=None;self.profile_original=None;self.profile_running=None;self.profile_terminal=None;_FULL_PROFILES[self]=(None,None,None)
         self.tape=encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(root),writer_sha=sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args))
+    def profile_contract(self):
+        need(self in _PROFILE_CONTRACTS,'lease-source-profile-contract')
+        guard,code,token=_PROFILE_CONTRACTS[self]
+        need(self.g.get('none_network_profile_contract')is guard and guard.__code__ is code and guard.__globals__ is self.g and guard()is token,'lease-profile-contract-original')
     def original(self,*,allow_expired=False):
         need(type(allow_expired) is bool,'lease-original-deadline-mode')
+        if self in _PROFILE_CONTRACTS:self.profile_contract()
+        if self in _FULL_PROFILES:need(_FULL_PROFILES[self]==(self.profile_original,self.profile_running,self.profile_terminal),'lease-full-profile-seal')
         if not allow_expired:self.owner.left()
         else:need(threading.get_ident()==self.owner.thread and self.g.get('_CORES',{}).get(self.owner)==self.owner.core,'lease-expired-original-owner')
         self.g['read'](self.helper);self.tree.check()
@@ -229,6 +240,7 @@ class HostWriterLease:
         if os.listdir(self.empty):raise Held('lease-host-final-empty-names')
         z=os.lstat(self.empty)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=self.empty9:raise Held('lease-host-final-empty9')
+        if self in _PROFILE_CONTRACTS:self.profile_contract()
     def window_state(self):
         """Local original process/pipe/source proof; no engine or application call."""
         entry=_WINDOWS.get(self);need(entry is not None,'lease-original-window')
@@ -257,11 +269,22 @@ class HostWriterLease:
     def profile(self,status):
         entry=_WINDOWS.get(self)
         need(entry is None or entry[0] in ('PREPARED','RELEASED_PHYSICAL'),'lease-remote-profile-while-Writer-refused')
-        self.original(allow_expired=entry is not None and entry[0]=='RELEASED_PHYSICAL');need(self.cid==self.cid_original and self.g['digest'](self.cid),'lease-original-CID');row=self.owner.inspect(self.cid)
-        current_static=encode({k:row[k] for k in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created')})
+        self.profile_contract();self.original(allow_expired=entry is not None and entry[0]=='RELEASED_PHYSICAL');need(self.cid==self.cid_original and self.g['digest'](self.cid),'lease-original-CID');row=self.owner.inspect(self.cid)
+        self.profile_contract()
+        current_static=encode(dict(self.g['static'](row),Created=row['Created']));candidate=None
+        need(self in _FULL_PROFILES,'lease-original-profile-tape');need(_FULL_PROFILES[self]==(self.profile_original,self.profile_running,self.profile_terminal),'lease-full-profile-seal')
         if self.profile_original is None:
-            need(status=='created','lease-original-birth-profile-required');self.profile_original=current_static
-        else:need(current_static==self.profile_original,'lease-original-full-static-profile')
+            need(status=='created','lease-original-birth-profile-required');candidate=(current_static,None,None)
+        else:
+            created=decode(self.profile_original);need(encode(row['Created'])==encode(created.pop('Created')),'lease-original-created-time')
+            if status=='running'and self.profile_running is None:
+                need(self.g['checked_none_network_started_static'](created,self.g['static'](row),self.cid),'lease-original-started-static');candidate=(self.profile_original,current_static,None)
+            elif status=='exited':
+                need(self.profile_running is not None,'lease-original-running-profile-required')
+                if self.profile_terminal is None:
+                    running=decode(self.profile_running);running.pop('Created');need(self.g['checked_none_network_exited_static'](running,self.g['static'](row),self.cid),'lease-original-exited-static');candidate=(self.profile_original,self.profile_running,current_static)
+                else:need(current_static==self.profile_terminal,'lease-original-terminal-static-exact')
+            else:need(current_static==(self.profile_running if status=='running'else self.profile_original),'lease-original-full-static-profile')
         h,c,s=row['HostConfig'],row['Config'],row['State']
         required_label(c['Labels'],self.name)
         need(row['Id']==self.cid and row['Image']==self.image and row['Name']=='/'+self.name and c['User']=='1000:1000'
@@ -279,7 +302,11 @@ class HostWriterLease:
             if self.epoch is None:self.epoch=current
             else:need(current==self.epoch,'lease-original-child-epoch')
         if status=='exited':stopped_epoch(s,self.epoch)
-        self.original();return row
+        self.original()
+        if candidate is not None:
+            self.profile_original,self.profile_running,self.profile_terminal=candidate;_FULL_PROFILES[self]=candidate;self.original()
+        self.profile_contract()
+        return row
     def prepare(self):
         need(self.cid is None and self.channel is None,'lease-no-replay');self.original()
         self.owner.emit('nfs-lease-create-intent.json',dict(command=list(self.create_args),automatic_replay=False))
@@ -331,8 +358,10 @@ class HostWriterLease:
         need(self.channel is not None and self.process is self.channel.process
              and self.cid==self.cid_original and self.g['digest'](self.cid)
              and self.profile_original is not None,'lease-abort-owning-CID')
+        need(_FULL_PROFILES.get(self)==(self.profile_original,self.profile_running,self.profile_terminal),'lease-abort-original-profile-seal')
+        self.profile_contract()
         need(self.tape==encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(self.root),writer_sha=self.writer_sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args)),'lease-abort-original-spec')
-        owner=self.owner;engine=owner.engine;cid=self.cid_original;original_static=self.profile_original;epoch=None if self.epoch is None else tuple(self.epoch)
+        owner=self.owner;engine=owner.engine;cid=self.cid_original;original_static=self.profile_original;original_profiles=_FULL_PROFILES.get(self);epoch=None if self.epoch is None else tuple(self.epoch)
         parent_core=encode(dict(plan=owner.plan,files=owner.files,nodes=owner.nodes,source=owner.source_ref,input=owner.plan_ref,engine=id(engine),thread=owner.thread,deadline=owner.deadline))
         need(parent_core==owner.core,'lease-abort-original-parent-core')
         originals=tuple((ref['path'],tuple(ref['signature9'])) for ref in (self.helper,self.projected))
@@ -340,8 +369,9 @@ class HostWriterLease:
         # Closing original input is permitted only for this exact original real
         # process. No Docker stop/kill/remove or fixture deletion is performed.
         result=self.channel.abort_original()
+        self.profile_contract()
         need(self.owner is owner and owner.engine is engine and self.cid==self.cid_original==cid
-             and self.profile_original==original_static and (None if self.epoch is None else tuple(self.epoch))==epoch,'lease-abort-post-wait-original-binding')
+             and self.profile_original==original_static and _FULL_PROFILES.get(self)==original_profiles and (self.profile_original,self.profile_running,self.profile_terminal)==original_profiles and (None if self.epoch is None else tuple(self.epoch))==epoch,'lease-abort-post-wait-original-binding')
         entry=_WINDOWS.get(self)
         need(entry is not None,'lease-abort-unsealed-window-retained')
         try:current=ticks(self.runtime_pid)
@@ -352,16 +382,19 @@ class HostWriterLease:
         if was_blocked:self.owner.end_nfs_writer_window(self)
         raw=engine.run(['inspect',cid],30);rows=decode(raw)
         need(type(rows) is list and len(rows)==1,'lease-abort-one-own-profile');row=rows[0]
-        need(encode({k:row[k] for k in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created')})==original_static,'lease-abort-original-static')
+        need(original_profiles is not None and self.profile_running is not None,'lease-abort-original-running-static')
+        running=decode(self.profile_running);need(encode(row['Created'])==encode(running.pop('Created'))and self.g['checked_none_network_exited_static'](running,self.g['static'](row),cid),'lease-abort-original-static')
+        if self.profile_terminal is not None:need(encode(dict(self.g['static'](row),Created=row['Created']))==self.profile_terminal,'lease-abort-terminal-static-exact')
         s=row['State'];need(s['Status']=='exited' and s['Running'] is False and type(s['Pid']) is int and s['Pid']==0
                             and (epoch is None or s['StartedAt']==epoch[1]) and all(s.get(k,False) is False for k in ('Paused','Restarting','Dead','OOMKilled')),'lease-abort-own-exit')
         response=dict(result,cid=cid,unknown_fixture_retained=True,native_grant=False,original_running_epoch_verified=epoch is not None)
         need(self.owner is owner and owner.engine is engine and self.cid==self.cid_original==cid
-             and self.profile_original==original_static and (None if self.epoch is None else tuple(self.epoch))==epoch,'lease-abort-final-original-binding')
+             and self.profile_original==original_static and _FULL_PROFILES.get(self)==original_profiles and (self.profile_original,self.profile_running,self.profile_terminal)==original_profiles and (None if self.epoch is None else tuple(self.epoch))==epoch,'lease-abort-final-original-binding')
         for path,v in original_nodes:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(v):raise Held('lease-abort-final-original5')
         for path,v in originals:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('lease-abort-final-original9')
+        self.profile_contract()
         return response

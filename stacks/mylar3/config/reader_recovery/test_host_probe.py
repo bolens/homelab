@@ -163,5 +163,106 @@ class ProbeBoundary(unittest.TestCase):
         self.assertFalse(self.process.terminal)
 
 
+class FullProfileTransitions(unittest.TestCase):
+    def fixture(self):
+        import comic_reader_lifecycle_parent as p
+        import comic_nfs_host_probe as h
+        original=ProbeBoundary();original.setUp();self.addCleanup(original.doCleanups)
+        owner=object.__new__(p.LifecycleParent);owner.core=b'component-owning-parent';owner.engine=object.__new__(p.ScopedDocker);p._CORES[owner]=owner.core;self.addCleanup(p._CORES.pop,owner,None)
+        process=h.ProbeProcess(original.spec,['docker'],owner.engine.canary,original.close,owner=owner);original.process=process;process.cid=process.cid_original=original.cid
+        row=original.profile();row.update(Name='/'+process.name,Path='/lsiopy/bin/python3',Args=row['Config']['Cmd'],NetworkSettings=dict(Ports={},SandboxID='',SandboxKey='',Networks={'none':dict(EndpointID='',NetworkID='',IPAddress='',Gateway='',MacAddress='')}));row['HostConfig']['OomKillDisable']=False
+        running=copy.deepcopy(row);running['State'].update(Status='running',Running=True,Pid=123,StartedAt='fixed-epoch');running['HostConfig']['OomKillDisable']=None;running['NetworkSettings'].update(SandboxID='e'*64,SandboxKey='/var/run/docker/netns/'+'e'*12);running['NetworkSettings']['Networks']['none'].update(EndpointID='c'*64,NetworkID='d'*64)
+        terminal=copy.deepcopy(running);terminal['State'].update(Status='exited',Running=False,Pid=0,ExitCode=0);terminal['NetworkSettings'].update(SandboxID='',SandboxKey='');terminal['NetworkSettings']['Networks']['none']['EndpointID']=''
+        return p,h,process,row,running,terminal
+    def test_full_start_and_teardown_once_exact_retained_baselines(self):
+        p,h,process,created,running,terminal=self.fixture()
+        # The unchanged legacy contract still rejects this exact HostConfig change.
+        original_parent=h._PARENT_PROFILES.pop(process);process.static=h.encode({k:created[k]for k in ('Config','HostConfig','Mounts')})
+        try:
+            with self.assertRaisesRegex(h.Held,'probe-original-terminal-static'):process.profile(running,running=True)
+        finally:h._PARENT_PROFILES[process]=original_parent;process.static=None
+        process.profile(created);born=process.full_created
+        with self.assertRaises(h.Held):
+            bad=copy.deepcopy(running);bad['Config']['foreign']='refuse';process.profile(bad,running=True)
+        self.assertIsNone(process.full_running);process.profile(running,running=True);started=process.full_running
+        self.assertEqual(born,h.encode(p.static(created)));self.assertEqual(started,h.encode(p.static(running)));process.profile(terminal,terminal=True)
+        self.assertEqual(process.full_created,born);self.assertEqual(process.full_running,started);process.profile(terminal,terminal=True)
+        bad=copy.deepcopy(terminal);bad['NetworkSettings']['Networks']['none']['NetworkID']='f'*64
+        with self.assertRaises(h.Held):process.profile(bad,terminal=True)
+    def test_running_refresh_types_and_forged_tape_refuse(self):
+        p,h,process,created,running,terminal=self.fixture();process.profile(created);process.profile(running,running=True)
+        bad=copy.deepcopy(running);bad['HostConfig']['OomKillDisable']=False
+        with self.assertRaises(h.Held):process.profile(bad,running=True)
+        process.full_running=h.encode(p.static(bad))
+        with self.assertRaisesRegex(h.Held,'full-profile-seal'):process.original_close()
+    def test_active_parent_owned_terminal_delegation_keeps_other_guards(self):
+        import ast
+        source=Path(__file__).with_name('comic_negative_nfs_active_parent.py').read_text();tree=ast.parse(source)
+        checks=[n for n in ast.walk(tree)if isinstance(n,ast.Call)and isinstance(n.func,ast.Name)and n.func.id=='check'and len(n.args)>1 and isinstance(n.args[1],ast.Constant)and n.args[1].value=='child-terminal']
+        self.assertEqual(len(checks),2)
+        p,h,process,created,running,terminal=self.fixture();process.profile(created);process.profile(running,running=True);process.profile(terminal,terminal=True)
+        for check in checks:
+            env=dict(terminal=terminal,initial_child_static={k:created[k]for k in ('Config','HostConfig','Mounts')},owned_probe=process,child=process.cid,IMAGE=process.spec['image'])
+            self.assertTrue(eval(compile(ast.Expression(check.args[0]),'<owning-terminal-predicate>','eval'),env))
+            env['owned_probe']=None;self.assertFalse(eval(compile(ast.Expression(check.args[0]),'<owning-terminal-predicate>','eval'),env))
+            env['owned_probe']=process;env['terminal']=copy.deepcopy(terminal);env['terminal']['Config']['foreign']='refuse';self.assertFalse(eval(compile(ast.Expression(check.args[0]),'<owning-terminal-predicate>','eval'),env))
+
+    def test_source_authenticated_parent_required_no_generic_helper_callback(self):
+        import comic_nfs_host_probe as h
+        original=ProbeBoundary();original.setUp();self.addCleanup(original.doCleanups)
+        with self.assertRaises((h.Held,AttributeError)):h.ProbeProcess(original.spec,['docker'],original.engine,original.close,owner=object())
+
+class RetainedProfileContract(unittest.TestCase):
+    def fixture(self):
+        source=FullProfileTransitions();source._cleanups=[]
+        self.addCleanup(source.doCleanups)
+        p,h,obj,born,running,terminal=source.fixture()
+        obj.profile(born)
+        return p,obj,lambda:obj.profile(running,running=True),obj.original_close
+    def test_same_globals_predicate_encoder_and_prefix_replacement_refuse(self):
+        from unittest.mock import patch
+        p,obj,run,close=self.fixture()
+        scope=p.__dict__;temporary={}
+        exec('def foreign(*args): return True',scope,temporary)
+        for name,value in [('none_network_started_static',temporary['foreign']),
+                           ('none_network_exited_static',temporary['foreign']),
+                           ('_none_network_profile_bytes',temporary['foreign']),
+                           ('NONE_NETWORK_SANDBOX_PARENT','/foreign')]:
+            with self.subTest(name=name),patch.dict(scope,{name:value}):
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):run()
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):close()
+        self.assertIsNone(obj.full_running)
+        run()
+    def test_in_place_code_mutation_refuses_and_restoration_retains_tape(self):
+        p,obj,run,close=self.fixture();function=p.none_network_started_static;original=function.__code__
+        def foreign(a,b,c):return True
+        try:
+            function.__code__=foreign.__code__
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):run()
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):close()
+        finally:function.__code__=original
+        run();close()
+    def test_retained_guard_identity_code_and_token_are_required(self):
+        from unittest.mock import patch
+        p,obj,run,close=self.fixture();scope=p.__dict__;temporary={}
+        exec('def foreign(): return object()',scope,temporary)
+        with patch.dict(scope,none_network_profile_contract=temporary['foreign']):
+            with self.assertRaises(ValueError):run()
+            with self.assertRaises(ValueError):close()
+        run();close()
+        with patch.dict(scope,NONE_NETWORK_SANDBOX_PARENT='/foreign'):
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):self.fixture()
+    def test_in_place_dependency_and_checked_api_code_refuse(self):
+        p,obj,run,close=self.fixture()
+        for name in ('_none_network_profile_bytes','checked_none_network_started_static',
+                     'checked_none_network_exited_static','none_network_profile_contract'):
+            function=getattr(p,name);code=function.__code__
+            try:
+                function.__code__=code.replace(co_filename='<changed-source-code>')
+                with self.subTest(name=name),self.assertRaises(ValueError):run()
+                with self.assertRaises(ValueError):close()
+            finally:function.__code__=code
+        run();close()
+
 if __name__ == '__main__':
     unittest.main()

@@ -1025,7 +1025,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None, roles=None, host
     supported=True
     terminal = json.loads(call(DOCKER + ["inspect", child]).stdout)[0] if owned_probe is None else owned_terminal
     check(
-        all(terminal[k]==v for k,v in initial_child_static.items())
+        all(terminal[k]==v for k,v in initial_child_static.items()if k!='HostConfig' or owned_probe is None)
         and terminal["Id"] == child
         and terminal["Image"] == IMAGE
         and terminal["State"]["Status"] == "exited"
@@ -1432,7 +1432,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
     after,terminal=owned_probe.finish_after_release()
     check(after.stdout==r.stdout,"gated-original-kernel-output")
     check(
-        all(terminal[k]==v for k,v in initial_child_static.items())
+        all(terminal[k]==v for k,v in initial_child_static.items()if k!='HostConfig' or owned_probe is None)
         and terminal["Id"] == child
         and terminal["Image"] == IMAGE
         and terminal["State"]["Status"] == "exited"
