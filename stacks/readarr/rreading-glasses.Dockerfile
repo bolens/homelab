@@ -6,8 +6,12 @@ RUN apk add --no-cache git \
     && git clone https://github.com/blampe/rreading-glasses.git . \
     && git checkout "$SOURCE_COMMIT"
 COPY rreading-glasses-batch-limit.patch /tmp/batch-limit.patch
+COPY rreading-glasses-search-cache.patch /tmp/search-cache.patch
 RUN git apply --check /tmp/batch-limit.patch \
     && git apply /tmp/batch-limit.patch \
+    && git apply --check /tmp/search-cache.patch \
+    && git apply /tmp/search-cache.patch \
+    && CGO_ENABLED=0 go test ./internal -run '^TestHardcoverSearch(Cache|RetainsColdMetadata)$' -count=1 \
     && CGO_ENABLED=0 go build -o /main -ldflags="-w -s" ./cmd/rghc
 
 FROM gcr.io/distroless/static:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
