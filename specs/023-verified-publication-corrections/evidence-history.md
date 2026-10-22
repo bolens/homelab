@@ -1272,3 +1272,39 @@ the owning protocol’s exact bytes through the original FD and full file identi
 do not truncate or replace the lock to satisfy the old assumption. Prior accepted SourceCohorts remain intact;
 no connected factory, repair, NFS mutation or import ACK acceptance follows.
 All 75 task IDs and states remain unchanged: 59 complete and 16 open.
+
+## Writer protocol projection and assembly boundary — 2026-10-22
+
+PR #481 merged with all required hosted checks passing. Its reviewed and squash
+trees agree, and GitHub main, local main and Gitea agree. The completed local
+notes branch was removed; its reviewed commit remains archived. Its worktree is
+reused for the next focused source change rather than creating another checkout.
+
+The private projection now derives the exact protocol marker from the original
+SourceCohort writer source and checks its bytes, size, FD/path identity and hash
+through final closure. Seventeen controls pass on host and Python 3.10, including
+old full-producer failure followed by corrected success, wrong source pins,
+damaged/replaced markers and late drift. Independent review cleared the frozen
+source and the next actual bindings. No lock file was reset or truncated.
+
+The next single batch completed a new causal SourceFixture: 1,302 controls across
+73 suites, exact source closure and owned-container cleanup/absence. Its cohort
+digest is `247a5f17963dac248dcfa92b559bd210f2052ec8ede51949dbddbcb3a35bb19a`.
+Effective observation, current-role capture and protocol projection then passed.
+The active assembler refused `active-output-custody` before Writer acquisition,
+Producer invocation or repair Parent execution. Production services were unchanged.
+
+A disposable test on the same Btrfs filesystem reproduces a stale listing from
+a reused directory descriptor immediately after adding a file. The maintained
+assembler must apply the already documented fresh-relative-descriptor census,
+retaining original directory identity, exact names and final closure. The source correction now passes all 25 owning controls on host and Python 3.10,
+including the complete stale-listing path, replacement during an empty census,
+and mixed source generations with strict alias and drift refusals. Independent
+review cleared both the source and its exact integration maps. The full Python
+3.10 runner passes 1,401 controls across 75 suites, zero skips, with original
+source closure. All 14 outer controls, full local CI and history secret scanning
+pass. The unchanged later hardlink-cleanup helper also passes five
+disposable Btrfs runs; that supplies no actual NFS or lease proof. Delivery and
+another fresh owning attempt remain pending. This is no factory, NFS repair,
+publication, import ACK or bulk acceptance. All 75 task
+IDs, ordering and checkbox states remain unchanged: 59 complete and 16 open.

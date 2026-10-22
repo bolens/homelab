@@ -41,6 +41,13 @@ Use make validate-changed BASE=origin/main or make ci-local for broader changes,
 following RELEASING.md. Validation does not authorize image pulls, directory creation
 over missing mounts, service changes, or destructive volume removal.
 
+Check the interpreter used by local hooks before rerunning environment failures.
+On this workstation, the default mise Python lacks PyYAML while system Python
+has it. Use the system Python for repository validation and the supported Node
+26 runtime used for these site checks; keep explicit Python 3.10 recovery tests
+separate.
+Do not change production runtimes or validation assertions to fix that PATH.
+
 GitHub job metadata can lag completed runner output. If `gh run view --log`
 refuses an apparently running job, the job-logs API may already provide its
 completed log. Check the required result job and runner assignment separately;
