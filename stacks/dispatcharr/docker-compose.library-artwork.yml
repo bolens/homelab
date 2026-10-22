@@ -5,6 +5,7 @@ services:
     entrypoint: ["/bin/bash", "/opt/dispatcharr-library-entrypoint.sh"]
     environment:
       LIBRARY_ARTWORK_ORIGIN: ${DISPATCHARR_LIBRARY_ARTWORK_ORIGIN:?Set the public HTTPS Dispatcharr origin for program images}
+      PLEX_XMLTV_SPECIALS: ${DISPATCHARR_PLEX_XMLTV_SPECIALS:-false}
     volumes:
       - type: bind
         source: ./helpers/library-artwork-init.sh

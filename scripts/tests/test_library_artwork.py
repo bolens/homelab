@@ -5,6 +5,9 @@ import importlib.util
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+import textwrap
+import tempfile
+import xml.etree.ElementTree as ET
 
 
 SOURCE = Path(__file__).resolve().parents[2] / "stacks/dispatcharr/helpers/library_artwork.py"
@@ -52,6 +55,81 @@ class LibraryArtworkTests(unittest.TestCase):
                        "https://dispatcharr.example.com\n; injected"]:
             with self.assertRaises(ValueError):
                 bridge.render(FIXTURE, origin)
+
+
+class PlexSpecialsTests(unittest.TestCase):
+    def test_startup_rejects_raw_exporter_drift_before_either_file_changes(self):
+        source = "# synthetic guard fixture\n" + bridge.EXPORTER_LINE + "\n"
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "nginx.conf"
+            exporter = Path(directory) / "epg.py"
+            target.write_text(FIXTURE)
+            raw = source.replace("\n", "\r\n").encode()
+            exporter.write_bytes(raw)
+            paths = {"/etc/nginx/sites-enabled/default": target, "/app/apps/output/epg.py": exporter}
+            with patch.object(bridge, "Path", side_effect=lambda value: paths[value]), patch.object(
+                    bridge, "REVIEWED_TEMPLATE_SHA256", hashlib.sha256(FIXTURE.encode()).hexdigest()), patch.object(
+                    bridge, "REVIEWED_EXPORTER_SHA256", hashlib.sha256(source.encode()).hexdigest()), patch.dict(
+                    bridge.os.environ, {"PLEX_XMLTV_SPECIALS": "true",
+                                        "LIBRARY_ARTWORK_ORIGIN": "https://dispatcharr.example.com"}):
+                with self.assertRaisesRegex(ValueError, "Unreviewed XMLTV"):
+                    bridge.main()
+            self.assertEqual(target.read_text(), FIXTURE)
+            self.assertEqual(exporter.read_bytes(), raw)
+
+    def test_disabled_mode_does_not_modify_an_unreviewed_exporter(self):
+        source = "# a different exporter\n"
+        self.assertEqual(bridge.render_exporter(source, False), source)
+        with self.assertRaisesRegex(ValueError, "Unreviewed XMLTV"):
+            bridge.render_exporter(source, True)
+
+    def test_reviewed_patch_is_idempotent_and_reversible(self):
+        source = "# synthetic guard fixture\n" + bridge.EXPORTER_LINE + "\n"
+        with patch.object(bridge, "REVIEWED_EXPORTER_SHA256", hashlib.sha256(source.encode()).hexdigest()):
+            updated = bridge.render_exporter(source, True)
+            self.assertEqual(bridge.render_exporter(updated, True), updated)
+            self.assertEqual(bridge.render_exporter(updated, False), source)
+            with self.assertRaisesRegex(ValueError, "Unreviewed XMLTV"):
+                bridge.render_exporter(updated + "# unrelated edit\n", True)
+
+    def test_partial_duplicate_and_modified_patches_refuse(self):
+        for source in [bridge.EXPORTER_PATCH + bridge.EXPORTER_PATCH,
+                       bridge.EXPORTER_PATCH.replace("episode >= -1", "episode >= -2"),
+                       "# BEGIN Plex special-episode identity compatibility\n"]:
+            for enabled in (True, False):
+                with self.subTest(enabled=enabled), self.assertRaises(ValueError):
+                    bridge.render_exporter(source, enabled)
+
+    def test_only_matching_numbered_special_uses_its_existing_onscreen_identity(self):
+        for episode in (1, 7, 99, 100):
+            label = f"S00E{episode:02d}"
+            data = {"season": 0, "episode": episode, "onscreen_episode": label}
+            before = dict(data)
+            output = [f'<episode-num system="onscreen">{label}</episode-num>']
+            scope = {"custom_data": data, "season": -1, "episode": episode - 1, "program_xml": output}
+            exec(compile(textwrap.dedent(bridge.EXPORTER_PATCH), "reviewed-export-block", "exec"), scope)
+            xml = ET.fromstring("<programme>" + "".join(output) + "</programme>")
+            self.assertEqual([(e.get("system"), e.text) for e in xml], [("onscreen", label)])
+            self.assertEqual(data, before)
+
+    def test_regular_episodes_missing_or_conflicting_labels_and_invalid_numbers_keep_namespace(self):
+        for season, episode, label in [(0, 6, "S01E07"), (1, 6, "S02E07"),
+                                       (-1, 6, None), (-1, 6, "E7"),
+                                       (-1, 6, "S00E08"), (-1, -2, "S00E-1")]:
+            with self.subTest(season=season, episode=episode, label=label):
+                output = []
+                scope = {"custom_data": {"onscreen_episode": label}, "season": season,
+                         "episode": episode, "program_xml": output}
+                exec(compile(textwrap.dedent(bridge.EXPORTER_PATCH), "reviewed-export-block", "exec"), scope)
+                self.assertEqual(output, [f'    <episode-num system="xmltv_ns">{season}.{episode}.</episode-num>'])
+
+    def test_explicit_zero_episode_does_not_override_its_onscreen_identity(self):
+        for season, label in [(3, "S04E00"), (-1, "S00E00")]:
+            output = []
+            scope = {"custom_data": {"onscreen_episode": label}, "season": season,
+                     "episode": -1, "program_xml": output}
+            exec(compile(textwrap.dedent(bridge.EXPORTER_PATCH), "reviewed-export-block", "exec"), scope)
+            self.assertEqual(output, [])
 
 
 if __name__ == "__main__":
