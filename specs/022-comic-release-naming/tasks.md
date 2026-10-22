@@ -29,7 +29,8 @@ and [the phase correction](../023-verified-publication-corrections/evidence-hist
 
 The scoped owning-UID reader passed against all three original NFS fixture
 directories, with source/directory custody and restoration to Root verified.
-The combined owning-read and causal malformed-fixture source passes 1,392
+PR #476 delivers the owning-read and causal malformed-fixture correction with
+passing hosted CI and resolved security review. Its source passes 1,392
 controls across 75 suites, zero skips, plus all 14 outer preservation checks on
 Python 3.10. Local CI, independent review and final-source checked installation
 of 27 outputs pass. Connected repair, factories
@@ -41,8 +42,10 @@ The next independently reviewed source correction preserves an authenticated emp
 SourceCohort stderr without relaxing ordinary reads. Its exact source candidate
 passes 1,397 controls across 75 suites and all 14 outer checks on Python 3.10,
 with zero skips. The successor checked installation and verification of all
-27 original outputs now pass. Delivery and the external fresh-observation caller
-remain pending. This does not close the connected execution or import/ACK gates.
+27 original outputs and reference export now pass. PR #477 delivers this
+successor with all hosted checks passing. The next connected
+batch must capture fresh effective/current observations before owning execution.
+This does not close the connected execution or import/ACK gates.
 
 ## Phase 1: Setup
 
