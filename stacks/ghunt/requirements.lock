@@ -1,1 +1,2 @@
-ghunt==2.3.4
+ghunt==2.3.4+homelab.1
+alive-progress==3.3.0+homelab.1

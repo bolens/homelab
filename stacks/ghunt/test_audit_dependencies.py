@@ -1,4 +1,4 @@
-"""Narrow GHunt metadata exception and build-context regression controls."""
+"""Strict GHunt dependency graph and build-context regression controls."""
 import importlib.util
 from pathlib import Path
 import subprocess
@@ -19,11 +19,9 @@ class DependencyAuditTests(unittest.TestCase):
     def test_clean_metadata_needs_no_exception(self):
         self.assertEqual(audit.validate(self.result(0, "No broken requirements found."), {}), "clean")
 
-    def test_only_exact_documented_pillow_pair_is_accepted(self):
-        self.assertEqual(audit.validate(self.result(), VERSIONS), "documented-pillow-override")
-        for versions in ({"ghunt": "2.3.5", "pillow": "13.0.0"}, {"ghunt": "2.3.4", "pillow": "12.3.0"}, {"ghunt": "2.3.4", "pillow": "13.0.1"}, {}):
-            with self.subTest(versions=versions), self.assertRaises(audit.Refused):
-                audit.validate(self.result(), versions)
+    def test_previous_pillow_exception_now_refuses(self):
+        with self.assertRaises(audit.Refused):
+            audit.validate(self.result(), VERSIONS)
 
     def test_missing_or_incompatible_parent_dependencies_refuse(self):
         errors = [
@@ -43,7 +41,7 @@ class DependencyAuditTests(unittest.TestCase):
                 audit.validate(result, VERSIONS)
 
     def test_main_calls_actual_interpreter_pip_check_without_network_flags(self):
-        with patch.object(audit.subprocess, "run", return_value=self.result()) as run, patch.object(audit.metadata, "version", side_effect=lambda n: VERSIONS[n]), patch("builtins.print"):
+        with patch.object(audit.subprocess, "run", return_value=self.result(0, "No broken requirements found.")) as run, patch.object(audit.metadata, "version", side_effect=lambda n: VERSIONS[n]), patch("builtins.print"):
             audit.main()
         self.assertEqual(run.call_args.args[0], [audit.sys.executable, "-I", "-B", "-m", "pip", "check"])
         self.assertTrue(run.call_args.kwargs["capture_output"])
@@ -56,7 +54,7 @@ class DependencyAuditTests(unittest.TestCase):
         text = (HERE / "Dockerfile").read_text()
         self.assertIn("COPY audit-dependencies.py /tmp/audit-dependencies.py", text)
         self.assertIn("&& python -I -B /tmp/audit-dependencies.py", text)
-        self.assertEqual((HERE / ".dockerignore").read_text().splitlines(), ["**", "!Dockerfile", "!requirements.txt", "!audit-dependencies.py"])
+        self.assertEqual((HERE / ".dockerignore").read_text().splitlines(), ["**", "!Dockerfile", "!requirements.txt", "!audit-dependencies.py", "!build-compat-wheels.py", "!test-runtime-compatibility.py"])
 
 if __name__ == "__main__":
     unittest.main()

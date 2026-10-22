@@ -1,4 +1,4 @@
-"""Checked patch for Komga 1.29.0's next UI notification presentation."""
+"""Checked patch for Komga 1.29.1's next UI notification presentation."""
 from pathlib import Path
 import shutil
 import sys

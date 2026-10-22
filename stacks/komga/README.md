@@ -27,7 +27,7 @@ metadata lookup fails or takes more than 1.5 seconds, the toast uses a cleaned
 filename. Its Open action still targets the imported book. Failure notifications
 also omit the source directory; detailed import history remains unchanged.
 
-The image builds the UI from the checksum-verified Komga 1.29.0 source and locked
+The image builds the UI from the checksum-verified Komga 1.29.1 source and locked
 npm dependencies. Its patch fails if the expected upstream notification changes.
 The patch preserves all other entries in the pinned server JAR, including the
 legacy UI. Its exact server-version gate must advance with the source archive.
@@ -521,7 +521,7 @@ ARCHIVING_UTILS_BIN=/path/to/archiving-utils/bin/archiving-utils python3 normali
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `komga:25600`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
-| **Images** | `gotson/komga:1.29.0` (digest-pinned in Compose) |
+| **Images** | `gotson/komga:1.29.1` (digest-pinned in Compose) |
 | **Storage** | Local `komga_config`; `${KOMGA_COMICS_PATH}` → `/data/comics` and `${KOMGA_MANGA_PATH}` → `/data/manga`, both read-only |
 
 ## Caddy reverse proxy

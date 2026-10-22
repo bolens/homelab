@@ -14,7 +14,7 @@ RUN git apply --check /tmp/batch-limit.patch \
     && CGO_ENABLED=0 go test ./internal -run '^TestHardcoverSearch(Cache|RetainsColdMetadata)$' -count=1 \
     && CGO_ENABLED=0 go build -o /main -ldflags="-w -s" ./cmd/rghc
 
-FROM gcr.io/distroless/static:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
+FROM gcr.io/distroless/static:nonroot@sha256:d62067879de890a1def9da0e7766b7d20810a5e5555cef8506b752437d7a3e88
 COPY --from=build /main /main
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 EXPOSE 8788

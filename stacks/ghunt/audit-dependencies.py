@@ -1,13 +1,7 @@
-"""Check installed requirements, allowing one documented GHunt/Pillow override."""
+"""Require a clean installed dependency graph, including compatibility wheels."""
 from importlib import metadata
 import subprocess
 import sys
-
-PILLOW_EXCEPTION = (
-    "ghunt 2.3.4 has requirement pillow<11.0.0,>=10.4.0, "
-    "but you have pillow 13.0.0."
-)
-
 
 class Refused(ValueError):
     pass
@@ -20,9 +14,6 @@ def validate(result, versions):
         raise Refused("pip-check-diagnostic")
     if result.returncode == 0 and lines == ["No broken requirements found."]:
         return "clean"
-    if (result.returncode == 1 and lines == [PILLOW_EXCEPTION]
-            and versions == {"ghunt": "2.3.4", "pillow": "13.0.0"}):
-        return "documented-pillow-override"
     raise Refused("unreviewed-dependency-conflict")
 
 
