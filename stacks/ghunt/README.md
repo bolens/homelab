@@ -57,16 +57,37 @@ docker build -t harbor.yourdomain.com/homelab/ghunt:latest .
 docker push harbor.yourdomain.com/homelab/ghunt:latest
 ```
 
-The hash-locked build checks all installed dependency metadata with
-`audit-dependencies.py`. It permits only the retained GHunt 2.3.4/Pillow 13.0.0
-pair: GHunt declares Pillow `>=10.4.0,<11`, while this image uses
-Pillow 13.0.0 for its JPEG/TIFF security fixes. This is an explicit compatibility
-exception, not a claim that upstream supports the newer Pillow. Every missing dependency and every other
-conflict fails the build, including GHunt's autoslot/Rich bounds and
-alive-progress's exact about-time requirement. Updating either exception version
-requires a new review; normal clean dependency checks need no exception.
-Verify image imports, CLI behavior and image-related processing before deployment.
-No authenticated Google requests are made by the dependency audit.
+The build uses GHunt 2.3.4 and alive-progress 3.3.0 with local compatibility
+versions `2.3.4+homelab.1` and `3.3.0+homelab.1`. Upstream still caps HTTPX and
+jsonpickle below these versions and pins the older graphemeu. The image tests
+HTTPX 0.28.1, jsonpickle 4.1.2, graphemeu 0.11.0 and Pillow 13.0.0 offline.
+Pillow retains its JPEG/TIFF security fixes.
+
+`build-compat-wheels.py` verifies the original PyPI wheel hashes, changes only
+version and dependency metadata, rebuilds RECORD and emits reproducible wheels.
+Application code and upstream licenses remain unchanged. These are local
+compatibility declarations, not upstream support claims. The installed graph
+must pass `pip check` without exceptions. The image also tests the actual GHunt
+client, per-request cookie isolation, JSON export of slotted objects, Unicode
+progress rendering and JPEG/TIFF image hashing, then checks CLI help. No Google
+requests, cookies or user configuration are used by these checks.
+
+To regenerate the lock, first download the two exact upstream wheels listed in
+`Dockerfile` into a disposable `upstream` directory. Then run from this stack:
+
+```sh
+python3 build-compat-wheels.py upstream wheels
+uv pip compile --python-version 3.14 --python-platform x86_64-manylinux_2_28 \
+  --find-links wheels --override requirements.override --generate-hashes \
+  --output-file requirements.txt requirements.lock
+```
+
+The output wheel hashes must match the lock. Do not commit either disposable
+directory. Dependabot continues monitoring the installed dependency lock. Review
+the upstream GHunt and alive-progress versions and these local recipes monthly,
+because automatic updates cannot regenerate the compatibility wheels. Retire the
+local recipes when upstream bounds support the tested graph. Any recipe change
+requires new wheel hashes and successful image compatibility checks.
 
 Set `GHUNT_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
 

@@ -2,3 +2,5 @@
 !Dockerfile
 !requirements.txt
 !audit-dependencies.py
+!build-compat-wheels.py
+!test-runtime-compatibility.py
