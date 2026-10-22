@@ -36,6 +36,14 @@ of 27 outputs pass. Connected repair, factories
 and import/ACK acceptance remain open. Preserve the original permissions,
 receipts and task gates. See [the observed boundary](../023-verified-publication-corrections/evidence-history.md#private-nfs-owner-read-boundary---2026-10-21).
 
+
+The next independently reviewed source correction preserves an authenticated empty
+SourceCohort stderr without relaxing ordinary reads. Its exact source candidate
+passes 1,397 controls across 75 suites and all 14 outer checks on Python 3.10,
+with zero skips. The successor checked installation and verification of all
+27 original outputs now pass. Delivery and the external fresh-observation caller
+remain pending. This does not close the connected execution or import/ACK gates.
+
 ## Phase 1: Setup
 
 **Purpose**: Record preferences, preservation requirements and prospective contracts.

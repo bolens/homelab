@@ -371,13 +371,13 @@ def parents(path):
     return result
 
 
-def read(ref, private=True):
+def _read_original(ref, private, *, empty_stderr=False):
     need(type(ref) is dict and set(ref) == {'path', 'sha256', 'signature9'}
          and digest(ref['sha256']), 'ref-shape')
     path = absolute(ref['path']); expected = tuple(ref['signature9'])
     need(len(expected) == 9 and all(type(x) is int for x in expected)
          and stat.S_ISREG(expected[5]) and expected[8] == 1
-         and 0 < expected[2] <= MAX
+         and (0 if empty_stderr else 1) <= expected[2] <= MAX
          and (not private or expected[6] == os.geteuid()
               and stat.S_IMODE(expected[5]) == 0o600), 'ref-attributes')
     actor = _OWNER_READS
@@ -415,6 +415,34 @@ def read(ref, private=True):
             os.close(leaf)
     finally:
         os.close(fd)
+
+
+
+def read(ref, private=True):
+    """Ordinary source/fact reads remain strictly nonempty."""
+    return _read_original(ref, private)
+
+
+def read_cohort_stderr(cohort_ref, ref):
+    """Read only the exact empty private stderr of an original SourceCohort."""
+    original = read(cohort_ref)
+    cohort = decode(original)
+    need(type(cohort) is dict and type(cohort.get('version')) is int
+         and cohort['version'] == 1
+         and cohort.get('kind') == 'approved-disposable-nfs-current-source-cohort'
+         and type(cohort.get('logs')) is dict and set(cohort['logs']) == {'stdout','stderr'},
+         'cohort-empty-stderr-document')
+    pair = cohort['logs']['stderr']
+    need(type(pair) is dict and set(pair) == {'path','sha256'}
+         and type(ref) is dict and set(ref) == {'path','sha256','signature9'}
+         and type(ref['signature9']) in (list,tuple) and len(ref['signature9']) == 9
+         and all(type(value) is int for value in ref['signature9'])
+         and ref['signature9'][2] == 0
+         and pair == {key:ref[key] for key in ('path','sha256')}
+         and ref['sha256'] == hashlib.sha256(b'').hexdigest(), 'cohort-empty-stderr-role')
+    raw = _read_original(ref, True, empty_stderr=True)
+    need(raw == b'' and read(cohort_ref) == original, 'cohort-empty-stderr-original')
+    return raw
 
 
 def final(files, nodes, absent):
@@ -1427,7 +1455,11 @@ class LifecycleParent:
                     need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-cohort-node');self.nodes[node]=fact
                 stamp=tuple(nine(nfs_lstat(path)));need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-cohort-file');self.files[str(path)]=stamp
             for value in public_sources:read(dict(value,signature9=list(self.files[value['path']])),private=False)
-            for value in private_facts:read(dict(value,signature9=list(self.files[value['path']])))
+            for value in private_facts:
+                full=dict(value,signature9=list(self.files[value['path']]))
+                if value==cohort['logs'].get('stderr') and full['signature9'][2]==0:
+                    read_cohort_stderr(dict(cref,signature9=list(self.files[cref['path']])),full)
+                else:read(full)
             # The child sends no endpoint/route/config selector. Seal the one
             # original approved query plan and its private configuration now.
             query_ref=original_scope['sources']['current_komga_libraries']
@@ -1548,6 +1580,11 @@ class LifecycleParent:
                  and any(ref['path']==value['path'] and ref['sha256']==value['sha256'] for value in sources),
                  'child-original-public-source-role')
             return read(ref,private=False)
+        if (type(ref) is dict and type(ref.get('signature9')) in (list,tuple)
+                and len(ref['signature9'])==9 and ref['signature9'][2]==0
+                and self in _NFS_SOURCE_CONTEXTS):
+            _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];data=decode(active);cohort_ref=data['source_cohort']
+            return read_cohort_stderr(dict(cohort_ref,signature9=list(self.files[cohort_ref['path']])),ref)
         # Only these exact already-authenticated retained-owner roles differ
         # from ordinary Root controls. The generic Tree contract stays strict.
         if self.plan.get('version')==13 and self.plan.get('action')=='archive-one':
