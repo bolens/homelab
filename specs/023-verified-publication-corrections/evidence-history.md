@@ -1246,3 +1246,19 @@ remain required before another configured attempt. The previous SourceCohort rem
 and digest cannot be retargeted to the corrected observer. No new factory, NFS,
 repair or import ACK acceptance is claimed. All 75 task IDs and checkbox states
 remain unchanged: 59 complete and 16 open.
+
+## Paired readiness preparation refusal — 2026-10-22
+
+PR #480 merged after passing hosted CI; its squash tree matches the reviewed
+head, and GitHub main, local main and the Gitea mirror agree. The corrected
+source worktree remains frozen for its original references.
+
+The next combined Root batch refused at `source-original-readiness-nonce`
+during SourceFixture preparation. Its fresh request nonce was paired with an
+older readiness input. The emitter, fresh observations and owning Parent never
+ran. Existing failure handling attempted owned cleanup, but cleanup and
+resource absence remain unverified. The private coupled-readiness adapter passes six isolated controls and
+independent review; its configured run remains unverified. No canonical guard
+relaxation or historical input rewrite is required. Prior accepted SourceCohort originals remain untouched.
+No connected factory, repair, NFS mutation or import ACK acceptance follows.
+All 75 task IDs and states remain unchanged: 59 complete and 16 open.
