@@ -12,6 +12,7 @@ import re
 import stat
 import sys
 import time
+import types
 
 import genuine_plan13_producer as composer
 import comic_negative_nfs_active_parent as active
@@ -65,11 +66,15 @@ class Assembly:
              and q['kind'] == 'disposable-original-active-input-assembly' and p.digest(q['nonce']), 'active-input-schema')
         fresh(q['observed'])
         need(type(q['sources']) is dict and set(q['sources']) == {*PINS, 'genuine_active_inputs.py'}, 'active-source-set')
+        modules = {'genuine_plan13_producer.py': composer, 'comic_negative_nfs_active_parent.py': active,
+                   'genuine_source_cohort.py': cohort_source}
+        for name, module in modules.items():
+            need(type(module) is types.ModuleType and module.__name__ == name[:-3] and sys.modules.get(name[:-3]) is module
+                 and Path(module.__file__).name == name, 'active-source-origin')
         for name, ref in q['sources'].items():
-            need(ref['path'] == str(HERE / name) and (name not in PINS or ref['sha256'] == PINS[name]), 'active-source-pin')
+            origin = Path(__file__).absolute() if name == 'genuine_active_inputs.py' else Path(modules[name].__file__).absolute()
+            need(ref['path'] == str(origin) and (name not in PINS or ref['sha256'] == PINS[name]), 'active-source-pin')
             self.originals.read(ref, private=False)
-        for module in (composer, active, cohort_source):
-            need(Path(module.__file__).absolute() == HERE / (module.__name__ + '.py'), 'active-source-origin')
         current = self.originals.json(q['current_roles']); self.current = current
         need(type(current) is dict and set(current) == {'nonce', 'observed', 'roles', 'native_process'}
              and current['nonce'] == q['nonce'] and current['observed'] == q['observed']
@@ -243,6 +248,19 @@ class Assembly:
             'current_worker_created', 'current_komga_libraries', 'current_komga_effective_scope',
             'protected_catalog_cache_recovery_scope', 'continuous_raw_writer_lease'}, 'active-scope-source-set')
 
+    def output_names(self):
+        # A persistent directory description can retain a stale Btrfs census
+        # after our own writes. Open a fresh description of the HELD inode.
+        fd = os.open('.', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=self.fd)
+        try:
+            need(p.five(os.fstat(fd)) == self.output5 == p.five(os.fstat(self.fd))
+                 == p.five(p.nfs_lstat(self.output)), 'active-output-census-open')
+            names = set(os.listdir(fd))
+            need(p.five(os.fstat(fd)) == self.output5 == p.five(os.fstat(self.fd))
+                 == p.five(p.nfs_lstat(self.output)), 'active-output-census-close')
+            return names
+        finally:os.close(fd)
+
     def close(self):
         self.originals.close()
         if hasattr(self, 'neutral_parent'):
@@ -254,7 +272,7 @@ class Assembly:
         if hasattr(self, 'tape'):need(p.encode(self.document) == self.tape, 'active-request-changed')
         if self.fd is not None:
             need(p.five(os.fstat(self.fd)) == self.output5 == p.five(p.nfs_lstat(self.output))
-                 and set(os.listdir(self.fd)) == self.names, 'active-output-custody')
+                 and self.output_names() == self.names, 'active-output-custody')
             for ref in self.files.values():p.read(ref)
 
     def write(self, name, value):

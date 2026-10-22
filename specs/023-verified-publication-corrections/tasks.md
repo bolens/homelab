@@ -12,7 +12,7 @@
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
-- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the current source successor passes 1,397 controls across 75 suites under Python 3.10, with zero skips. Its 14 outer checks and checked 27-output installation/export pass; configured connected acceptance remains open. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
+- **T026/T029 have source and execution work:** current-role capture, effective-scope production, SourceCohort and checked plan13 composition exist. The maintained active-input assembler and exact host-engine intent producer are delivered in PR #449 and independently reviewed; the delivered source successor passes 1,401 controls across 75 suites under Python 3.10, with zero skips. Its 14 outer checks and checked 27-output installation/export pass; configured connected acceptance remains open. The configured birth/session path already exists. The engine deliberately refuses unbound create/start calls; the effective-scope observer now accepts an authenticated original disposable bootstrap mapping while preserving its production mapping. Exercise those integrated producer/caller contracts against the matching images, then verify genuine connected factories, preservation and terminal consumption without fabricating approved scopes or NFS facts. Feature 024 T012/T015 shares these dependencies.
 - **Fresh isolated bootstrap:** the ninth finite batch completes both genuine Mylar queue imports, reader scan/progress and restart. Its worker remains stopped and original receipts/data are retained. PR #471 is merged with passing hosted CI. Connected factories, NFS, publication, retained live-DDL and fresh ACK acceptance remain open. See [the current bootstrap record](evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 - **T027 physical/reader acceptance remains open:** the retained configuration/catalog and duplicate-safe protection map are planning evidence. Fresh physical coverage, optional-font protection, aliases, neutral NFS preservation and owning Parent admission remain required. Effective-scope references expire after 120 seconds. See [retained planning](evidence-history.md#new-native-configuration-and-catalog-generation--2026-10-18) and [reader observations](evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
 - **T028/T033 pack recovery remains open:** all four selected histories remain retained, with no accepted import or ACK. The PR #405 worker passes 42 installed-module checks and 168 pack/import controls. Selected import, a later automatically consumed capture, restart reconciliation and fresh ACK are still required. See [installed worker proof](evidence-history.md#published-worker-installed-runtime-checks--2026-10-20).
@@ -22,7 +22,7 @@
 
 | Order | Tasks | Delivered or verified | Remaining acceptance |
 | --- | --- | --- | --- |
-| 1 | T026 / T029 | Current source controls: 1,397 / 75 suites; 14 outer checks and checked 27-output installation/export; generation-nine queue imports, reader checks and restart; installed SourceFixture 1,302-control gate and cleanup | Fresh effective scope/current roles, connected owning factories and archive terminal consumption |
+| 1 | T026 / T029 | Current host controls: 1,401 / 75 suites; 14 outer checks and checked 27-output installation/export; generation-nine imports/restart; causal SourceFixture 1,302-control gate, cleanup, fresh observations and protocol projection | Correct active-assembly directory census, then fresh observations, connected owning factories and archive terminal consumption |
 | 2 | T017 / T027 | Historical verified backups, ordinary native rollout and preservation | Fresh affected-state rollout/admission as needed, physical/NFS/reader proof, aggregate retirement and retained-repeat reconciliation |
 | 3 | T028 / T033 | Retained-delivery and recurring packs-only implementation, installed worker component checks | Selected retained pack, fresh catalog-to-ACK, later automatic capture consumption and restart reconciliation |
 | 4 | T018 / T019 | Historical canaries and scoped cleanup | Complete current-library acceptance, experimental bulk admission and conclusively completed-copy cleanup |
@@ -30,50 +30,20 @@
 T028's reviewed source contract precedes T026; its live ACK proof remains in
 step 3. T032 remains the separate worker-activation prerequisite. None of these
 steps requires holding ordinary Mylar unavailable throughout implementation.
-The installed SourceCohort gate is accepted. Next obtain fresh effective-scope
-and current-role observations within their 120-second window, then exercise the
-connected owning factories and archive terminal path.
+The current host source milestone is PR #480: 1,401 controls across 75 suites
+and 14 outer checks. PR #481 records its delivery and preparation history; all
+hosted checks passed. The latest causal SourceFixture separately passes the
+unchanged P690 generation's 1,302 controls across 73 suites, source closure and
+owned-container cleanup/absence. Fresh effective and current-role observations
+and the corrected writer-protocol projection pass.
 
-The installed SourceFixture generation passes 1,302 controls across 73 suites
-with zero skips, source checks before/after and verified owned-container cleanup.
-The successor assembler retains the absent probe parent until the owning Parent
-creates it; its 1,306 source controls and 14 owning runner checks pass under
-Python 3.10. These are distinct generations, with failed histories preserved.
-See [installed proof](evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21)
-and [the phase correction](evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
-
-The scoped owning-UID reader passed against all three original NFS fixture
-directories, with source/directory custody and restoration to Root verified.
-PR #476 delivers the owning-read and causal malformed-fixture correction with
-passing hosted CI and resolved security review. Its source passes 1,392
-controls across 75 suites, zero skips, plus all 14 outer preservation checks on
-Python 3.10. Local CI, independent review and final-source checked installation
-of 27 outputs pass. Connected repair, factories
-and import/ACK acceptance remain open. Preserve the original permissions,
-receipts and task gates. See [the observed boundary](evidence-history.md#private-nfs-owner-read-boundary---2026-10-21).
-
-
-The next independently reviewed source correction preserves an authenticated empty
-SourceCohort stderr without relaxing ordinary reads. Its exact source candidate
-passes 1,397 controls across 75 suites and all 14 outer checks on Python 3.10,
-with zero skips. The successor checked installation and verification of all
-27 original outputs and reference export now pass. PR #477 delivers this
-successor with all hosted checks passing. The next connected
-batch must capture fresh effective/current observations before owning execution.
-This does not close the connected execution or import/ACK gates.
-
-PR #480 delivers the profile and original-source continuity correction after
-passing hosted CI. Its 1,401 source controls across 75 suites and all 14 outer
-checks pass. The next Root batch refused during SourceFixture preparation:
-the fresh request nonce did not match its older readiness-input nonce. The
-emitter, fresh observations and owning Parent did not run in that attempt.
-The corrected paired input then passed the actual SourceFixture run and owned
-cleanup/absence checks. Effective observation and current-role capture also
-passed, before projection refused its assumption that the writer lock is empty.
-The file matches the owning writer’s 22-byte protocol marker. Its exact bytes
-must be verified against that source before another attempt; no lock is reset
-or truncated. No Writer acquisition or repair Parent ran. Historical originals
-remain unchanged; connected repair and import/ACK gates remain open.
+The latest batch stops at the active assembler's directory-custody check before
+Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
+shows that a reused directory descriptor can return a stale listing after a
+write. The correction must retain exact directory identity, namespace and final
+closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
+remain open. Preserve prior failures and original references; do not reuse the
+expired observations. See [the current assembly boundary](evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
 
 ## Phase 1: Setup
 

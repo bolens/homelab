@@ -6,52 +6,26 @@
 
 **Updated 2026-10-22.** 13 of 18 tasks are complete; 5 retain their full acceptance gates. T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
 
-- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the historical source verification passes 1,306 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
+- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the historical source verification passes 1,306 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile and configured observation checks pass; fresh observations remain required for each owning attempt. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
 - **Existing source and runtime milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. Published native/worker component proofs remain accepted for their recorded generations, and the ninth isolated bootstrap completes genuine queue imports, reader scan/progress and restart. These do not complete the connected installed factories, NFS or archive-terminal acceptance required by T012/T015. See [published component evidence](../023-verified-publication-corrections/evidence-history.md#published449-image-verification--2026-10-20) and [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 - **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
 
-The installed SourceFixture generation passes 1,302 controls across 73 suites
-with zero skips, source checks before/after and verified owned-container cleanup.
-The successor assembler retains the absent probe parent until the owning Parent
-creates it; its 1,306 source controls and 14 owning runner checks pass under
-Python 3.10. These are distinct generations, with failed histories preserved.
-See [installed proof](../023-verified-publication-corrections/evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21)
-and [the phase correction](../023-verified-publication-corrections/evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
+The current host source milestone is PR #480: 1,401 controls across 75 suites
+and 14 outer checks. PR #481 records its delivery and preparation history; all
+hosted checks passed. The latest causal SourceFixture separately passes the
+unchanged P690 generation's 1,302 controls across 73 suites, source closure and
+owned-container cleanup/absence. Fresh effective and current-role observations
+and the corrected writer-protocol projection pass.
 
-The scoped owning-UID reader passed against all three original NFS fixture
-directories, with source/directory custody and restoration to Root verified.
-PR #476 delivers the owning-read and causal malformed-fixture correction with
-passing hosted CI and resolved security review. Its source passes 1,392
-controls across 75 suites, zero skips, plus all 14 outer preservation checks on
-Python 3.10. Local CI, independent review and final-source checked installation
-of 27 outputs pass. Connected repair, factories
-and import/ACK acceptance remain open. Preserve the original permissions,
-receipts and task gates. See [the observed boundary](../023-verified-publication-corrections/evidence-history.md#private-nfs-owner-read-boundary---2026-10-21).
-
-
-The next independently reviewed source correction preserves an authenticated empty
-SourceCohort stderr without relaxing ordinary reads. Its exact source candidate
-passes 1,397 controls across 75 suites and all 14 outer checks on Python 3.10,
-with zero skips. The successor checked installation and verification of all
-27 original outputs and reference export now pass. PR #477 delivers this
-successor with all hosted checks passing. The next connected
-batch must capture fresh effective/current observations before owning execution.
-This does not close the connected execution or import/ACK gates.
-
-PR #480 delivers the profile and original-source continuity correction after
-passing hosted CI. Its 1,401 source controls across 75 suites and all 14 outer
-checks pass. The next Root batch refused during SourceFixture preparation:
-the fresh request nonce did not match its older readiness-input nonce. The
-emitter, fresh observations and owning Parent did not run in that attempt.
-The corrected paired input then passed the actual SourceFixture run and owned
-cleanup/absence checks. Effective observation and current-role capture also
-passed, before projection refused its assumption that the writer lock is empty.
-The file matches the owning writer’s 22-byte protocol marker. Its exact bytes
-must be verified against that source before another attempt; no lock is reset
-or truncated. No Writer acquisition or repair Parent ran. Historical originals
-remain unchanged; connected repair and import/ACK gates remain open.
+The latest batch stops at the active assembler's directory-custody check before
+Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
+shows that a reused directory descriptor can return a stale listing after a
+write. The correction must retain exact directory identity, namespace and final
+closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
+remain open. Preserve prior failures and original references; do not reuse the
+expired observations. See [the current assembly boundary](../023-verified-publication-corrections/evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
 
 ## Phase 1: Setup
 

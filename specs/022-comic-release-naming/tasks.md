@@ -19,46 +19,20 @@ The shared single-authentication launcher and ninth isolated bootstrap pass
 actual execution checks. T019/T023 remain held on their broader configured and
 current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 
-The installed SourceFixture generation passes 1,302 controls across 73 suites
-with zero skips, source checks before/after and verified owned-container cleanup.
-The successor assembler retains the absent probe parent until the owning Parent
-creates it; its 1,306 source controls and 14 owning runner checks pass under
-Python 3.10. These are distinct generations, with failed histories preserved.
-See [installed proof](../023-verified-publication-corrections/evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21)
-and [the phase correction](../023-verified-publication-corrections/evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
+The current host source milestone is PR #480: 1,401 controls across 75 suites
+and 14 outer checks. PR #481 records its delivery and preparation history; all
+hosted checks passed. The latest causal SourceFixture separately passes the
+unchanged P690 generation's 1,302 controls across 73 suites, source closure and
+owned-container cleanup/absence. Fresh effective and current-role observations
+and the corrected writer-protocol projection pass.
 
-The scoped owning-UID reader passed against all three original NFS fixture
-directories, with source/directory custody and restoration to Root verified.
-PR #476 delivers the owning-read and causal malformed-fixture correction with
-passing hosted CI and resolved security review. Its source passes 1,392
-controls across 75 suites, zero skips, plus all 14 outer preservation checks on
-Python 3.10. Local CI, independent review and final-source checked installation
-of 27 outputs pass. Connected repair, factories
-and import/ACK acceptance remain open. Preserve the original permissions,
-receipts and task gates. See [the observed boundary](../023-verified-publication-corrections/evidence-history.md#private-nfs-owner-read-boundary---2026-10-21).
-
-
-The next independently reviewed source correction preserves an authenticated empty
-SourceCohort stderr without relaxing ordinary reads. Its exact source candidate
-passes 1,397 controls across 75 suites and all 14 outer checks on Python 3.10,
-with zero skips. The successor checked installation and verification of all
-27 original outputs and reference export now pass. PR #477 delivers this
-successor with all hosted checks passing. The next connected
-batch must capture fresh effective/current observations before owning execution.
-This does not close the connected execution or import/ACK gates.
-
-PR #480 delivers the profile and original-source continuity correction after
-passing hosted CI. Its 1,401 source controls across 75 suites and all 14 outer
-checks pass. The next Root batch refused during SourceFixture preparation:
-the fresh request nonce did not match its older readiness-input nonce. The
-emitter, fresh observations and owning Parent did not run in that attempt.
-The corrected paired input then passed the actual SourceFixture run and owned
-cleanup/absence checks. Effective observation and current-role capture also
-passed, before projection refused its assumption that the writer lock is empty.
-The file matches the owning writer’s 22-byte protocol marker. Its exact bytes
-must be verified against that source before another attempt; no lock is reset
-or truncated. No Writer acquisition or repair Parent ran. Historical originals
-remain unchanged; connected repair and import/ACK gates remain open.
+The latest batch stops at the active assembler's directory-custody check before
+Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
+shows that a reused directory descriptor can return a stale listing after a
+write. The correction must retain exact directory identity, namespace and final
+closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
+remain open. Preserve prior failures and original references; do not reuse the
+expired observations. See [the current assembly boundary](../023-verified-publication-corrections/evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
 
 ## Phase 1: Setup
 
