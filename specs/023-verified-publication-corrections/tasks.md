@@ -62,13 +62,18 @@ successor with all hosted checks passing. The next connected
 batch must capture fresh effective/current observations before owning execution.
 This does not close the connected execution or import/ACK gates.
 
-The first connected batch stopped in read-only effective-scope preflight before
-Parent execution. The reader profile and epoch are unchanged in the retained
-originals; the refusal came from an obsolete static-profile field. The current
-source candidate also fixes original-helper and loaded-parser URI assumptions
-before another attempt. Its collection and all 14 outer checks pass under Python 3.10: 1,401 controls
-across 75 suites. Configured execution remains pending. A corrected effective observer requires a
-new causal SourceCohort; retain the earlier accepted generation unchanged.
+PR #480 delivers the profile and original-source continuity correction after
+passing hosted CI. Its 1,401 source controls across 75 suites and all 14 outer
+checks pass. The next Root batch refused during SourceFixture preparation:
+the fresh request nonce did not match its older readiness-input nonce. The
+emitter, fresh observations and owning Parent did not run in that attempt.
+The corrected paired input then passed the actual SourceFixture run and owned
+cleanup/absence checks. Effective observation and current-role capture also
+passed, before projection refused its assumption that the writer lock is empty.
+The file matches the owning writer’s 22-byte protocol marker. Its exact bytes
+must be verified against that source before another attempt; no lock is reset
+or truncated. No Writer acquisition or repair Parent ran. Historical originals
+remain unchanged; connected repair and import/ACK gates remain open.
 
 ## Phase 1: Setup
 
