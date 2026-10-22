@@ -9,6 +9,8 @@ import unittest
 HERE = Path(__file__).parent
 import sys
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
+import publication_native_configured_scope as owning_scope_parser
 spec = importlib.util.spec_from_file_location('common_root_parent', HERE / 'comic_reader_lifecycle_parent.py')
 p = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(p)
@@ -370,6 +372,8 @@ class OwnerReadTests(unittest.TestCase):
         from unittest import mock
         import genuine_current_roles as capture
         import test_genuine_current_roles as fixture_source
+        self.assertIs(capture.scope_parser, owning_scope_parser)
+        self.assertEqual(Path(owning_scope_parser.__file__).absolute(), HERE.parent/'publication_native_configured_scope.py')
         with mock.patch.object(p.os,'geteuid',return_value=1000):
             fixture=fixture_source.Fixture(self)
             actor=capture.p.GeometryOwnerReads(self.geometry);held=tuple(actor.handles)

@@ -241,6 +241,10 @@ native readiness observation between unchanged role and installed-source checks.
 It returns the existing composer’s nonce, observation time, roles and native
 process shape. The post-startup catalog owns the current INI reference; the
 virgin plan’s old file signature is not reused after application startup.
+The source map must include the actual loaded `publication_native_configured_scope.py`
+from the owning config directory. Preserve each declared role’s original path,
+full file identity and byte pin; a new observer does not relocate historical
+Bootstrap helpers or replace unchanged loaded modules with local copies.
 
 The source controls cover output-parent replacement, same-byte output-leaf
 replacement, original-input drift and replay refusal. They do not establish

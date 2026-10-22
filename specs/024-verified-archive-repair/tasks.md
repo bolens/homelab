@@ -4,9 +4,9 @@
 
 ## Current remaining work
 
-**Updated 2026-10-21.** 13 of 18 tasks are complete; 5 retain their full acceptance gates. T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
+**Updated 2026-10-22.** 13 of 18 tasks are complete; 5 retain their full acceptance gates. T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
 
-- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the current source verification passes 1,306 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
+- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the historical source verification passes 1,306 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile checks pass, with configured observation still pending. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
 - **Existing source and runtime milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. Published native/worker component proofs remain accepted for their recorded generations, and the ninth isolated bootstrap completes genuine queue imports, reader scan/progress and restart. These do not complete the connected installed factories, NFS or archive-terminal acceptance required by T012/T015. See [published component evidence](../023-verified-publication-corrections/evidence-history.md#published449-image-verification--2026-10-20) and [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 - **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
@@ -39,6 +39,14 @@ with zero skips. The successor checked installation and verification of all
 successor with all hosted checks passing. The next connected
 batch must capture fresh effective/current observations before owning execution.
 This does not close the connected execution or import/ACK gates.
+
+The first connected batch stopped in read-only effective-scope preflight before
+Parent execution. The reader profile and epoch are unchanged in the retained
+originals; the refusal came from an obsolete static-profile field. The current
+source candidate also fixes original-helper and loaded-parser URI assumptions
+before another attempt. Its collection and all 14 outer checks pass under Python 3.10: 1,401 controls
+across 75 suites. Configured execution remains pending. A corrected effective observer requires a
+new causal SourceCohort; retain the earlier accepted generation unchanged.
 
 ## Phase 1: Setup
 
