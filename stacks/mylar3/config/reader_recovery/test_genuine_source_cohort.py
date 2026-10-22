@@ -176,6 +176,8 @@ class Controls(unittest.TestCase):
 
     def test_connected_source_emitter_and_actual_consumer_keep_rights_false(self):
         emitted,receipt=self.fixture_payload();cohort=active.SourceCohort(emitted);cohort.close()
+        self.assertEqual((self.f.output/'controls.stderr').read_bytes(),b'')
+        self.assertEqual(receipt['stderr']['sha256'],g.sha(b''))
         self.assertTrue(all(receipt[k]is False for k in g.RIGHTS));self.assertEqual(receipt['count'],sum(n for _,n in self.f.inventory))
         self.assertEqual(len(self.f.calls),7);self.assertEqual([a[-1]for a in self.f.calls if a[3]!='inspect'].count('/checks/run_reader_recovery_controls.py'),1)
     def test_missing_causal_request_and_disabled_entry_refuse(self):

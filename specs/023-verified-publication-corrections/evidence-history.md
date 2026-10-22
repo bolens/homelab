@@ -1165,3 +1165,31 @@ owner-write access instead. It exercises the same refusal and exact FD closure
 without granting another principal access. Production permissions and all
 assertions are unchanged; the source-manifest pin follows the corrected test.
 Hosted security and image checks must pass on the updated PR head before merge.
+
+## Authenticated empty source-proof stderr - 2026-10-21
+
+A bounded Root metadata check confirmed that the accepted original SourceCohort
+is unchanged and its successful stderr is empty. The producer already permits
+this result, while generic host readers correctly require nonempty documents.
+A separate reviewed candidate adds a dedicated exact-cohort stderr reader and
+routes the owning composer, assembly, parent preparation and child projection
+through it. It preserves the original full identity, hash, private mode and
+late closure; ordinary empty documents and mismatched roles still refuse.
+Neither originals nor prior receipts are padded, replaced or refreshed.
+
+The candidate passes all 1,397 controls in 75 suites and all 14 outer preservation
+checks on Python 3.10, with zero skips and original source closure. The exact
+reviewed source changes are integrated in a separate worktree. The successor
+checked installation, all 27 original outputs and the separate reference export
+now pass in one authenticated batch. The original source graph closes across
+all 20 references. Delivery and fresh configured observation remain pending.
+The separate caller and projection now have reviewed role-specific routes and
+pass 12 host/Python 3.10 controls with zero skips; activation remains disabled. The subsequent authenticated capture verified both original
+logs and the readiness receipt by hash/full identity, with the cohort's original identity
+unchanged. No configured repair, factory, NFS mutation or
+ACK acceptance is claimed, and task checkbox states remain unchanged.
+
+PR #476 merged after all hosted checks passed and its security conversation was
+resolved. The squash tree matches the reviewed head. Local main and the Gitea
+mirror follow the reviewed merge; source worktrees referenced by original
+installation receipts remain retained.

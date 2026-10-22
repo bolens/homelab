@@ -21,7 +21,7 @@ p = composer.p
 need = p.need
 HERE = Path(__file__).absolute().parent
 PINS = {
-    'genuine_plan13_producer.py': 'ea7b559d9856dbad9feff99b8c9aa07199e00bc39e7466d277f561ca514ef310',
+    'genuine_plan13_producer.py': '2f41b72f9eb8e14f66c1d9392c6bbb8b63d775568d33b91b2865d61eb0410928',
     'comic_negative_nfs_active_parent.py': '63ec393ab36a5296ad717013a7318057ee13b83b4cbd7a9baed09a9bf2038a19',
     'genuine_source_cohort.py': '9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d',
 }
@@ -160,7 +160,12 @@ class Assembly:
              and set(cohort.get('sources', {})) == set(cohort_source.ROLES)
              and set(cohort.get('logs', {})) == {'stdout', 'stderr'}, 'active-source-cohort')
         for value in (*cohort['sources'].values(), cohort['parent']):follow(value, private=False)
-        for value in cohort['logs'].values():follow(value)
+        for role,value in cohort['logs'].items():
+            full = refs[value['path']]
+            if role == 'stderr' and full['signature9'][2] == 0:
+                need(full['sha256'] == value['sha256'], 'active-original-conflict')
+                self.used.add(full['path']); self.originals.read_cohort_stderr(q['source_cohort'], full); fresh(q['observed'])
+            else:follow(value)
         receipt = p.decode(follow(cohort['receipt']))
         need(receipt.get('kind') == 'owned-nfs-current-source-fixture-readiness' and receipt.get('images') == images
              and receipt.get('parent_sha256') == cohort['parent']['sha256']
