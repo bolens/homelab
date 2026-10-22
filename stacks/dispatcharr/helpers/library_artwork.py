@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the opt-in, private ErsatzTV XMLTV/artwork bridge in reviewed nginx."""
+"""Install the private artwork bridge and optional Plex special-episode fix."""
 
 import hashlib
 import ipaddress
@@ -13,6 +13,35 @@ REVIEWED_TEMPLATE_SHA256 = "c96911de9034e9ea7988e98e5afeec91b756094c34e75a9d5848
 BEGIN = "    # BEGIN private library artwork bridge\n"
 END = "    # END private library artwork bridge\n"
 ANCHOR = "    # Serve Django via uWSGI\n"
+REVIEWED_EXPORTER_SHA256 = "aae125da464db4501fe6ef000dc3ca06601aa4cdcffaa3c1ff192496d34995b1"
+EXPORTER_LINE = '''                            program_xml.append(f'    <episode-num system="xmltv_ns">{season}.{episode}.</episode-num>')'''
+EXPORTER_PATCH = '''                            # BEGIN Plex special-episode identity compatibility
+                            # Plex reads explicit zero-numbered labels when the invalid namespace is absent.
+                            onscreen_zero = (
+                                (season == -1 or episode == -1)
+                                and season >= -1
+                                and episode >= -1
+                                and custom_data.get("onscreen_episode") == f"S{season + 1:02d}E{episode + 1:02d}"
+                            )
+                            if not onscreen_zero:
+                                program_xml.append(f'    <episode-num system="xmltv_ns">{season}.{episode}.</episode-num>')
+                            # END Plex special-episode identity compatibility'''
+
+
+def render_exporter(original, enabled):
+    """Change serialization only; reject upstream drift and malformed prior patches."""
+    marker = "Plex special-episode identity compatibility"
+    if marker in original and (original.count(EXPORTER_PATCH) != 1
+                               or original.count(marker) != 2):
+        raise ValueError("Unrecognized XMLTV compatibility patch")
+    canonical = original.replace(EXPORTER_PATCH, EXPORTER_LINE, 1)
+    if not enabled and canonical == original:
+        return original
+    if hashlib.sha256(canonical.encode()).hexdigest() != REVIEWED_EXPORTER_SHA256:
+        raise ValueError("Unreviewed XMLTV exporter; review this image before enabling compatibility")
+    if canonical.count(EXPORTER_LINE) != 1:
+        raise ValueError("Missing XMLTV export insertion point")
+    return canonical.replace(EXPORTER_LINE, EXPORTER_PATCH, 1) if enabled else canonical
 
 
 def render(original, origin):
@@ -74,10 +103,23 @@ def main():
     target = Path("/etc/nginx/sites-enabled/default")
     original = target.read_text()
     updated = render(original, os.environ.get("LIBRARY_ARTWORK_ORIGIN", ""))
+    mode = os.environ.get("PLEX_XMLTV_SPECIALS", "false").lower()
+    if mode not in ("true", "false"):
+        raise ValueError("PLEX_XMLTV_SPECIALS must be true or false")
+    exporter = Path("/app/apps/output/epg.py")
+    if exporter.is_symlink() or (exporter.exists() and not exporter.is_file()):
+        raise ValueError("XMLTV exporter must be a regular application file")
+    source = exporter.read_bytes().decode("utf-8") if exporter.exists() else None
+    if source is None and mode == "true":
+        raise ValueError("XMLTV exporter is missing")
+    changed = render_exporter(source, mode == "true") if source is not None else None
+    # Validate both reviewed sources before changing either startup file.
+    if changed != source:
+        exporter.write_text(changed)
     if updated != original:
         # The upstream init script also edits this existing configuration file.
         target.write_text(updated)
-    print("Private library XMLTV/artwork bridge prepared")
+    print("Private library XMLTV/artwork bridge prepared; Plex specials " + mode)
 
 
 if __name__ == "__main__":

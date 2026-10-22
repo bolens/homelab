@@ -77,11 +77,15 @@ class OptionalStackOverrideTests(unittest.TestCase):
         self.assertEqual(base.get("ports"), enabled.get("ports"))
         self.assertEqual(base["networks"], enabled["networks"])
         self.assertEqual(enabled["environment"]["LIBRARY_ARTWORK_ORIGIN"], "https://dispatcharr.example.com")
+        self.assertEqual(enabled["environment"]["PLEX_XMLTV_SPECIALS"], "false")
         mounts = {v["target"]: v for v in enabled["volumes"]}
         self.assertEqual(enabled["entrypoint"], ["/bin/bash", "/opt/dispatcharr-library-entrypoint.sh"])
         for name in ["/opt/dispatcharr-library-entrypoint.sh", "/opt/dispatcharr-library-artwork.py"]:
             self.assertTrue(mounts[name]["read_only"])
             self.assertFalse(mounts[name]["bind"].get("create_host_path", False))
+        with (target / "stack.env").open("a") as stream:
+            stream.write("\nDISPATCHARR_PLEX_XMLTV_SPECIALS=true\n")
+        self.assertEqual(self.render(target, override)["dispatcharr"]["environment"]["PLEX_XMLTV_SPECIALS"], "true")
 
     def test_node_textfile_uses_existing_readonly_mount_without_new_listener(self):
         override = "docker-compose.textfile.yml"

@@ -446,6 +446,45 @@ and image POSTs fail. Roll back the source URL and override with the verified pr
 configuration if any check fails. Preserve Movie/Series categories. A blank poster
 alone does not justify changing program classification.
 
+#### Plex season-zero episode identities
+
+The tested Plex build, 1.43.5.11029, treats a negative `xmltv_ns` season such as `-1.6.` as
+season two, episode seven. It can merge a special's title with the regular
+episode. Plex correctly reads the same special's existing `S00E07` onscreen
+label when that invalid negative namespace is absent. An empty namespace season
+is not a substitute: Plex treats it as season one.
+An explicitly zero-numbered episode such as `S04E00` has the same problem when
+the exporter emits a negative episode component.
+
+The artwork override also provides an optional, source-guarded exporter fix.
+Set `DISPATCHARR_PLEX_XMLTV_SPECIALS=true` explicitly in private `stack.env`,
+after verifying backups of application state, helpers and deployment files.
+Recreate only Dispatcharr with the same reviewed image and existing overrides.
+Preparation leaves the option disabled and never changes application code.
+
+At startup, the helper verifies the complete reviewed `apps/output/epg.py`
+source before changing its serialization. It omits `xmltv_ns` only when the
+computed season or episode is negative one, neither component is lower than
+negative one, and the existing onscreen label exactly matches the source's
+zero-numbered season/episode identity. Positive episode identities and missing
+or conflicting labels retain their prior serialization. The source database,
+library metadata, file names, onscreen labels, dates, titles and other fields
+remain intact. The raw ErsatzTV guide bridge is unchanged. Future matching
+specials use the same rule without a per-title list.
+
+The helper refuses upstream drift and partial patches; review it when updating
+the image. Setting the option back to `false` restores only its recognized
+patch, including on an existing startup file. A fresh unmodified image remains
+unchanged with the default disabled option.
+
+Invalidate generated XMLTV output caches and reload the existing Plex guide.
+Preserve its URL, tuner, channel bindings and recording rules. Verify specials
+have distinct `/0/episode` guide identities, explicit episode-zero entries retain
+their `/season/0` identity, regular episodes retain their
+season/episode identities, and repeated imports keep both titles stable. Compare
+the actual full guide and recording schedule after import completion. A successful
+reload response alone does not establish correct episode identities.
+
 ### Multiview and DVR metadata plugins
 
 [Multiview](https://github.com/swvn-dispatch/dispatcharr-multiview) can generate a
