@@ -1,0 +1,215 @@
+diff --git i/internal/hardcover.go w/internal/hardcover.go
+index f11eda3..2726b5b 100644
+--- i/internal/hardcover.go
++++ w/internal/hardcover.go
+@@ -7,6 +7,7 @@ import (
+ 	"fmt"
+ 	"iter"
+ 	"maps"
++	"net/url"
+ 	"slices"
+ 	"strings"
+ 	"sync"
+@@ -35,6 +36,14 @@ func NewHardcoverGetter(cache cache[[]byte], gql graphql.Client) (*HCGetter, err
+ // Search hits the GraphQL endpoint to fetch relevant work IDs and then fetches
+ // those in order to return the necessary edition and author IDs to the client.
+ func (g *HCGetter) Search(ctx context.Context, query string) ([]SearchResource, error) {
++	// Match the handler's DELETE cache key. Never retain empty or partial searches.
++	searchKey := "/search?q=" + url.QueryEscape(query)
++	if data, ttl, ok := g.cache.GetWithTTL(ctx, searchKey); ok && ttl > 0 {
++		var cached []SearchResource
++		if json.Unmarshal(data, &cached) == nil && len(cached) > 0 {
++			return cached, nil
++		}
++	}
+ 	workIDs := []int64{}
+ 
+ 	// Try a lookup by ASIN/ISBN if the query looks like one
+@@ -80,6 +89,24 @@ func (g *HCGetter) Search(ctx context.Context, query string) ([]SearchResource,
+ 				return
+ 			}
+ 
++			// Search bypasses Controller.GetWork. Retain the hydrated metadata
++			// so the client's subsequent bulk lookup need not fetch it again.
++			retain := func(key string, lifetime time.Duration) {
++				// Preserve existing expiry instead of extending stale metadata
++				// indefinitely whenever a popular book appears in searches.
++				if _, ttl, ok := g.cache.GetWithTTL(ctx, key); !ok || ttl <= 0 {
++					g.cache.Set(ctx, key, bytes, lifetime)
++				}
++			}
++			retain(WorkKey(workID), _workTTL)
++			if workRsc.ForeignID != workID {
++				retain(WorkKey(workRsc.ForeignID), _workTTL)
++			}
++			for _, book := range workRsc.Books {
++				if book.ForeignID != 0 {
++					retain(BookKey(book.ForeignID), _editionTTL)
++				}
++			}
+ 			mu.Lock()
+ 			defer mu.Unlock()
+ 
+@@ -94,7 +121,11 @@ func (g *HCGetter) Search(ctx context.Context, query string) ([]SearchResource,
+ 	}
+ 
+ 	wg.Wait()
+-
++	if len(results) > 0 && len(results) == len(workIDs) && ctx.Err() == nil {
++		if data, err := json.Marshal(results); err == nil {
++			g.cache.Set(ctx, searchKey, data, 15*time.Minute)
++		}
++	}
+ 	return results, nil
+ }
+ 
+diff --git i/internal/search_cache_test.go w/internal/search_cache_test.go
+new file mode 100644
+index 0000000..8130c4a
+--- /dev/null
++++ w/internal/search_cache_test.go
+@@ -0,0 +1,144 @@
++package internal
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"testing"
++	"time"
++
++	"github.com/Khan/genqlient/graphql"
++	"github.com/blampe/rreading-glasses/hardcover"
++	"github.com/stretchr/testify/require"
++	"go.uber.org/mock/gomock"
++)
++
++func TestHardcoverSearchCache(t *testing.T) {
++	for _, mode := range []string{"complete", "partial", "empty", "error", "expired", "corrupt", "cancelled", "invalidated", "existing-edition"} {
++		t.Run(mode, func(t *testing.T) {
++			ctx := context.Background()
++			if mode == "cancelled" {
++				cancelled, cancel := context.WithCancel(ctx)
++				cancel()
++				ctx = cancelled
++			}
++			cache := newMemoryCache()
++			gql := hardcover.NewMockgql(gomock.NewController(t))
++			calls := 1
++			if mode == "partial" || mode == "empty" || mode == "error" || mode == "cancelled" || mode == "invalidated" {
++				calls = 2
++			}
++			gql.EXPECT().MakeRequest(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
++				func(_ context.Context, req *graphql.Request, resp *graphql.Response) error {
++					require.Equal(t, "Search", req.OpName)
++					if mode == "error" {
++						return fmt.Errorf("upstream unavailable")
++					}
++					ids := []int64{101}
++					if mode == "partial" {
++						ids = append(ids, 102)
++					}
++					if mode == "empty" {
++						ids = nil
++					}
++					resp.Data.(*hardcover.SearchResponse).Search.Ids = ids
++					return nil
++				}).Times(calls)
++			work, err := json.Marshal(workResource{ForeignID: 101, BestBookID: 201, Authors: []AuthorResource{{ForeignID: 301}}, Books: []bookResource{{ForeignID: 201}}})
++			require.NoError(t, err)
++			cache.Set(ctx, WorkKey(101), work, time.Hour)
++			if mode == "existing-edition" {
++				cache.Set(ctx, BookKey(201), work, time.Hour)
++			}
++			if mode == "partial" {
++				cache.Set(ctx, WorkKey(102), []byte("invalid"), time.Hour)
++			}
++			key := "/search?q=test+book"
++			if mode == "expired" {
++				cache.Set(ctx, key, []byte(`[{"workid":999}]`), time.Nanosecond)
++				time.Sleep(time.Millisecond)
++			}
++			if mode == "corrupt" {
++				cache.Set(ctx, key, []byte("invalid"), time.Hour)
++			}
++			getter, err := NewHardcoverGetter(cache, gql)
++			require.NoError(t, err)
++			for attempt := range 2 {
++				if mode == "invalidated" && attempt == 1 {
++					require.NoError(t, cache.Expire(ctx, key))
++				}
++				results, err := getter.Search(ctx, "test book")
++				if mode == "error" {
++					require.Error(t, err)
++					continue
++				}
++				require.NoError(t, err)
++				if mode == "empty" {
++					require.Empty(t, results)
++				} else {
++					require.Len(t, results, 1)
++					require.Equal(t, int64(101), results[0].WorkID)
++					cached, _, ok := cache.GetWithTTL(ctx, BookKey(201))
++					require.True(t, ok)
++					require.JSONEq(t, string(work), string(cached))
++					_, workTTL, _ := cache.GetWithTTL(ctx, WorkKey(101))
++					require.LessOrEqual(t, workTTL, time.Hour)
++					if mode == "existing-edition" {
++						_, editionTTL, _ := cache.GetWithTTL(ctx, BookKey(201))
++						require.LessOrEqual(t, editionTTL, time.Hour)
++					}
++				}
++			}
++			_, ttl, ok := cache.GetWithTTL(ctx, key)
++			if mode == "partial" || mode == "empty" || mode == "error" || mode == "cancelled" {
++				require.False(t, ok)
++			} else {
++				require.True(t, ok)
++				require.LessOrEqual(t, ttl, 15*time.Minute)
++			}
++		})
++	}
++}
++
++func TestHardcoverSearchRetainsColdMetadata(t *testing.T) {
++	ctx := context.Background()
++	cache := newMemoryCache()
++	gql := hardcover.NewMockgql(gomock.NewController(t))
++	author := map[string]any{"id": 301, "name": "Example Author"}
++	contributions := []any{map[string]any{"contribution": "Author", "author": author}}
++	work := map[string]any{"id": 101, "title": "Example Book", "contributions": contributions, "default_ebook_edition": map[string]any{"id": 201, "contributions": contributions}}
++	edition := map[string]any{"id": 201, "title": "Example Book", "book": work}
++	{
++		gql.EXPECT().MakeRequest(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
++			func(_ context.Context, req *graphql.Request, resp *graphql.Response) error {
++				var data any
++				switch req.OpName {
++				case "Search":
++					data = map[string]any{"search": map[string]any{"ids": []int64{101}}}
++				case "GetWork":
++					data = map[string]any{"books_by_pk": work}
++				case "GetEdition":
++					data = map[string]any{"editions_by_pk": edition}
++				default:
++					return fmt.Errorf("unexpected operation %s", req.OpName)
++				}
++				raw, err := json.Marshal(data)
++				if err != nil {
++					return err
++				}
++				return json.Unmarshal(raw, resp.Data)
++			}).Times(3)
++	}
++	getter, err := NewHardcoverGetter(cache, gql)
++	require.NoError(t, err)
++	results, err := getter.Search(ctx, "example")
++	require.NoError(t, err)
++	require.Len(t, results, 1)
++	require.Equal(t, int64(201), results[0].BookID)
++	// Result hydration must reuse metadata even without a cached search response.
++	require.NoError(t, cache.Expire(ctx, "/search?q=example"))
++	_, _, err = getter.GetWork(ctx, 101, nil)
++	require.NoError(t, err)
++	_, _, _, err = getter.GetBook(ctx, 201, nil)
++	require.NoError(t, err)
++}
