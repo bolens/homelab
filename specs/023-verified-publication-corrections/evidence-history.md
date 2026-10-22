@@ -1246,3 +1246,29 @@ remain required before another configured attempt. The previous SourceCohort rem
 and digest cannot be retargeted to the corrected observer. No new factory, NFS,
 repair or import ACK acceptance is claimed. All 75 task IDs and checkbox states
 remain unchanged: 59 complete and 16 open.
+
+## Paired readiness preparation refusal — 2026-10-22
+
+PR #480 merged after passing hosted CI; its squash tree matches the reviewed
+head, and GitHub main, local main and the Gitea mirror agree. The corrected
+source worktree remains frozen for its original references.
+
+The next combined Root batch refused at `source-original-readiness-nonce`
+during SourceFixture preparation. Its fresh request nonce was paired with an
+older readiness input. The emitter, fresh observations and owning Parent never
+ran in that attempt. The paired-input correction passes six isolated controls
+and independent review. The next batch verified the prior cleanup and exact
+container absence, then completed a new causal SourceCohort and verified its
+own disposable-container cleanup. Its unchanged P690 context remains labelled
+1,302 controls across 73 suites, separate from the current F source collection.
+
+The corrected effective observer and current-role capture passed. Read-only
+projection then refused `original-empty-lock-FD`. The original writer lock
+contains the exact 22-byte `media_writer.PROTOCOL` marker; the observer had
+assumed an empty lock file. The installed lease reference was independently
+confirmed against the authenticated installation table. No Writer lock was
+acquired and the owning repair Parent did not run. Correct the observer to verify
+the owning protocol’s exact bytes through the original FD and full file identity;
+do not truncate or replace the lock to satisfy the old assumption. Prior accepted SourceCohorts remain intact;
+no connected factory, repair, NFS mutation or import ACK acceptance follows.
+All 75 task IDs and states remain unchanged: 59 complete and 16 open.

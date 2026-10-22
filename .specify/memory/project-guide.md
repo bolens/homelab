@@ -481,6 +481,16 @@ with full file identity and byte closure. The disposable observer must consume
 the owning static profile projection, including `NetworkSettings` rather than
 `Created`, while keeping the reader’s recorded process epoch exact. Exercise
 these boundaries with distinct source generations and the real profile schema.
+A SourceFixture request nonce and its original `readiness_input` nonce must be
+prepared as one pair. Choose the fresh nonce before deriving that input, then
+capture its bytes and full file identity; validate the pair before invoking the
+emitter. Do not reuse an older input with a new request nonce or rewrite its
+historical reference to pass the join. A constructor refusal and attempted
+cleanup do not prove resource absence; verify the retained cleanup outcome.
+A Writer lock is not necessarily empty: the owning `media_writer.PROTOCOL` is
+stored in the real lock file. Verify its exact bytes against the authenticated
+owning source and retain FD/full-file-identity closure. Never truncate or replace
+the lock to satisfy an observer that assumed an empty disposable test lock.
 Search the entire tracked repository for the predecessor hash before editing a
 shared producer. Komga’s `effective_scope/parent.py::BOOTSTRAP_SOURCE_SHA` is a
 second bootstrap consumer outside the native control collection; refresh its
