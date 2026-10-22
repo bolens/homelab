@@ -19,20 +19,18 @@ The shared single-authentication launcher and ninth isolated bootstrap pass
 actual execution checks. T019/T023 remain held on their broader configured and
 current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
 
-The current host source milestone is PR #480: 1,401 controls across 75 suites
-and 14 outer checks. PR #481 records its delivery and preparation history; all
-hosted checks passed. The latest causal SourceFixture separately passes the
-unchanged P690 generation's 1,302 controls across 73 suites, source closure and
-owned-container cleanup/absence. Fresh effective and current-role observations
-and the corrected writer-protocol projection pass.
-
-The latest batch stops at the active assembler's directory-custody check before
-Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
-shows that a reused directory descriptor can return a stale listing after a
-write. The correction must retain exact directory identity, namespace and final
-closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
-remain open. Preserve prior failures and original references; do not reuse the
-expired observations. See [the current assembly boundary](../023-verified-publication-corrections/evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
+PR #482 delivered the assembler correction with passing local and hosted checks.
+A fresh batch passes the causal SourceFixture, source closure, owned-container
+absence, current-role/protocol observations, active assembly and intent construction.
+It enters the owning producer once, then fails without an accepted terminal return.
+The primary refusal is `configured-overlay-exact-approved-edits`: the packet mapped
+the operation to its host path instead of the installer-owned `/_operation`. The
+source correction adds an early mapping check and fixes the separate actor/finalizer
+descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
+pass locally; delivery, a fresh checked installation and corrected new packet remain
+required under feature 023 T026. Preserve the consumed generation and all
+failed histories; no automatic replay, import ACK or bulk acceptance is granted.
+See [the current owning boundary](../023-verified-publication-corrections/evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
 
 ## Phase 1: Setup
 

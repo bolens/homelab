@@ -12,20 +12,18 @@
 - **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
 - **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
 
-The current host source milestone is PR #480: 1,401 controls across 75 suites
-and 14 outer checks. PR #481 records its delivery and preparation history; all
-hosted checks passed. The latest causal SourceFixture separately passes the
-unchanged P690 generation's 1,302 controls across 73 suites, source closure and
-owned-container cleanup/absence. Fresh effective and current-role observations
-and the corrected writer-protocol projection pass.
-
-The latest batch stops at the active assembler's directory-custody check before
-Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
-shows that a reused directory descriptor can return a stale listing after a
-write. The correction must retain exact directory identity, namespace and final
-closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
-remain open. Preserve prior failures and original references; do not reuse the
-expired observations. See [the current assembly boundary](../023-verified-publication-corrections/evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
+PR #482 delivered the assembler correction with passing local and hosted checks.
+A fresh batch passes the causal SourceFixture, source closure, owned-container
+absence, current-role/protocol observations, active assembly and intent construction.
+It enters the owning producer once, then fails without an accepted terminal return.
+The primary refusal is `configured-overlay-exact-approved-edits`: the packet mapped
+the operation to its host path instead of the installer-owned `/_operation`. The
+source correction adds an early mapping check and fixes the separate actor/finalizer
+descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
+pass locally; delivery, a fresh checked installation and corrected new packet remain
+required under feature 023 T026. Preserve the consumed generation and all
+failed histories; no automatic replay, import ACK or bulk acceptance is granted.
+See [the current owning boundary](../023-verified-publication-corrections/evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
 
 ## Phase 1: Setup
 
@@ -84,16 +82,13 @@ T001 → T002–T003 → US1 T004–T007 → US2 T008–T010 → US3 T011–T013
 
 ## Next execution and completion evidence
 
-The current G source candidate has passed 1,401 controls in 75 suites plus 14
-outer checks locally. PR #482 still needs its required hosted delivery checks.
-The causal SourceFixture has separately passed its original P690/1,302-control,
-73-suite contract with source closure and owned-container absence; fresh effective
-and current-role observations and the Writer-protocol projection have passed.
-The last actual attempt stopped in active-input assembly, before Writer acquisition
-or Parent execution. Those component facts do not complete any of the five open
-tasks. The reviewed G census/mixed-source-origin correction needs delivered source
-and fresh original bindings before another attempt; expired observations and old
-output directories cannot be reused.
+The assembler correction is delivered in PR #482. The fresh G run passed assembly
+and entered the owning producer, but no terminal outcome was accepted. Its causal
+SourceFixture passed with owned-container absence. The descriptor ownership and
+early `/_operation` mapping checks pass 1,406 local controls and 14 outer checks.
+Deliver these fixes, then prepare a fresh checked installation and corrected packet
+with new source/observation bindings. Existing observations and consumed
+output directories cannot be reused. These facts do not complete the five open tasks.
 
 1. **Finish static binding before freshness.** Preserve the original installation
    INNER/output27 and compatible selected-image/native180/SDK/worker evidence.

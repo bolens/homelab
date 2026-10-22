@@ -106,14 +106,14 @@ _OWNER_READ_POISON = weakref.WeakSet()
 
 class GeometryOwnerReads:
     """Finite read-only access to original disposable G/L/R, never a callback."""
-    __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'nodes', 'root', 'source', 'code', '__weakref__')
+    __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'common_roots', 'nodes', 'root', 'source', 'code', '__weakref__')
 
     def __init__(self, geometry):
         need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
              and type(geometry['version']) is int and geometry['version'] == 2
              and geometry['kind'] == 'searchable-common-root-nfs', 'owner-read-geometry-v2')
         self.geometry = copy.deepcopy(geometry); self.thread = threading.get_ident()
-        self.poisoned = False; self.busy = False; self.handles = {}; self.nodes = {}
+        self.poisoned = False; self.busy = False; self.handles = {}; self.common_roots = []; self.nodes = {}
         self.root = absolute(geometry['common_root']['path'])
         need(self.root.name.startswith('archive-publication-') and digest(self.root.name.removeprefix('archive-publication-')),
              'owner-read-disposable-root')
@@ -282,6 +282,12 @@ class GeometryOwnerReads:
 
     def release(self):
         error = None
+        # These are real registered integer FDs, also retained by a late Parent
+        # finalizer. Close its rows once before the remaining actor descriptors.
+        for row in tuple(self.common_roots):
+            try:close_common_root(row)
+            except BaseException as exc:
+                if error is None:error = exc
         for fd in tuple(self.handles):
             try:self.close_directory(fd)
             except BaseException as exc:
@@ -1152,6 +1158,30 @@ _ARCHIVE_SOURCE_GROUPS=weakref.WeakKeyDictionary()
 _ARCHIVE_PUBLICATION_REQUESTS=weakref.WeakKeyDictionary()
 _ARCHIVE_COMMON_ROOTS=weakref.WeakKeyDictionary()
 
+class _CommonRoot(tuple):
+    """Tuple-compatible custody with one descriptor owner and one close attempt."""
+    def __new__(cls, fd, value, held, ancestors, actor):
+        row = tuple.__new__(cls, (fd, value, held, ancestors))
+        row.actor = actor; row.closed = False
+        row.identities = tuple((handle, tuple(five(os.fstat(handle)))) for handle in (fd, *held))
+        if actor is not None:
+            need(all(handle in actor.handles and actor.handles[handle][1] == identity
+                     for handle, identity in row.identities), 'archive-common-registered-FDs')
+            actor.common_roots.append(row)
+        return row
+
+
+def _close_common_handles(handles, actor):
+    first = None
+    for fd in handles:
+        try:
+            if actor is not None:actor.close_directory(fd)
+            else:os.close(fd)
+        except BaseException as error:
+            if first is None:first = error
+    if first is not None:raise first
+
+
 def admit_common_root(value,mounts,library,retention,other_roots):
     """Plan13 only: one private NFS bind containing exactly library+retention."""
     need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and (value['version'],value['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'archive-common-schema')
@@ -1170,20 +1200,39 @@ def admit_common_root(value,mounts,library,retention,other_roots):
         if row is bound[0]:continue
         for raw in (row['host'],row['child']):
             path=Path(raw);need(not(path==root or root in path.parents or path in root.parents),'archive-common-no-nested-or-shadow-bind')
+    actor = _OWNER_READS if _OWNER_READS is not None and _OWNER_READS.contains(str(root)) else None
     fd=nfs_directory(root)
-    held=[]
+    held=[];result=None
     try:
         for path in (left,right):held.append(nfs_directory(path))
-        result=(fd,copy.deepcopy(value),tuple(held),parents(root))
+        result=_CommonRoot(fd,copy.deepcopy(value),tuple(held),parents(root),actor)
         check_common_root(result);return result
-    except BaseException:
-        for handle in held:os.close(handle)
-        os.close(fd);raise
+    except BaseException as primary:
+        try:
+            if result is not None:close_common_root(result)
+            else:_close_common_handles((fd,*held),actor)
+        except BaseException as error:primary.common_root_close_failure=type(error).__name__
+        raise
 
 def close_common_root(row):
-    for fd in (row[0],*row[2]):
-        if _OWNER_READS is not None and fd in _OWNER_READS.handles:_OWNER_READS.close_directory(fd)
-        else:os.close(fd)
+    need(type(row) is _CommonRoot, 'archive-common-original-descriptor-owner')
+    if row.closed:return
+    row.closed=True;first=None
+    try:
+        for fd,expected in row.identities:
+            try:
+                if row.actor is not None:
+                    need(fd in row.actor.handles and row.actor.handles[fd][1]==expected,'archive-common-owned-registered-FD')
+                    row.actor.close_directory(fd)
+                else:
+                    actual=tuple(five(os.fstat(fd)))
+                    need(actual[:2]==expected[:2],'archive-common-release-owned-inode')
+                    os.close(fd)
+            except BaseException as error:
+                if first is None:first=error
+    finally:
+        if row.actor is not None:row.actor.common_roots[:]=[other for other in row.actor.common_roots if other is not row]
+    if first is not None:raise first
 
 def check_common_root(row):
     fd,value,held,ancestors=row;root=Path(value['common_root']['path']);expected=tuple(value['common_root']['signature9'])

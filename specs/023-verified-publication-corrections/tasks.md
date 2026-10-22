@@ -38,20 +38,18 @@ T028's source review precedes T026; its live ACK proof is the separate Pack A
 track. Pack A and Pack B follow their own stated prerequisites and do not wait
 for archive milestones 1–4. T032 remains the worker-activation prerequisite.
 Ordinary Mylar stays available while this implementation proceeds.
-The current host source milestone is PR #480: 1,401 controls across 75 suites
-and 14 outer checks. PR #481 records its delivery and preparation history; all
-hosted checks passed. The latest causal SourceFixture separately passes the
-unchanged P690 generation's 1,302 controls across 73 suites, source closure and
-owned-container cleanup/absence. Fresh effective and current-role observations
-and the corrected writer-protocol projection pass.
-
-The latest batch stops at the active assembler's directory-custody check before
-Writer acquisition or owning Parent execution. A disposable Btrfs reproduction
-shows that a reused directory descriptor can return a stale listing after a
-write. The correction must retain exact directory identity, namespace and final
-closure. Connected factories, NFS repair, live import/ACK and bulk acceptance
-remain open. Preserve prior failures and original references; do not reuse the
-expired observations. See [the current assembly boundary](evidence-history.md#writer-protocol-projection-and-assembly-boundary--2026-10-22).
+PR #482 delivered the assembler correction with passing local and hosted checks.
+A fresh batch passes the causal SourceFixture, source closure, owned-container
+absence, current-role/protocol observations, active assembly and intent construction.
+It enters the owning producer once, then fails without an accepted terminal return.
+The primary refusal is `configured-overlay-exact-approved-edits`: the packet mapped
+the operation to its host path instead of the installer-owned `/_operation`. The
+source correction adds an early mapping check and fixes the separate actor/finalizer
+descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
+pass locally; delivery, a fresh checked installation and corrected new packet remain
+required under feature 023 T026. Preserve the consumed generation and all
+failed histories; no automatic replay, import ACK or bulk acceptance is granted.
+See [the current owning boundary](evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
 
 ## Phase 1: Setup
 
@@ -139,7 +137,7 @@ T017 retains the verified 12-scope outer backup and isolated restore with all 72
 
 | Task | Next bounded action and inputs | Evidence required to mark complete |
 | --- | --- | --- |
-| T026 | Deliver PR #482, then bind its actual assembler original, the unchanged loaded dependency originals and the checked installation. Reuse the reviewed disabled preparation with a fresh observer output and nonce-coupled SourceFixture readiness. | Current source manifests/review/delivery; exact selected-image byte/type/import proof; genuine connected factories and final source/namespace closure. Historical source counts and the successful projection remain partial evidence. |
+| T026 | PR #482 is delivered. Deliver the reviewed common-root descriptor fix and early operation-child check with their coordinated source pins. Create a new checked installation and fresh original bindings; map the new operation to the installer-owned `/_operation`, keeping the other five mount rows unchanged; preserve the consumed G attempt and unchanged SDK proofs only for their exact inputs. | Current source manifests/review/delivery; exact selected-image byte/type/import proof; genuine connected factories and final source/namespace closure. Historical source counts and the successful projection remain partial evidence. |
 | T029 | Follow `genuine_current_roles.run` → `genuine_active_inputs.assemble` → `comic_nfs_host_engine.build_intents` → `genuine_plan13_producer.Producer.execute(activate=True)` → `LifecycleParent.execute_archive`. Bind the continuation before fresh observations expire; never retimestamp them. | Original execute ACK, original source and physical/SQL vectors, causal archive transition, independent terminal and native/worker factual consumption; complete installed import/lost-response/naming-continuity checks. Unknown outcomes remain held. |
 | T017 | Coordinate writers and follow the owning rollout route. For registration/reconciliation use `scripts/prepare-publication-corrections.py`, native registration preparation/acceptance, a fresh retained-repeat plan, `commitRetainedRepeat` and passive `retainedRepeatStatus`. | Verified backup/restore, exact image/config/data baseline, accepted registration/token/status, wrong repeat outside the scanned library, correct owners/bytes/readers and database integrity unchanged. Complete only after T027 and the required retained paths succeed. |
 | T027 | Use the maintained NFS factual/reader-proof contracts with original operational geometry and mount/source refs. Retain custody through canary cleanup, Writer release, reader stop, backup/restore and independent terminal verification. | Actual readiness and owned cleanup; checked factual owner; stopped-reader and database-restore controls; terminal/reader resume proof and complete final physical coverage. Disposable Btrfs helper tests do not prove actual NFS or lease behavior. |

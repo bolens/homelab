@@ -285,6 +285,7 @@ def compose(document, originals, installation):
          and tuple(p.five(now_state)) == tuple(state9[i] for i in (0, 1, 5, 6, 7)), 'producer-original-state-root')
     for row in files:originals.read({key: row[key] for key in ('path', 'sha256', 'signature9')}, private=False)
     mapping = p.Paths(document['mounts']); native = document['native']
+    need(mapping.child(str(operation)) == str(installer.CHILD_OPERATION), 'producer-configured-operation-child')
     need(type(native) is dict and native.get('roots') == [str(library)]
          and mapping.host(native['data']) == str(Path(old['native_ini']['path']).parent)
          and mapping.host(str(library)) == str(library), 'producer-original-native-mapping')
