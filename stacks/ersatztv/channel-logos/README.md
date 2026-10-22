@@ -130,9 +130,11 @@ or Cinema where it distinguishes a film station from a series station. Existing
 studio and franchise names stay recognizable.
 
 
-Clare's Nighttime Cartoons uses the established sleeping-cat and crescent design
-with a centered three-line personal wordmark. Its schedule uses explicit series
-identities for Bob's Burgers, Futurama, Disenchantment and BoJack Horseman, plus
+Clare's Nighttime Cartoons uses a curled amber tabby cradled by a shaded lavender
+crescent. Contrasting cream paws and muzzle, pink inner ears, a wrapped tail and
+closed eyes keep the sleeping pose readable at guide size. The complete icon is
+vertically centered beside the three-line personal wordmark. Its schedule uses
+explicit series identities for Bob's Burgers, Futurama, Disenchantment and BoJack Horseman, plus
 reviewed related films. It does not use broad genre or title searches. New episodes
 under those identities remain eligible without admitting other series. The
 retained Bedtime Cartoons also includes Archer, South Park, Mike Tyson Mysteries,
