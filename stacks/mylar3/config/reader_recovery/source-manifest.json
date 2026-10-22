@@ -556,7 +556,7 @@
       "sha256": "f5cef00de1fe3b9bf82daf352de3c1ed6670581bb827deb581692a76947bd1c0"
     },
     "test_archive_common_root.py": {
-      "sha256": "742e7088e71947a695c6197271adaec4616cd611c209678bf8d75b889b063fd8"
+      "sha256": "0c606e2c484baa1e9007d275371ccf1bc3e5f8bb4fec8bd776a0d6e12a347410"
     },
     "test_archive_native_geometry.py": {
       "sha256": "52516b748747f613bbd83212a8940ea3380bdf42eb9e988d63055abb09027aaa"

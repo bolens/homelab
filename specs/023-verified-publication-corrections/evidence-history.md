@@ -1158,3 +1158,10 @@ original source closure and no lifecycle or configured admission. Its original
 receipt identity was captured separately; earlier generations remain unchanged.
 Hosted CI is the next delivery check. Connected factories, NFS mutation, repair and
 catalog-to-ACK acceptance remain open. All 75 task IDs/order/states are unchanged.
+
+Hosted security analysis flagged a negative test that added group-read access to
+its disposable directory to provoke mode-drift refusal. The test now removes
+owner-write access instead. It exercises the same refusal and exact FD closure
+without granting another principal access. Production permissions and all
+assertions are unchanged; the source-manifest pin follows the corrected test.
+Hosted security and image checks must pass on the updated PR head before merge.

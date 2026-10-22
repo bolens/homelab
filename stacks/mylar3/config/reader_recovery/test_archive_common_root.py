@@ -288,7 +288,7 @@ class OwnerReadTests(unittest.TestCase):
         self.assertEqual(self.uid,0)
 
     def test_owned_inode_is_closed_on_mode_refusal(self):
-        fd=self.actor.directory(self.root/'L');os.chmod(self.root/'L',0o750)
+        fd=self.actor.directory(self.root/'L');os.chmod(self.root/'L',0o500)
         try:
             with self.assertRaisesRegex(p.Held,'owner-read-release-owned-FD5'):self.actor.close_directory(fd)
             with self.assertRaises(OSError):os.fstat(fd)

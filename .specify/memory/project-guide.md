@@ -554,7 +554,11 @@ a source-cohort URI must join the recorded original source, rather than the
 different installed-copy URI. Preserve both original full identities and
 independent byte closure. A changed host Parent requires a new configured
 installation, but does not invalidate unchanged source-cohort evidence
-unless an actual consumed source or runtime contract changed.
+unless an actual consumed source or runtime contract changed. Once a checked
+installation retains source URIs and full identities, freeze that source
+worktree for the remaining operation. Integrate subsequent corrections in a new
+worktree and create a new installation generation. Do not mutate originals or
+refresh old references to make a later generation appear continuous.
 Exercise cross-UID handoffs with actual owner/mode metadata. Same-user tests
 cannot prove that a Root-private reader accepts UID1000-created facts. Bind
 retained-owner reads only to their authenticated original roles; keep unrelated
