@@ -26,7 +26,7 @@ OBSERVER_SHA = '59ccce44028d2bc6a7c9f80dd08ae6b239b4e131e5b0508eb8251da4b685815c
 class Originals:
     """Retain supplied full9, SHA and ancestor5; never adopt a new incarnation."""
     def __init__(self):
-        self.refs = {}; self.nodes = {}; self.absent = set(); self.namespaces = {}
+        self.refs = {}; self.nodes = {}; self.absent = set(); self.namespaces = {}; self.cohort_stderr = {}
 
     def read(self, ref, *, private=True):
         need(type(ref) is dict and set(ref) == {'path', 'sha256', 'signature9'}, 'producer-original-ref')
@@ -39,6 +39,21 @@ class Originals:
         self.refs[str(path)] = copy.deepcopy(ref)
         return raw
 
+    def read_cohort_stderr(self, cohort_ref, ref):
+        self.read(cohort_ref)
+        need(type(ref) is dict and set(ref) == {'path','sha256','signature9'}, 'producer-original-ref')
+        path = p.absolute(ref['path'])
+        for name, value in p.parents(path).items():
+            need(name not in self.nodes or self.nodes[name] == value, 'producer-original-ancestor')
+            self.nodes[name] = value
+        need(str(path) not in self.refs or self.refs[str(path)] == ref, 'producer-original-conflict')
+        raw = p.read_cohort_stderr(cohort_ref, ref)
+        binding = (copy.deepcopy(cohort_ref), copy.deepcopy(ref))
+        need(str(path) not in self.cohort_stderr or self.cohort_stderr[str(path)] == binding,
+             'producer-cohort-stderr-conflict')
+        self.refs[str(path)] = copy.deepcopy(ref); self.cohort_stderr[str(path)] = binding
+        return raw
+
     def json(self, ref, *, private=True):
         return p.decode(self.read(ref, private=private))
 
@@ -46,7 +61,11 @@ class Originals:
         for ref in tuple(self.refs.values()):
             # Public source/UID1000 bootstrap originals retain their original
             # owner/mode in full9; they must not become private root copies.
-            p.read(ref, private=False)
+            if ref['path'] in self.cohort_stderr:
+                cohort_ref, original = self.cohort_stderr[ref['path']]
+                need(ref == original, 'producer-cohort-stderr-original')
+                p.read_cohort_stderr(cohort_ref, ref)
+            else:p.read(ref, private=False)
         p.final({name: tuple(ref['signature9']) for name, ref in self.refs.items()}, self.nodes, self.absent)
         for path, names in self.namespaces.items():
             need(set(p.nfs_names(path)) == names, 'producer-original-namespace')
@@ -155,7 +174,13 @@ def nested_originals(originals, active_ref, supplied):
          and type(scope.get('sources')) is dict and 1 <= len(scope['sources']) <= 32,
          'producer-source-cohort-original-graph')
     for value in (*cohort['sources'].values(), cohort['parent']):follow(value, private=False)
-    for value in (*cohort['logs'].values(), cohort['receipt'], *scope['sources'].values()):follow(value)
+    for role,value in cohort['logs'].items():
+        full = supplied[value['path']]
+        if role == 'stderr' and full['signature9'][2] == 0:
+            need(full['sha256'] == value['sha256'], 'producer-original-fact-pin')
+            used.add(full['path']); originals.read_cohort_stderr(supplied[active['source_cohort']['path']], full)
+        else:follow(value)
+    for value in (cohort['receipt'], *scope['sources'].values()):follow(value)
     query = p.decode(follow(scope['sources']['current_komga_libraries']))
     need(query.get('kind') == 'approved-active-komga-library-query', 'producer-original-reader-query')
     follow(query['configuration'])

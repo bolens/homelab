@@ -249,4 +249,48 @@ class Controls(unittest.TestCase):
         source.write_bytes(b'late source replacement')
         with self.assertRaises((parent.Held,c.Held)):tree.check()
 
+    def test_real_parent_callback_projects_exact_empty_cohort_stderr(self):
+        import json
+        import comic_reader_lifecycle_parent as parent
+        owner=parent.LifecycleParent.__new__(parent.LifecycleParent)
+        owner.plan={'version':13,'action':'negative-five'};owner.files={}
+        def ref(path):return dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(parent.nine(path.lstat())))
+        stderr=self.base/'controls.stderr';stderr.write_bytes(b'');stderr.chmod(0o600);original=ref(stderr)
+        stdout=self.base/'controls.stdout';stdout.write_bytes(b'{"tests":1}');stdout.chmod(0o600)
+        pair=lambda value:{k:value[k] for k in ('path','sha256')}
+        cohort={'version':1,'kind':'approved-disposable-nfs-current-source-cohort','logs':{'stdout':pair(ref(stdout)),'stderr':pair(original)}}
+        path=self.base/'cohort.json';path.write_text(json.dumps(cohort));path.chmod(0o600);cohort_ref=ref(path)
+        owner.files[str(path)]=tuple(cohort_ref['signature9']);owner.files[str(stderr)]=tuple(original['signature9'])
+        parent._NFS_SOURCE_CONTEXTS[owner]=({}, {}, parent.encode(dict(source_cohort=pair(cohort_ref))),b'',str(self.op))
+        self.addCleanup(parent._NFS_SOURCE_CONTEXTS.pop,owner,None)
+        tree=c.Tree(self.base/'empty-log-child','/_empty-log',self.op,owner.read_child_original,uid=os.geteuid(),gid=os.getegid())
+        with self.assertRaises(parent.Held):parent.read(original)
+        tree.reserve_nfs_control(original);projected=tree.project(original);tree.check()
+        self.assertEqual(Path(projected['path']).read_bytes(),b'')
+        self.assertEqual(projected['sha256'],hashlib.sha256(b'').hexdigest())
+        with self.assertRaises(c.Held):c.raw(projected,os.geteuid())
+        stderr.write_bytes(b'late changed log')
+        with self.assertRaises((c.Held,parent.Held)):tree.check()
+
+    def test_real_parent_cohort_prechild_block_only_allows_original_stderr_empty(self):
+        import ast
+        import types
+        import comic_reader_lifecycle_parent as parent
+        def ref(path):return dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(parent.nine(path.lstat())))
+        log=self.base/'controls.stderr';log.write_bytes(b'');log.chmod(0o600);stderr=ref(log)
+        pair=lambda value:{k:value[k] for k in ('path','sha256')}
+        cohort={'version':1,'kind':'approved-disposable-nfs-current-source-cohort','logs':{'stdout':pair(self.ref),'stderr':pair(stderr)}}
+        path=self.base/'cohort.json';path.write_bytes(parent.encode(cohort));path.chmod(0o600);cref=pair(ref(path))
+        files={str(log):tuple(stderr['signature9']),str(path):tuple(ref(path)['signature9']),self.ref['path']:tuple(self.ref['signature9'])}
+        tree=ast.parse(Path(parent.__file__).read_text());cls=next(n for n in tree.body if isinstance(n,ast.ClassDef)and n.name=='LifecycleParent')
+        init=next(n for n in cls.body if isinstance(n,ast.FunctionDef)and n.name=='__init__')
+        loops=[n for n in ast.walk(init)if isinstance(n,ast.For)and isinstance(n.iter,ast.Name)and n.iter.id=='private_facts']
+        self.assertEqual(len(loops),1)
+        block=compile(ast.Module(body=loops,type_ignores=[]),str(Path(parent.__file__)),'exec')
+        env=dict(parent.__dict__,self=types.SimpleNamespace(files=files),cohort=cohort,cref=cref,private_facts=[pair(stderr)])
+        exec(block,env)
+        # A different empty ordinary fact remains invalid even with retained full9.
+        other=self.base/'ordinary-empty';other.write_bytes(b'');other.chmod(0o600);other_ref=ref(other);files[str(other)]=tuple(other_ref['signature9']);env['private_facts']=[pair(other_ref)]
+        with self.assertRaises(parent.Held):exec(block,env)
+
 if __name__=='__main__':unittest.main()

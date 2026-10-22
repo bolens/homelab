@@ -564,6 +564,16 @@ cannot prove that a Root-private reader accepts UID1000-created facts. Bind
 retained-owner reads only to their authenticated original roles; keep unrelated
 private documents strict.
 
+Derive archive scratch ownership from its consuming process, rather than the
+privileged launcher. The configured archive child runs as UID/GID1000; its scope
+guard requires scratch ownership to match. Prepare a new mode0700 scratch under
+its verified existing local parent with that owner before capturing references;
+do not create missing mount prefixes or widen existing permissions. Keep Root
+control facts private. Account for declared image volumes in exact mount checks:
+derive the `/config` bind from the original inspected native profile, cover the
+parent read-only and keep only the intended nested DATA mount writable. These
+source checks do not establish configured execution acceptance.
+
 Before a large application-state backup, measure its size and verify free space
 on the destination filesystem for both the backup and isolated restore. Prefer
 disk storage for large snapshots: tmpfs output consumes memory and can exhaust a

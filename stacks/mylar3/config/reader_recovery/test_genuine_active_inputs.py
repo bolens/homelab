@@ -133,6 +133,20 @@ class Fixture:
         return ref
 
 
+def empty_producer_stderr(f):
+    """Genuine emitter payload shape; supplied facts are disposable doubles only."""
+    import genuine_source_cohort as emitter
+    cohort = g.p.decode(g.p.read(f.document['source_cohort']))
+    old_receipt = cohort['receipt']; stderr = f.raw('stderr.log', b'')
+    logs = dict(cohort['logs'], stderr=g.pair(stderr)); cohort['logs'] = logs
+    receipt = f.fact(emitter.payload(cohort, g.pair(f.query), g.pair(f.query),
+        dict(tests=1), logs['stdout'], logs['stderr']))
+    f.refs.pop(old_receipt['path'])
+    f.document['native_controls'] = receipt
+    f.change('source_cohort', lambda value:value.update(logs=logs, receipt=g.pair(receipt)))
+    return stderr
+
+
 class ActiveInputsTests(unittest.TestCase):
     def fixture(self):
         directory = tempfile.TemporaryDirectory(); self.addCleanup(directory.cleanup)
@@ -148,6 +162,46 @@ class ActiveInputsTests(unittest.TestCase):
         self.assertEqual(active['probe_plan'], f.document['probe_plan']); self.assertEqual(docs['effective_observer_review'], g.p.decode(g.p.read(f.review)))
         for key in ('publication_acceptance', 'actual_nfs_verified', 'installed_factories_verified', 'mutation_authority', 'automatic_replay'):self.assertIs(result[key], False)
         self.assertEqual(set(x.name for x in f.output.iterdir()), {'active-input.json', 'composer-inputs.json'})
+
+    def test_genuine_empty_stderr_crosses_assembly_composer_and_original_close(self):
+        f = self.fixture(); stderr = empty_producer_stderr(f); original = copy.deepcopy(stderr)
+        with self.assertRaises(g.p.Held):g.p.read(stderr)
+        result = g.assemble(self.request(f), f.output)
+        originals = g.composer.Originals()
+        try:
+            _, docs = g.composer.nested_originals(originals, result['active_input'], result['originals'])
+            self.assertEqual(docs['source_cohort']['logs']['stderr'], g.pair(stderr))
+            self.assertEqual(originals.read_cohort_stderr(f.document['source_cohort'], stderr), b'')
+            originals.close()
+        finally:originals.close()
+        self.assertEqual(f.ref(Path(stderr['path'])), original)
+        self.assertEqual(Path(stderr['path']).read_bytes(), b'')
+        for flag in ('publication_acceptance','actual_nfs_verified','installed_factories_verified','mutation_authority','automatic_replay'):
+            self.assertIs(result[flag], False)
+
+    def test_empty_stderr_role_policy_and_private_mode_remain_strict(self):
+        f = self.fixture(); stderr = empty_producer_stderr(f); cohort_ref = f.document['source_cohort']
+        self.assertEqual(g.p.read_cohort_stderr(cohort_ref, stderr), b'')
+        ordinary = f.raw('ordinary-empty.json', b'')
+        with self.assertRaises(g.p.Held):g.p.read(ordinary)
+        with self.assertRaisesRegex(g.p.Held, 'cohort-empty-stderr-role'):g.p.read_cohort_stderr(cohort_ref, ordinary)
+        bad = dict(stderr, sha256='0'*64)
+        with self.assertRaisesRegex(g.p.Held, 'cohort-empty-stderr-role'):g.p.read_cohort_stderr(cohort_ref, bad)
+        Path(stderr['path']).chmod(0o400)
+        changed = f.ref(Path(stderr['path']))
+        with self.assertRaisesRegex(g.p.Held, 'ref-attributes'):g.p.read_cohort_stderr(cohort_ref, changed)
+
+    def test_late_empty_stderr_or_original_cohort_change_refuses(self):
+        for role in ('stderr','cohort'):
+            with self.subTest(role=role):
+                f = self.fixture(); stderr = empty_producer_stderr(f)
+                owner = g.Assembly(self.request(f), f.output)
+                try:
+                    path = Path(stderr['path'] if role == 'stderr' else f.document['source_cohort']['path'])
+                    path.chmod(0o400); path.chmod(0o600)
+                    with self.assertRaises(g.p.Held):owner.execute()
+                finally:owner.release()
+                self.assertFalse(f.output.exists())
 
     def test_missing_unknown_and_conflicting_facts_refuse_before_output(self):
         for change in ('missing', 'unknown', 'conflict'):

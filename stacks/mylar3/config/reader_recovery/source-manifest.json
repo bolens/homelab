@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "88070cc5997bb0ec7d93ebb877b71030ead339837b874f3417c791b98a76d688"
+      "sha256": "473959334691a51c2d1affb155d9e045e7e7490e7898037dd9155b3c113100fe"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "72a538068b21f16e7d15989a14d900516581ed54a8ecf40c5246b96f78f404c0"
+      "sha256": "d7c18a6de2f8e0ccd6b1537ba3ee9976d28d3d503f32b762ea4fa85799621bef"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -490,7 +490,7 @@
       "sha256": "ce20e9cb0ea6b846a6956125851c19362ee8f9fe4724e995472b03d58456ea92"
     },
     "genuine_active_inputs.py": {
-      "sha256": "b7cde8cd0ae983acef46135a3eafbabaa6550bf9c388b3efe12adc383c86626d"
+      "sha256": "44d640d9d1785b33d98393055bb0c7c3f732df72fec168bda3f79c0cb8dff156"
     },
     "genuine_application_bootstrap.py": {
       "sha256": "76c7812eb30af609b063b214840a586a6289f1ce4fe7e1a8f48727b9b60ade71"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "feadacc9e3a220d2495eb722780329ebe0918c7405bd281719e9c32c135914b6"
+      "sha256": "8e2b7d9e1b7c140146126cfc95b6a35f39cea649aa6e471523e44f2da72f41c2"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -520,7 +520,7 @@
       "sha256": "c575da0ed25455784de2f9e6fb007d57ab3d5cd42c342e10cdd741b4fbd51212"
     },
     "genuine_plan13_producer.py": {
-      "sha256": "ea7b559d9856dbad9feff99b8c9aa07199e00bc39e7466d277f561ca514ef310"
+      "sha256": "2f41b72f9eb8e14f66c1d9392c6bbb8b63d775568d33b91b2865d61eb0410928"
     },
     "genuine_reader_quiescence.py": {
       "sha256": "1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "5dabdbeeb86fe3e8c8d04f581f1ff92bb842c2d856dc64cdc87d7b665bafc54e"
+      "sha256": "dffa0339d7ab05a04e5ff9aa1cb89f4f2f159de85a5383f4e92e8598356b82c6"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -598,7 +598,7 @@
       "sha256": "cce5c6761057c17b6e30ebfb7eb014934abe9e4c24535e455f5153b10f0b9c5c"
     },
     "test_child_control_projection.py": {
-      "sha256": "91403024b33804cac8c5ac0ef08d1f2bc02f189f57839f8832ed721d5659b47e"
+      "sha256": "e0ec6a6582ba016dea563eb1a80f0be0ddac080439967c27d67844d6be8e4c90"
     },
     "test_child_factory_interface.py": {
       "sha256": "b656edf6048986cf1132de089daa09efcf4c2d11bda71b9e51821b74f717e730"
@@ -631,7 +631,7 @@
       "sha256": "4aaa575b6589c5077e673e4ec051510c390c5011bb3a04571e4166db1977a831"
     },
     "test_genuine_active_inputs.py": {
-      "sha256": "4d2bd9271282d87dc1b5c7db7fe2f82c76c5da6ab4654bae54813acd63e87216"
+      "sha256": "75b57f5acc26e9381bd0c22fec5bea2eade6e5b1721826c68088ef454e4f765c"
     },
     "test_genuine_application_bootstrap.py": {
       "sha256": "efed1773260e623bd9eca0fb252a98a6857829a062ce9c5cbf81fdc6e70083aa"
@@ -658,7 +658,7 @@
       "sha256": "7c3cce082fb7d43dd01cf439e462a887223068292a7cdf2a69b7ba5f4b6e09c9"
     },
     "test_genuine_source_cohort.py": {
-      "sha256": "4c3098d9cf10f85673f3176d44407eaea55d1be201e18cb5a5bf2e90f9d404b6"
+      "sha256": "5583f9079d61869bcb3ef06965700dbfb0d79976cfae7eaf693311ca530f4d56"
     },
     "test_hardlink_nfs_probe.py": {
       "sha256": "388f7ab2c6147b13457e9d9356848c40c19f290032fe2c9348eaba1d80df727d"
