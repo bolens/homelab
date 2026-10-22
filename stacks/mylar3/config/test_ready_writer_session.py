@@ -73,7 +73,9 @@ class Connected(unittest.TestCase):
   x.accept_archive_terminal=terminal
   tree=ast.parse(Path(p.__file__).read_text());cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='LifecycleParent');fn=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='child_phase');nested=next(n for n in fn.body if isinstance(n,ast.FunctionDef) and n.name=='challenge')
   # Compile the complete byte-source owning nested callback, not a mirrored predicate.
-  header=ast.parse('def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n').body[0]
+  # This fixture begins at the established-running Writer boundary. Retain its
+  # exact running static/epoch; first-start diagnostics have separate owning tests.
+  header=ast.parse("def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n started_static=encode(child_static)\n started_epoch=encode(lifecycle_state(original_running))\n started_at=original_running['State']['StartedAt']\n").body[0]
   header.body.extend([nested,ast.Return(ast.Name('challenge',ast.Load()))]);program=ast.fix_missing_locations(ast.Module([header],type_ignores=[]));ns=dict(p.__dict__);exec(compile(program,str(Path(p.__file__)),'exec'),ns)
   self.callback=ns['factory'](x,'execute',self.f.c.input,[],self.row['Id'],p.static(self.row),copy.deepcopy(self.row))
   ri,wo=os.pipe();ro,wi=os.pipe();self.requests=ri;self.response_out=wi

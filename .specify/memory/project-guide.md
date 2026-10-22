@@ -474,7 +474,20 @@ even with exit code zero. Use its supported `--timeout` option for stop/restart
 commands, updating paired argv producers and consumers together. Preserve exact
 acknowledgement checks rather than stripping unexpected output. Retain private
 CREATED and first-running profiles before comparing a startup transition; a
-response hash alone cannot identify which original field changed.
+response hash alone cannot identify which original field changed. Keep Created
+provenance separate from the validated running and terminal profiles. A retained
+none-network reproduction populated EndpointID, NetworkID, SandboxID and SandboxKey
+and changed the default OOM field on startup; terminal teardown cleared EndpointID
+and the sandbox fields while preserving NetworkID. Validate those exact bounded
+relations at their owning transitions, then require full profile/epoch closure.
+Do not drop all NetworkSettings, apply the library-query hostname exception to
+other children, or alter global `static()`. Audit session, probe, lease, phase,
+worker and active-parent terminal consumers together. A later exited profile after
+the Parent closes stdin cannot reconstruct the profile at an earlier refusal.
+Do not register diagnostic files in the Parent’s generated-control table from
+inside a terminal callback that already sealed that table. Stage observations
+before the seal or omit optional writes; preserve the original final registry
+comparison. Diagnostic capture must not change the controls it claims to observe.
 An acknowledged own restart can also change Docker's generated native MAC.
 Join each old/new endpoint ID and MAC to that same native member in the paired
 original/current network records. Require all other network and container
@@ -487,6 +500,13 @@ refresh the affected copy manifests. The inner collection passing does not
 verify these outer regression checks. Run the outer operational semantic-pin
 test before the long collection after changing a pinned host producer; keep
 `genuine_current_roles.SOURCE_PINS` aligned with the actual bootstrap source.
+When changing an owning Parent callback, also run the complete
+`run_publication_reader_controls.py` family. Its root writer-session fixtures
+compile the actual callback and are outside the inner recovery collection.
+Keep extracted factories’ closure bindings aligned with their stated lifecycle
+boundary: an established-running fixture retains its exact running static,
+epoch and StartedAt values; it must not fabricate a Created-to-running proof or
+remove the owning callback’s assertions to accommodate a missing binding.
 Bind CurrentRoles source roles to their actual loaded module origins, including
 the config parser; do not assume all generations share one directory. Retain
 Bootstrap helper/probe/scope URIs from their original authenticated context,

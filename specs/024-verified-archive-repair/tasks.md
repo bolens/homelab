@@ -84,14 +84,18 @@ T001 → T002–T003 → US1 T004–T007 → US2 T008–T010 → US3 T011–T013
 
 ## Next execution and completion evidence
 
-The assembler correction is delivered in PR #482. The fresh G run passed assembly
-and entered the owning producer, but no terminal outcome was accepted. Its causal
-SourceFixture passed with owned-container absence. The descriptor ownership and
-early `/_operation` mapping checks pass 1,406 local controls and 14 outer checks.
-The fresh H installation/export also verifies all 27 outputs without lifecycle changes.
-Hosted delivery passes in PR #485. Bind those actual new originals into a corrected
-packet with fresh source/observation bindings and exact isolated phase-log names. Existing observations and consumed
-output directories cannot be reused. These facts do not complete the five open tasks.
+The assembler and role-aware control corrections are delivered through PR #487.
+PR #488 is delivered with passing hosted checks and 1,412 local controls. The
+checked J installation/export verifies all 27 outputs. Its genuine owning run passes the
+repaired output projection and creates the NFS child, then refuses the original
+running-child profile check during the role-namespace handshake, before reader
+stop. Preserve that consumed attempt. Inspect the exact child state and original
+startup evidence before any correction or distinct run; the combined predicate
+alone does not prove an early child exit. Feature 023 evidence history owns the
+retained details. The lifecycle correction now passes all 1,460 owning controls,
+14 outer checks and local CI. Hosted delivery, a fresh checked installation/source cohort and
+connected forward/rollback acceptance are still required; these source results
+do not complete the five open tasks.
 
 1. **Finish static binding before freshness.** Preserve the original installation
    INNER/output27 and compatible selected-image/native180/SDK/worker evidence.
@@ -111,7 +115,13 @@ output directories cannot be reused. These facts do not complete the five open t
    independent terminal vectors before its permitted reader resume. Retain the
    original preparation/execution/ACK/terminal/phase receipts and full preservation
    comparisons. No external wrapper or elapsed test count can supply these facts.
-3. **Close milestones without a task cycle.** Feature 023 T022 checked installation
+3. **Prove rollback on a distinct fixture.** After accepted forward proof, use
+   a fresh genuine fixture/bootstrap/catalog/reader generation, fresh observations
+   and its own stopped backup/restore. Set the owning version-3 archive request’s
+   `terminal` to `rollback`; retain actual install/reverse/clear journals, original
+   terminal/ACK conversation and independent native preimage/reader preservation.
+   Do not change or replay the consumed forward request.
+4. **Close milestones without a task cycle.** Feature 023 T022 checked installation
    and T026 owning integration are source/installation prerequisites, not a demand
    to finish all of T026 before entering shared runtime proof. One reviewed isolated
    batch may jointly close the configured portions of 023 T026/T029 and 024
@@ -119,7 +129,7 @@ output directories cannot be reused. These facts do not complete the five open t
    preservation and factual-consumption criteria pass. A partial batch leaves each
    unmet task unchecked; archive terminal/Parent completion still grants no live
    import ACK or general release.
-4. **Then perform scoped live acceptance.** T016 validates applicable existing
+5. **Then perform scoped live acceptance.** T016 validates applicable existing
    backup/restore evidence before creating anything new or rolling an image.
    T017 consumes a genuine retained malformed original; the causal malformed
    fixture transition is isolated-test-only. Require a fresh ordinary import ACK

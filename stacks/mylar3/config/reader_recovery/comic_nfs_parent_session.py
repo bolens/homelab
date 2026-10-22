@@ -149,7 +149,7 @@ class RetainedChild:
         need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code) and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output),'nfs-session-original-seal')
         epoch=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
         if epoch is not None:
-            need(epoch[0] is self and epoch[1]==self.cid,'nfs-session-original-local-epoch')
+            need(len(epoch)==6 and epoch[0] is self and epoch[1]==self.cid,'nfs-session-original-local-epoch')
             ticks=int(self.g['Path']('/proc/'+str(epoch[2])+'/stat').read_text().rsplit(')',1)[1].split()[19]);need(ticks==epoch[4],'nfs-session-original-local-starttick')
         need(self.owner.generated.get(self.packet_ref['path'])==self.packet_ref,'nfs-session-original-packet-row')
         need(self.engine_replies.owner is self.owner and self.engine_replies.cid==self.cid and self.engine_replies.nonce==self.owner.plan['nonce'] and self.lease_replies.dialogue is self.engine_replies and self.probe_replies.dialogue is self.engine_replies,'nfs-session-original-binding')
@@ -192,7 +192,9 @@ class RetainedChild:
     def profile_after_release(self):
         need(self.lease_replies.lease is None or self.lease_replies.done is True,'nfs-session-no-remote-under-lease')
         current=self.owner.inspect(self.cid)
-        need(self.g['encode'](self.g['static'](current))==self.created_static and current['Id']==self.cid,'nfs-session-original-container-static')
+        original=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
+        need(original is not None and len(original)==6 and original[0] is self and original[1]==self.cid
+             and self.g['encode'](self.g['static'](current))==original[5] and current['Id']==self.cid,'nfs-session-original-container-static')
         need(current['State'].get('Dead') is False and current['State'].get('OOMKilled') is False,'nfs-session-container-failure')
         original=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
         need(original is not None and original[0] is self and original[1]==self.cid and current['State']['Pid']==original[2] and self.g['encode'](self.g['lifecycle_state'](current))==original[3],'nfs-session-original-running-epoch')

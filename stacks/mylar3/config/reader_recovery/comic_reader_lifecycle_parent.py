@@ -23,6 +23,108 @@ import time
 import weakref
 import urllib.parse
 
+NONE_NETWORK_SANDBOX_PARENT = '/var/run/docker/netns'
+
+def _none_network_profile_bytes(value):
+    """Use the exact Parent.encode JSON contract; reject unsupported snapshots."""
+    try:
+        return json.dumps(value,sort_keys=True,separators=(',', ':'),allow_nan=False).encode()
+    except (TypeError,ValueError,OverflowError,RecursionError):
+        return None
+
+def none_network_started_static(original, current, cid):
+    """Compare Parent.static dictionaries; callers retain all State/spec guards.
+
+    Keep original created provenance. After the first accepted transition the
+    caller must seal the complete post-start static and compare later rows
+    exactly, never refresh it through this function.
+    """
+    keys = {'Id', 'Name', 'Image', 'Path', 'Args', 'Config', 'HostConfig', 'Mounts', 'NetworkSettings'}
+    if (type(original) is not dict or type(current) is not dict
+            or set(original) != keys or set(current) != keys
+            or type(cid) is not str or re.fullmatch('[0-9a-f]{64}', cid) is None
+            or original['Id'] != cid or current['Id'] != cid):
+        return False
+    original_bytes = _none_network_profile_bytes(original)
+    current_bytes = _none_network_profile_bytes(current)
+    if original_bytes is None or current_bytes is None:
+        return False
+    try:
+        for row in (original, current):
+            if (type(row['HostConfig']) is not dict or row['HostConfig']['NetworkMode'] != 'none'
+                    or type(row['NetworkSettings']) is not dict
+                    or type(row['NetworkSettings']['Networks']) is not dict
+                    or set(row['NetworkSettings']['Networks']) != {'none'}
+                    or type(row['NetworkSettings']['Networks']['none']) is not dict):
+                return False
+        if original_bytes == current_bytes:
+            return True
+        parent = NONE_NETWORK_SANDBOX_PARENT
+        if (type(parent) is not str or not parent.startswith('/')
+                or parent.endswith('/') or any(p in ('', '.', '..') for p in parent.split('/')[1:])):
+            return False
+        old, new = original['NetworkSettings'], current['NetworkSettings']
+        if (original['HostConfig']['OomKillDisable'] is not False
+                or 'OomKillDisable' not in current['HostConfig']
+                or current['HostConfig']['OomKillDisable'] is not None):
+            return False
+        for old_value, new_value in (
+                (old['Networks']['none']['EndpointID'], new['Networks']['none']['EndpointID']),
+                (old['Networks']['none']['NetworkID'], new['Networks']['none']['NetworkID']),
+                (old['SandboxID'], new['SandboxID'])):
+            if old_value != '' or type(new_value) is not str or re.fullmatch('[0-9a-f]{64}', new_value) is None:
+                return False
+        if old['SandboxKey'] != '' or new['SandboxKey'] != parent + '/' + new['SandboxID'][:12]:
+            return False
+        expected = copy.deepcopy(original)
+        expected['HostConfig']['OomKillDisable'] = None
+        for field in ('EndpointID', 'NetworkID'):
+            expected['NetworkSettings']['Networks']['none'][field] = new['Networks']['none'][field]
+        expected['NetworkSettings']['SandboxID'] = new['SandboxID']
+        expected['NetworkSettings']['SandboxKey'] = new['SandboxKey']
+        return _none_network_profile_bytes(expected) == current_bytes
+    except (KeyError, TypeError, ValueError):
+        return False
+
+def none_network_exited_static(running, current, cid):
+    """Compare a retained running static to exact witnessed none teardown.
+
+    This proves no exit/process state; the caller must independently verify the
+    original owned process exit, unchanged StartedAt and its terminal profile.
+    """
+    if (not none_network_started_static(running, running, cid)
+            or not none_network_started_static(current, current, cid)):
+        return False
+    running_bytes = _none_network_profile_bytes(running)
+    current_bytes = _none_network_profile_bytes(current)
+    if running_bytes is None or current_bytes is None:
+        return False
+    if running_bytes == current_bytes:
+        return True
+    try:
+        old, new = running['NetworkSettings'], current['NetworkSettings']
+        parent = NONE_NETWORK_SANDBOX_PARENT
+        if (type(parent) is not str or not parent.startswith('/')
+                or parent.endswith('/') or any(p in ('', '.', '..') for p in parent.split('/')[1:])
+                or 'OomKillDisable' not in running['HostConfig']
+                or running['HostConfig']['OomKillDisable'] is not None):
+            return False
+        for value in (old['Networks']['none']['EndpointID'], old['Networks']['none']['NetworkID'], old['SandboxID']):
+            if type(value) is not str or re.fullmatch('[0-9a-f]{64}', value) is None:
+                return False
+        if old['SandboxKey'] != parent + '/' + old['SandboxID'][:12]:
+            return False
+        if (new['Networks']['none']['EndpointID'] != '' or new['SandboxID'] != ''
+                or new['SandboxKey'] != ''):
+            return False
+        expected = copy.deepcopy(running)
+        expected['NetworkSettings']['Networks']['none']['EndpointID'] = ''
+        expected['NetworkSettings']['SandboxID'] = ''
+        expected['NetworkSettings']['SandboxKey'] = ''
+        return _none_network_profile_bytes(expected) == current_bytes
+    except (KeyError, TypeError, ValueError):
+        return False
+
 _CORES = weakref.WeakKeyDictionary()
 _GENERATED = weakref.WeakKeyDictionary()
 _PHASES = weakref.WeakKeyDictionary()
@@ -64,6 +166,57 @@ def need(value, reason):
 def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'),
                       ensure_ascii=False, allow_nan=False).encode()
+
+
+def _make_none_network_profile_contract():
+    # Import-time source ownership, shared by Parent and its admitted host helpers.
+    source_globals = globals(); refusal = Held
+    rows = tuple((name, source_globals[name], source_globals[name].__code__, source_globals[name].__globals__)
+                 for name in ('_none_network_profile_bytes', 'none_network_started_static', 'none_network_exited_static'))
+    modules = tuple((name, source_globals[name]) for name in ('json', 'copy', 're'))
+    dependencies = tuple((module, name, getattr(module, name), getattr(getattr(module, name), '__code__', None))
+                         for module, name in ((json, 'dumps'), (copy, 'deepcopy'), (re, 'fullmatch')))
+    prefix = NONE_NETWORK_SANDBOX_PARENT
+    started, exited = rows[1][1], rows[2][1]
+    public = (); token = object()
+    def guard():
+        if (globals() is not source_globals or type(source_globals.get('NONE_NETWORK_SANDBOX_PARENT')) is not str
+                or source_globals['NONE_NETWORK_SANDBOX_PARENT'] != prefix
+                or any(source_globals.get(name) is not module for name, module in modules)
+                or any(source_globals.get(name) is not function or function.__code__ is not code
+                       or function.__globals__ is not original_globals or original_globals is not source_globals
+                       for name, function, code, original_globals in rows)
+                or any(getattr(module, name, None) is not function or getattr(function, '__code__', None) is not code
+                       for module, name, function, code in dependencies)
+                or any(source_globals.get(name) is not function or function.__code__ is not code
+                       or function.__globals__ is not source_globals for name, function, code in public)):
+            raise refusal('none-network-original-profile-contract')
+        return token
+    guard_code = guard.__code__
+    def checked_started(original, current, cid):
+        if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+        guard()
+        try:
+            return started(original, current, cid)
+        finally:
+            if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+            guard()
+    def checked_exited(original, current, cid):
+        if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+        guard()
+        try:
+            return exited(original, current, cid)
+        finally:
+            if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+            guard()
+    public = tuple((name, function, function.__code__) for name, function in (
+        ('none_network_profile_contract', guard),
+        ('checked_none_network_started_static', checked_started),
+        ('checked_none_network_exited_static', checked_exited)))
+    return guard, checked_started, checked_exited
+
+none_network_profile_contract, checked_none_network_started_static, checked_none_network_exited_static = _make_none_network_profile_contract()
+del _make_none_network_profile_contract
 
 
 def decode(raw):
@@ -859,8 +1012,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'f482cd7099b141a298f92065fa4242ab29361253506fc695d4b74324a71ce212', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b2ca742e488458d8e7a67923b94d715f37e7e42d5c39d21014977f9719d0fe1e'}
-NFS_ACTIVE_SOURCE_SHA='63ec393ab36a5296ad717013a7318057ee13b83b4cbd7a9baed09a9bf2038a19'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '88370d08fcf7a8cdb8eff9eceb5c6a6c29a1663d3d07e0e752bf1af5b594dd14', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '0b95ffa40f11f8667e3f20bab3cdb61293fdaccf7ca64a721da042fd8d1524b7', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b2ca742e488458d8e7a67923b94d715f37e7e42d5c39d21014977f9719d0fe1e'}
+NFS_ACTIVE_SOURCE_SHA='9dce06de4a8867934db48d1624b33113f30ae8c609b9dfaa25d5ae603e184b8b'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -1147,7 +1300,7 @@ class ScopedDocker:
   nfs_remote_guard(self)
   # Only the parent can pass an actual freshly inspected exited owned profile.
   owned=_OBSERVER_OWNED.get(self,{}).get(cid);released=_OBSERVER_RELEASED.get(self,{}).get(cid)
-  need(owned is not None and released is not None and type(original) is dict and static(original)==owned[1] and original.get('Id')==cid and original['State']['Status']=='exited' and original['State']['ExitCode']==0 and original['State']['Pid']==0 and original['Config']['Labels'].get('com.homelab.reader.worker-observer')==owned[0],'worker-owned-exited-cleanup')
+  need(owned is not None and released is not None and len(released)==3 and type(original) is dict and encode(static(original))==released[2] and original.get('Id')==cid and original['State']['Status']=='exited' and original['State']['ExitCode']==0 and original['State']['Pid']==0 and original['Config']['Labels'].get('com.homelab.reader.worker-observer')==owned[0],'worker-owned-exited-cleanup')
   try:r=subprocess.run([*DOCKER,'rm',cid],capture_output=True,timeout=5,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except (OSError,subprocess.TimeoutExpired):raise Held('worker-cleanup-ACK-unknown') from None
   need(r.returncode==0 and len(r.stdout)<=4096 and len(r.stderr)<=4096,'worker-cleanup-ACK-held')
@@ -1644,7 +1797,11 @@ class LifecycleParent:
                     return read(ref,private=False)
         return read(ref)
 
-    def left(self):
+    def left(self, _profile_guard=none_network_profile_contract, _profile_code=none_network_profile_contract.__code__):
+        binding=LifecycleParent.left.__defaults__
+        need(_profile_guard is binding[0] and _profile_code is binding[1], 'none-network-original-profile-binding')
+        need(_profile_guard.__code__ is _profile_code, 'none-network-original-profile-contract')
+        _profile_guard()
         owner_root_guard()
         need(threading.get_ident() == self.thread and time.monotonic() < self.deadline, 'parent-lifetime')
         need(encode(dict(plan=self.plan, files=self.files, nodes=self.nodes,
@@ -1741,7 +1898,11 @@ class LifecycleParent:
         return dict(path=row[0],signature9=list(current),original_signature9=list(row[1]),device=row[1][0],owner=1000,
                     phase='initial' if active is None else 'execute-owned')
 
-    def nfs_host_modules(self):
+    def nfs_host_modules(self, _profile_guard=none_network_profile_contract, _profile_code=none_network_profile_contract.__code__):
+        binding=LifecycleParent.nfs_host_modules.__defaults__
+        need(_profile_guard is binding[0] and _profile_code is binding[1], 'none-network-original-profile-binding')
+        need(_profile_guard.__code__ is _profile_code, 'none-network-original-profile-contract')
+        _profile_guard()
         self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
         refs,raws,_,_,_=_NFS_SOURCE_CONTEXTS[self]
         if self in _NFS_HOST_MODULES:
@@ -1920,6 +2081,7 @@ class LifecycleParent:
             need(not any(c in row['host']+row['child'] for c in ',\n\r'),'nfs-child-mount-spelling');args.extend(['--mount','type=bind,src='+row['host']+',dst='+row['child']+('' if row['write'] else ',readonly')])
         args.extend([self.plan['selected_image'],*command]);self.emit('nfs-create-intent.json',dict(command=args,automatic_replay=False));self.left()
         cid=self.engine.run(args,self.left()).decode().strip();need(digest(cid),'nfs-child-created-ACK');created=self.inspect(cid)
+        self.emit('nfs-created-profile.json',dict(kind='owning-child-created-profile-diagnostic',cid=cid,profile=created,automatic_replay=False))
         labels=dict(_CONFIGURED_IMAGE_LABELS.get(self,()));need('com.homelab.reader.lifecycle' not in labels,'nfs-child-image-reserved-label');labels['com.homelab.reader.lifecycle']=name
         need(created['Config']['Labels']==labels,'nfs-child-original-created-labels')
         self.profile(created,cid,command,sorted((r['host'],r['child'],r['write']) for r in mounts),False)
@@ -1953,7 +2115,9 @@ class LifecycleParent:
         original_ref=_NFS_PACKET_ROWS[self][2];root_ref=self.mapping.original_ref(original_ref);bootstrap=decode(read(root_ref))
         need(bootstrap['kind']=='parent-original-current-three-role-bootstrap' and bootstrap['ancestors']=={},'nfs-namespace-original-bootstrap')
         current=self.inspect(session.cid);state=current['State']
-        need(encode(static(current))==session.created_static and state['Running'] is True and state['Paused'] is False and type(state['Pid']) is int and state['Pid']>0,'nfs-namespace-own-running-child')
+        self.emit('nfs-first-started-profile.json',dict(kind='owning-child-first-started-profile-diagnostic',cid=session.cid,profile=current,automatic_replay=False))
+        started_static=encode(static(current))
+        need((started_static==session.created_static or checked_none_network_started_static(decode(session.created_static),static(current),session.cid)) and state['Running'] is True and state['Paused'] is False and type(state['Pid']) is int and state['Pid']>0,'nfs-namespace-own-running-child')
         need(self not in _NFS_CHILD_EPOCHS,'nfs-namespace-bootstrap-no-replay')
         pid=state['Pid'];epoch=lifecycle_state(current);ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19]);ancestors={}
         for key in ('plan','source'):
@@ -1974,8 +2138,8 @@ class LifecycleParent:
                 finally:os.close(fd)
             finally:os.close(rootfd)
         after=self.inspect(session.cid);ticks2=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
-        need(encode(static(after))==session.created_static and lifecycle_state(after)==epoch and ticks2==ticks,'nfs-namespace-original-child-epoch')
-        _NFS_CHILD_EPOCHS[self]=(session,session.cid,pid,encode(epoch),ticks)
+        need(encode(static(after))==started_static and lifecycle_state(after)==epoch and ticks2==ticks,'nfs-namespace-original-child-epoch')
+        _NFS_CHILD_EPOCHS[self]=(session,session.cid,pid,encode(epoch),ticks,started_static)
         response=copy.deepcopy(bootstrap);response['kind']='parent-original-current-three-role-selectors';response['ancestors']=ancestors
         session.close();dialogue.sequence=frame['sequence']
         return dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=response)
@@ -2653,15 +2817,16 @@ class LifecycleParent:
         self.emit(phase + '-create-intent.json', dict(command=args, automatic_replay=False))
         self.continuous(); cid = self.engine.run(args, self.left()).decode().strip()
         need(digest(cid), 'child-create-ACK'); created = self.inspect(cid)
+        self.emit(phase+'-created-profile.json',dict(kind='owning-child-created-profile-diagnostic',cid=cid,profile=created,automatic_replay=False))
         expected_mounts = sorted((r['host'], r['child'], (phase=='execute' if self in _ARCHIVE_COMMON_ROOTS and r['host']==_ARCHIVE_COMMON_ROOTS[self][1]['common_root']['path'] else r['write'] if self in _CHILD_TREES else self.phase_write(r,phase))) for r in mounts)
         expected_labels=dict(_CONFIGURED_IMAGE_LABELS.get(self,()))
         need('com.homelab.reader.lifecycle' not in expected_labels,'child-image-reserved-label');expected_labels['com.homelab.reader.lifecycle']=name
         need(created['Config']['Labels'] == expected_labels, 'child-exact-label')
         self.profile(created, cid, command, expected_mounts, False)
-        child_static = static(created); sequence = 0; original_running=None;writer_session=None;writer_confirmed=False;pending_terminal=None;consumed_sequence=None
+        child_static = static(created); started_static=None; started_epoch=None; started_at=None; sequence = 0; original_running=None;writer_session=None;writer_confirmed=False;pending_terminal=None;consumed_sequence=None
         self.emit(phase + '-start-intent.json', dict(id=cid, automatic_replay=False))
         def challenge(message,raw=None):
-            nonlocal sequence,original_running,writer_session,writer_confirmed,pending_terminal,consumed_sequence
+            nonlocal sequence,original_running,writer_session,writer_confirmed,pending_terminal,consumed_sequence,started_static,started_epoch,started_at
             original_files = dict(self.files)
             original_files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
             original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
@@ -2743,7 +2908,11 @@ class LifecycleParent:
                  and type(message['sequence']) is int and message['sequence'] == sequence + 1
                  and digest(message['challenge']), 'challenge-binding')
             sequence += 1; current = self.inspect(cid)
-            need(static(current) == child_static and current['State']['Running'] is True
+            if started_static is None:
+                self.emit(phase+'-first-started-profile.json',dict(kind='owning-child-first-started-profile-diagnostic',cid=cid,profile=current,automatic_replay=False))
+                need(encode(static(current))==encode(child_static) or checked_none_network_started_static(child_static,static(current),cid),'child-created-to-started-profile')
+                started_static=encode(static(current));started_epoch=encode(lifecycle_state(current));started_at=current['State']['StartedAt']
+            need(encode(static(current))==started_static and encode(lifecycle_state(current))==started_epoch and current['State']['Running'] is True
                  and current['State']['Pid'] > 0 and current['State']['Paused'] is False, 'child-running-profile')
             if self.plan.get('version') in (11,12,13) and phase=='execute':
                 if original_running is None:original_running=copy.deepcopy(current)
@@ -2829,7 +2998,9 @@ class LifecycleParent:
             report_ref=validate_ack({k:v for k,v in ack.items() if k!='terminal_release'},phase,self.plan['nonce'],self.phase_provider(phase)['sha256'])
         else:report_ref = validate_ack(ack, phase, self.plan['nonce'], self.phase_provider(phase)['sha256'])
         exited = self.inspect(cid)
-        need(static(exited) == child_static, 'child-final-static')
+        self.emit(phase+'-first-exited-profile.json',dict(kind='owning-child-first-exited-profile-diagnostic',cid=cid,profile=exited,automatic_replay=False))
+        need(started_static is not None and (encode(static(exited))==started_static or checked_none_network_exited_static(decode(started_static),static(exited),cid)), 'child-final-static')
+        need(exited['State']['StartedAt']==started_at,'child-original-start-before-exit')
         self.profile(exited, cid, command, expected_mounts, True)
         if self.plan.get('version') in (11,12,13) and phase=='execute':
             need(exited['State']['StartedAt']==original_running['State']['StartedAt'],'archive-original-producer-start-before-exit')
@@ -2927,21 +3098,31 @@ class LifecycleParent:
         immutable=tuple((k,copy.deepcopy(getattr(protocol,k))) for k in immutable_fields)
         constants=(module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))
         files=tuple(original_files);nodes=tuple(original_nodes);claims=tuple(vectors['claims'].items());names=tuple(vectors['censuses'].items());absent=tuple(vectors['absent'])
-        cid=None;running=None;created_static=None;created_projection=None;owned_record=None
+        cid=None;running=None;started_static=None;terminal_static=None;created_static=None;created_projection=None;owned_record=None
+        def child_profile(row):
+            nonlocal running,started_static,terminal_static
+            state=row['State']['Status']
+            if state=='running' and running is None:
+                need(encode(static(row))==encode(created_static) or checked_none_network_started_static(created_static,static(row),cid),'worker-created-to-started-profile')
+            elif state=='exited' and terminal_static is None:
+                need(running is not None and protocol.step==4 and (encode(static(row))==started_static or checked_none_network_exited_static(decode(started_static),static(row),cid)),'worker-started-to-exited-profile')
+            elif state=='created':need(encode(static(row))==encode(created_static),'worker-original-static-through-dialogue')
+            else:need(encode(static(row))==(terminal_static if state=='exited' else started_static),'worker-original-static-through-dialogue')
+            self.worker_profile(row,cid,intent,state)
+            if state=='running':
+                if running is None:running=copy.deepcopy(row);started_static=encode(static(row))
+                else:need(same_runtime(row,running),'worker-original-running-lifetime')
+            elif state=='created':need(running is None and protocol.step==0,'worker-created-before-birth-only')
+            else:
+                need(state=='exited' and running is not None and protocol.step==4 and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
+                if terminal_static is None:terminal_static=encode(static(row))
         def guard():
-            nonlocal running
             protocol_state=module._ROUND_STATES.get(protocol)
             need(time.monotonic()<intent[7],'worker-original-ingress-deadline')
             self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'worker-live-original-producer')
             dialogue_close(self.engine,current['Id'])
             if cid is not None:
-                row=self.inspect(cid);need(static(row)==created_static,'worker-original-static-through-dialogue')
-                state=row['State']['Status'];self.worker_profile(row,cid,intent,state)
-                if state=='running':
-                    if running is None:running=copy.deepcopy(row)
-                    else:need(same_runtime(row,running),'worker-original-running-lifetime')
-                elif state=='created':need(running is None and protocol.step==0,'worker-created-before-birth-only')
-                else:need(state=='exited' and running is not None and protocol.step==4 and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
+                child_profile(self.inspect(cid))
             if cid in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,cid)
             # No FD/process/time/inspect/encoding helper after this complete closure.
             for path,entries in names:
@@ -2991,8 +3172,8 @@ class LifecycleParent:
         owned_record=(intent[3],copy.deepcopy(created_static));_OBSERVER_OWNED.setdefault(self.engine,{})[cid]=owned_record
         result=self.engine.worker_interactive(cid,protocol,min(budget,self.left()),guard)
         need(protocol.step==4 and result is not None,'worker-complete-original-dialogue')
-        exited=self.inspect(cid);self.worker_profile(exited,cid,intent,'exited');need(static(exited)==created_static and running is not None and exited['State']['StartedAt']==running['State']['StartedAt'],'worker-original-exit-profile')
-        _OBSERVER_RELEASED.setdefault(self.engine,{})[cid]=(producer_dialogue,result)
+        exited=self.inspect(cid);child_profile(exited);need(terminal_static is not None and encode(static(exited))==terminal_static and running is not None and exited['State']['StartedAt']==running['State']['StartedAt'],'worker-original-exit-profile')
+        _OBSERVER_RELEASED.setdefault(self.engine,{})[cid]=(producer_dialogue,result,terminal_static)
         guard();self.engine.remove_observer(cid,exited)
         # After exact owned removal, only the original producer remains live.
         cid=None;guard();return copy.deepcopy(result)

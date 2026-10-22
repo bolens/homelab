@@ -1483,3 +1483,101 @@ and distinct original, physical and virtual output paths. The predecessor refuse
 and still rejects foreign paths. Independent review of all coordinate/ref paths
 finds no further confirmed conversion defect. Source pins and all finite maps
 close. New checked installation, hosted delivery and actual execution remain open.
+
+
+The distinct J installation and independent export verify all 27 configured outputs
+without lifecycle actions. INNER, origin and outer receipt hashes are respectively
+`4119e71652c75eb270e42d3573482380320a04e4e5bffdce78a398c36d937676`,
+`3bef59417b17d4edf60ca3e4ddce3a77b1502e304f1308aedfad30f378bff981`
+and `7c7ae97c7525cef94645ea303b336e3fdb20546efd7682d37c87db656767bb40`.
+The I disposition query confirms exact original payload/full9, geometry, retention,
+provider and runtime-profile/epoch matches. Installation integrity and prechild
+disposition grant no execution acceptance. PR #488 runs normal hosted gates;
+fresh J observations and owning execution remain pending.
+
+
+The J continuation and its actual ordinary-user bound graph pass independent
+review. The one finite privileged owning run is active; no terminal result or
+acceptance is assumed. The source armer records J’s 1,412 host controls separately
+from the unchanged 1,302-control/73-suite SourceFixture lineage. All prior consumed
+attempts remain retained. The explicit rollback case is mapped to the owning
+version-3 archive request’s `terminal=rollback`, using a distinct fresh fixture
+generation and its own bootstrap/catalog/readiness/stopped backup; changing a
+consumed forward request is prohibited. Task markers remain unchanged pending
+original owning proof.
+
+
+The J owning run exits held without replay at
+`nfs-namespace-own-running-child`. It passes the repaired projection and creates
+the NFS child; the original failure is during that child’s genuine role-namespace
+frame, before reader stop. The operation retains ten journal/input files and its
+child-control namespace. Read-only inspection confirms the fixture native and
+reader still running and worker Created. The combined profile/running predicate
+does not by itself establish that the child exited. Exact child state and retained
+profile diagnostics are required; no NFS, terminal or task acceptance follows.
+
+
+The exact-child observer verifies the J create-intent’s command, image, label and
+mounts. The child is now exited with code 2 after the Parent closed its input;
+that observation cannot recover the earlier frame-time profile. Its raw inspect
+and bounded logs remain private. The retained independent none-network
+reproduction confirms exactly five startup differences: endpoint/network/sandbox
+identifiers populate, SandboxKey matches `/var/run/docker/netns/` plus the sandbox
+prefix, and the default OOM field changes from `false` to `null`. The same original
+CID, image and Config match. Its terminal record clears endpoint and sandbox
+fields, preserves NetworkID, and retains Config and StartedAt. These observations
+support a bounded source correction; they do not retroactively accept J.
+
+The follow-up source batch covers the strict transition helper, Parent/session,
+probe/lease, phase/worker and active-parent terminal consumers together. Created
+provenance remains immutable, the first validated running profile is retained,
+and terminal teardown has its own bounded comparison. Global static projections,
+original service epochs and all publication/import grants remain unchanged.
+The implementation and complete owning tests are recorded below; configured
+execution remains pending.
+
+
+PR #488 merges as `b64a776c8102ec52f1da3dbcd6470d06312bb578` after all
+checks pass and no unresolved review conversations remain. Its tree matches the
+reviewed head. GitHub, local main and the intended Gitea mirror match that merge.
+The pinned J sources remain unchanged; the lifecycle follow-up is isolated in a
+new worktree. Its pure typed transition controls pass on Python 3.10; configured
+acceptance remains open.
+
+## Typed isolated-child lifecycle correction — 2026-10-22
+
+The integrated host correction validates only the reproduced none-network startup
+and teardown relations. Created profiles remain immutable; the first accepted
+running and terminal profiles are sealed separately. Parent/session, phase/worker,
+probe/lease and active-parent consumers share guarded typed comparisons. Exact
+service profiles, process epochs, Writer restrictions and publication grants are
+unchanged. Independent review finds no actionable regression.
+
+The first complete run exposed three optional worker diagnostic writes inside an
+already sealed terminal registry. Removing only those writes restores the genuine
+nested-pipe composition without weakening its final registry comparison. Persisted
+raw worker-profile diagnostics are absent on that path; existing immutable runtime
+profiles and protocol checks still apply. Prior failed histories remain unchanged.
+
+The corrected source passes all 1,460 controls across 75 suites through the owning
+runner on Python 3.10, with zero skips, and all 14 outer checks. The seven import-copy
+checks, focused Ruff, Markdown, `make validate` and `make ci-local` pass. Semantic
+pins and both 436-row copy maps close; the 258-file and byte/time budgets are
+unchanged. These are source/component results. Hosted delivery, a fresh checked
+27-output installation and coherent source cohort, then genuine forward and
+separate fresh-fixture rollback execution remain required. No task, live import,
+ACK, reader-resume or bulk authority follows from these tests.
+
+### Writer-session CI fixture correction — 2026-10-22
+
+PR #489’s first hosted native-image run fails while compiling the complete owning
+Writer callback into its mechanical test factory: the factory lacks the callback’s
+three new running-profile closure variables. The production callback already has
+those bindings. The fixture starts at an established running row, so it now seeds
+that exact static profile, lifecycle epoch and StartedAt value. All 15 existing
+Writer assertions and nine dependent negative-session assertions pass on Python
+3.10; production checks and startup-transition tests are unchanged. Both declared
+copy maps are refreshed. The complete `run_publication_reader_controls.py` family passes on Python 3.10,
+including its outer checks and separate 1,460-control pass with zero skips;
+local CI passes. Hosted verification remains required. This correction supplies
+no operational acceptance.
