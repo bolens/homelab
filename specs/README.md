@@ -36,3 +36,5 @@ Installation validation alone does not establish feature completion.
 - [IPTV reliability and recovery](026-iptv-reliability/spec.md): [plan](026-iptv-reliability/plan.md), [tasks](026-iptv-reliability/tasks.md), [validation](026-iptv-reliability/validation.md).
 
 - [ErsatzTV library channels](027-ersatztv-live-channels/spec.md): prospective [plan](027-ersatztv-live-channels/plan.md), [tasks](027-ersatztv-live-channels/tasks.md).
+
+- [Independent Kavita provider services](028-kavita-independent-services/spec.md): [plan](028-kavita-independent-services/plan.md), [tasks](028-kavita-independent-services/tasks.md), [validation](028-kavita-independent-services/validation.md). Genuine provider-account verification remains open.

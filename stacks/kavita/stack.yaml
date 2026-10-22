@@ -37,6 +37,9 @@ volumes:
 - name: kavita_config
   role: app_data
   critical: true
+- name: kavita_provider_state
+  role: app_data
+  critical: true
 auth:
   mode: app_local
   sso_provider: null
@@ -52,7 +55,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Optional independent-provider images are experimental; genuine provider acceptance and full Kavita+ parity remain unverified. Recovery snapshots and protected receipts belong in existing volume backups.'
 runtime_security:
   privileged_services: []
   host_network_services: []

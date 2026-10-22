@@ -1,0 +1,77 @@
+    private async Task<bool> ValidateIndependentAccount(ScrobbleProvider provider, string token, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        var result = await _kavitaPlusApiService.GetUserInfo(provider, token, string.Empty, ct);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            _logger.LogWarning("Independent account validation is unavailable for {Provider}; pending events will be retained", provider);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task CheckIndependentAccessTokens(CancellationToken ct)
+    {
+        var users = await _unitOfWork.UserRepository.GetAllUsersAsync(ct: ct);
+        foreach (var user in users)
+        {
+            foreach (var (provider, settings) in user.ScrobbleProviders)
+            {
+                if (string.IsNullOrWhiteSpace(settings.AuthenticationToken)) continue;
+                var upstream = provider.ToOAuthUpstream();
+                var knownExpiry = upstream.HasValue
+                    ? await IndependentProvider.KnownTokenExpiry((int)upstream.Value, settings.AuthenticationToken, ct) : null;
+                if (knownExpiry.HasValue)
+                {
+                    var refreshable = provider.SupportsOAuthTokenRefresh() && !string.IsNullOrEmpty(settings.RefreshToken);
+                    if (!refreshable && await ShouldSendEarlyReminder(user.Id, knownExpiry.Value))
+                        await _emailService.SendTokenExpiringSoonEmail(user.Id, provider);
+                    if (await ShouldSendExpirationReminder(user.Id, knownExpiry.Value))
+                        await _emailService.SendTokenExpiredEmail(user.Id, provider);
+                }
+                var validity = await _kavitaPlusApiService.HasTokenExpiredForProviderAsync(provider, settings.AuthenticationToken, string.Empty, ct);
+                if (!validity.IsSuccess)
+                {
+                    _logger.LogWarning("Independent token validity is unknown for {Provider}; no expired state is assumed", provider);
+                    continue;
+                }
+                if (validity.Data)
+                    await _eventHub.SendMessageToAsync(MessageFactory.ScrobblingKeyExpired,
+                        MessageFactory.ScrobblingKeyExpiredEvent(provider), user.Id, ct);
+            }
+        }
+    }
+
+    private async Task<int> PostIndependentScrobbleUpdate(ScrobbleV3Dto data, ScrobbleEvent evt)
+    {
+        var manifest = await IndependentProvider.Manifest();
+        if (!IndependentScrobblePolicy.AllowsPayload(manifest, (int)data.Provider,
+            (int)data.ScrobbleEventType, data.TotalReadCountForSeries ?? 0,
+            data.ReadStatus.HasValue ? (int)data.ReadStatus.Value : null,
+            data.ReviewScrobbleTarget.HasValue ? (int)data.ReviewScrobbleTarget.Value : null))
+        {
+            await LogScrobbleEvent(evt, KavitaPlusEventType.ScrobbleEventSkipped, AuditStatus.Info, "independent-action-unavailable");
+            throw new KavitaException("Independent action is unavailable; event retained");
+        }
+        ScrobbleResponseDto response;
+        try { response = await _kavitaPlusApiService.PostScrobbleV3UpdateAsync(data, string.Empty); }
+        catch (Exception)
+        {
+            await LogScrobbleEvent(evt, KavitaPlusEventType.ScrobbleEventFailed, AuditStatus.Failure, "independent-delivery-unconfirmed");
+            _logger.LogWarning("Independent delivery is unconfirmed for event {EventId}; retained", evt.Id);
+            throw new KavitaException("Independent delivery is unconfirmed; event retained");
+        }
+        // A default DTO or blank error is never confirmation of a remote write.
+        if (response is not { Successful: true, ErrorMessage: null })
+        {
+            var rateLimited = response?.ErrorMessage?.Contains("Too Many Requests", StringComparison.Ordinal) == true;
+            await LogScrobbleEvent(evt, KavitaPlusEventType.ScrobbleEventFailed, AuditStatus.Failure,
+                rateLimited ? "rate-limit-hit" : "independent-delivery-unconfirmed");
+            if (rateLimited)
+                throw new KavitaException(RateLimitHitErrorMessage);
+            _logger.LogWarning("Independent delivery was not confirmed for event {EventId}; retained", evt.Id);
+            throw new KavitaException("Independent delivery was not confirmed; event retained");
+        }
+        await LogScrobbleEvent(evt, KavitaPlusEventType.ScrobbleEventSent, AuditStatus.Success);
+        return Math.Clamp(response.RateLeft, 0, 1);
+    }

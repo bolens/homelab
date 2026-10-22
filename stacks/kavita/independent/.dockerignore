@@ -1,0 +1,13 @@
+*
+!Dockerfile
+!patch_source.py
+!source.sha256
+!IndependentProvider.cs
+!NOTICE
+!IndependentOAuth.cs
+!OAuthController.methods.txt
+!ScrobblingService.independent.txt
+!IndependentWantToReadMatcher.cs
+!WantToReadSyncService.independent.txt
+!IndependentScrobblePolicy.cs
+!independent-actions.ts

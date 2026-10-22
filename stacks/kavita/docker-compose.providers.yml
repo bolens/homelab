@@ -1,0 +1,64 @@
+# Experimental independent providers. Explicitly select alongside docker-compose.yml.
+# Build and verify both images before recreating Kavita with this override.
+services:
+  kavita:
+    image: ${KAVITA_INDEPENDENT_IMAGE:-kavita-independent:0.9.1.4-local}
+    build:
+      context: ./independent
+    environment:
+      KAVITA_PROVIDER_URL: http://kavita-providers:8080
+      KAVITA_PROVIDER_KEY_FILE: /run/secrets/provider_key
+      KAVITA_PUBLIC_URL: ${KAVITA_PUBLIC_URL:-}
+    secrets:
+      - provider_key
+    networks:
+      - ingress-public
+      - kavita-providers
+    depends_on:
+      kavita-providers:
+        condition: service_healthy
+
+  kavita-providers:
+    image: ${KAVITA_PROVIDERS_IMAGE:-kavita-providers:local}
+    build:
+      context: ./providers
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 256m
+    pids_limit: 64
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      PROVIDER_KEY_FILE: /run/secrets/provider_key
+      HARDCOVER_TOKEN_FILE: /run/secrets/hardcover_token
+      PROVIDER_DATABASE: /state/providers.sqlite3
+      KAVITA_PUBLIC_URL: ${KAVITA_PUBLIC_URL:-}
+      OAUTH_CLIENTS_FILE: /run/secrets/oauth_clients
+    secrets:
+      - provider_key
+      - hardcover_token
+      - oauth_clients
+    volumes:
+      - kavita_provider_state:/state
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks:
+      - kavita-providers
+
+networks:
+  kavita-providers:
+    # Outbound HTTPS is required for provider APIs. No host port is published.
+
+volumes:
+  kavita_provider_state:
+
+secrets:
+  provider_key:
+    file: ${KAVITA_PROVIDER_KEY_PATH:?Set KAVITA_PROVIDER_KEY_PATH to a private shared key file}
+  hardcover_token:
+    file: ${KAVITA_HARDCOVER_TOKEN_PATH:?Set KAVITA_HARDCOVER_TOKEN_PATH to a private Hardcover token file}
+  oauth_clients:
+    file: ${KAVITA_OAUTH_CLIENTS_PATH:-./providers/oauth-clients.json.example}

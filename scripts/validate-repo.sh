@@ -60,6 +60,8 @@ python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 python3 -m unittest discover -s scripts/tests -p test_restic_retention.py
 python3 -m unittest discover -s scripts/tests -p test_builder_cache_guard.py
 python3 -m unittest discover -s scripts/tests -p test_optional_stack_overrides.py
+python3 -B -m unittest discover -s scripts/tests -p "test_calibre*.py"
+python3 -B -m unittest discover -s stacks/kavita/providers -p "test_*.py"
 python3 -B -m unittest discover -s scripts/tests -p test_library_artwork.py
 python3 -B -m unittest discover -s stacks/dispatcharr/helpers -p "test_*.py"
 python3 -B -m unittest discover -s stacks/dispatcharr/maintenance -p "test_*.py"
@@ -74,6 +76,7 @@ python3 scripts/audit-repo-hygiene.py
 echo "Validating dependency update configuration..."
 python3 scripts/validate-dependency-config.py
 python3 -B -m unittest discover -s scripts/tests -p test_dependency_config.py
+python3 -B -m unittest discover -s scripts/tests -p test_ci_custom_images.py
 python3 -B -m unittest discover -s stacks/netexec -p test_pin_dependencies.py
 
 echo "Checking generated documentation..."

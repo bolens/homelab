@@ -70,6 +70,16 @@
     "dockerfile": "stacks/hashcat/Dockerfile"
   },
   {
+    "image": "kavita-independent",
+    "context": "stacks/kavita/independent",
+    "dockerfile": "stacks/kavita/independent/Dockerfile"
+  },
+  {
+    "image": "kavita-providers",
+    "context": "stacks/kavita/providers",
+    "dockerfile": "stacks/kavita/providers/Dockerfile"
+  },
+  {
     "image": "komga",
     "context": "stacks/komga/ui",
     "dockerfile": "stacks/komga/ui/Dockerfile"

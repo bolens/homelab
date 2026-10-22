@@ -1,0 +1,48 @@
+    private async Task<Kavita.Models.Entities.Series?> MatchIndependentSeries(ExternalSeriesDetailDto external, AppUser user, CancellationToken ct)
+    {
+        var identity = IndependentWantToReadMatcher.Identity(external);
+        if (!identity.HasValue) return null;
+        var types = external.PlusMediaFormat.ConvertToLibraryTypes().ToArray();
+        var query = unitOfWork.DataContext.Series.AsNoTracking()
+            .Include(series => series.Metadata)
+            .Where(series => types.Contains(series.Library.Type));
+        var linkPart = "/manga/" + identity.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        switch (external.Provider)
+        {
+            case ScrobbleProvider.AniList:
+                query = query.Where(series => series.AniListId == identity.Value ||
+                    (series.AniListId == 0 && series.Metadata.WebLinks.Contains(linkPart)));
+                break;
+            case ScrobbleProvider.Mal:
+                query = query.Where(series => series.MalId == identity.Value ||
+                    (series.MalId == 0 && series.Metadata.WebLinks.Contains(linkPart)));
+                break;
+            case ScrobbleProvider.Hardcover:
+                query = query.Where(series => series.HardcoverId == identity.Value && series.IsStandAlone == external.IsStandAlone);
+                break;
+            case ScrobbleProvider.MangaBaka:
+                query = query.Where(series => series.MangaBakaId == identity.Value);
+                break;
+            default:
+                return null;
+        }
+        var candidates = await query.Take(1001).ToListAsync(ct);
+        var chapterSeries = new List<int>();
+        if (external.Provider == ScrobbleProvider.Hardcover && external.IsStandAlone)
+            chapterSeries = await unitOfWork.DataContext.Chapter.AsNoTracking()
+                .Where(chapter => chapter.HardcoverId == identity.Value && types.Contains(chapter.Volume.Series.Library.Type))
+                .Select(chapter => chapter.Volume.SeriesId).Distinct().Take(1001).ToListAsync(ct);
+        if (candidates.Count > 1000 || chapterSeries.Count > 1000)
+        {
+            logger.LogWarning("Independent want-to-read identity scan exceeded its candidate bound for {Provider}", external.Provider);
+            return null;
+        }
+        var ids = candidates.Select(series => series.Id).Concat(chapterSeries).Distinct().ToArray();
+        if (ids.Length == 0) return null;
+        // This existing repository path enforces both library membership and age restrictions.
+        var visible = await unitOfWork.SeriesRepository.GetSeriesDtoByIdsAsync(ids, user, ct);
+        var allowed = visible.Select(series => series.Id).ToHashSet();
+        var match = IndependentWantToReadMatcher.Resolve(external,
+            candidates.Where(series => allowed.Contains(series.Id)), chapterSeries.Where(allowed.Contains));
+        return match.HasValue ? await unitOfWork.SeriesRepository.GetSeriesByIdAsync(match.Value, SeriesIncludes.Metadata, ct) : null;
+    }

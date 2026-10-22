@@ -1,0 +1,85 @@
+    private readonly IDataProtector _independentProtector = dataProtectionProvider.CreateProtector("Kavita.Independent.OAuthBinding.v1");
+
+    private async Task<IActionResult> StartIndependentFlow(OAuthUpstream upstream)
+    {
+        Response.Headers["Cache-Control"] = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        if ((int)upstream < 1 || (int)upstream > 4 || !await IndependentProvider.Has("oauth", HttpContext.RequestAborted))
+            return BadRequest("This independent OAuth provider is unavailable or missing client configuration.");
+        try
+        {
+            var user = await unitOfWork.UserRepository.GetUserByIdAsync(UserId, AppUserIncludes.AuthKeys);
+            if (user == null) return Unauthorized();
+            var browser = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(browser))).ToLowerInvariant();
+            var binding = _independentProtector.Protect(System.Text.Json.JsonSerializer.Serialize(new IndependentOAuthBinding {
+                ApiKey = user.GetOpdsAuthKey(), Upstream = (int)upstream, BrowserHash = hash,
+                ExpiresUnix = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds()
+            }));
+            var result = await IndependentProvider.PostOAuth("/oauth/start", new {
+                upstream = (int)upstream, callbackUrl = IndependentOAuth.CallbackUrl,
+                binding, browserBindingHash = hash
+            }, HttpContext.RequestAborted);
+            var state = result.GetProperty("state").GetString() ?? "";
+            var destination = result.GetProperty("authorizationUrl").GetString() ?? "";
+            if (!IndependentOAuth.ValidAuthorizationUrl((int)upstream, destination, state))
+                return BadRequest("Independent OAuth returned an invalid authorization destination.");
+            Response.Cookies.Append(IndependentOAuth.CookieName, browser, new CookieOptions {
+                HttpOnly = true, Secure = IndependentOAuth.PublicUrl.Scheme == "https", SameSite = SameSiteMode.Lax,
+                Path = IndependentOAuth.CookiePath, MaxAge = TimeSpan.FromMinutes(10), IsEssential = true
+            });
+            return Redirect(destination);
+        }
+        catch (Exception)
+        {
+            return BadRequest("Independent OAuth could not start. Check the public callback URL and provider client configuration.");
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("independent-callback")]
+    public async Task<IActionResult> IndependentCallback([FromQuery] string state, [FromQuery] string? code = null,
+        [FromQuery] string? error = null, [FromQuery(Name = "iss")] string? issuer = null)
+    {
+        Response.Headers["Cache-Control"] = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        if (!IndependentProvider.Enabled || state.Length < 32 || state.Length > 256 ||
+            (code?.Length ?? 0) > 4096 || (error?.Length ?? 0) > 256 || (issuer?.Length ?? 0) > 256)
+            return BadRequest("Independent OAuth callback is unavailable or invalid.");
+        if (!Request.Cookies.TryGetValue(IndependentOAuth.CookieName, out var browser) || browser.Length != 64)
+            return BadRequest("Independent OAuth requires the browser that started the connection.");
+        try
+        {
+            var result = await IndependentProvider.PostOAuth("/oauth/complete", new {
+                state, code = code ?? "", error = error ?? "", issuer = issuer ?? "", browserBinding = browser
+            }, HttpContext.RequestAborted);
+            var binding = System.Text.Json.JsonSerializer.Deserialize<IndependentOAuthBinding>(
+                _independentProtector.Unprotect(result.GetProperty("binding").GetString() ?? ""));
+            var upstream = result.GetProperty("upstream").GetInt32();
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(browser))).ToLowerInvariant();
+            if (binding == null || binding.Upstream != upstream || upstream < 1 || upstream > 4 ||
+                binding.ExpiresUnix < DateTimeOffset.UtcNow.ToUnixTimeSeconds() ||
+                !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                    System.Text.Encoding.UTF8.GetBytes(hash), System.Text.Encoding.UTF8.GetBytes(binding.BrowserHash)))
+                return BadRequest("Independent OAuth connection binding is invalid or expired.");
+            var user = await unitOfWork.UserRepository.GetUserByAuthKey(binding.ApiKey, HttpContext.RequestAborted);
+            if (user == null) return Unauthorized();
+            var token = result.GetProperty("accessToken").GetString() ?? "";
+            if (string.IsNullOrWhiteSpace(token)) return BadRequest("Independent OAuth did not return an access token.");
+            var refreshToken = result.TryGetProperty("refreshToken", out var refresh) && refresh.ValueKind == System.Text.Json.JsonValueKind.String ? refresh.GetString() : null;
+            int? expiresIn = result.TryGetProperty("expiresIn", out var expiry) && expiry.ValueKind == System.Text.Json.JsonValueKind.Number && expiry.TryGetInt32(out var seconds) ? seconds : null;
+            await oAuthService.HandleCallback(user, (OAuthUpstream)upstream, token, refreshToken, expiresIn);
+            return Redirect(IndependentOAuth.SettingsUrl);
+        }
+        catch (Exception)
+        {
+            return BadRequest("Independent OAuth failed or expired. Start a new connection from settings.");
+        }
+        finally
+        {
+            Response.Cookies.Delete(IndependentOAuth.CookieName, new CookieOptions {
+                HttpOnly = true, Secure = IndependentOAuth.PublicUrl.Scheme == "https", SameSite = SameSiteMode.Lax,
+                Path = IndependentOAuth.CookiePath
+            });
+        }
+    }

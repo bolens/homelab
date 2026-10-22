@@ -1,0 +1,12 @@
+Independent Kavita provider integration, modified 2026-10-22.
+Based on Kareadita/Kavita v0.9.1.4 commit 879b8b73eb41d66f88dde8eb874cc99a3397eb11.
+The tagged source declares AssemblyVersion 0.9.1.3. Custom image identity is separate.
+Changes introduce an authenticated independent capability/backend path, retain truthful
+paid-subscription state, and disable hosted subscription operations in independent mode.
+Kavita and these modifications are distributed under GNU GPL version 3; see LICENSE.txt.
+Corresponding source consists of the pinned upstream source and this directory's
+patch_source.py, IndependentProvider.cs, IndependentOAuth.cs, OAuthController.methods.txt,
+ScrobblingService.independent.txt, IndependentWantToReadMatcher.cs,
+WantToReadSyncService.independent.txt, source.sha256 and Dockerfile.
+An image distributor must make the complete corresponding source and build instructions
+available to recipients under the license. Retain upstream and dependency notices.
