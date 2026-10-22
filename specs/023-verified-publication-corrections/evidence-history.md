@@ -1357,3 +1357,33 @@ refuses because its `fcntl` lacks `F_SEAL_WRITE`; the saved diagnostic preserves
 that original error. Required target-runtime CI remains applicable. Full local CI passes after installing the locked development
 packages in the new worktree. Independent source/map review clears the integrated
 candidate. Hosted delivery, fresh installation and connected execution remain open.
+
+
+The subsequent isolated H installation and independent INNER export both succeed.
+All 27 configured outputs retain their verified original bytes and identities;
+there are no container, service, import or restart actions. The original E outputs
+remain intact. The receipt, INNER and outer digests are respectively
+`252598ce1e8a171d157a5a4db515ccae699ba5a2eb3cf8d821b9e9bbd090335e`,
+`a151af15abd4b6ffab425490254d3321d9e3251fdd71bba17d3a37c2ed3ca5ce`
+and `adabff253012f8cd82d8574278f20ee30c5b763bf599ffe1b79529344833378f`.
+This establishes installation integrity only. New owning observations, correctly
+mapped operation, connected factories, NFS/terminal acceptance and fresh import ACK
+remain under their open tasks. PR #483 has since merged with passing refreshed CI;
+PR #485 carries the source corrections through normal CI.
+
+The first H continuation stops at SourceFixture log construction, before any
+stage/prepare/invoke phase or owning recovery entry. The private arming preparer
+prefixed filenames such as `sourcefixture-stage.stdout`; the unchanged runner
+requires `stage.stdout` and the other seven exact names in their own exclusive
+private directory. All eight logs remain empty and the SourceFixture state root
+is absent. Preserve this generation and its refusal; prepare a distinct successor
+and exercise the genuine log validator before another attempt. This is a private
+preparation correction, not a relaxation of the runner or new task acceptance.
+
+PR #485 subsequently merges as
+`2a5a12a0a9610d92cfe1f3a4ce4b8eb0c5f5b95f` after every required hosted check
+passes. Its tree matches the reviewed candidate. The private preparer successor
+now exercises the genuine SourceFixture `Logs` constructor: prefixed filenames
+refuse, while the exact eight leaves in a separate guarded directory pass on
+Python 3.10 and 3.14. The corrected packet is prepared with a new nonce and new
+original references; no recovery acceptance follows preparation alone.

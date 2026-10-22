@@ -167,6 +167,12 @@ Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not
 verify the inner Python-source census; run the source-copy semantic check before
 starting the expensive native image gate.
+For ordinary pack observation, use the exact selected `packWork` branch or
+`pack_intake.snapshot()`. Unselected `packWork` and recurring discovery update
+capture/cursor state and are not read-only inventory. A discovered capture with
+zero recorded members can enter the ordinary inventory path; eligibility depends
+on its actual source generation, current ownership and owning admission checks.
+Do not require pre-existing member records or infer import acceptance from them.
 For isolated Python component checks, `-I` child interpreters ignore environment-only
 bytecode suppression. Make exact regular private fixture copies read-only before
 their first metadata witness so imports cannot create bytecode there. Keep full
@@ -494,6 +500,9 @@ capture its bytes and full file identity; validate the pair before invoking the
 emitter. Do not reuse an older input with a new request nonce or rewrite its
 historical reference to pass the join. A constructor refusal and attempted
 cleanup do not prove resource absence; verify the retained cleanup outcome.
+SourceFixture logs require their exact phase filenames in one private directory
+containing only those leaves. Test a preparer's output with the actual `Logs`
+validator; dictionary keys alone do not verify filenames or namespace isolation.
 A Writer lock is not necessarily empty: the owning `media_writer.PROTOCOL` is
 stored in the real lock file. Verify its exact bytes against the authenticated
 owning source and retain FD/full-file-identity closure. Never truncate or replace
@@ -524,6 +533,21 @@ claiming those references execute additional tests or grant admission.
 Host-only control changes may reuse an unchanged verified image/SDK capture.
 They still require fresh current-host source checks and connected acceptance;
 do not reinstall or refresh original installation outputs to update test counts.
+
+The configured reader installer derives its admission source under the fixed
+child operation path `/_operation`. A successor packet must preserve that child
+path while replacing only the fresh host operation directory. Check both the
+static mount row and the staging code that rewrites it; correcting the input
+alone does not fix a controller that restores the old host-equals-child mapping.
+Keep the Parent's exact approved-overlay check intact. New host source references
+and installation outputs belong to a distinct checked generation; preserve the
+original active-parent URI and unchanged image proofs for their original inputs.
+
+Common-root directory handles have one owning actor. Actor release, constructor
+failure and a later finalizer must share the same tracked close state. A numeric
+descriptor can be reused after release, so an untracked late `os.close` can close
+an unrelated file. Exercise real release followed by descriptor reuse, preserve
+the primary error and attempt all owned cleanup without swallowing close errors.
 
 Use the owning operation’s required access mode for the existing Writer file.
 Native Writer acquisition opens it read/write even when it changes no protocol
