@@ -2,6 +2,7 @@
 import ast
 import copy
 import hashlib
+import importlib.util
 import os
 import stat
 from pathlib import Path
@@ -117,7 +118,9 @@ class Fixture:
         self.document = dict(version=1, kind='disposable-original-active-input-assembly', nonce=self.nonce, observed=now, current_roles=current,
             active_scope=scope, query=self.query, native_controls=receipt, effective_observer_review=review, source_cohort=cohort,
             parent_admission=dict(path=str(self.parent), grandparent_signature=g.p.nine(self.grandparent.lstat()), expected_device=device, mount_identity=mount), probe_plan=probe, operation_output=str(self.output_parent / 'nfs-operation'),
-            originals=self.refs, sources={name: self.ref(g.HERE / name) for name in (*g.PINS, 'genuine_active_inputs.py')})
+            originals=self.refs, sources={name: self.ref(Path(module.__file__).absolute()) for name, module in {
+                'genuine_active_inputs.py': g, 'genuine_plan13_producer.py': g.composer,
+                'comic_negative_nfs_active_parent.py': g.active, 'genuine_source_cohort.py': g.cohort_source}.items()})
 
     def ref(self, path):return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(), signature9=g.p.nine(path.lstat()))
     def raw(self, name, raw):
@@ -157,7 +160,22 @@ class ActiveInputsTests(unittest.TestCase):
         ref = f.request(); f.refs.pop(ref['path']); return ref
 
     def test_genuine_composer_consumes_fresh_graph_without_grants(self):
-        f = self.fixture(); ref = self.request(f); result = g.assemble(ref, f.output)
+        f = self.fixture(); ref = self.request(f); owner = g.Assembly(ref, f.output)
+        original = os.listdir; seen = []
+        def census(fd):
+            if fd == owner.fd:
+                # Model the observed Btrfs stale persistent-description census.
+                return []
+            if isinstance(fd, int) and owner.fd is not None:
+                self.assertEqual(g.p.five(os.fstat(fd)), owner.output5)
+                seen.append(fd)
+            return original(fd)
+        try:
+            with patch.object(g.os, 'listdir', side_effect=census):result = owner.execute()
+            self.assertTrue(seen)
+            for fd in set(seen):
+                with self.assertRaises(OSError):os.fstat(fd)
+        finally:owner.release()
         originals = g.composer.Originals(); active, docs = g.composer.nested_originals(originals, result['active_input'], result['originals']); originals.close()
         self.assertEqual(active['probe_plan'], f.document['probe_plan']); self.assertEqual(docs['effective_observer_review'], g.p.decode(g.p.read(f.review)))
         for key in ('publication_acceptance', 'actual_nfs_verified', 'installed_factories_verified', 'mutation_authority', 'automatic_replay'):self.assertIs(result[key], False)
@@ -252,6 +270,20 @@ class ActiveInputsTests(unittest.TestCase):
             with self.assertRaises(g.p.Held):owner.execute()
         finally:owner.release()
         self.assertFalse(f.output.exists())
+        # A genuinely loaded same-byte dependency may have its own original URI;
+        # its original full9 still refuses later source mutation before output.
+        f = self.fixture(); source = f.root / 'genuine_plan13_producer.py'
+        source.write_bytes(Path(g.composer.__file__).read_bytes()); source.chmod(0o600)
+        spec = importlib.util.spec_from_file_location('genuine_plan13_producer', source)
+        module = importlib.util.module_from_spec(spec); exec(compile(source.read_bytes(), str(source), 'exec'), module.__dict__)
+        f.document['sources']['genuine_plan13_producer.py'] = f.ref(source)
+        with patch.object(g, 'composer', module), patch.dict(sys.modules, {'genuine_plan13_producer': module}):
+            owner = g.Assembly(self.request(f), f.output)
+            try:
+                source.write_bytes(b'changed-owning-dependency')
+                with self.assertRaises(g.p.Held):owner.execute()
+            finally:owner.release()
+        self.assertFalse(f.output.exists())
 
     def test_unreviewed_scope_or_foreign_probe_refuses(self):
         for change in ('review', 'probe', 'output'):
@@ -265,7 +297,7 @@ class ActiveInputsTests(unittest.TestCase):
                 self.assertFalse(f.output.exists())
 
     def test_missing_ack_source_pin_and_changed_original_refuse(self):
-        for change in ('ack', 'source', 'original'):
+        for change in ('ack', 'source', 'original', 'alias', 'module-identity', 'module-role', 'module-fake'):
             with self.subTest(change=change):
                 f = self.fixture(); ref = self.request(f)
                 if change == 'ack':
@@ -274,7 +306,22 @@ class ActiveInputsTests(unittest.TestCase):
                     value = copy.deepcopy(f.document); value['sources']['genuine_plan13_producer.py']['sha256'] = '0' * 64
                     Path(ref['path']).write_bytes(g.p.encode(value)); ref = f.ref(Path(ref['path']))
                 if change == 'original':Path(f.query['path']).write_bytes(b'changed')
-                with self.assertRaises((ValueError, OSError)):g.assemble(ref, f.output)
+                if change == 'alias':
+                    alias = f.root / 'genuine_plan13_producer.py'; alias.write_bytes(Path(g.composer.__file__).read_bytes()); alias.chmod(0o600)
+                    value = copy.deepcopy(f.document); value['sources']['genuine_plan13_producer.py'] = f.ref(alias)
+                    Path(ref['path']).write_bytes(g.p.encode(value)); ref = f.ref(Path(ref['path']))
+                if change == 'module-fake':
+                    fake = type('ForeignModule', (), {'__name__':'genuine_plan13_producer', '__file__':g.composer.__file__, 'Originals':g.composer.Originals})()
+                    with patch.object(g, 'composer', fake), patch.dict(sys.modules, {'genuine_plan13_producer':fake}), self.assertRaisesRegex(ValueError, 'active-source-origin'):
+                        g.assemble(ref, f.output)
+                elif change == 'module-identity':
+                    with patch.dict(sys.modules, {'genuine_plan13_producer': object()}), self.assertRaisesRegex(ValueError, 'active-source-origin'):
+                        g.assemble(ref, f.output)
+                elif change == 'module-role':
+                    with patch.object(g.composer, '__name__', 'foreign_role'), self.assertRaisesRegex(ValueError, 'active-source-origin'):
+                        g.assemble(ref, f.output)
+                else:
+                    with self.assertRaises((ValueError, OSError)):g.assemble(ref, f.output)
                 self.assertFalse(f.output.exists())
 
     def test_output_parent_replacement_does_not_adopt_new_directory(self):
@@ -282,6 +329,20 @@ class ActiveInputsTests(unittest.TestCase):
         f.output_parent.rename(f.root / 'old-outputs'); f.output_parent.mkdir(mode=0o700)
         with self.assertRaises(ValueError):actor.execute()
         self.assertFalse(f.output.exists()); self.assertFalse((f.root / 'old-outputs' / 'assembled').exists())
+        f = self.fixture(); owner = g.Assembly(self.request(f), f.output)
+        original = os.listdir; changed = []
+        retained = f.output_parent / 'retained-original'
+        def replace_during_empty_census(fd):
+            names = original(fd)
+            if isinstance(fd, int) and owner.fd is not None and not changed:
+                changed.append(True); f.output.rename(retained); f.output.mkdir(mode=0o700)
+            return names
+        try:
+            with patch.object(g.os, 'listdir', side_effect=replace_during_empty_census), self.assertRaisesRegex(ValueError, 'active-output-census-close'):
+                owner.execute()
+        finally:owner.release()
+        self.assertTrue(changed)
+        self.assertEqual(list(retained.iterdir()), []); self.assertEqual(list(f.output.iterdir()), [])
 
     def test_late_original_and_absence_changes_refuse(self):
         for change in ('file', 'fonts'):
