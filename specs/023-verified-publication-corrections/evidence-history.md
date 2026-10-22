@@ -1193,3 +1193,25 @@ PR #476 merged after all hosted checks passed and its security conversation was
 resolved. The squash tree matches the reviewed head. Local main and the Gitea
 mirror follow the reviewed merge; source worktrees referenced by original
 installation receipts remain retained.
+
+
+## Connected repair preflight corrections — 2026-10-21
+
+PR #476 is merged after passing hosted CI and security review. The authenticated
+empty-stderr successor in PR #477 is merged after passing hosted CI. It passes
+1,397 source controls across 75 suites,
+all 14 outer checks and the checked installation, verification and reference
+export of 27 outputs. Connected acceptance remains pending.
+The historical installed 1,302/73 proof remains a separate generation.
+
+Source inspection identified two fixture preparation requirements before the
+next fresh observations: scratch must be owned by the UID/GID1000 archive child,
+and the image's declared `/config` volume needs an explicit read-only original
+bind alongside the narrowly writable `/config/mylar` DATA bind. Independent
+review confirms these preserve the existing scope and exact mount guards.
+These are preflight source findings, not configured repair failures or proof of
+execution. A new empty local mode0700 scratch was then created as UID/GID1000
+after checking the original parent identity, local filesystem and absence. No
+existing directory permissions changed. Owning repair, NFS mutation and fresh
+import ACK remain unproven. All 75 task IDs and states remain unchanged: 59
+complete and 16 open.
