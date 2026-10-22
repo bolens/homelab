@@ -53,7 +53,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: Optional host maintenance provides verified database snapshots, dated channel quarantine and Node Exporter health metrics; installation is explicit. Its optional ErsatzTV integration adds online application backups, private channel recipes and native/Dispatcharr/Plex programme correctness checks. An opt-in ErsatzTV guide bridge reuses the same-host Plex binding; its image-only HTTPS route is public while guides and streams remain private.
+  notes: Optional host maintenance provides verified database snapshots, dated channel quarantine and Node Exporter health metrics; installation is explicit. Its optional ErsatzTV integration adds online application backups, private channel recipes and native/Dispatcharr/Plex programme correctness checks. An opt-in ErsatzTV guide bridge reuses the same-host Plex binding; its image-only HTTPS route is public while guides and streams remain private. The bridge override also offers disabled-by-default, source-guarded Plex special-episode serialization compatibility without changing source metadata or recording rules.
 runtime_security:
   privileged_services: []
   host_network_services: []

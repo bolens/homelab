@@ -345,9 +345,13 @@ channel mapping and guide coverage.
 
 Preserve correct source metadata, files and recurring recording rules when this
 happens. Do not renumber source episodes or omit legitimate specials to hide a
-consumer error. Keep the mismatch visible in the correctness observer until a
-Plex-compatible representation is verified end to end, including distinct normal
-and special episode titles and recording behavior.
+consumer error. The [optional Dispatcharr compatibility mode](../dispatcharr/README.md#plex-season-zero-episode-identities)
+omits the invalid negative namespace only when an existing, matching season-zero
+onscreen label supplies the correct identity. It preserves native metadata and
+normal episode numbering. Do not replace the negative season with a blank value:
+Plex interprets that as season one. Keep mismatches visible in the correctness
+observer until distinct normal/special titles and recording behavior pass actual
+Plex verification after import completion.
 
 ### Station presentation and calendar specials
 

@@ -1355,7 +1355,7 @@
 
 ## Current follow-up pass
 
-- [ ] T081 Trace and repair season-zero XMLTV identity collisions in Plex without
+- [x] T081 Trace and repair season-zero XMLTV identity collisions in Plex without
   changing correct source titles, season numbering, files or recording rules.
   Add a deterministic reproduction and verify affected specials and normal
   episodes separately in the actual Plex guide.
@@ -1414,3 +1414,38 @@
   Both publication secret scanners pass. Final retained backups pass isolated
   restore verification; operation-only database/index/restore copies are removed
   while normal backup generations and retention are preserved.
+
+
+### T081 acceptance — 2026-10-22
+
+The optional Dispatcharr XMLTV compatibility flag is enabled after a fresh
+application-consistent backup and isolated restore verification. It omits only
+invalid negative `xmltv_ns` components when the existing onscreen label supplies
+the matching season-zero or episode-zero identity. Source metadata, media files,
+normal episode numbering and the native ErsatzTV guide remain unchanged. The
+startup patch is reversible, idempotent and guarded by the complete reviewed
+exporter hash; it defaults off in the portable example.
+
+Deterministic imports into an isolated copy of the exact live Plex runtime
+(1.43.5.11029) reproduce the collision and prove distinct stable identities after
+the fix. Native exporter comparison changes only 58 invalid namespaces, preserving
+every other XML field. The isolated full-guide check covers 95 custom channels
+for 163.9 hours, including 57 specials and one explicit episode-zero airing.
+
+After the live guide refresh, all 95 custom channels match the source across
+162.3 hours with no missing, extra or duplicate programmes. All 55 season-zero
+airings and the explicit episode-zero airing have their correct Plex season,
+episode and GUID. All 502 DVR mappings, DVR identity, recording rules, durable
+application records, source definitions and library media IDs are preserved.
+Database integrity and foreign-key checks pass. The installed observer reports
+zero differences, missing channels, gaps, overlaps or recipe drift; restrictions
+remain healthy. Four seconds of video and audio decode through Dispatcharr pass.
+
+The existing image, mounts, ports, networks and other environment values are
+preserved. Normal retained backups before and after installation both pass
+isolated restore verification; future configuration backups now include the
+startup helper chain. The disconnected test container is removed after its test
+sessions expire. Eleven exporter/bridge regression tests, twenty override tests,
+`make validate-changed` and `make ci-local` pass. The separate self-review corrects
+raw-byte source-guard handling; publication scans find no secrets. This acceptance
+supersedes the earlier T081 pending-status note above.
