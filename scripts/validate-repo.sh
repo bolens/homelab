@@ -60,6 +60,8 @@ python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 python3 -m unittest discover -s scripts/tests -p test_restic_retention.py
 python3 -m unittest discover -s scripts/tests -p test_builder_cache_guard.py
 python3 -m unittest discover -s scripts/tests -p test_optional_stack_overrides.py
+python3 -B -m unittest discover -s scripts/tests -p "test_calibre*.py"
+python3 -B -m unittest discover -s stacks/kavita/providers -p "test_*.py"
 python3 -B -m unittest discover -s scripts/tests -p test_library_artwork.py
 python3 -B -m unittest discover -s stacks/dispatcharr/helpers -p "test_*.py"
 python3 -B -m unittest discover -s stacks/dispatcharr/maintenance -p "test_*.py"
