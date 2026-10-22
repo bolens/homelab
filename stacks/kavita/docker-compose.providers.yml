@@ -2,7 +2,7 @@
 # Build and verify both images before recreating Kavita with this override.
 services:
   kavita:
-    image: kavita-independent:0.9.1.4-local
+    image: ${KAVITA_INDEPENDENT_IMAGE:-kavita-independent:0.9.1.4-local}
     build:
       context: ./independent
     environment:
@@ -19,7 +19,7 @@ services:
         condition: service_healthy
 
   kavita-providers:
-    image: kavita-providers:local
+    image: ${KAVITA_PROVIDERS_IMAGE:-kavita-providers:local}
     build:
       context: ./providers
     restart: unless-stopped

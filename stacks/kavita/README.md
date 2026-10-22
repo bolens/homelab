@@ -162,6 +162,13 @@ routes for overlap first. Preserve every existing network.
 
 ### Live rollout and rollback
 
+CI publishes experimental `homelab-kavita-independent` and
+`homelab-kavita-providers` images under `ghcr.io/bolens`. To use them, set
+`KAVITA_INDEPENDENT_IMAGE` and `KAVITA_PROVIDERS_IMAGE` to matching
+`sha-<commit>` tags and remove both `build:` blocks from a private copy of the
+provider override. The shipped override retains local builds. Publication proves
+the build, not genuine provider-account behavior or full feature parity.
+
 Pass image and restored-state application checks before selecting this override
 against live state. A requested experimental rollout with placeholder credentials
 must retain explicit provider acceptance gaps and reject unsupported operations.

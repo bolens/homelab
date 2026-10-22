@@ -25,6 +25,13 @@ fetches a pinned upstream revision and applies the tracked patches. Its image is
 `ghcr.io/bolens/homelab-rreading-glasses`. These two stacks retain their existing
 local build defaults; operators can select the published image explicitly.
 
+The experimental Kavita override also retains local build defaults. CI publishes
+`ghcr.io/bolens/homelab-kavita-independent` and
+`ghcr.io/bolens/homelab-kavita-providers` for Linux amd64. Select matching commit
+tags explicitly through the [Kavita instructions](../stacks/kavita/README.md).
+Image publication does not establish genuine provider-account acceptance or
+full feature parity.
+
 The matrix excludes images whose required source is unavailable in CI:
 
 - AIL Framework's application build requires its local vendor checkout.
