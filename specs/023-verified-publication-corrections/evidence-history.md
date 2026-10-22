@@ -1387,3 +1387,47 @@ now exercises the genuine SourceFixture `Logs` constructor: prefixed filenames
 refuse, while the exact eight leaves in a separate guarded directory pass on
 Python 3.10 and 3.14. The corrected packet is prepared with a new nonce and new
 original references; no recovery acceptance follows preparation alone.
+
+The corrected H run passes all SourceFixture phases and verified owned-container
+absence, fresh observations, assembly and intent construction. It enters the
+installed Parent's `execute_archive` and returns an uncertain hold. Its operation
+contains only the initial intent; no child-creation, stop or execution intent is
+present. Independent read-only checks match both provider Parent pins, all three
+fixture runtime profiles/epochs, target and unrelated full9/SHA, all geometry
+full9 and empty retention. Production Mylar/Komga are healthy; the permanent
+worker remains Created. This supports a prechild disposition, not acceptance or
+reconstruction of the suppressed historical cause; preserve the attempt held.
+
+A separate reproduction using the actual caller loader and Parent method finds
+the caller's canonical engine binding conflicts with Parent's absent-name guard.
+The private controller successor releases only that exact owned binding and
+preserves foreign replacements. Actual six-module loading/sealing and hidden-cause
+diagnostic controls pass on Python 3.10 and 3.14. Public H source and all Parent
+guards remain unchanged. The reviewed successor uses a distinct packet, nonce,
+outputs and fresh observations; it cannot replay the retained attempt or claim
+an import ACK from preparation or component checks.
+
+
+The next distinct H attempt again passes the source phases and reaches the owning
+Parent. Its retained cause identifies `Inputs.ref` applying a generic nonempty,
+private read before the owning role-aware projection. The original empty cohort
+stderr therefore refuses with `ref-attributes`; public source files would fail
+that duplicate policy too. The attempt remains held with its initial intent and
+private projection directories; no child-create, stop or execute intent is present.
+These observations do not grant cleanup, replay, resume or acceptance.
+
+The prospective correction removes only that duplicate read. Parent and Tree
+still verify the named origin, original full9 and SHA, role-specific permissions,
+copy integrity and final closure. Regression controls exercise those actual methods
+with an explicitly unadmitted context fixture; they do not establish configured
+Parent or NFS acceptance. A new checked installation and fresh original-bound
+execution remain required after source validation and normal delivery.
+
+
+The integrated correction passes all 1,410 recovery controls in 75 suites through
+the owning Python 3.10 copy/closure runner, all 14 outer controls and seven import
+copy controls. Independent behavior/security and pin/map reviews find no remaining
+source defect. The 258-file reader manifest and both 436-row outer maps close
+against the new bytes. Full local CI, Markdown checks and focused Ruff pass.
+Normal hosted delivery and a fresh checked installation remain pending. Task
+states remain 59 complete and 16 open across features 022–024.
