@@ -8,7 +8,7 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-21.** 25 of 33 tasks are complete; eight retain their full integration or operational acceptance gates. The accepted ordinary Mylar baseline is the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
+**Updated 2026-10-22.** 25 of 33 tasks are complete; eight retain their full integration or operational acceptance gates. The accepted ordinary Mylar baseline is the PR #405 image. Its complete original-bound data-preservation check is accepted after the verified affected-state backup and isolated restore. Komga stays running and the permanent worker stays inactive. Historical source inventories and refused attempts remain in [evidence history](evidence-history.md).
 
 - **Accepted native preservation:** image/publication/source, intended configuration, typed catalog records, retained downloads, backups and peer profiles close. Source-specific backfill and timestamp comparisons preserve actual raw differences. See [accepted preservation](evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 - **T030 cache guard accepted:** published source/image gates, restart/concurrency fixtures and the fresh configured 64 KiB allocation/refusal/accounting test pass. Exact owned-leaf cleanup, typed snapshot preservation and all unrelated source/profile closures pass. Later live contents remain outside the explicit snapshot proof; prior refusals stay retained. See [configured acceptance](evidence-history.md#configured-cache-guard-accepted--2026-10-20).
@@ -61,6 +61,14 @@ with zero skips. The successor checked installation and verification of all
 successor with all hosted checks passing. The next connected
 batch must capture fresh effective/current observations before owning execution.
 This does not close the connected execution or import/ACK gates.
+
+The first connected batch stopped in read-only effective-scope preflight before
+Parent execution. The reader profile and epoch are unchanged in the retained
+originals; the refusal came from an obsolete static-profile field. The current
+source candidate also fixes original-helper and loaded-parser URI assumptions
+before another attempt. Its collection and all 14 outer checks pass under Python 3.10: 1,401 controls
+across 75 suites. Configured execution remains pending. A corrected effective observer requires a
+new causal SourceCohort; retain the earlier accepted generation unchanged.
 
 ## Phase 1: Setup
 

@@ -9,7 +9,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-21.** 21 of 24 tasks are complete; 3 retain their full acceptance gates. T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
+**Updated 2026-10-22.** 21 of 24 tasks are complete; 3 retain their full acceptance gates. T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
 
 Historical installed import-to-release-name/metadata checks remain accepted for their inspected generation. Ordinary Mylar runs the published PR #405 image after verified backup and isolated restore. It is healthy, and the complete original-bound post-update preservation check is accepted, including the source-specific scheduler and workflow classifications. Exact-key comparison preserves all 16,432 issue records and every field except 111 Wanted records whose empty DateAdded becomes the current date. Komga remains running; the permanent worker and combined bulk pass remain inactive. The four selected-pack histories contain no accepted import or ACK. T019/T023/T024 still require configured recovery, combined passes and final acceptance, with dot separators and a hyphen before the verified group. See the shared [current rollout record](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20).
 
@@ -46,6 +46,14 @@ with zero skips. The successor checked installation and verification of all
 successor with all hosted checks passing. The next connected
 batch must capture fresh effective/current observations before owning execution.
 This does not close the connected execution or import/ACK gates.
+
+The first connected batch stopped in read-only effective-scope preflight before
+Parent execution. The reader profile and epoch are unchanged in the retained
+originals; the refusal came from an obsolete static-profile field. The current
+source candidate also fixes original-helper and loaded-parser URI assumptions
+before another attempt. Its collection and all 14 outer checks pass under Python 3.10: 1,401 controls
+across 75 suites. Configured execution remains pending. A corrected effective observer requires a
+new causal SourceCohort; retain the earlier accepted generation unchanged.
 
 ## Phase 1: Setup
 

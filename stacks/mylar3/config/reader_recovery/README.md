@@ -33,6 +33,11 @@ checks and one bounded native probe. Configuration comes from the catalog’s
 post-startup original; the earlier bootstrap INI selects its path only. Output
 keeps its original parent and file identities through write and final closure.
 It does not restart applications or produce SourceCohort or execution authority.
+The finite source roles include the actual loaded config parser. Each role
+retains its byte pin and original file identity, even when a newer observer
+uses unchanged modules from an earlier source generation. Bootstrap helper,
+probe and scope references remain in the original plan’s authenticated helper
+context; they are never replaced with current same-byte aliases.
 
 The distinct `comic_archive_repair_action.py` tool and pure protocol builder
 use eight archive-only control roles. One held Writer owns preparation, reader

@@ -1215,3 +1215,34 @@ after checking the original parent identity, local filesystem and absence. No
 existing directory permissions changed. Owning repair, NFS mutation and fresh
 import ACK remain unproven. All 75 task IDs and states remain unchanged: 59
 complete and 16 open.
+
+
+## Bootstrap profile and source-origin continuity — 2026-10-22
+
+The combined configured batch refused `bootstrap-original-profile-epoch` during
+the effective observer, before CurrentRoles, owning Parent execution, reader stop
+or archive repair. Three original saved errors independently retain that same
+cause and source boundary. Production services were untouched, and no retry or
+acceptance followed. The retained reader profile and epoch match between the
+original plan and result; only the recorded native restart changes its epoch.
+
+The observer expected legacy `Created` where the owning static projection uses
+`NetworkSettings`. The source correction uses the owning projection and keeps
+exact reader epoch and network comparisons. A related source audit found that
+CurrentRoles assumed historical helper/probe/scope originals lived beside its
+current module and expected the parser in the reader-fixture directory. The
+correction preserves the authenticated original helper context and adds the
+actual loaded config parser as an explicit byte-pinned source role. A newer
+observer can retain unchanged older owning modules without relabelling their
+original paths or file identities.
+
+Focused source controls and independent review cover the observed projection
+failure, original URI refusal, mixed generations and late source drift. The
+updated aggregate passes 1,401 controls across 75 suites, and all 14 outer
+controls pass under Python 3.10. The observer’s source/compile gate also passes,
+including its 43 parent controls and 37 JDK closure cases. Full local CI and
+history secret scanning pass. Hosted CI, delivery and a new causal SourceCohort
+remain required before another configured attempt. The previous SourceCohort remains historical; its effective-parent URI
+and digest cannot be retargeted to the corrected observer. No new factory, NFS,
+repair or import ACK acceptance is claimed. All 75 task IDs and checkbox states
+remain unchanged: 59 complete and 16 open.

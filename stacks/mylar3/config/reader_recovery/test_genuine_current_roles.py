@@ -5,6 +5,7 @@ Parent or claim runtime source parity. No engine/SDK/Parent class is patched.
 """
 import copy
 import hashlib
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -15,6 +16,9 @@ from unittest.mock import patch
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
+# Exercise the owning config parser, not the reader-fixture source copy.
+sys.path.insert(0, str(HERE.parent))
+import publication_native_configured_scope as owning_scope_parser
 import genuine_current_roles as g
 import test_genuine_application_bootstrap as original
 
@@ -78,7 +82,8 @@ class Fixture:
             native_catalog_processing=self.catalog_ref, native_catalog_processing_observed=True,
             reader=reader, reader_task_empty_observation=bracket, ordinary_ack_verified=False, **{key: False for key in g.composer.RIGHTS})
         self.result_ref = self.put(self.result); self.plan_ref = self.put(self.plan)
-        self.sources = {name: ref(HERE / name) for name in (*g.SOURCE_PINS, 'genuine_current_roles.py')}
+        self.sources = {name: ref((HERE.parent if name == 'publication_native_configured_scope.py' else HERE) / name)
+                        for name in (*g.SOURCE_PINS, 'genuine_current_roles.py')}
         self.output = self.base / 'current-roles.json'; self.engine = Transport(self)
         self.serial = 0
 
@@ -103,6 +108,69 @@ class Tests(unittest.TestCase):
         self.assertEqual(Path(self.f.result_ref['path']).read_bytes(), saved)
         self.assertEqual((self.f.engine.maps, self.f.engine.probes), (2, 1))
         self.assertIsNone(owner.geometry)
+
+    def relocate_original_context(self):
+        # Distinct original Bootstrap source generation, with real full9 refs.
+        directory = self.f.base / 'original-bootstrap-sources'; directory.mkdir(mode=0o700)
+        names = ('genuine_bootstrap_http.py', 'genuine_reader_quiescence.py',
+                 'comic_native_process_probe.py', 'publication_native_configured_scope.py')
+        for name in names:
+            path = directory / name; path.write_bytes((HERE / name).read_bytes()); path.chmod(0o644)
+        for role, name in (('helper', names[0]), ('native_probe', names[2]), ('scope_source', names[3])):
+            self.f.plan[role] = ref(directory / name)
+        self.f.result['reader_task_empty_observation']['helper'] = ref(directory / names[1])
+        self.f.plan_ref = self.f.put(self.f.plan); self.f.result_ref = self.f.put(self.f.result)
+        self.f.engine = Transport(self.f)
+        return directory
+
+    def test_original_bootstrap_generation_uris_and_owning_parser(self):
+        directory = self.relocate_original_context(); owner = self.f.owner()
+        retained = copy.deepcopy(self.f.result['reader_task_empty_observation']['helper'])
+        self.assertIs(g.scope_parser, owning_scope_parser)
+        self.assertEqual(Path(g.scope_parser.__file__).absolute(), HERE.parent / 'publication_native_configured_scope.py')
+        owner.execute()
+        self.assertEqual(owner.originals.refs[str(directory / 'genuine_reader_quiescence.py')], retained)
+        self.assertEqual(self.f.epochs['reader'], self.f.plan['roles']['reader']['epoch'])
+        self.assertEqual(self.f.profiles['reader'], self.f.plan['roles']['reader']['profile'])
+
+    def test_current_alias_or_wrong_original_queue_context_refuses(self):
+        self.relocate_original_context()
+        self.f.result['reader_task_empty_observation']['helper'] = ref(HERE / 'genuine_reader_quiescence.py')
+        self.f.result_ref = self.f.put(self.f.result)
+        with self.assertRaisesRegex(g.p.Held, 'capture-original-queue-source'):self.f.owner()
+        self.assertEqual(self.f.engine.calls, [])
+
+    def test_original_native_source_alias_and_original_late_drift_refuse(self):
+        directory = self.relocate_original_context()
+        old = self.f.plan['native_probe']; self.f.plan['native_probe'] = ref(HERE / 'comic_native_process_probe.py')
+        self.f.plan_ref = self.f.put(self.f.plan)
+        with self.assertRaisesRegex(g.p.Held, 'capture-original-native-source'):self.f.owner()
+        self.f.plan['native_probe'] = old; self.f.plan_ref = self.f.put(self.f.plan)
+        owner = self.f.owner()
+        self.f.engine.after_probe = lambda: (directory / 'genuine_reader_quiescence.py').write_bytes(b'changed original')
+        with self.assertRaises(g.p.Held):owner.execute()
+        self.assertFalse(self.f.output.exists())
+
+    def test_new_observer_retains_actual_loaded_older_roles_and_parser(self):
+        directory = self.f.base / 'new-observer'; directory.mkdir(mode=0o700)
+        source = directory / 'genuine_current_roles.py'; source.write_bytes((HERE / source.name).read_bytes()); source.chmod(0o644)
+        spec = importlib.util.spec_from_file_location('original_mixed_current_roles', source)
+        mixed = importlib.util.module_from_spec(spec); spec.loader.exec_module(mixed)
+        self.assertIs(mixed.b, g.b); self.assertIs(mixed.p, g.p)
+        self.assertIs(mixed.scope_parser, owning_scope_parser)
+        sources = copy.deepcopy(self.f.sources); sources[source.name] = ref(source)
+        bad = copy.deepcopy(sources); bad['publication_native_configured_scope.py'] = ref(HERE / 'publication_native_configured_scope.py')
+        with self.assertRaisesRegex(g.p.Held, 'capture-original-source-pin'):
+            mixed.Capture(self.f.plan_ref, self.f.result_ref, self.f.catalog_ref, bad, self.f.output, engine=self.f.engine)
+        self.assertEqual(self.f.engine.calls, [])
+        owner = mixed.Capture(self.f.plan_ref, self.f.result_ref, self.f.catalog_ref, sources, self.f.output, engine=self.f.engine)
+        self.assertEqual(owner.sources['genuine_application_bootstrap.py'], self.f.sources['genuine_application_bootstrap.py'])
+        owner.execute(); self.assertTrue(self.f.output.exists())
+        late_output = self.f.base / 'mixed-late.json'
+        late = mixed.Capture(self.f.plan_ref, self.f.result_ref, self.f.catalog_ref, sources, late_output, engine=self.f.engine)
+        self.f.engine.after_probe = lambda: source.write_bytes(b'changed actual observer')
+        with self.assertRaises(g.p.Held):late.execute()
+        self.assertFalse(late_output.exists())
 
     def test_current_directory_mtime_after_bootstrap_is_not_old_identity_adoption(self):
         library = Path(self.f.plan['geometry']['library']['path']); (library / 'completed-native-output.cbz').write_bytes(b'fixture')

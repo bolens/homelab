@@ -474,6 +474,13 @@ refresh the affected copy manifests. The inner collection passing does not
 verify these outer regression checks. Run the outer operational semantic-pin
 test before the long collection after changing a pinned host producer; keep
 `genuine_current_roles.SOURCE_PINS` aligned with the actual bootstrap source.
+Bind CurrentRoles source roles to their actual loaded module origins, including
+the config parser; do not assume all generations share one directory. Retain
+Bootstrap helper/probe/scope URIs from their original authenticated context,
+with full file identity and byte closure. The disposable observer must consume
+the owning static profile projection, including `NetworkSettings` rather than
+`Created`, while keeping the reader’s recorded process epoch exact. Exercise
+these boundaries with distinct source generations and the real profile schema.
 Search the entire tracked repository for the predecessor hash before editing a
 shared producer. Komga’s `effective_scope/parent.py::BOOTSTRAP_SOURCE_SHA` is a
 second bootstrap consumer outside the native control collection; refresh its
