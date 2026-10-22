@@ -135,4 +135,58 @@ class EffectiveReviewTests(unittest.TestCase):
         with patch.object(active,'EFFECTIVE_HELPER_SHA',self.review['producer']['sha256']),patch.object(active,'EFFECTIVE_PARENT_SHA',self.review['parent_source']['sha256']),self.assertRaisesRegex(active.Held,'effective-parent-root-final-ack'):
             active.active_effective_controls(local,[self.data])
 
+class LegacyDuplicateReadInputs(inputs.Inputs):
+    """Explicit predecessor fixture: duplicate generic read, owning projection unchanged."""
+    def ref(self,value):
+        inputs.need(type(value) is dict and set(value)=={'path','sha256'},'nfs-input-two-field-ref')
+        owner,g=self.owner,self.g;path=value['path']
+        inputs.need(path in owner.files,'nfs-input-original-file-unbound')
+        original=dict(value,signature9=list(owner.files[path]));g['read'](original)
+        child=owner.nfs_child_ref(original);owner.left()
+        return dict(path=child['path'],sha256=child['sha256'])
+
+class CohortReferencePolicyTests(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);self.op=self.root/'op';self.op.mkdir(mode=0o700);self.refs={}
+  def put(name,raw,mode=0o600):
+   f=self.root/name;f.write_bytes(raw);f.chmod(mode);ref=dict(path=str(f),sha256=hashlib.sha256(raw).hexdigest(),signature9=list(p.nine(f.stat())));self.refs[str(f)]=ref;return ref
+  self.put=put;self.public=put('source.py',b'# disposable original public source\n',0o644);self.fact=put('fact.json',b'{}');self.stdout=put('stdout.log',b'Ran source controls\n');self.stderr=put('stderr.log',b'')
+  pair=lambda ref:{k:ref[k]for k in ('path','sha256')};self.pair=pair
+  roles=('probe','hardlink_kernel','scope_projection','lifecycle','readiness','readiness_input','parity','native_map','selected_sdk','writer','tests','effective_helper','effective_parent','core_parent','core_tests','writer_fixture')
+  logs=dict(stdout=pair(self.stdout),stderr=pair(self.stderr));self.receipt=put('receipt.json',p.encode(dict(stdout=logs['stdout'],stderr=logs['stderr'])))
+  cohort=dict(version=1,kind='approved-disposable-nfs-current-source-cohort',images={},sources={k:pair(self.public)for k in roles},writer_root=str(self.root/'writer'),writer_sha256='a'*64,native_map_count=180,selected_module_count=25,parent=pair(self.public),receipt=pair(self.receipt),logs=logs,effective_jar_sha256='b'*64,effective_commit='fixture')
+  self.cohort=put('cohort.json',p.encode(cohort));review={k:pair(self.public if k in('producer','parent_source')else self.fact)for k in ('producer','parent_source','report','ack','runtime','acceptance','parent_ack')};self.review=put('review.json',p.encode(review));self.scope=put('scope.json',p.encode(dict(sources={})))
+  active=dict(source_cohort=pair(self.cohort),active_scope=pair(self.scope),effective_observer_review=pair(self.review),native_controls=pair(self.receipt))
+  owner=object.__new__(p.LifecycleParent);self.owner=owner;owner.op=self.op;owner.generated={};owner.files={k:tuple(v['signature9'])for k,v in self.refs.items()};owner.plan_ref=self.fact;owner.source_ref=self.public;owner.plan=dict(nfs=dict(active_parent=self.public,active_input=self.fact))
+  self.context=({}, {}, p.encode(active), b'{}', None);p._NFS_SOURCE_CONTEXTS[owner]=self.context;self.addCleanup(p._NFS_SOURCE_CONTEXTS.pop,owner,None)
+  owner.mapping=SimpleNamespace(plan13=lambda:False,child=lambda x:x,host=lambda x:x)
+  owner.left=lambda:self.tree.check()
+  self.tree=c.Tree(self.root/'child','/_operation',self.op,owner.read_child_original,uid=os.geteuid(),gid=os.getegid());p._CHILD_TREES[owner]=self.tree;self.addCleanup(p._CHILD_TREES.pop,owner,None)
+  def emit(name,document):
+   f=self.op/name;f.write_bytes(p.encode(document));f.chmod(0o600);ref=dict(path=str(f),sha256=hashlib.sha256(f.read_bytes()).hexdigest(),signature9=list(p.nine(f.stat())));owner.generated[str(f)]=ref;return ref
+  owner.emit=emit
+ def projector(self,kind=inputs.Inputs):
+  obj=object.__new__(kind);obj.owner=self.owner;obj.g=p.__dict__;obj.emitted={};return obj
+ def test_actual_cohort_stderr_old_red_owner_policy_new_green(self):
+  with self.assertRaisesRegex(p.Held,'ref-attributes'):self.projector(LegacyDuplicateReadInputs).cohort(self.pair(self.cohort))
+  # Same original empty private600/euid file is admitted only in its cohort role.
+  self.assertEqual(p.read_cohort_stderr(self.cohort,self.stderr),b'')
+  value=self.projector();derived=value.cohort(self.pair(self.cohort));document=value.document_projected(derived)
+  self.assertEqual(document['logs']['stderr']['sha256'],self.stderr['sha256']);self.assertEqual(Path(self.tree.host(document['logs']['stderr']['path'])).read_bytes(),b'');self.assertEqual(list(p.nine(Path(self.stderr['path']).stat())),self.stderr['signature9']);self.tree.check()
+ def test_public_source_old_red_owning_classification_new_green(self):
+  with self.assertRaisesRegex(p.Held,'ref-attributes'):self.projector(LegacyDuplicateReadInputs).ref(self.pair(self.public))
+  result=self.projector().ref(self.pair(self.public));self.assertEqual(result['sha256'],self.public['sha256']);self.tree.check()
+ def test_foreign_hash_and_foreign_empty_role_refuse(self):
+  wrong=dict(self.pair(self.public),sha256='0'*64)
+  with self.assertRaises((p.Held,c.Held)):self.projector().ref(wrong)
+  foreign=self.put('foreign-empty.log',b'');self.owner.files[foreign['path']]=tuple(foreign['signature9'])
+  with self.assertRaises((p.Held,c.Held)):self.projector().ref(self.pair(foreign))
+  with self.assertRaisesRegex(p.Held,'cohort-empty-stderr-role'):self.owner.read_child_original(foreign)
+  wrong_stdout=dict(self.pair(self.stdout),sha256='0'*64)
+  with self.assertRaisesRegex(p.Held,'ref-hash'):self.projector().ref(wrong_stdout)
+ def test_ordinary_empty_and_private_mode_stay_strict(self):
+  with self.assertRaisesRegex(p.Held,'ref-attributes'):p.read(self.stderr)
+  wrong=self.put('private-mode.json',b'{}',0o644);self.owner.files[wrong['path']]=tuple(wrong['signature9'])
+  with self.assertRaises((p.Held,c.Held)):self.projector().ref(self.pair(wrong))
+
 if __name__=='__main__':unittest.main()

@@ -543,6 +543,13 @@ Keep the Parent's exact approved-overlay check intact. New host source reference
 and installation outputs belong to a distinct checked generation; preserve the
 original active-parent URI and unchanged image proofs for their original inputs.
 
+The private read-only intent builder and the owning Parent load separate checked
+host module graphs. Before Parent entry, release only the canonical
+`comic_nfs_host_engine` binding owned by the completed builder. Require exact
+module identity and retain foreign bindings; do not relax Parent's absent-name
+or source/seal checks. Preserve suppressed exception causes in bounded private
+diagnostics without changing the original exception links or hold semantics.
+
 Common-root directory handles have one owning actor. Actor release, constructor
 failure and a later finalizer must share the same tracked close state. A numeric
 descriptor can be reused after release, so an untracked late `os.close` can close
@@ -765,3 +772,11 @@ Regenerate managed files through Spec Kit and verify that project-owned memory s
 updates. Follow `RELEASING.md` for push, merge, release or delivery, and recovery.
 
 The retrospective specification register is [specs/README.md](../../specs/README.md).
+
+For NFS child control references, let the owning Parent/Tree reader apply its
+source-bound role policy. A duplicate generic private/nonempty read rejects valid
+public source files and the exact authenticated empty cohort stderr. Preserve
+named-origin, SHA/full9, permission and final copy-closure checks; ordinary empty
+controls and undeclared public roles still refuse. Test the actual owning reader
+and Tree together, and distinguish an unadmitted context fixture from configured
+Parent or NFS acceptance.

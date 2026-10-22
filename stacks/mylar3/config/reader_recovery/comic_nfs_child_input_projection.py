@@ -25,9 +25,9 @@ class Inputs:
         return (mapping.nfs_host if mapping.plan13() else mapping.host)(value)
     def ref(self,value):
         need(type(value) is dict and set(value)=={'path','sha256'},'nfs-input-two-field-ref')
-        owner,g=self.owner,self.g;path=value['path']
+        owner=self.owner;path=value['path']
         need(path in owner.files,'nfs-input-original-file-unbound')
-        original=dict(value,signature9=list(owner.files[path]));g['read'](original)
+        original=dict(value,signature9=list(owner.files[path]))
         child=owner.nfs_child_ref(original);owner.left()
         return dict(path=child['path'],sha256=child['sha256'])
     def document(self,value):
