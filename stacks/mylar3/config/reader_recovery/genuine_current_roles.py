@@ -27,10 +27,12 @@ SOURCE_PINS = {
     'genuine_application_bootstrap.py': '76c7812eb30af609b063b214840a586a6289f1ce4fe7e1a8f48727b9b60ade71',
     'genuine_plan13_producer.py': '2f41b72f9eb8e14f66c1d9392c6bbb8b63d775568d33b91b2865d61eb0410928',
     'comic_reader_lifecycle_parent.py': 'd7c18a6de2f8e0ccd6b1537ba3ee9976d28d3d503f32b762ea4fa85799621bef',
+    'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed',
 }
 PROBE_SHA = 'c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce'
 SCOPE_SHA = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
 QUEUE_SHA = '1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd'
+HTTP_SHA = '502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1'
 
 
 class ReadOnlyDocker:
@@ -91,12 +93,16 @@ class Capture:
         self.parent5 = p.five(z)
         self.originals.nodes.update(p.parents(self.output))
         need(type(source_refs) is dict and set(source_refs) == {*SOURCE_PINS, 'genuine_current_roles.py'}, 'capture-original-source-roles')
+        # Each finite role retains its actual loaded generation. A new host
+        # observer must not relabel unchanged installed E sources as local F copies.
+        modules = {'genuine_application_bootstrap.py': b, 'genuine_plan13_producer.py': composer,
+                   'comic_reader_lifecycle_parent.py': p, 'publication_native_configured_scope.py': scope_parser}
+        paths = {name: Path(module.__file__).absolute() for name, module in modules.items()}
+        paths['genuine_current_roles.py'] = Path(__file__).absolute()
         for name, ref in source_refs.items():
-            need(ref['path'] == str(HERE / name) and (name not in SOURCE_PINS or ref['sha256'] == SOURCE_PINS[name]), 'capture-original-source-pin')
+            need(paths[name].name == name and ref['path'] == str(paths[name])
+                 and (name not in SOURCE_PINS or ref['sha256'] == SOURCE_PINS[name]), 'capture-original-source-pin')
             self.originals.read(ref, private=False)
-        for name, module in (('genuine_application_bootstrap.py', b), ('genuine_plan13_producer.py', composer),
-                             ('comic_reader_lifecycle_parent.py', p)):
-            need(Path(module.__file__).absolute() == HERE / name, 'capture-owning-module-origin')
         self.sources = copy.deepcopy(source_refs)
         self.plan = self.originals.json(plan_ref, private=False)
         result = self.originals.json(result_ref, private=False)
@@ -119,7 +125,14 @@ class Capture:
              and all(bracket.get(k) is False for k in ('application_quiescence_verified', 'future_exclusion_verified',
                  'stop_authority', 'reader_resume_authority', 'publication_acceptance', 'mutation_authority', 'ordinary_ack_verified')),
              'capture-original-sse-required')
-        need(bracket['helper']['path'] == str(HERE / 'genuine_reader_quiescence.py')
+        # Bootstrap's original HTTP helper fixes its source context. Retain the
+        # actual queue helper incarnation; a co-located current alias is not it.
+        http = self.plan['helper']
+        need(Path(http['path']).name == 'genuine_bootstrap_http.py'
+             and http['sha256'] == HTTP_SHA, 'capture-original-bootstrap-source')
+        self.originals.read(http, private=False)
+        bootstrap_sources = Path(http['path']).parent
+        need(bracket['helper']['path'] == str(bootstrap_sources / 'genuine_reader_quiescence.py')
              and bracket['helper']['sha256'] == QUEUE_SHA, 'capture-original-queue-source')
         self.originals.read(bracket['helper'], private=False)
         row = bracket['roles']; need(set(row) == {'profiles', 'epochs', 'network', 'reader'} and row['reader'] == result['reader'], 'capture-original-sse-bracket')
@@ -158,7 +171,7 @@ class Capture:
                  and all(re.fullmatch('[A-Za-z_][A-Za-z0-9_]*[.]py', name) and p.digest(pin) for name, pin in self.sdk.items()), 'capture-original-sdk-map')
             for name, pin, ref in (('comic_native_process_probe.py', PROBE_SHA, self.plan['native_probe']),
                                    ('publication_native_configured_scope.py', SCOPE_SHA, self.plan['scope_source'])):
-                need(ref['path'] == str(HERE / name) and ref['sha256'] == pin, 'capture-original-native-source')
+                need(ref['path'] == str(bootstrap_sources / name) and ref['sha256'] == pin, 'capture-original-native-source')
             self.probe_program = self.originals.read(self.plan['native_probe'], private=False).decode()
             self.scope_source = self.originals.read(self.plan['scope_source'], private=False).decode()
             need(self.sdk['publication_native_configured_scope.py'] == SCOPE_SHA, 'capture-installed-scope-pin')
@@ -180,7 +193,7 @@ class Capture:
                  and type(process['pid']) is int and process['pid'] > 0 and type(process['start_ticks']) is int and process['start_ticks'] > 0
                  and type(process['argv']) is list and 4 <= len(process['argv']) <= 64
                  and all(type(v) is str and len(v.encode()) <= 8192 for v in process['argv']), 'capture-original-process-shape')
-            need(Path(scope_parser.__file__).absolute() == HERE / 'publication_native_configured_scope.py', 'capture-owning-parser-origin')
+            need(Path(scope_parser.__file__).absolute() == Path(b.__file__).absolute().parent.parent / 'publication_native_configured_scope.py', 'capture-owning-parser-origin')
             need(scope_parser.data_from_argv(process['argv']) == str(Path(expected_path).parent)
                  and '--port' not in process['argv'] and '-p' not in process['argv']
                  and scope_parser.destination(raw) == str(self.library), 'capture-owning-config-process-policy')

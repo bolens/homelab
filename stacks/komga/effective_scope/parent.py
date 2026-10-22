@@ -378,7 +378,7 @@ class BootstrapOriginals(ConfigOriginals):
         need(row['Id'] == cid == reader['id'] and row['Image'] == IMAGE == reader['image']
              and state['Running'] is True and state['Paused'] is False and state['Restarting'] is False
              and type(state['Pid']) is int and state['Pid'] > 1, 'bootstrap-original-reader-running')
-        need(set(reader['profile']) == {'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created'}
+        need(set(reader['profile']) == {'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings'}
              and all(row[key] == val for key,val in reader['profile'].items())
              and {k:v for k,v in state.items() if k != 'Health'} == reader['epoch'], 'bootstrap-original-profile-epoch')
         def directory(ref, *, searchable=False):

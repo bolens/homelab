@@ -278,9 +278,9 @@ class DisposableOriginals(unittest.TestCase):
         library=common+'/L';retention=common+'/R'
         self.row=dict(Id='a'*64,Name='/archive-bootstrap-'+self.nonce[:16]+'-reader',Image=p.IMAGE,Created='original',Path='java',Args=[],
             Config=dict(Labels={'com.homelab.archive.bootstrap':self.nonce,'com.homelab.archive.purpose':'genuine-archive-fixture'}),
-            HostConfig={},Mounts=[dict(Type='bind',Source=root+'/reader',Destination='/config',RW=True),dict(Type='bind',Source=library,Destination=library,RW=False)],
+            HostConfig={},NetworkSettings=dict(Networks={'fixture':{'NetworkID':'e'*64}}),Mounts=[dict(Type='bind',Source=root+'/reader',Destination='/config',RW=True),dict(Type='bind',Source=library,Destination=library,RW=False)],
             State=dict(Running=True,Paused=False,Restarting=False,Pid=42,StartedAt='original'))
-        profile={key:self.row[key]for key in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','Created')}
+        profile={key:self.row[key]for key in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')}
         roles={name:dict(id=letter*64,image=p.IMAGE,profile=copy.deepcopy(profile),epoch=copy.deepcopy(self.row['State']))for name,letter in zip(('native','reader','worker'),'cad')}
         for name,value in roles.items():
             value['profile']['Id']=value['id'];value['profile']['Name']='/archive-bootstrap-'+self.nonce[:16]+'-'+name
@@ -327,6 +327,14 @@ class DisposableOriginals(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'supported-original-mount-destinations'):p.original_service(self.row,'a'*64)
         original=self.originals();self.addCleanup(original.release)
         self.assertEqual(original.service(self.row,'a'*64),self.row['Mounts'][0]['Source']);original.close()
+        # Derive the schema from the actual owning projection, not a fixture mirror.
+        source = HERE.parents[1] / 'mylar3/config/reader_recovery/comic_reader_lifecycle_parent.py'
+        tree = ast.parse(source.read_bytes())
+        function = next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='static')
+        projection = next(n for n in ast.walk(function) if isinstance(n,ast.DictComp))
+        owning_keys = ast.literal_eval(projection.generators[0].iter)
+        self.assertEqual(set(self.document['roles']['reader']['profile']),set(owning_keys))
+        self.assertIn('NetworkSettings',owning_keys);self.assertNotIn('Created',owning_keys)
         self.assertEqual(p.child_command('case','token','/cid',Path('/checks'),'/exact/config').count('/exact/config:/config:ro'),1)
     def test_searchable_bootstrap_originals_pass_exact_finite_mounts(self):
         self.document['geometry'].update(version=2,kind='searchable-common-root-nfs')
@@ -359,7 +367,7 @@ class DisposableOriginals(unittest.TestCase):
                 finally:original.release()
 
     def test_no_caller_mount_list_overlays_writes_foreign_profile_or_nonce(self):
-        for change in ('extra','write','source','duplicate','epoch','nonce'):
+        for change in ('extra','write','source','duplicate','epoch','network','nonce'):
             with self.subTest(change=change):
                 row=copy.deepcopy(self.row)
                 if change=='extra':row['Mounts'].append(dict(Type='bind',Source='/foreign',Destination='/app/x',RW=False))
@@ -367,6 +375,7 @@ class DisposableOriginals(unittest.TestCase):
                 elif change=='source':row['Mounts'][1]['Source']='/foreign'
                 elif change=='duplicate':row['Mounts'].append(copy.deepcopy(row['Mounts'][1]))
                 elif change=='epoch':row['State']['Pid']+=1
+                elif change=='network':row['NetworkSettings']={'Networks':{'foreign':{}}}
                 else:row['Config']['Labels']['com.homelab.archive.bootstrap']='c'*64
                 original=self.originals();self.addCleanup(original.release)
                 with self.assertRaises(ValueError):original.service(row,'a'*64)

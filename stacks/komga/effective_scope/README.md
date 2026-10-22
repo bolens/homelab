@@ -63,6 +63,10 @@ original `G/L` library at its same absolute destination read-only. The declared
 foreign and application overlays refuse, even if repeated in a supplied profile.
 No caller mount list or generic destination-prefix exception is accepted.
 
+The recorded static profile uses the owning lifecycle projection, including
+`NetworkSettings`; Docker’s `Created` field is outside that projection. Reader
+process state must still match its recorded epoch exactly.
+
 The explicit disposable geometry v2 permits only a nonce-named common ancestor
 at `0711`, with library, retention and local reader state still `0700`. It matches
 Creator v3's separately reviewed scratch contract; legacy geometry v1 and the
