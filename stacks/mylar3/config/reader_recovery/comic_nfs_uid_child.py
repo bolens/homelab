@@ -94,11 +94,13 @@ class Channel:
         need(type(nonce) is str and len(nonce)==64 and all(c in '0123456789abcdef' for c in nonce),'child-nonce')
         need(type(seconds) is int and 1<=seconds<=3600,'child-seconds')
         self.read_fd,self.write_fd=read_fd,write_fd
-        self.facts=(nine(os.fstat(read_fd)),nine(os.fstat(write_fd)))
-        need(all(stat.S_ISFIFO(v[5]) for v in self.facts),'child-original-pipes')
+        # FIFO I/O changes mtime/ctime. Retain the original object and security
+        # identity, as the owning host pump does, rather than content metadata.
+        self.facts=(five(os.fstat(read_fd)),five(os.fstat(write_fd)))
+        need(all(stat.S_ISFIFO(v[2]) for v in self.facts),'child-original-pipes')
         self.nonce,self.sequence,self.deadline=nonce,0,time.monotonic()+seconds;self.pending=bytearray()
     def close(self):
-        need((nine(os.fstat(self.read_fd)),nine(os.fstat(self.write_fd)))==self.facts,'child-original-pipe-drift')
+        need((five(os.fstat(self.read_fd)),five(os.fstat(self.write_fd)))==self.facts,'child-original-pipe-drift')
         need(time.monotonic()<self.deadline,'child-deadline')
     def send(self,kind,payload):
         self.close();self.sequence+=1
@@ -194,8 +196,33 @@ def serve(packet_ref):
                 if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('nfs-child-release9')
             return
 
+def failure_diagnostic(error):
+    """Bounded transport diagnosis without exception text, locals or host paths."""
+    frames=[];trace=error.__traceback__
+    while trace is not None:
+        name=Path(trace.tb_frame.f_code.co_filename).name
+        if name not in ('comic_nfs_uid_child.py','nfs-uid-child.py','comic_nfs_lease_session.py',
+                        'comic_negative_nfs_active_parent.py'):
+            name='external'
+        frames.append(dict(source=name,line=trace.tb_lineno));frames=frames[-8:]
+        trace=trace.tb_next
+    kind=('held' if type(error) is Held else
+          'os-error' if isinstance(error,OSError) else 'other')
+    reason=None
+    if type(error) is Held and len(error.args)==1 and type(error.args[0]) is str:
+        if error.args[0] in ('child-original-pipe-drift','child-deadline',
+                            'child-read-timeout','child-lost-host','child-host-frame',
+                            'child-write-timeout','child-write-short',
+                            'child-response-bound','child-frame-bound'):
+            reason=error.args[0]
+    return encode(dict(kind='nfs-child-failure',exception=kind,reason=reason,
+                       frames=frames,terminal_accepted=False,automatic_replay=False))+b'\n'
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--packet',required=True);parser.add_argument('--packet-sha256',required=True);parser.add_argument('--packet9',required=True)
     arguments=parser.parse_args()
     try:serve(dict(path=arguments.packet,sha256=arguments.packet_sha256,signature9=decode(arguments.packet9)))
-    except BaseException:raise SystemExit(2) from None
+    except BaseException as error:
+        try:os.write(2,failure_diagnostic(error))
+        except BaseException:pass
+        raise SystemExit(2) from None

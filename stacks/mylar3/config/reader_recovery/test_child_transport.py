@@ -33,6 +33,37 @@ class Transport(unittest.TestCase):
             self.assertEqual(os.waitpid(pid,0)[1],0)
         finally:
             stream.close();os.close(host_write)
+    def test_named_fifo_exchange_accepts_io_timestamp_changes(self):
+        with tempfile.TemporaryDirectory() as root:
+            paths=[Path(root)/name for name in ('input','output')]
+            descriptors=[]
+            try:
+                for path in paths:
+                    os.mkfifo(path,0o600)
+                    descriptors.append(os.open(path,os.O_RDWR|os.O_NONBLOCK))
+                read,write=descriptors
+                channel=m.Channel(read,write,'a'*64,5)
+                before=m.nine(os.fstat(write))
+                sequence=channel.send('nfs-role-namespace',{})
+                self.assertNotEqual(m.nine(os.fstat(write)),before)
+                self.assertEqual(m.decode(os.read(write,m.MAX))['sequence'],sequence)
+                os.write(read,m.encode(dict(type='nfs-host',nonce='a'*64,
+                                           sequence=sequence,payload={'fixed':'reply'}))+b'\n')
+                self.assertEqual(channel.receive(sequence),{'fixed':'reply'})
+                channel.close()
+            finally:
+                for descriptor in descriptors:os.close(descriptor)
+
+    def test_named_fifo_mode_change_still_refuses(self):
+        with tempfile.TemporaryDirectory() as root:
+            path=Path(root)/'fifo';os.mkfifo(path,0o600)
+            descriptor=os.open(path,os.O_RDWR|os.O_NONBLOCK)
+            try:
+                channel=m.Channel(descriptor,descriptor,'a'*64,5)
+                path.chmod(0o640)
+                with self.assertRaisesRegex(m.Held,'pipe-drift'):channel.close()
+            finally:os.close(descriptor)
+
     def test_wrong_nonce_or_sequence_refused(self):
         for field,value in (('nonce','b'*64),('sequence',2)):
             read,write=os.pipe();other_read,other_write=os.pipe()
@@ -68,6 +99,51 @@ class Transport(unittest.TestCase):
             inp=put('input.json',b'{}');roles=put('roles.json',b'{}')
             packet=put('packet.json',m.encode(dict(version=1,kind='owning-nfs-retained-child-v1',nonce='a'*64,seconds=10,active_source=source,active_input=inp,roles=roles)))
             with self.assertRaisesRegex(m.Held,'default-unbound'):m.serve(packet)
+
+    def test_failure_diagnostic_keeps_only_fixed_reason_and_bounded_callsites(self):
+        def fail(depth):
+            if depth:fail(depth-1)
+            raise m.Held('child-lost-host')
+        try:fail(12)
+        except m.Held as error:raw=m.failure_diagnostic(error)
+        value=m.decode(raw)
+        self.assertEqual(value['reason'],'child-lost-host')
+        self.assertEqual(value['exception'],'held')
+        self.assertFalse(value['terminal_accepted']);self.assertFalse(value['automatic_replay'])
+        self.assertEqual(value['frames'][0]['source'],'external')
+        self.assertEqual(len(value['frames']),8);self.assertLess(len(raw),2048)
+
+    def test_failure_diagnostic_redacts_exception_text_and_paths(self):
+        for error in (m.Held('/private/key=secret'),OSError('/private/password'),
+                      RuntimeError('credentials payload'),m.Held('child-lost-host secret')):
+            raw=m.failure_diagnostic(error)
+            self.assertIsNone(m.decode(raw)['reason'])
+            for secret in (b'private',b'password',b'credentials',b'secret'):
+                self.assertNotIn(secret,raw)
+
+    def test_real_cli_reports_failed_original_without_disclosing_path(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as root:
+            entry=Path(root)/'nfs-uid-child.py';entry.write_bytes(Path(m.__file__).read_bytes())
+            result=subprocess.run([sys.executable,'-I','-B',str(entry),
+                                   '--packet','/private/nonexistent-secret',
+                                   '--packet-sha256','a'*64,'--packet9','[]'],
+                                  capture_output=True,timeout=5)
+        self.assertEqual(result.returncode,2);self.assertEqual(result.stdout,b'')
+        value=m.decode(result.stderr)
+        self.assertEqual(value['kind'],'nfs-child-failure')
+        self.assertTrue(value['frames'])
+        self.assertTrue(all(row['source']=='nfs-uid-child.py' for row in value['frames']))
+        self.assertNotIn(b'private',result.stderr);self.assertNotIn(b'secret',result.stderr)
+
+    def test_closed_stderr_preserves_refusal_exit(self):
+        import subprocess
+        result=subprocess.run([sys.executable,'-I','-B',str(Path(m.__file__)),
+                               '--packet','/private/nonexistent-secret',
+                               '--packet-sha256','a'*64,'--packet9','[]'],
+                              capture_output=True,timeout=5,preexec_fn=lambda:os.close(2))
+        self.assertEqual(result.returncode,2)
+        self.assertEqual(result.stdout,b'');self.assertEqual(result.stderr,b'')
 
     def test_default_active_source_is_unbound(self):
         self.assertIsNone(m.ACTIVE_SOURCE_SHA)
