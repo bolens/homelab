@@ -45,9 +45,9 @@ geopy==2.5.0 \
 ghunt==2.3.4 \
     --hash=sha256:7b880072131b7a064e6500b9db2f64bd33eb3b396702825330c507243b617f4d
     # via -r requirements.lock
-graphemeu==0.7.2 \
-    --hash=sha256:1444520f6899fd30114fc2a39f297d86d10fa0f23bf7579f772f8bc7efaa2542 \
-    --hash=sha256:42bbe373d7c146160f286cd5f76b1a8ad29172d7333ce10705c5cc282462a4f8
+graphemeu==0.11.0 \
+    --hash=sha256:d03e0f625dcf8c6ff81e52d85bacad3f1ecf66c54df27a2dbd0544a0d02903d4 \
+    --hash=sha256:fd52b7e88ccc8d7523466be6694486eb14ae91b1cef4bb5aae37339543d09237
     # via alive-progress
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
