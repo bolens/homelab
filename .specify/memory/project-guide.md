@@ -780,3 +780,10 @@ named-origin, SHA/full9, permission and final copy-closure checks; ordinary empt
 controls and undeclared public roles still refuse. Test the actual owning reader
 and Tree together, and distinguish an unadmitted context fixture from configured
 Parent or NFS acceptance.
+
+The assembler's original `operation_output` is a host path. Project it once with
+the owning `nfs_child` mapping. `nfs_host` accepts a virtual child path and returns
+its physical backing path, so applying it to the original host path can refuse
+before child creation. Exercise the complete outer-input projection with real
+`Paths`, distinct host/child mounts and original/physical/virtual output paths.
+Identity-mapping fixtures do not verify that direction.

@@ -189,4 +189,39 @@ class CohortReferencePolicyTests(unittest.TestCase):
   wrong=self.put('private-mode.json',b'{}',0o644);self.owner.files[wrong['path']]=tuple(wrong['signature9'])
   with self.assertRaises((p.Held,c.Held)):self.projector().ref(self.pair(wrong))
 
+
+ def outer_mapping(self):
+  # Real owning Paths, /_operation mount and three distinct output namespaces.
+  owner=self.owner;owner.plan.update(version=13,kind='reviewed-archive-one-lifecycle-protocol')
+  owner.mapping=p.Paths([dict(host=str(self.root),child='/mapped-inputs',write=False),dict(host=str(self.op),child='/_operation',write=True)]);owner.mapping.owner=owner
+  protected=self.root/'nfs';original=self.root/'original-output';physical=self.tree.root/'nfs'/'active-output';virtual=str(self.tree.child_root/'nfs'/'active-output')
+  scope=dict(sources={},forbidden_roots=[str(protected)])
+  path=Path(self.scope['path']);path.write_bytes(p.encode(scope));self.scope.update(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(p.nine(path.stat())));owner.files[str(path)]=tuple(self.scope['signature9'])
+  before=dict(version=1,kind='reviewed-nfs-active-input',active_scope=self.pair(self.scope),parent_admission=dict(path=str(protected/'fixture'),grandparent_signature=[1]*5,expected_device=123,mount_identity={'original':True}),probe_plan=dict(scope=self.pair(self.scope),library_root=str(protected/'L'),fixture_parent=str(protected/'fixture'),output_root=str(original/'probe')),operation_output=str(original),native_controls=self.pair(self.receipt),effective_observer_review=self.pair(self.review),source_cohort=self.pair(self.cohort))
+  outer=self.put('active-input.json',p.encode(before));owner.files[outer['path']]=tuple(outer['signature9'])
+  p._NFS_SOURCE_CONTEXTS[owner]=({}, {}, p.encode(before),b'{}',None)
+  p._NFS_DATA_ROOTS[owner]=(str(protected),str(protected))
+  p._NFS_OUTPUT_PAIRS[owner]=(str(original),str(physical),virtual,(1,2,3,4,5))
+  self.addCleanup(p._NFS_DATA_ROOTS.pop,owner,None);self.addCleanup(p._NFS_OUTPUT_PAIRS.pop,owner,None)
+  return before,outer,physical,virtual
+ def test_outer_real_paths_original_host_output_red_then_virtual_green(self):
+  before,outer,physical,virtual=self.outer_mapping();value=self.projector()
+  # Exact predecessor expression fails before owning child execution.
+  with self.assertRaisesRegex(p.Held,'unmapped-child'):value.child(value.host(before['operation_output']))
+  projected=value.document_projected(value.outer(self.pair(outer)))
+  self.assertEqual(projected['operation_output'],virtual);self.assertNotEqual(virtual,str(physical));self.assertNotEqual(virtual,before['operation_output'])
+  self.assertEqual(projected['probe_plan']['output_root'],str(Path(virtual)/'probe'))
+  self.assertEqual(projected['probe_plan']['library_root'],before['probe_plan']['library_root'])
+  self.assertEqual(projected['parent_admission'],before['parent_admission'])
+  self.assertEqual(self.owner.mapping.nfs_host(projected['operation_output']),str(physical))
+  self.assertEqual(self.owner.mapping.nfs_child(str(Path(before['operation_output'])/'probe')),str(Path(virtual)/'probe'));self.tree.check()
+ def test_real_paths_ordinary_mapping_and_unmapped_output_refusal(self):
+  before,outer,physical,virtual=self.outer_mapping();value=self.projector()
+  self.assertEqual(value.child(str(self.root/'writer')),'/mapped-inputs/writer')
+  self.assertEqual(value.host('/mapped-inputs/writer'),str(self.root/'writer'))
+  self.assertEqual(value.child(before['parent_admission']['path']),before['parent_admission']['path'])
+  with self.assertRaisesRegex(p.Held,'unmapped-host'):value.child('/foreign-host/output')
+  with self.assertRaisesRegex(p.Held,'unmapped-child'):value.host('/foreign-child/output')
+  self.assertEqual(value.host(str(Path(virtual)/'probe')),str(physical/'probe'))
+
 if __name__=='__main__':unittest.main()

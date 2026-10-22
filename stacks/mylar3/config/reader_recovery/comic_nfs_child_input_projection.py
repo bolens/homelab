@@ -81,7 +81,7 @@ class Inputs:
         scope_expected=copy.deepcopy(scope_before);scope_expected['sources']=scope['sources']
         need(scope==scope_expected,'nfs-input-scope-facts-unchanged');value['active_scope']=self.emit('nfs-scope-input.json',scope)
         value['effective_observer_review']=self.effective_review(value['effective_observer_review'])
-        value['operation_output']=self.child(self.host(before['operation_output']))
+        value['operation_output']=self.child(before['operation_output'])
         admission=value['parent_admission'];need(set(admission)=={'path','grandparent_signature','expected_device','mount_identity'},'nfs-input-parent-admission-schema')
         # Directory signatures/device/mount observation are actual originals;
         # no current directory is adopted during this path projection.
