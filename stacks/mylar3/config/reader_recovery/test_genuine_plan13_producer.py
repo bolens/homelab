@@ -259,6 +259,16 @@ class Tests(unittest.TestCase):
         source = g.p.decode(g.p.read(self.f.install_ref))['output_refs']
         self.assertNotEqual(self.f.doc['base_admission'], source[str(self.f.output / 'publication_reader_admission.py')])
 
+    def test_configured_operation_child_matches_installed_admission(self):
+        # Real installer binds admission to its fixed child operation root.
+        self.f.compose(self.f.doc)
+        for destination in (str(self.f.state / 'operation'), '/foreign-operation'):
+            doc = copy.deepcopy(self.f.doc)
+            row = next(row for row in doc['mounts'] if row['host'] == doc['operation'])
+            row['child'] = destination
+            with self.subTest(destination=destination), self.assertRaisesRegex(g.p.Held, 'configured-operation-child'):
+                self.f.compose(doc)
+
     def test_wrong_fresh_process_refuses(self):
         current = g.p.decode(g.p.read(self.f.doc['current_roles'])); current['native_process'] = {}
         with self.assertRaisesRegex(g.p.Held, 'current-process-original'):self.f.compose(dict(self.f.doc, current_roles=self.f.put(current)))

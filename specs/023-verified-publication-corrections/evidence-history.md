@@ -1308,3 +1308,52 @@ disposable Btrfs runs; that supplies no actual NFS or lease proof. Delivery and
 another fresh owning attempt remain pending. This is no factory, NFS repair,
 publication, import ACK or bulk acceptance. All 75 task
 IDs, ordering and checkbox states remain unchanged: 59 complete and 16 open.
+
+
+## Owning producer entry after assembler delivery — 2026-10-22
+
+PR #482 merged with all required checks passing. The merged tree equals the reviewed
+source tree. GitHub, local main and the configured Gitea mirror agree on the merge.
+The five-file actionable-task refinement remains under PR #483 with normal CI.
+
+The fresh G batch passes its original causal SourceFixture contract, source closure
+and exact owned-container cleanup/absence. Cohort digest:
+`cb8b073689449389cdc36ae6b9ac99fea27f89fbc45ad4e9cccd6ae55221e7e1`.
+Current roles, protocol projection, active assembly and NFS intent construction pass.
+The producer invokes the owning entry once, then exits without an accepted terminal
+return. The retained traceback confirms `run_operation` entered Parent construction,
+which refused `configured-overlay-exact-approved-edits` before its owning execute.
+The packet mapped the operation to its host path, while the installed admission
+correctly targets the fixed child path `/_operation`. No new overlay mechanism is
+missing; the new packet must correct that destination. No replay or
+factory/NFS/publication/ACK acceptance is inferred.
+
+Process exit also reports a common-root descriptor double-close. Source inspection
+confirms that actor release closes registered directory FDs before a weak-reference
+finalizer closes the same numbers again. The admission-refusal path has the related
+raw-close ownership problem. A focused ownership correction and FD-reuse regression
+are implemented and reviewed under T026; the installed E outputs and every failed history remain
+immutable. A changed host Parent needs a fresh checked configured installation,
+not replacement of unchanged native/worker SDK evidence.
+
+An independent read-only live check confirms both services healthy and the permanent
+normalizer Created. A later filtered pack/API check confirms native publication ready,
+pack automation enabled and the exact historical selected capture still present with
+zero inventoried members. No import, inventory publication or acknowledgement ran.
+Task IDs and states remain 59 complete and 16 open.
+
+The integrated source now closes each common-root descriptor through its original
+owner once, handles admission refusal through the same deregistration path, attempts
+all cleanup and preserves an earlier operation error. The producer also rejects an
+operation child path other than `/_operation` before opening the Parent. Original
+source reproductions fail the descriptor-reuse and wrong-path controls; corrected
+source passes. Installer, CurrentRoles and assembler pins and all source maps join
+the exact new bytes. No existing installed file, receipt or admission was relabeled.
+
+Python 3.10 passes 1,406 recovery controls in 75 suites with zero skips and original
+source closure, all 14 outer controls, and seven import-copy controls. System Python
+passes seven authenticated-copy controls. The managed Python 3.10 broker child
+refuses because its `fcntl` lacks `F_SEAL_WRITE`; the saved diagnostic preserves
+that original error. Required target-runtime CI remains applicable. Full local CI passes after installing the locked development
+packages in the new worktree. Independent source/map review clears the integrated
+candidate. Hosted delivery, fresh installation and connected execution remain open.

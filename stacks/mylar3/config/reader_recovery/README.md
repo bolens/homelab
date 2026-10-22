@@ -10,7 +10,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1401 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1406 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 `genuine_active_inputs.py` assembles the original input graph before the owning
 Parent creates its disposable probe parent. It requires that nonce-named parent
@@ -182,6 +182,13 @@ remain separate from these source updates.
 Configured archive installation emits thirteen fixed artifacts. The nine archive code leaves (backup/action/adapter/proof and their five reader/scope/probe helpers) are sealed as original siblings before role inspection or stop. The child projects that exact graph together under read-only file mounts while retaining each original file9/hash/ancestor5 and independent UID1000 copy. Other control projection paths are unchanged. The operational producer is the generated evidence adapter, which owns the native-observation phase; the proof producer is its fixed sibling dependency. Constructor-only acceptance calls left() while the reader is Running; continuous() belongs to the maintained stopped-reader phase. No host import/projection control proves connected Birth, NFS, terminal acceptance or reader resume.
 
 
+Common-root descriptors have one retained owner. Teardown closes and deregisters
+its common-root rows before releasing the owning-read actor's remaining handles,
+including constructor-refusal paths. The late Parent finalizer sees the explicit
+closed row and cannot close a descriptor number reused by unrelated work.
+Identity drift or cleanup failure remains a refusal; it is not ignored as EBADF,
+and cleanup never replaces an earlier operation failure.
+
 ## Original reader task observation
 
 `genuine_reader_quiescence.py` observes the pinned Komga 1.28.1 administrator
@@ -216,3 +223,7 @@ remain distinct. Test transports cannot emit operational readiness. Actual
 selected-image execution and connected Parent acceptance remain required.
 
 The owning SourceCohort emitter may retain an empty stderr log. The host assembler and Parent admit that exact private original through its immutable cohort reference, stderr role, empty SHA256 and full9; they retain and recheck those same bytes and metadata through projection and closure. Ordinary documents, source files, stdout and child result controls remain nonempty. This read exception grants no runtime, NFS, publication or mutation authority.
+
+Configured plan13 producers map each fresh host operation to the installer-owned
+child path `/_operation`. This keeps the projected Parent URI and SHA equal to
+the checked admission. Other operation mappings refuse before Parent entry.

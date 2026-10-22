@@ -155,6 +155,82 @@ class OwnerReadTests(unittest.TestCase):
         p._OWNER_READS = None; self.addCleanup(setattr, p, '_OWNER_READS', None)
         self.actor = p.bind_owner_reads(self.geometry); self.addCleanup(self.actor.release)
 
+    def common_row(self):
+        return p.admit_common_root(self.geometry,[dict(host=str(self.root),child=str(self.root),write=True)],
+                                   str(self.root/'L'),str(self.root/'R'),[])
+
+    def test_run_operation_release_then_late_finalizer_cannot_close_reused_fd(self):
+        from unittest import mock
+        import weakref
+        owners=[];finalizers=[];rows=[];actor=self.actor
+        class Owner:
+            def __init__(inner,*args,**kwargs):
+                inner.owner_reads=actor;row=self.common_row();rows.append(row);owners.append(inner)
+                finalizers.append(weakref.finalize(inner,p.close_common_root,row))
+            def execute(inner):return {'fixture_only':True}
+        with mock.patch.object(p,'LifecycleParent',Owner):
+            self.assertEqual(p.run_operation(None,None,engine=object()),{'fixture_only':True})
+        self.assertIsNone(p._OWNER_READS);self.assertFalse(actor.handles)
+        row=rows[0]
+        for fd in (row[0],*row[2]):
+            with self.assertRaises(OSError):os.fstat(fd)
+        unrelated=self.root.parent/'unrelated';unrelated.write_bytes(b'unrelated-owned-fixture')
+        fd=os.open(unrelated,os.O_RDONLY|os.O_NOFOLLOW);target=row[0]
+        try:
+            if fd!=target:os.dup2(fd,target)
+            original=p.five(os.fstat(target));finalizers[0]()
+            self.assertEqual(p.five(os.fstat(target)),original)
+            self.assertEqual(os.pread(target,64,0),b'unrelated-owned-fixture')
+        finally:
+            for handle in {fd,target}:
+                try:os.close(handle)
+                except OSError:pass # Unit cleanup after original RED may already be closed.
+        self.assertFalse(finalizers[0].alive)
+
+    def test_constructor_refusal_preserves_primary_and_late_finalizer_is_safe(self):
+        from unittest import mock
+        import weakref
+        primary=ValueError('original-constructor-refusal');owners=[];finalizers=[];rows=[];actor=self.actor
+        class Owner:
+            def __init__(inner,*args,**kwargs):
+                inner.owner_reads=actor;row=self.common_row();rows.append(row);owners.append(inner)
+                finalizers.append(weakref.finalize(inner,p.close_common_root,row));raise primary
+        with mock.patch.object(p,'LifecycleParent',Owner),self.assertRaises(ValueError)as caught:
+            p.run_operation(None,None,engine=object())
+        self.assertIs(caught.exception,primary);self.assertFalse(actor.handles);self.assertIsNone(p._OWNER_READS)
+        finalizers[0]()
+        for fd in (rows[0][0],*rows[0][2]):
+            with self.assertRaises(OSError):os.fstat(fd)
+
+    def test_operation_primary_survives_cleanup_failure_and_all_fds_are_attempted(self):
+        from unittest import mock
+        import weakref
+        primary=ValueError('original-execute-refusal');owners=[];finalizers=[];rows=[];actor=self.actor
+        class Owner:
+            def __init__(inner,*args,**kwargs):
+                inner.owner_reads=actor;row=self.common_row();rows.append(row);owners.append(inner)
+                finalizers.append(weakref.finalize(inner,p.close_common_root,row))
+            def execute(inner):patcher.start();raise primary
+        real=type(actor).close_directory;attempted=[]
+        def close(owner,fd):
+            self.assertIs(owner,actor);attempted.append(fd);real(owner,fd)
+            if rows and fd==rows[0][0]:raise OSError('injected-close-failure-after-close')
+        patcher=mock.patch.object(type(actor),'close_directory',close);self.addCleanup(patcher.stop)
+        with mock.patch.object(p,'LifecycleParent',Owner),self.assertRaises(ValueError)as caught:
+            p.run_operation(None,None,engine=object())
+        patcher.stop()
+        self.assertIs(caught.exception,primary);self.assertFalse(actor.handles)
+        self.assertEqual(len(attempted),6);self.assertEqual(len(set(attempted)),6)
+        finalizers[0]()
+        self.assertEqual(len(attempted),6)
+
+    def test_common_admission_refusal_deregisters_all_opened_fds(self):
+        from unittest import mock
+        before=set(self.actor.handles);primary=ValueError('original-admission-refusal')
+        with mock.patch.object(p,'check_common_root',side_effect=primary),self.assertRaises(ValueError)as caught:self.common_row()
+        self.assertIs(caught.exception,primary);self.assertEqual(set(self.actor.handles),before)
+        self.actor.check();p.release_owner_reads(self.actor);self.assertFalse(self.actor.handles)
+
     def test_original_archive_bytes_hash_and_namespace_after_explicit_owner_read(self):
         import hashlib
         path = self.root/'L'/'target.cbz'; path.write_bytes(b'original-disposable')
