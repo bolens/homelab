@@ -17,6 +17,8 @@ import time
 import weakref
 _PROCESS_SEALS=weakref.WeakKeyDictionary()
 _PREPARED_ACKS=weakref.WeakKeyDictionary()
+_PARENT_PROFILES=weakref.WeakKeyDictionary()
+_FULL_PROFILES=weakref.WeakKeyDictionary()
 
 
 class Held(ValueError):
@@ -80,7 +82,7 @@ def fd5(stream):
 
 class ProbeProcess:
     """Command/profile boundary. Constructor inputs are owning-host originals."""
-    def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None,namespace=None):
+    def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None,namespace=None,owner=None):
         need(type(spec) is dict and set(spec) == {'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256'}, 'probe-spec-schema')
         need(re.fullmatch(r'sha256:[a-f0-9]{64}', spec['image']) is not None, 'probe-image')
         for key in ('input_sha256', 'probe_sha256'):
@@ -115,9 +117,30 @@ class ProbeProcess:
         self.static = None
         self.started = False
         self.terminal = False
+        self.full_created=self.full_running=self.full_terminal=None
+        _FULL_PROFILES[self]=(None,None,None)
+        if owner is not None:
+            g=owner.left.__func__.__globals__
+            need(type(owner)is g.get('LifecycleParent')and owner.left.__func__ is g['LifecycleParent'].left and g.get('_CORES',{}).get(owner)==owner.core and type(owner.engine)is g.get('ScopedDocker')
+                 and getattr(execute,'__self__',None)is owner.engine and getattr(execute,'__func__',None)is g['ScopedDocker'].canary,'probe-source-owning-parent')
+            helpers=tuple(g.get(k)for k in ('checked_none_network_started_static','checked_none_network_exited_static'))
+            need(all(callable(f)and getattr(f,'__globals__',None)is g for f in helpers),'probe-source-profile-helpers')
+            guard=g.get('none_network_profile_contract')
+            need(callable(guard)and guard.__globals__ is g,'probe-source-profile-contract')
+            contract=(guard,guard.__code__,guard())
+            _PARENT_PROFILES[self]=(owner,g,owner.core,owner.engine,helpers,contract)
 
     def original_close(self):
         self.close()
+        need(_FULL_PROFILES.get(self)==(self.full_created,self.full_running,self.full_terminal),'probe-full-profile-seal')
+        parent=_PARENT_PROFILES.get(self)
+        if parent is not None:
+            owner,g,core,engine,helpers,contract=parent
+            need(type(owner)is g.get('LifecycleParent')and owner.core==g.get('_CORES',{}).get(owner)==core and owner.engine is engine
+                 and getattr(self.execute,'__self__',None)is engine and getattr(self.execute,'__func__',None)is g['ScopedDocker'].canary
+                 and helpers==tuple(g.get(k)for k in ('checked_none_network_started_static','checked_none_network_exited_static')),'probe-profile-parent-original')
+            guard,code,token=contract
+            need(g.get('none_network_profile_contract')is guard and guard.__code__ is code and guard.__globals__ is g and guard()is token,'probe-profile-contract-original')
         need(encode(self.namespace_original)==self.namespace_tape,'probe-namespace-original-tape')
         need(encode(dict(spec=self.spec, docker=self.docker, name=self.name)) == self.original, 'probe-original-spec')
         need(self.cid_original is None or self.cid == self.cid_original, 'probe-original-born-CID')
@@ -164,9 +187,25 @@ class ProbeProcess:
              and type(s['Pid']) is int and (s['Pid']>0 if running else s['Pid']==0)
              and all(s.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled'))
              and (not terminal or type(s['ExitCode']) is int and s['ExitCode'] == 0), 'probe-original-state')
-        if self.static is not None:
-            need(encode({k: row[k] for k in ('Config', 'HostConfig', 'Mounts')}) == self.static, 'probe-original-terminal-static')
+        parent=_PARENT_PROFILES.get(self);candidate=None
+        if parent is None:
+            if self.static is not None:need(encode({k:row[k]for k in ('Config','HostConfig','Mounts')})==self.static,'probe-original-terminal-static')
+        else:
+            owner,g,core,engine,helpers,contract=parent;full=encode(g['static'](row))
+            if self.full_created is None:
+                need(not running and not terminal,'probe-original-created-full-required');candidate=(full,None,None)
+            elif running and self.full_running is None:
+                need(helpers[0](json.loads(self.full_created),g['static'](row),self.cid),'probe-original-started-full-profile');candidate=(self.full_created,full,None)
+            elif terminal:
+                need(self.full_running is not None,'probe-original-running-full-required')
+                if self.full_terminal is None:
+                    need(helpers[1](json.loads(self.full_running),g['static'](row),self.cid),'probe-original-exited-full-profile');candidate=(self.full_created,self.full_running,full)
+                else:need(full==self.full_terminal,'probe-original-terminal-full-exact')
+            else:need(full==(self.full_running if running else self.full_created),'probe-original-full-profile-exact')
         self.original_close()
+        if candidate is not None:
+            self.full_created,self.full_running,self.full_terminal=candidate;_FULL_PROFILES[self]=candidate
+            self.original_close()
 
     def inspect(self, terminal=False, running=False):
         need(self.cid is not None, 'probe-unborn')
@@ -293,7 +332,7 @@ class HostProbe:
         self.close()
         need(plan['root']==spec['mounts'][0][1] and spec['mounts'][0][0]==spec['mounts'][0][1],'probe-current-canonical-fixture-bind')
         namespace=dict(host=plan['mount'],host_root=spec['mounts'][0][0],child_root=spec['mounts'][0][1],root9=plan['root9'])
-        self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive,namespace=namespace)
+        self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive,namespace=namespace,owner=self.owner)
         self.close()
 
     def birth_descriptor(self,created_profile):

@@ -114,4 +114,104 @@ class ProfileRules(unittest.TestCase):
         m.stopped_epoch({'StartedAt':'original'},(123,'original'))
         with self.assertRaises(m.Held):m.stopped_epoch({'StartedAt':'restarted'},(123,'original'))
 
+class FullProfileTransitions(unittest.TestCase):
+    def fixture(self):
+        import copy
+        import comic_reader_lifecycle_parent as p
+        owner=object.__new__(p.LifecycleParent);lease=object.__new__(m.HostWriterLease);lease.owner=owner;lease.g=p.__dict__;lease.cid=lease.cid_original='a'*64;lease.image='sha256:'+'b'*64;lease.name='fixture-lease';lease.command=['/lease-helper.py'];lease.mounts=(('/fixture/helper','/lease-helper.py',False),);lease.epoch=None;lease.profile_original=lease.profile_running=lease.profile_terminal=None;m._FULL_PROFILES[lease]=(None,None,None);self.addCleanup(m._FULL_PROFILES.pop,lease,None);lease.original=lambda **kwargs:None;guard=p.none_network_profile_contract;m._PROFILE_CONTRACTS[lease]=(guard,guard.__code__,guard());self.addCleanup(m._PROFILE_CONTRACTS.pop,lease,None)
+        row=dict(Id=lease.cid,Name='/'+lease.name,Image=lease.image,Path='/lsiopy/bin/python3',Args=lease.command,Created='original-birth',Config=dict(User='1000:1000',Labels={'com.homelab.nfs.lease':lease.name},Entrypoint=['/lsiopy/bin/python3'],Cmd=lease.command),HostConfig=dict(ReadonlyRootfs=True,Privileged=False,NetworkMode='none',PidMode='',IpcMode='private',CapAdd=None,CapDrop=['ALL'],SecurityOpt=['no-new-privileges'],PidsLimit=32,Devices=None,DeviceRequests=None,Binds=None,Tmpfs=None,PortBindings=None,RestartPolicy={'Name':'no'},OomKillDisable=False),Mounts=[dict(Type='bind',Source='/fixture/helper',Destination='/lease-helper.py',RW=False)],NetworkSettings=dict(Ports={},SandboxID='',SandboxKey='',Networks={'none':dict(EndpointID='',NetworkID='',IPAddress='',Gateway='',MacAddress='')}),State=dict(Status='created',Running=False,Pid=0,Paused=False,Restarting=False,Dead=False,OOMKilled=False,StartedAt='original-epoch'))
+        owner.inspect=lambda cid:copy.deepcopy(row);lease.profile('created');running=copy.deepcopy(row);running['State'].update(Status='running',Running=True,Pid=123);running['HostConfig']['OomKillDisable']=None;running['NetworkSettings'].update(SandboxID='e'*64,SandboxKey='/var/run/docker/netns/'+'e'*12);running['NetworkSettings']['Networks']['none'].update(EndpointID='c'*64,NetworkID='d'*64)
+        terminal=copy.deepcopy(running);terminal['State'].update(Status='exited',Running=False,Pid=0,ExitCode=0);terminal['NetworkSettings'].update(SandboxID='',SandboxKey='');terminal['NetworkSettings']['Networks']['none']['EndpointID']=''
+        return lease,owner,row,running,terminal
+    def test_source_helper_start_terminal_and_held_no_inspect(self):
+        import copy
+        from unittest.mock import Mock
+        lease,owner,born,running,terminal=self.fixture();original=lease.profile_original;owner.inspect=lambda cid:copy.deepcopy(running);lease.profile('running');started=lease.profile_running
+        m._WINDOWS[lease]=('HELD',());self.addCleanup(m._WINDOWS.pop,lease,None);owner.inspect=Mock(side_effect=AssertionError('Writer-held remote read'))
+        with self.assertRaisesRegex(m.Held,'while-Writer'):lease.profile('running')
+        owner.inspect.assert_not_called();m._WINDOWS.pop(lease);owner.inspect=lambda cid:copy.deepcopy(terminal);lease.profile('exited');self.assertEqual(lease.profile_original,original);self.assertEqual(lease.profile_running,started)
+    def test_abort_refuses_baseline_substitution_before_channel_callback(self):
+        import threading
+        from types import SimpleNamespace
+        from unittest.mock import Mock,patch
+        lease,owner,born,running,terminal=self.fixture();p=__import__('comic_reader_lifecycle_parent');owner.thread=threading.get_ident();owner.core=b'fixture-core';owner.engine=object.__new__(p.ScopedDocker);p._CORES[owner]=owner.core;self.addCleanup(p._CORES.pop,owner,None)
+        lease.process=object();lease.channel=SimpleNamespace(process=lease.process,abort_original=Mock(side_effect=AssertionError('must not close input')));lease.profile_running=b'forged'
+        with patch.object(m.os,'geteuid',return_value=0),self.assertRaisesRegex(m.Held,'lease-abort-original-profile-seal'):lease.abort_original()
+        lease.channel.abort_original.assert_not_called()
+
+    def test_wrong_epoch_hostconfig_and_tape_never_rebaseline(self):
+        import copy
+        lease,owner,born,running,terminal=self.fixture();owner.inspect=lambda cid:copy.deepcopy(running);lease.profile('running')
+        terminal['State']['StartedAt']='foreign';owner.inspect=lambda cid:copy.deepcopy(terminal)
+        with self.assertRaises(m.Held):lease.profile('exited')
+        self.assertIsNone(lease.profile_terminal);running['HostConfig']['OomKillDisable']=False;owner.inspect=lambda cid:copy.deepcopy(running)
+        with self.assertRaises(m.Held):lease.profile('running')
+        lease.profile_running=b'forged'
+        with self.assertRaisesRegex(m.Held,'full-profile-seal'):lease.profile('running')
+
+class RetainedProfileContract(unittest.TestCase):
+    def fixture(self):
+        source=FullProfileTransitions();source._cleanups=[]
+        self.addCleanup(source.doCleanups)
+        import comic_reader_lifecycle_parent as p
+        obj,owner,born,running,terminal=source.fixture()
+        import copy
+        owner.inspect=lambda cid:copy.deepcopy(running)
+        return p,obj,lambda:obj.profile('running'),obj.profile_contract
+    def test_same_globals_predicate_encoder_and_prefix_replacement_refuse(self):
+        from unittest.mock import patch
+        p,obj,run,close=self.fixture()
+        scope=p.__dict__;temporary={}
+        exec('def foreign(*args): return True',scope,temporary)
+        for name,value in [('none_network_started_static',temporary['foreign']),
+                           ('none_network_exited_static',temporary['foreign']),
+                           ('_none_network_profile_bytes',temporary['foreign']),
+                           ('NONE_NETWORK_SANDBOX_PARENT','/foreign')]:
+            with self.subTest(name=name),patch.dict(scope,{name:value}):
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):run()
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):close()
+        self.assertIsNone(obj.profile_running)
+        run()
+    def test_in_place_code_mutation_refuses_and_restoration_retains_tape(self):
+        p,obj,run,close=self.fixture();function=p.none_network_started_static;original=function.__code__
+        def foreign(a,b,c):return True
+        try:
+            function.__code__=foreign.__code__
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):run()
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):close()
+        finally:function.__code__=original
+        run();close()
+    def test_retained_guard_identity_code_and_token_are_required(self):
+        from unittest.mock import patch
+        p,obj,run,close=self.fixture();scope=p.__dict__;temporary={}
+        exec('def foreign(): return object()',scope,temporary)
+        with patch.dict(scope,none_network_profile_contract=temporary['foreign']):
+            with self.assertRaises(ValueError):run()
+            with self.assertRaises(ValueError):close()
+        run();close()
+        with patch.dict(scope,NONE_NETWORK_SANDBOX_PARENT='/foreign'):
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):self.fixture()
+    def test_abort_contract_drift_refuses_before_original_channel_callback(self):
+        import threading
+        from types import SimpleNamespace
+        from unittest.mock import Mock,patch
+        p,lease,run,close=self.fixture();owner=lease.owner
+        owner.thread=threading.get_ident();owner.core=b'fixture-core';owner.engine=object.__new__(p.ScopedDocker)
+        p._CORES[owner]=owner.core;self.addCleanup(p._CORES.pop,owner,None)
+        lease.process=object();lease.channel=SimpleNamespace(process=lease.process,abort_original=Mock(side_effect=AssertionError('must not close input')))
+        with patch.object(m.os,'geteuid',return_value=0),patch.dict(p.__dict__,NONE_NETWORK_SANDBOX_PARENT='/foreign'):
+            with self.assertRaisesRegex(p.Held,'original-profile-contract'):lease.abort_original()
+        lease.channel.abort_original.assert_not_called()
+    def test_in_place_dependency_and_checked_api_code_refuse(self):
+        p,obj,run,close=self.fixture()
+        for name in ('_none_network_profile_bytes','checked_none_network_started_static',
+                     'checked_none_network_exited_static','none_network_profile_contract'):
+            function=getattr(p,name);code=function.__code__
+            try:
+                function.__code__=code.replace(co_filename='<changed-source-code>')
+                with self.subTest(name=name),self.assertRaises(ValueError):run()
+                with self.assertRaises(ValueError):close()
+            finally:function.__code__=code
+        run();close()
+
 if __name__=='__main__':unittest.main()

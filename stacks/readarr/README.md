@@ -74,6 +74,14 @@ rejects larger combined queries with `top_level_limit_exceeded` or rate-limit
 responses. It retries transient HTTP 429 and Hardcover-specific rate-limit HTTP
 403 responses with bounded backoff instead of returning an empty search result.
 
+The search-cache patch keeps successfully hydrated search metadata in the existing
+work and edition cache. This avoids fetching the same details again when Bookshelf
+loads its result cards or another search finds the same book. Complete, nonempty
+search results are cached for 15 minutes. Empty, partial, failed, and cancelled
+searches are retried on the next request. Cold searches still depend on Hardcover
+and the one-request-per-second queue. Both patches apply to the pinned source;
+the image build runs the search-cache regression tests before compiling.
+
 To use the CI image, remove the metadata service's `build:` block and set its
 `image:` to `ghcr.io/bolens/homelab-rreading-glasses:latest` or a commit tag from
 [custom-image CI](../../documents/CUSTOM-IMAGES.md). Local builds remain the default.

@@ -382,4 +382,413 @@ class Stopped(unittest.TestCase):
         del N._STOPPED_HANDOFFS[self.handoff]
         with self.assertRaises(N.Held):self.handoff.close()
 
+
+# Exact source-mode startup/terminal transition controls. The private author
+# capsule retains original-method RED evidence; these portable controls exercise
+# the actual maintained Parent/session methods and owning phase/profile guards.
+import ast
+import hashlib
+import importlib.util
+p=P
+s=S
+BASE=Path(__file__).parent
+def _started_load(path,name):
+ spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+
+def _started_model():
+ cid='a'*64
+ created=dict(Id=cid,Name='/source-model',Image='sha256:'+'b'*64,Path='/lsiopy/bin/python3',Args=['-I','-B','probe.py'],Config=dict(User='1000:1000',Labels={},ExposedPorts={'8090/tcp':{}}),HostConfig=dict(NetworkMode='none',OomKillDisable=False,ReadonlyRootfs=True,Privileged=False,CapDrop=['ALL'],PortBindings={}),Mounts=[dict(Type='bind',Source='/fixture',Destination='/_operation',RW=False)],NetworkSettings=dict(Ports={},SandboxID='',SandboxKey='',Networks={'none':dict(EndpointID='',NetworkID='',IPAddress='',Gateway='',MacAddress='')}))
+ started=copy.deepcopy(created);started['HostConfig']['OomKillDisable']=None;started['NetworkSettings'].update(SandboxID='e'*64,SandboxKey='/var/run/docker/netns/'+'e'*12);started['NetworkSettings']['Networks']['none'].update(EndpointID='c'*64,NetworkID='d'*64)
+ terminal=copy.deepcopy(started);terminal['NetworkSettings'].update(SandboxID='',SandboxKey='');terminal['NetworkSettings']['Networks']['none']['EndpointID']=''
+ def state(status):return dict(Status=status,Running=status=='running',Paused=False,Restarting=False,OOMKilled=False,Dead=False,Pid=os.getpid() if status=='running' else 0,ExitCode=0,Error='',StartedAt='same-start',FinishedAt='finish' if status=='exited' else '')
+ for row,status in ((created,'created'),(started,'running'),(terminal,'exited')):row['State']=state(status)
+ return cid,created,started,terminal
+
+class StartedProfiles(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);self.root.chmod(0o700)
+ def namespace(self,current=None,after=None):
+  cid,created,started,terminal=_started_model();current=copy.deepcopy(current or started);after=copy.deepcopy(after or current)
+  owner=object.__new__(p.LifecycleParent);owner.op=self.root/'operation';owner.op.mkdir(mode=0o700);owner.op_fact=tuple(p.five(owner.op.stat()));owner.generated={};owner.plan=dict(nonce='f'*64);owner.left=lambda:None
+  p._GENERATED[owner]=p.encode({})
+  def put(name,raw):
+   path=self.root/name;path.write_bytes(raw);path.chmod(0o600);return dict(path=str(path),sha256=hashlib.sha256(raw).hexdigest(),signature9=p.nine(path.stat()))
+  ref=put('source.py',b'# exact source fixture\n');plan=put('plan.json',b'{}');bootstrap=put('roles.json',p.encode(dict(version=1,kind='parent-original-current-three-role-bootstrap',plan=plan,source=ref,roles={},ancestors={})))
+  owner.mapping=types.SimpleNamespace(original_ref=lambda value:value)
+  dialogue=types.SimpleNamespace(sequence=0);session=types.SimpleNamespace(cid=cid,created_static=p.encode(p.static(created)),lease_replies=types.SimpleNamespace(lease=None),engine_replies=dialogue,close=lambda:None)
+  p._NFS_LIVE_SESSIONS[owner]=session;p._NFS_PACKET_ROWS[owner]=(None,None,bootstrap)
+  calls=iter((current,after));owner.inspect=lambda value:copy.deepcopy(next(calls))
+  frame=dict(type='nfs-role-namespace',nonce=owner.plan['nonce'],sequence=1,payload={})
+  return owner,session,frame,created,started
+ def test_namespace_actual_method_seals_running_profile_and_original_created(self):
+  owner,session,frame,created,started=self.namespace();answer=owner.nfs_role_namespace_reply(frame)
+  self.assertEqual(answer['sequence'],1);self.assertEqual(len(p._NFS_CHILD_EPOCHS[owner]),6);self.assertEqual(p._NFS_CHILD_EPOCHS[owner][5],p.encode(p.static(started)));self.assertEqual(session.created_static,p.encode(p.static(created)))
+  diagnostic=p.decode(p.read(owner.generated[str(owner.op/'nfs-first-started-profile.json')]))
+  self.assertEqual(diagnostic['profile'],started)
+ def test_namespace_foreign_static_or_boolean_refuses_before_seal_with_diagnostic(self):
+  for kind in ('port','bool','id'):
+   with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+    originalroot=self.root;self.root=Path(tmp);_,_,row,_=_started_model()
+    if kind=='port':row['NetworkSettings']['Ports']={'8090/tcp':None}
+    elif kind=='bool':row['HostConfig']['Privileged']=0
+    else:row['Id']='b'*64
+    owner,session,frame,_,_=self.namespace(row)
+    with self.assertRaisesRegex(p.Held,'own-running-child'):owner.nfs_role_namespace_reply(frame)
+    self.assertNotIn(owner,p._NFS_CHILD_EPOCHS);self.assertEqual(p.decode(p.read(owner.generated[str(owner.op/'nfs-first-started-profile.json')]))['profile'],row);self.root=originalroot
+ def test_namespace_late_profile_or_startedat_drift_refuses(self):
+  for kind in ('static','epoch'):
+   with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+    originalroot=self.root;self.root=Path(tmp);_,_,row,_=_started_model()
+    if kind=='static':row['Config']['User']='0:0'
+    else:row['State']['StartedAt']='other-start'
+    owner,session,frame,_,_=self.namespace(after=row)
+    with self.assertRaisesRegex(p.Held,'original-child-epoch'):owner.nfs_role_namespace_reply(frame)
+    self.assertNotIn(owner,p._NFS_CHILD_EPOCHS);self.root=originalroot
+ def test_retained_session_checks_new_running_static_and_epoch(self):
+  owner,session,frame,created,started=self.namespace();owner.nfs_role_namespace_reply(frame)
+  actual=object.__new__(s.RetainedChild);actual.owner=owner;actual.cid=session.cid;actual.created_static=session.created_static;actual.lease_replies=types.SimpleNamespace(lease=None);actual.g=p.__dict__;actual.close=lambda:None
+  row=p._NFS_CHILD_EPOCHS[owner];p._NFS_CHILD_EPOCHS[owner]=(actual,*row[1:]);owner.inspect=lambda cid:copy.deepcopy(started)
+  self.assertEqual(actual.profile_after_release(),started)
+  for kind in ('static','epoch'):
+   changed=copy.deepcopy(started)
+   if kind=='static':changed['HostConfig']['OomKillDisable']=False
+   else:changed['State']['StartedAt']='restarted'
+   owner.inspect=lambda cid,value=changed:copy.deepcopy(value)
+   with self.assertRaises(s.Held):actual.profile_after_release()
+
+
+class PhaseProfiles(unittest.TestCase):
+ def phase(self,module,*,late=False):
+  t=_started_load(BASE/'test_reader_lifecycle_parent.py','existing_phase_controls');t.p=module
+  fixture=t.Tests();fixture.setUp();self.addCleanup(fixture.tearDown) if 'tearDown' in t.Tests.__dict__ else None
+  self.addCleanup(fixture.doCleanups);self.addCleanup(fixture.temp.cleanup)
+  owner,ref,command,calls=fixture.child_fixture();engine=owner.engine;original=engine.run
+  cid,created,started,exited=_started_model();counts={}
+  def run(args,seconds):
+   raw=original(args,seconds)
+   if args[0]=='inspect':
+    row=module.decode(raw)[0]
+    if row['Id']=='4'*64:
+     status=row['State']['Status'];template={'created':created,'running':started,'exited':exited}[status]
+     row['NetworkSettings']=copy.deepcopy(template['NetworkSettings']);row['HostConfig']['OomKillDisable']=template['HostConfig']['OomKillDisable']
+     counts[status]=counts.get(status,0)+1
+     if late and status=='exited':row['Config']['User']='0:0'
+    raw=module.encode([row])
+   return raw
+  engine.run=run
+  return owner,ref,command,fixture
+ def test_actual_full_phase_start_and_terminal_green(self):
+  owner,ref,cmd,fixture=self.phase(p);result=owner.child_phase('backup',ref,cmd)
+  self.assertEqual(result['phase'],'backup')
+  for stage in ('created','first-started','first-exited'):
+   path=owner.op/('backup-'+stage+'-profile.json');self.assertTrue(path.is_file());self.assertFalse(p.decode(p.read(owner.generated[str(path)]))['automatic_replay'])
+ def test_actual_full_phase_refuses_late_foreign_terminal_and_retains_diagnostics(self):
+  owner,ref,cmd,fixture=self.phase(p,late=True)
+  with self.assertRaisesRegex(p.Held,'child-final-static'):owner.child_phase('backup',ref,cmd)
+  self.assertEqual(p.decode(p.read(owner.generated[str(owner.op/'backup-first-exited-profile.json')]))['profile']['Config']['User'],'0:0')
+
+class WorkerProfiles(unittest.TestCase):
+ def worker(self):
+  tree=ast.parse(Path(p.__file__).read_text());outer=next(n for n in ast.walk(tree)if isinstance(n,ast.FunctionDef)and n.name=='observe_archive_worker');fn=copy.deepcopy(next(n for n in outer.body if isinstance(n,ast.FunctionDef)and n.name=='child_profile'))
+  # Extract the ACTUAL nested source, preserving its nonlocal state machine.
+  wrapper=ast.parse("def factory(self,cid,created_static,protocol,intent):\n running=None;started_static=None;terminal_static=None\n return None\n").body[0]
+  wrapper.body[-1:]=[fn,ast.Return(ast.Tuple(elts=[ast.Name(id='child_profile',ctx=ast.Load()),ast.Lambda(args=ast.arguments(posonlyargs=[],args=[],kwonlyargs=[],kw_defaults=[],defaults=[]),body=ast.Tuple(elts=[ast.Name(id=n,ctx=ast.Load())for n in ('running','started_static','terminal_static')],ctx=ast.Load()))],ctx=ast.Load()))]
+  scope=p.__dict__.copy();exec(compile(ast.fix_missing_locations(ast.Module(body=[wrapper],type_ignores=[])),'actual-worker-profile-extraction','exec'),scope)
+  cid,created,started,exited=_started_model()
+  for row in(created,started,exited):
+   row['Config'].update(Entrypoint=['python3'],Cmd=['worker.py'],OpenStdin=True,Tty=False,Labels={'com.homelab.reader.worker-observer':'fixture'})
+   row['HostConfig'].update(IpcMode='private',PidMode='',SecurityOpt=['no-new-privileges'],PidsLimit=32,Memory=768*1024**2,MemorySwap=768*1024**2,NanoCpus=500000000,RestartPolicy=dict(Name='no'))
+  owner=object.__new__(p.LifecycleParent);self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);owner.op=Path(self.temp.name);owner.op_fact=tuple(p.five(owner.op.stat()));owner.generated={};owner.left=lambda:None
+  intent=((),('worker.py',),(('/fixture','/_operation'),),'fixture',{},(),created['Image'],0);protocol=types.SimpleNamespace(step=0)
+  check,state=scope['factory'](owner,cid,p.static(created),protocol,intent)
+  return owner,check,state,protocol,created,started,exited
+ def test_actual_nested_worker_profiles_seal_first_start_then_first_exit(self):
+  owner,check,state,protocol,created,started,exited=self.worker();check(created);check(started);check(started);protocol.step=4;check(exited);check(exited)
+  self.assertEqual(state()[1],p.encode(p.static(started)));self.assertEqual(state()[2],p.encode(p.static(exited)))
+  # Actual cleanup consumer uses only the Parent-sealed terminal row; the
+  # original Created registry stays unchanged. No Docker command is executed.
+  engine=object.__new__(p.ScopedDocker);cid=created['Id'];owned=('fixture',copy.deepcopy(p.static(created)))
+  p._OBSERVER_OWNED[engine]={cid:owned};p._OBSERVER_RELEASED[engine]={cid:(object(),{},state()[2])}
+  from unittest.mock import patch
+  with patch.object(p.subprocess,'run',return_value=types.SimpleNamespace(returncode=0,stdout=b'',stderr=b'')) as run:
+   engine.remove_observer(cid,exited);self.assertEqual(run.call_count,1)
+   foreign=copy.deepcopy(exited);foreign['Config']['User']='0:0'
+   with self.assertRaisesRegex(p.Held,'worker-owned-exited-cleanup'):engine.remove_observer(cid,foreign)
+   self.assertEqual(run.call_count,1)
+  self.assertEqual(p._OBSERVER_OWNED[engine][cid],owned)
+  self.assertNotIn(str(owner.op/'worker-first-started-profile.json'),owner.generated)
+  changed=copy.deepcopy(exited);changed['NetworkSettings']['Networks']['none']['NetworkID']='f'*64
+  with self.assertRaisesRegex(p.Held,'static-through-dialogue'):check(changed)
+ def test_worker_missing_start_invalid_terminal_and_false_boolean_refuse(self):
+  owner,check,state,protocol,created,started,exited=self.worker();protocol.step=4
+  with self.assertRaisesRegex(p.Held,'started-to-exited'):check(exited)
+  # Fresh owner: rejection preserves first current row and cannot seal a baseline.
+  owner,check,state,protocol,created,started,exited=self.worker();changed=copy.deepcopy(started);changed['HostConfig']['Privileged']=0
+  with self.assertRaisesRegex(p.Held,'created-to-started'):check(changed)
+  self.assertIsNone(state()[0]);self.assertIsNone(state()[1])
+
+
+
+class ProfileContractSeal(unittest.TestCase):
+ def test_actual_parent_methods_reject_explicit_foreign_or_none_pair(self):
+  owner=object.__new__(p.LifecycleParent);calls=[]
+  def foreign():calls.append(True)
+  for name in ('left','nfs_host_modules'):
+   method=getattr(p.LifecycleParent,name)
+   for guard,code in ((foreign,foreign.__code__),(None,None)):
+    with self.subTest(method=name,none=guard is None):
+     with self.assertRaisesRegex(p.Held,'original-profile-binding'):
+      method(owner,_profile_guard=guard,_profile_code=code)
+     self.assertEqual(calls,[])
+ def test_same_globals_replacement_clone_and_inplace_code_refuse(self):
+  import types
+  cid,created,started,terminal=_started_model()
+  original=p.none_network_started_static;token=p.none_network_profile_contract()
+  self.assertIs(p.none_network_profile_contract(),token)
+  self.assertTrue(p.checked_none_network_started_static(p.static(created),p.static(started),cid))
+  self.assertTrue(p.checked_none_network_exited_static(p.static(started),p.static(terminal),cid))
+  clone=types.FunctionType(original.__code__,original.__globals__)
+  for replacement in (clone,types.FunctionType((lambda *args:True).__code__,original.__globals__)):
+   p.none_network_started_static=replacement
+   try:
+    with self.assertRaisesRegex(p.Held,'original-profile-contract'):p.checked_none_network_started_static(p.static(created),p.static(started),cid)
+   finally:p.none_network_started_static=original
+  code=original.__code__;original.__code__=(lambda *args:True).__code__
+  try:
+   with self.assertRaisesRegex(p.Held,'original-profile-contract'):p.none_network_profile_contract()
+  finally:original.__code__=code
+  # Same-globals foreign predicate cannot authorize an actual Parent phase.
+  fixture=PhaseProfiles();owner,ref,cmd,_=fixture.phase(p)
+  p.none_network_started_static=types.FunctionType((lambda *args:True).__code__,original.__globals__)
+  try:
+   with self.assertRaisesRegex(p.Held,'original-profile-contract'):owner.child_phase('backup',ref,cmd)
+  finally:p.none_network_started_static=original;fixture.doCleanups()
+ def test_private_encoder_dependency_prefix_and_checked_api_refuse(self):
+  cid,created,started,_=_started_model()
+  for name,replacement in (('_none_network_profile_bytes',lambda value:b'foreign'),('NONE_NETWORK_SANDBOX_PARENT','/foreign'),('checked_none_network_started_static',lambda *args:True)):
+   original=getattr(p,name);setattr(p,name,replacement)
+   try:
+    with self.assertRaisesRegex(p.Held,'original-profile-contract'):p.none_network_profile_contract()
+   finally:setattr(p,name,original)
+  for module,name in ((p.json,'dumps'),(p.copy,'deepcopy'),(p.re,'fullmatch')):
+   original=getattr(module,name);setattr(module,name,lambda *args,**kwargs:None)
+   try:
+    with self.assertRaisesRegex(p.Held,'original-profile-contract'):p.none_network_profile_contract()
+   finally:setattr(module,name,original)
+  self.assertTrue(p.checked_none_network_started_static(p.static(created),p.static(started),cid))
+ def test_callback_mutation_is_closed_after_each_predicate(self):
+  # A deterministic Python callback mutates after the pure predicate's last
+  # instruction; the checked call must refuse instead of returning its True.
+  cid,created,started,terminal=_started_model()
+  for pure,checked,left,right in ((p.none_network_started_static,p.checked_none_network_started_static,created,started),(p.none_network_exited_static,p.checked_none_network_exited_static,started,terminal)):
+   for kind in ('prefix','dependency'):
+    prefix=p.NONE_NETWORK_SANDBOX_PARENT;dependency=p.json.dumps;oldtrace=sys.gettrace();seen=[]
+    def callback(frame,event,arg):
+     if frame.f_code is pure.__code__ and event=='return' and not seen:
+      seen.append(True)
+      if kind=='prefix':p.NONE_NETWORK_SANDBOX_PARENT='/foreign'
+      else:p.json.dumps=lambda *args,**kwargs:'foreign'
+     return callback
+    try:
+     sys.settrace(callback)
+     with self.assertRaisesRegex(p.Held,'original-profile-contract'):checked(p.static(left),p.static(right),cid)
+    finally:sys.settrace(oldtrace);p.NONE_NETWORK_SANDBOX_PARENT=prefix;p.json.dumps=dependency
+    self.assertEqual(seen,[True])
+
+
+
+# Typed startup/exit relation models; no runtime or publication authority.
+h=P
+CID='a'*64
+
+
+PARENT='/var/run/docker/netns'  # Root confirmed this exact relation; rows remain synthetic.
+
+
+def rows():
+    created=dict(Id=CID,Name='/owned-none-model',Image='sha256:'+'b'*64,
+        Path='/lsiopy/bin/python3',Args=['-I','-B','probe.py'],
+        Config=dict(User='1000:1000',Entrypoint=['/lsiopy/bin/python3'],Cmd=['-I','-B','probe.py'],
+                    Labels={'owned':'fixture'},ExposedPorts={'8090/tcp':{}}),
+        HostConfig=dict(NetworkMode='none',OomKillDisable=False,ReadonlyRootfs=True,
+                        Privileged=False,CapDrop=['ALL'],PortBindings={}),
+        Mounts=[dict(Type='bind',Source='/fixture/original',Destination='/_operation',RW=False)],
+        NetworkSettings=dict(Ports={},SandboxID='',SandboxKey='',Networks={'none':dict(
+            EndpointID='',NetworkID='',IPAddress='',Gateway='',MacAddress='')}))
+    started=copy.deepcopy(created);started['HostConfig']['OomKillDisable']=None
+    started['NetworkSettings']['Networks']['none'].update(EndpointID='c'*64,NetworkID='d'*64)
+    started['NetworkSettings'].update(SandboxID='e'*64,SandboxKey=PARENT+'/'+'e'*12)
+    return created,started
+
+
+class Controls(unittest.TestCase):
+    def setUp(self):
+        self.old,self.new=rows();self.prefix=patch.object(h,'NONE_NETWORK_SANDBOX_PARENT',PARENT);self.prefix.start();self.addCleanup(self.prefix.stop)
+    def test_exact_five_fields_and_no_input_mutation(self):
+        old,new=copy.deepcopy(self.old),copy.deepcopy(self.new)
+        self.assertNotEqual(self.old,self.new)  # Predecessor exact-static comparison is RED.
+        self.assertTrue(h.none_network_started_static(self.old,self.new,CID))
+        self.assertEqual(self.old,old);self.assertEqual(self.new,new)
+    def test_equal_none_network_profiles_retain_legacy_success(self):
+        self.assertTrue(h.none_network_started_static(self.old,copy.deepcopy(self.old),CID))
+        self.assertTrue(h.none_network_started_static(self.new,copy.deepcopy(self.new),CID))
+    def test_unbound_prefix_refuses_transition(self):
+        with patch.object(h,'NONE_NETWORK_SANDBOX_PARENT',None):
+            self.assertFalse(h.none_network_started_static(self.old,self.new,CID))
+    def test_each_missing_transition_refuses(self):
+        paths=[('HostConfig','OomKillDisable'),('NetworkSettings','SandboxID'),('NetworkSettings','SandboxKey'),('NetworkSettings','Networks','none','EndpointID'),('NetworkSettings','Networks','none','NetworkID')]
+        for path in paths:
+            with self.subTest(path=path):
+                value=copy.deepcopy(self.new);left=self.old;right=value
+                for key in path[:-1]:left=left[key];right=right[key]
+                right[path[-1]]=left[path[-1]]
+                self.assertFalse(h.none_network_started_static(self.old,value,CID))
+    def test_wrong_identity_and_each_top_level_drift_refuse(self):
+        for field,value in [('Id','f'*64),('Name','/foreign'),('Image','sha256:'+'f'*64),('Path','foreign'),('Args',['foreign']),('Config',{}),('HostConfig',{}),('Mounts',[]),('NetworkSettings',{})]:
+            with self.subTest(field=field):
+                row=copy.deepcopy(self.new);row[field]=value;self.assertFalse(h.none_network_started_static(self.old,row,CID));self.assertFalse(h.none_network_started_static(self.new,row,CID))
+        self.assertFalse(h.none_network_started_static(self.old,self.new,'f'*64))
+    def test_each_unrelated_nested_field_refuses(self):
+        changes=[(('Config','User'),'0:0'),(('Config','Labels'),{'foreign':'fixture'}),
+          (('Config','ExposedPorts'),{}),(('HostConfig','ReadonlyRootfs'),False),
+          (('HostConfig','Privileged'),True),(('HostConfig','CapDrop'),[]),
+          (('HostConfig','PortBindings'),{'8090/tcp':[{'HostPort':'8090'}]}),
+          (('NetworkSettings','Ports'),{'8090/tcp':None}),
+          (('NetworkSettings','Networks','none','IPAddress'),'127.0.0.1'),
+          (('NetworkSettings','Networks','none','Gateway'),'127.0.0.1'),
+          (('NetworkSettings','Networks','none','MacAddress'),'02:00:00:00:00:01')]
+        for path,value in changes:
+            with self.subTest(path=path):
+                row=copy.deepcopy(self.new);target=row
+                for key in path[:-1]:target=target[key]
+                target[path[-1]]=value;self.assertFalse(h.none_network_started_static(self.old,row,CID));self.assertFalse(h.none_network_started_static(self.new,row,CID))
+    def test_malformed_id_or_sandbox_relation_refuses(self):
+        for key in ('EndpointID','NetworkID'):
+            for value in ('','A'*64,'x'*64,'c'*63,None):
+                row=copy.deepcopy(self.new);row['NetworkSettings']['Networks']['none'][key]=value
+                self.assertFalse(h.none_network_started_static(self.old,row,CID))
+        for value in ('/untrusted/'+'e'*12,PARENT+'/'+'f'*12,PARENT+'/../'+'e'*12,PARENT+'/'+'e'*64,None):
+            row=copy.deepcopy(self.new);row['NetworkSettings']['SandboxKey']=value
+            self.assertFalse(h.none_network_started_static(self.old,row,CID))
+    def test_missing_extra_keys_and_extra_network_refuse(self):
+        for base in ('HostConfig','NetworkSettings'):
+            row=copy.deepcopy(self.new);row[base]['unknown']=1
+            self.assertFalse(h.none_network_started_static(self.old,row,CID))
+        row=copy.deepcopy(self.new);row['NetworkSettings']['Networks']['foreign']={}
+        self.assertFalse(h.none_network_started_static(self.old,row,CID))
+        row=copy.deepcopy(self.new);del row['HostConfig']['OomKillDisable']
+        self.assertFalse(h.none_network_started_static(self.old,row,CID))
+    def test_reverse_or_refresh_of_sealed_running_profile_refuses(self):
+        self.assertFalse(h.none_network_started_static(self.new,self.old,CID))
+        for section,key,value in [('NetworkSettings','SandboxID','f'*64),('NetworkSettings','SandboxKey',PARENT+'/'+'f'*12),('HostConfig','OomKillDisable',False)]:
+            row=copy.deepcopy(self.new);row[section][key]=value
+            self.assertFalse(h.none_network_started_static(self.new,row,CID))
+    def test_oom_true_missing_or_other_transition_refuses(self):
+        for before,after in ((True,None),(None,None),(False,False),(False,True)):
+            old,new=copy.deepcopy(self.old),copy.deepcopy(self.new);old['HostConfig']['OomKillDisable']=before;new['HostConfig']['OomKillDisable']=after
+            self.assertFalse(h.none_network_started_static(old,new,CID))
+
+
+def exited(running):
+    result=copy.deepcopy(running)
+    result['NetworkSettings']['Networks']['none']['EndpointID']=''
+    result['NetworkSettings']['SandboxID']=''
+    result['NetworkSettings']['SandboxKey']=''
+    return result
+
+
+class ExitControls(unittest.TestCase):
+    def setUp(self):
+        self.created,self.running=rows();self.terminal=exited(self.running)
+    def test_exact_three_fields_preserve_network_id_and_inputs(self):
+        before,after=copy.deepcopy(self.running),copy.deepcopy(self.terminal)
+        self.assertNotEqual(before,after)
+        self.assertTrue(h.none_network_exited_static(self.running,self.terminal,CID))
+        self.assertEqual(self.running,before);self.assertEqual(self.terminal,after)
+        self.assertEqual(before['NetworkSettings']['Networks']['none']['NetworkID'],after['NetworkSettings']['Networks']['none']['NetworkID'])
+        self.assertFalse(h.none_network_started_static(before,after,CID))
+    def test_exact_equality_preserved_but_reverse_and_created_input_refuse(self):
+        self.assertTrue(h.none_network_exited_static(self.running,copy.deepcopy(self.running),CID))
+        self.assertTrue(h.none_network_exited_static(self.terminal,copy.deepcopy(self.terminal),CID))
+        self.assertFalse(h.none_network_exited_static(self.terminal,self.running,CID))
+        self.assertFalse(h.none_network_exited_static(self.created,self.terminal,CID))
+    def test_partial_teardown_refuses(self):
+        for path in [('NetworkSettings','SandboxID'),('NetworkSettings','SandboxKey'),('NetworkSettings','Networks','none','EndpointID')]:
+            with self.subTest(path=path):
+                row=copy.deepcopy(self.terminal);old=self.running;target=row
+                for k in path[:-1]:old=old[k];target=target[k]
+                target[path[-1]]=old[path[-1]]
+                self.assertFalse(h.none_network_exited_static(self.running,row,CID))
+    def test_network_id_clear_or_change_and_any_other_static_drift_refuse(self):
+        changes=[(('NetworkSettings','Networks','none','NetworkID'),''),
+          (('NetworkSettings','Networks','none','NetworkID'),'f'*64),
+          (('NetworkSettings','Networks','none','IPAddress'),'127.0.0.1'),
+          (('NetworkSettings','Ports'),{'8090/tcp':None}),
+          (('HostConfig','OomKillDisable'),False),(('HostConfig','Privileged'),True),
+          (('HostConfig','ReadonlyRootfs'),False),(('Config','User'),'0:0'),
+          (('Config','Labels'),{}),(('Mounts',),[]),(('Image',),'sha256:'+'f'*64),
+          (('Name',),'/foreign'),(('Args',),[])]
+        for path,value in changes:
+            with self.subTest(path=path):
+                row=copy.deepcopy(self.terminal);target=row
+                for k in path[:-1]:target=target[k]
+                target[path[-1]]=value
+                self.assertFalse(h.none_network_exited_static(self.running,row,CID))
+        self.assertFalse(h.none_network_exited_static(self.running,self.terminal,'f'*64))
+    def test_malformed_original_relation_or_prefix_refuses(self):
+        for value in ('','A'*64,'x'*64,None):
+            row=copy.deepcopy(self.running);row['NetworkSettings']['SandboxID']=value
+            self.assertFalse(h.none_network_exited_static(row,self.terminal,CID))
+        row=copy.deepcopy(self.running);row['NetworkSettings']['SandboxKey']='/foreign/'+'e'*12
+        self.assertFalse(h.none_network_exited_static(row,self.terminal,CID))
+        with patch.object(h,'NONE_NETWORK_SANDBOX_PARENT',None):
+            self.assertFalse(h.none_network_exited_static(self.running,self.terminal,CID))
+    def test_missing_or_extra_keys_networks_refuse(self):
+        row=copy.deepcopy(self.terminal);del row['NetworkSettings']['SandboxID']
+        self.assertFalse(h.none_network_exited_static(self.running,row,CID))
+        row=copy.deepcopy(self.terminal);row['NetworkSettings']['Networks']['bridge']={}
+        self.assertFalse(h.none_network_exited_static(self.running,row,CID))
+        row=copy.deepcopy(self.terminal);row['State']={'Status':'exited'}
+        self.assertFalse(h.none_network_exited_static(self.running,row,CID))
+
+
+class TypedControls(unittest.TestCase):
+    def test_bool_integer_aliases_refuse_equality_and_startup_expected_paths(self):
+        for old_value,new_value in ((True,1),(False,0)):
+            created,running=rows()
+            created['Config']['UnrelatedBoolean']=old_value
+            running['Config']['UnrelatedBoolean']=new_value
+            self.assertEqual(old_value,new_value)  # The predecessor's Python alias.
+            self.assertFalse(h.none_network_started_static(created,running,CID))
+            same=copy.deepcopy(created);same['Config']['UnrelatedBoolean']=new_value
+            self.assertEqual(created,same)
+            self.assertFalse(h.none_network_started_static(created,same,CID))
+    def test_bool_integer_aliases_refuse_exit_expected_and_equal_paths(self):
+        for old_value,new_value in ((True,1),(False,0)):
+            _,running=rows();running['Config']['UnrelatedBoolean']=old_value
+            terminal=exited(running);terminal['Config']['UnrelatedBoolean']=new_value
+            self.assertFalse(h.none_network_exited_static(running,terminal,CID))
+            same=copy.deepcopy(running);same['Config']['UnrelatedBoolean']=new_value
+            self.assertEqual(running,same)
+            self.assertFalse(h.none_network_exited_static(running,same,CID))
+    def test_nonfinite_nonjson_and_cyclic_profiles_refuse_without_exception(self):
+        values=(float('nan'),float('inf'),float('-inf'),object(),b'not-json',{1,2},complex(1,2))
+        for value in values:
+            with self.subTest(kind=type(value).__name__):
+                created,running=rows();created['Config']['Invalid']=value;running['Config']['Invalid']=value
+                self.assertFalse(h.none_network_started_static(created,created,CID))
+                self.assertFalse(h.none_network_started_static(created,running,CID))
+                self.assertFalse(h.none_network_exited_static(running,running,CID))
+                self.assertFalse(h.none_network_exited_static(running,exited(running),CID))
+        created,_=rows();created['Config']['Cycle']=created
+        self.assertFalse(h.none_network_started_static(created,created,CID))
+        self.assertFalse(h.none_network_exited_static(created,created,CID))
+    def test_encoding_matches_exact_parent_contract(self):
+        for value in (rows()[0],rows()[1],exited(rows()[1])):
+            expected=json.dumps(value,sort_keys=True,separators=(',', ':'),allow_nan=False).encode()
+            self.assertEqual(h._none_network_profile_bytes(value),expected)
+        self.assertNotEqual(h._none_network_profile_bytes({'v':True}),h._none_network_profile_bytes({'v':1}))
+        self.assertNotEqual(h._none_network_profile_bytes({'v':False}),h._none_network_profile_bytes({'v':0}))
+
+
 if __name__=='__main__':unittest.main()
