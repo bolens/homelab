@@ -173,6 +173,32 @@ class ActiveInputsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):g.assemble(ref, f.output)
                 self.assertFalse(f.output.exists())
 
+    def test_public0644_original_source_roles_remain_original_and_accepted(self):
+        f=self.fixture()
+        review=g.p.decode(g.p.read(f.review));cohort=g.p.decode(g.p.read(f.document['source_cohort']))
+        selected=[review['producer'],review['parent_source'],cohort['sources']['probe'],cohort['parent']]
+        for pair in selected:
+            path=Path(pair['path']);path.chmod(0o644);f.refs[str(path)]['signature9']=g.p.nine(path.lstat())
+        result=g.assemble(self.request(f),f.output)
+        for pair in selected:self.assertEqual(result['originals'][pair['path']]['signature9'][5]&0o777,0o644)
+        self.assertFalse(result['actual_nfs_verified'])
+
+    def test_public_mode_is_not_allowed_for_private_log(self):
+        f=self.fixture();cohort=g.p.decode(g.p.read(f.document['source_cohort']));pair=cohort['logs']['stdout']
+        path=Path(pair['path']);path.chmod(0o644);f.refs[str(path)]['signature9']=g.p.nine(path.lstat())
+        with self.assertRaises(g.p.Held):g.assemble(self.request(f),f.output)
+        self.assertFalse(f.output.exists())
+
+    def test_late_public_source_change_refuses_with_original_full9(self):
+        f=self.fixture();review=g.p.decode(g.p.read(f.review));path=Path(review['producer']['path'])
+        path.chmod(0o644);f.refs[str(path)]['signature9']=g.p.nine(path.lstat())
+        owner=g.Assembly(self.request(f),f.output)
+        try:
+            path.write_bytes(b'changed-public-source')
+            with self.assertRaises(g.p.Held):owner.execute()
+        finally:owner.release()
+        self.assertFalse(f.output.exists())
+
     def test_unreviewed_scope_or_foreign_probe_refuses(self):
         for change in ('review', 'probe', 'output'):
             with self.subTest(change=change):
@@ -302,7 +328,10 @@ class ActiveInputsTests(unittest.TestCase):
         def observe(owner, ref, *, private=True):
             calls.append((ref['path'], private)); return original(owner, ref, private=private)
         with patch.object(g.composer.Originals, 'read', observe):g.assemble(request, f.output)
-        self.assertTrue(all(private for name, private in calls if name in f.document['originals']))
+        review=g.p.decode(g.p.read(f.review));cohort=g.p.decode(g.p.read(f.document['source_cohort']))
+        public={v['path'] for v in (*cohort['sources'].values(),cohort['parent'],review['producer'],review['parent_source'])}
+        self.assertTrue(all(private for name, private in calls if name in f.document['originals'] and name not in public))
+        self.assertTrue(any(not private for name,private in calls if name in public))
 
     def test_source_contains_no_transport_or_admission_entry(self):
         import ast

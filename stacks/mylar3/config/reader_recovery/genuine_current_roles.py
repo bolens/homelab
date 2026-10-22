@@ -25,8 +25,8 @@ need = p.need
 HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
     'genuine_application_bootstrap.py': '76c7812eb30af609b063b214840a586a6289f1ce4fe7e1a8f48727b9b60ade71',
-    'genuine_plan13_producer.py': '53975b4e111d07e91c80586ee972c2df5c55ed13a0e99819bdc5d0425da53fdf',
-    'comic_reader_lifecycle_parent.py': '80621f2efd5e11c0509d7139016fbd986fa892711381e427d15fd9fc8f413359',
+    'genuine_plan13_producer.py': 'ea7b559d9856dbad9feff99b8c9aa07199e00bc39e7466d277f561ca514ef310',
+    'comic_reader_lifecycle_parent.py': '72a538068b21f16e7d15989a14d900516581ed54a8ecf40c5246b96f78f404c0',
 }
 PROBE_SHA = 'c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce'
 SCOPE_SHA = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
@@ -58,6 +58,7 @@ class ReadOnlyDocker:
              and 1 <= value['seconds'] <= 30, 'capture-original-probe-input')
 
     def run(self, args, seconds, data=None):
+        p.owner_root_guard()
         self.approve(args, data)
         return b.Docker().run(args, self.timeout(seconds), data)
 
@@ -142,60 +143,66 @@ class Capture:
              and (self.data == self.native_mount or self.native_mount in self.data.parents), 'capture-disposable-state')
         self._identity(self.plan['state_root'])
         geometry = self.plan['geometry']; need(set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}, 'capture-geometry-schema')
-        self.geometry_originals = copy.deepcopy(geometry)
-        for name in ('common_root', 'library', 'retention'):
-            # Original producer observation of CURRENT full9 after bootstrap,
-            # not a replacement for its pre-seed directory identity.
-            self.geometry_originals[name]['signature9'] = self._identity(geometry[name])
-        common = Path(geometry['common_root']['path']); self.library = Path(geometry['library']['path']); self.retention = Path(geometry['retention']['path'])
-        need(common.name == 'archive-publication-' + self.plan['nonce'] and result['reader']['library']['root'] == str(self.library), 'capture-original-disposable-library')
-        self.sdk = self.originals.json(self.plan['native_sdk'], private=False)
-        need(type(self.sdk) is dict and b.REQUIRED_SDK <= set(self.sdk)
-             and {'worker_health.py', 'native_writers.py'} <= set(self.sdk) and len(self.sdk) <= 512
-             and all(re.fullmatch('[A-Za-z_][A-Za-z0-9_]*[.]py', name) and p.digest(pin) for name, pin in self.sdk.items()), 'capture-original-sdk-map')
-        for name, pin, ref in (('comic_native_process_probe.py', PROBE_SHA, self.plan['native_probe']),
-                               ('publication_native_configured_scope.py', SCOPE_SHA, self.plan['scope_source'])):
-            need(ref['path'] == str(HERE / name) and ref['sha256'] == pin, 'capture-original-native-source')
-        self.probe_program = self.originals.read(self.plan['native_probe'], private=False).decode()
-        self.scope_source = self.originals.read(self.plan['scope_source'], private=False).decode()
-        need(self.sdk['publication_native_configured_scope.py'] == SCOPE_SHA, 'capture-installed-scope-pin')
-        # Catalog.original_process owns this post-startup config original. The
-        # virgin plan INI may legitimately have been saved before that capture.
-        # Its fixed DATA spelling remains the mapping selector, not its old9.
-        self.native_process = copy.deepcopy(self.catalog['process'])
-        need(type(self.native_process) is dict and set(self.native_process) == {'process', 'config'}, 'capture-original-native-config')
-        fresh = self.native_process['config']
-        expected_path = '/config/' + str((self.data / 'config.ini').relative_to(self.native_mount))
-        need(type(fresh) is dict and set(fresh) == {'path', 'sha256', 'signature9'}
-             and fresh['path'] == expected_path, 'capture-original-native-config')
-        self.original_config = dict(fresh, path=str(self.data / 'config.ini'))
-        raw = self.originals.read(self.original_config, private=False)
-        need(self.original_config['signature9'][6:8] == [1000, 1000] and stat.S_IMODE(self.original_config['signature9'][5]) == 0o600, 'capture-original-config-owner')
-        self._config(raw)
-        process = self.native_process['process']
-        need(type(process) is dict and set(process) == {'pid', 'start_ticks', 'argv'}
-             and type(process['pid']) is int and process['pid'] > 0 and type(process['start_ticks']) is int and process['start_ticks'] > 0
-             and type(process['argv']) is list and 4 <= len(process['argv']) <= 64
-             and all(type(v) is str and len(v.encode()) <= 8192 for v in process['argv']), 'capture-original-process-shape')
-        need(Path(scope_parser.__file__).absolute() == HERE / 'publication_native_configured_scope.py', 'capture-owning-parser-origin')
-        need(scope_parser.data_from_argv(process['argv']) == str(Path(expected_path).parent)
-             and '--port' not in process['argv'] and '-p' not in process['argv']
-             and scope_parser.destination(raw) == str(self.library), 'capture-owning-config-process-policy')
-        self.tape = p.encode(dict(plan=self.plan, profiles=self.profiles, epochs=self.epochs, network=self.network_profile,
-                                  native_process=self.native_process, sdk=self.sdk, geometry=self.geometry_originals, sources=self.sources))
-        self.engine = ReadOnlyDocker(self) if engine is None else engine
-        self.parent_fd = os.open(self.output.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
-        self.parent_finalizer = weakref.finalize(self, os.close, self.parent_fd)
-        try:self.originals.close(); self.output_close()
+        self.owner_reads = p.bind_owner_reads(geometry)
+        try:
+            self.geometry_originals = copy.deepcopy(geometry)
+            for name in ('common_root', 'library', 'retention'):
+                # Original producer observation of CURRENT full9 after bootstrap,
+                # not a replacement for its pre-seed directory identity.
+                self.geometry_originals[name]['signature9'] = self._identity(geometry[name])
+            common = Path(geometry['common_root']['path']); self.library = Path(geometry['library']['path']); self.retention = Path(geometry['retention']['path'])
+            need(common.name == 'archive-publication-' + self.plan['nonce'] and result['reader']['library']['root'] == str(self.library), 'capture-original-disposable-library')
+            self.sdk = self.originals.json(self.plan['native_sdk'], private=False)
+            need(type(self.sdk) is dict and b.REQUIRED_SDK <= set(self.sdk)
+                 and {'worker_health.py', 'native_writers.py'} <= set(self.sdk) and len(self.sdk) <= 512
+                 and all(re.fullmatch('[A-Za-z_][A-Za-z0-9_]*[.]py', name) and p.digest(pin) for name, pin in self.sdk.items()), 'capture-original-sdk-map')
+            for name, pin, ref in (('comic_native_process_probe.py', PROBE_SHA, self.plan['native_probe']),
+                                   ('publication_native_configured_scope.py', SCOPE_SHA, self.plan['scope_source'])):
+                need(ref['path'] == str(HERE / name) and ref['sha256'] == pin, 'capture-original-native-source')
+            self.probe_program = self.originals.read(self.plan['native_probe'], private=False).decode()
+            self.scope_source = self.originals.read(self.plan['scope_source'], private=False).decode()
+            need(self.sdk['publication_native_configured_scope.py'] == SCOPE_SHA, 'capture-installed-scope-pin')
+            # Catalog.original_process owns this post-startup config original. The
+            # virgin plan INI may legitimately have been saved before that capture.
+            # Its fixed DATA spelling remains the mapping selector, not its old9.
+            self.native_process = copy.deepcopy(self.catalog['process'])
+            need(type(self.native_process) is dict and set(self.native_process) == {'process', 'config'}, 'capture-original-native-config')
+            fresh = self.native_process['config']
+            expected_path = '/config/' + str((self.data / 'config.ini').relative_to(self.native_mount))
+            need(type(fresh) is dict and set(fresh) == {'path', 'sha256', 'signature9'}
+                 and fresh['path'] == expected_path, 'capture-original-native-config')
+            self.original_config = dict(fresh, path=str(self.data / 'config.ini'))
+            raw = self.originals.read(self.original_config, private=False)
+            need(self.original_config['signature9'][6:8] == [1000, 1000] and stat.S_IMODE(self.original_config['signature9'][5]) == 0o600, 'capture-original-config-owner')
+            self._config(raw)
+            process = self.native_process['process']
+            need(type(process) is dict and set(process) == {'pid', 'start_ticks', 'argv'}
+                 and type(process['pid']) is int and process['pid'] > 0 and type(process['start_ticks']) is int and process['start_ticks'] > 0
+                 and type(process['argv']) is list and 4 <= len(process['argv']) <= 64
+                 and all(type(v) is str and len(v.encode()) <= 8192 for v in process['argv']), 'capture-original-process-shape')
+            need(Path(scope_parser.__file__).absolute() == HERE / 'publication_native_configured_scope.py', 'capture-owning-parser-origin')
+            need(scope_parser.data_from_argv(process['argv']) == str(Path(expected_path).parent)
+                 and '--port' not in process['argv'] and '-p' not in process['argv']
+                 and scope_parser.destination(raw) == str(self.library), 'capture-owning-config-process-policy')
+            self.tape = p.encode(dict(plan=self.plan, profiles=self.profiles, epochs=self.epochs, network=self.network_profile,
+                                      native_process=self.native_process, sdk=self.sdk, geometry=self.geometry_originals, sources=self.sources))
+            self.engine = ReadOnlyDocker(self) if engine is None else engine
+            self.parent_fd = os.open(self.output.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+            self.parent_finalizer = weakref.finalize(self, os.close, self.parent_fd)
+            try:self.originals.close(); self.output_close()
+            except BaseException:
+                try:self.release()
+                except BaseException:pass  # Cleanup cannot replace the original refusal.
+                raise
         except BaseException:
             try:self.release()
-            except BaseException:pass  # Cleanup cannot replace the original refusal.
+            except BaseException:pass
             raise
 
     def _identity(self, ref):
-        path = p.absolute(ref['path']); now = os.lstat(path); old = ref['signature9']
+        path = p.absolute(ref['path']); now = p.nfs_lstat(path); old = ref['signature9']
         need(type(old) is list and len(old) == 9 and all(type(x) is int for x in old)
-             and stat.S_ISDIR(now.st_mode) and stat.S_IMODE(now.st_mode) == 0o700
+             and stat.S_ISDIR(now.st_mode) and stat.S_IMODE(now.st_mode) == (0o711 if self.plan['geometry']['version'] == 2 and str(path) == self.plan['geometry']['common_root']['path'] else 0o700)
              and (now.st_uid, now.st_gid) == (1000, 1000)
              and tuple(p.five(now)) == tuple(old[i] for i in (0, 1, 5, 6, 7)), 'capture-original-directory-identity')
         for name, value in p.parents(path).items():
@@ -237,7 +244,7 @@ class Capture:
             for name, fd in zip(('common_root', 'library', 'retention'), handles):
                 expected = self.geometry_originals[name]
                 need(p.nine(os.fstat(fd)) == expected['signature9']
-                     and p.nine(os.lstat(expected['path'])) == expected['signature9'], 'capture-current-directory-full9')
+                     and p.nine(p.nfs_lstat(expected['path'])) == expected['signature9'], 'capture-current-directory-full9')
         self.output_close()
 
     def output_close(self):
@@ -279,6 +286,10 @@ class Capture:
             except BaseException as exc:
                 if error is None:error = exc
         self.output_fd = self.parent_fd = None
+        try:p.release_owner_reads(getattr(self, 'owner_reads', None))
+        except BaseException as exc:
+            if error is None:error = exc
+        self.owner_reads = None
         if error is not None:raise error
 
     def execute(self):

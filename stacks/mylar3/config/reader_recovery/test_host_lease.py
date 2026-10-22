@@ -31,10 +31,34 @@ class RealLease(unittest.TestCase):
             try:p.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 p.terminate();p.wait(timeout=3)
-    def launch(self):
+    def launch(self,owner=None):
         token='a'*64
         p=subprocess.Popen([sys.executable,'-I','-B',str(HELPER),'--lease-child','--writer-source',str(WRITER),'--writer-sha256',SHA,'--writer-root',str(self.root),'--token',token],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        self.processes.append(p);c=m.LeaseChannel(p,token,self.root,SHA,10);c.receive('held');return c
+        self.processes.append(p);c=m.LeaseChannel(p,token,self.root,SHA,10,owner=owner);c.receive('held');return c
+    def test_actual_release_closes_owner_geometry_vectors_before_and_after_ACK(self):
+        from unittest import mock
+        import threading
+        import comic_reader_lifecycle_parent as parent
+        common=Path(self.tmp.name)/('archive-publication-'+'c'*64);common.mkdir(mode=0o711);common.chmod(0o711)
+        (common/'L').mkdir(mode=0o700);(common/'R').mkdir(mode=0o700)
+        media=common/'L'/'original';media.write_bytes(b'original')
+        geometry=dict(version=2,kind='searchable-common-root-nfs',**{role:dict(path=str(path),signature9=parent.nine(path.lstat())) for role,path in (('common_root',common),('library',common/'L'),('retention',common/'R'))})
+        owner=object.__new__(parent.LifecycleParent);owner.thread=threading.get_ident();owner.core=b'explicit-source-fixture';owner.source_ref=dict(path=parent.__file__)
+        parent._CORES[owner]=owner.core;uid=[0];events=[]
+        def switch(real,effective,saved):uid[0]=effective;events.append(effective)
+        with mock.patch.object(parent.os,'getresuid',side_effect=lambda:(0,uid[0],0)),mock.patch.object(parent.os,'getresgid',return_value=(0,0,0)),mock.patch.object(parent.os,'getgroups',return_value=[0]),mock.patch.object(parent.os,'setresuid',side_effect=switch):
+            actor=parent.GeometryOwnerReads(geometry);parent._OWNER_READS=actor
+            try:
+                channel=self.launch(owner=owner);events.clear();real_write=parent.os.write
+                def write(fd,data):
+                    if b'"action":"release"' in data:self.assertEqual(uid[0],0)
+                    return real_write(fd,data)
+                with mock.patch.object(parent.os,'write',side_effect=write):
+                    ack=channel.release([str(common/'R'/'absent')],[(str(media),parent.nine(media.stat()))],[(str(common/'L'),parent.five((common/'L').stat()))])
+                self.assertEqual(ack['state'],'release-reviewed');self.assertTrue(channel.released)
+                self.assertIn(1000,events);self.assertEqual(uid[0],0)
+            finally:parent.release_owner_reads(actor);parent._CORES.pop(owner,None)
+
     def test_real_lock_held_pulse_and_release(self):
         c=self.launch();before=m.namespace(self.root)
         fd=os.open(self.root/'writer-v1.lock',os.O_RDWR)

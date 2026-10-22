@@ -46,7 +46,7 @@ class EffectiveReviewTests(unittest.TestCase):
     def retain(self):
         p.LifecycleParent.nfs_effective_originals(self.owner,{'effective_observer_review':self.ref},[str(self.data)])
     def projection(self):
-        self.retain();self.tree=c.Tree(self.root/'child','/_operation',self.op,lambda ref:p.read(ref),uid=os.geteuid(),gid=os.getegid())
+        self.retain();self.tree=c.Tree(self.root/'child','/_operation',self.op,lambda ref,private=True:p.read(ref,private=private),uid=os.geteuid(),gid=os.getegid())
         owner=self.owner;owner.generated={};owner.left=lambda:self.tree.check()
         def project(ref):self.tree.reserve_nfs_control(ref);return self.tree.projected(ref)
         def emit(name,document):

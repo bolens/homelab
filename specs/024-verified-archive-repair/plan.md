@@ -53,8 +53,10 @@ substituted installed custody/NFS admission. The finite disposable creator, fres
 plan13 role/library mapping are implemented. The optional original-session SSE
 observer records bounded task-empty facts without granting quiescence or future
 work exclusion. The maintained active-input assembler and exact host-engine intent
-producer are implemented and independently reviewed; combined source verification
-passes 1,219 controls across 72 suites on Python 3.10 without skips. The current configured entry already forwards original NFS inputs, and
+producer are implemented and independently reviewed. The historical 1,219-control,
+72-suite Python 3.10 source generation passed without skips. Current combined
+verification is recorded in the task and evidence files. The current configured
+entry already forwards original NFS inputs, and
 the birth/probe/lease/session producers are connected below it. The host engine currently refuses unbound create/start
 calls. The effective-scope observer's reviewed optional bootstrap-original join derives
 the disposable reader's exact original absolute NFS library mount and preserves
@@ -78,3 +80,25 @@ unchanged. Legacy Creator v1/v2 and geometry v1 keep their exact0700 contract.
 The owning source contract documents stat-visible names and the absence of
 non-owner enumeration/write rights. Component tests and a separate disposable
 bind probe do not establish full Creator, NFS lifecycle, import or ACK acceptance.
+
+## Owning host reads and causal disposable repair fixture
+
+The configured host path must explicitly bind its read-only owning-UID adapter
+to original geometry v2 G/L/R. Temporarily changing effective UID is limited to
+fixed, bounded filesystem reads; semantic validation, callbacks, Docker and pipe
+operations run only after verified Root restoration. Root-owned local evidence
+keeps its existing reader. No EACCES fallback, arbitrary callback, permission
+change, mutation grant or permanent Compose privilege is introduced. Single-thread
+and credential-restoration checks fail closed. The actual metadata-only owning
+read passed on the original target filesystem. NFS mutation and connected
+lifecycle acceptance remain required.
+
+A separately explicit disposable repair request may derive the supported
+missing-directory-slash defect from the actual imported target only inside the
+original stopped-reader/Writer action. Join original bootstrap/catalog provenance
+and owner-derived path before mutation. Retain a durable valid genesis, prove
+all page/metadata bytes unchanged and byte-exact repair back to that genesis,
+then preserve the malformed successor as the repair baseline. Rollback restores
+that malformed baseline; it does not reset the fixture to its valid genesis.
+Failure, uncertainty and lost replies hold without automatic reset or replay.
+This test-only request does not extend the public API or accept live repair.

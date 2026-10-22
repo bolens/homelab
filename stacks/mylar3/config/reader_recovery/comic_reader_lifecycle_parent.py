@@ -4,6 +4,8 @@ Root installs and accepts real producers/image before calling run_operation.
 Only this host parent owns engine access; children use inherited pipes.
 """
 import ast
+import gc
+import signal
 import copy
 import hashlib
 import importlib.util
@@ -95,10 +97,275 @@ def absolute(value):
     return Path(value)
 
 
+# Only this exact, explicitly bound geometry gets owner-principal reads.
+_OWNER_READS = None
+_OWNER_READ_FAILED = False
+_OWNER_READ_SEALS = weakref.WeakKeyDictionary()
+_OWNER_READ_POISON = weakref.WeakSet()
+
+
+class GeometryOwnerReads:
+    """Finite read-only access to original disposable G/L/R, never a callback."""
+    __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'nodes', 'root', 'source', 'code', '__weakref__')
+
+    def __init__(self, geometry):
+        need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
+             and type(geometry['version']) is int and geometry['version'] == 2
+             and geometry['kind'] == 'searchable-common-root-nfs', 'owner-read-geometry-v2')
+        self.geometry = copy.deepcopy(geometry); self.thread = threading.get_ident()
+        self.poisoned = False; self.busy = False; self.handles = {}; self.nodes = {}
+        self.root = absolute(geometry['common_root']['path'])
+        need(self.root.name.startswith('archive-publication-') and digest(self.root.name.removeprefix('archive-publication-')),
+             'owner-read-disposable-root')
+        for role, suffix in (('common_root', None), ('library', 'L'), ('retention', 'R')):
+            ref = geometry[role]
+            need(type(ref) is dict and set(ref) == {'path', 'signature9'}, 'owner-read-original-ref')
+            path = absolute(ref['path']); v = ref['signature9']
+            need((suffix is None and path == self.root or suffix is not None and path == self.root / suffix)
+                 and type(v) is list and len(v) == 9 and all(type(x) is int for x in v)
+                 and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5]) == (0o711 if suffix is None else 0o700)
+                 and v[6:8] == [1000, 1000], 'owner-read-original-directory')
+        self.source = dict(path=str(Path(__file__).absolute()), sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                           signature9=nine(os.lstat(__file__)))
+        self.code = tuple((name, value, value.__code__) for name, value in type(self).__dict__.items() if hasattr(value, '__code__'))
+        _OWNER_READ_SEALS[self] = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code)
+        try:
+            for role in ('common_root', 'library', 'retention'):
+                ref = geometry[role]; fd = self._run('directory', ref['path'])
+                self.handles[fd] = (ref['path'], tuple(five(os.fstat(fd))))
+                need(five(os.fstat(fd)) == [ref['signature9'][i] for i in (0, 1, 5, 6, 7)], 'owner-read-original-directory5')
+            for node in self.root.parents:
+                self.nodes[str(node)] = five(self._run('stat', str(node), ancestor=True))
+            self.check()
+        except BaseException:
+            try:self.release()
+            except BaseException:pass  # Constructor refusal remains primary.
+            raise
+
+    def contains(self, path):
+        return type(path) is str and (path == str(self.root) or path.startswith(str(self.root) + '/'))
+
+    def assert_root(self):
+        seal = _OWNER_READ_SEALS.get(self)
+        need(seal is not None and seal[:4] == (encode(self.geometry), encode(self.source), str(self.root), self.thread), 'owner-read-original-scope-seal')
+        need(not _OWNER_READ_FAILED and self not in _OWNER_READ_POISON and not self.poisoned and not self.busy and threading.get_ident() == self.thread
+             and os.getresuid() == (0, 0, 0) and os.getresgid() == (0, 0, 0)
+             and os.getgroups() == [0], 'owner-read-root-custody')
+        need(sys.gettrace() is None and sys.getprofile() is None and threading.active_count() == 1
+             and len(os.listdir('/proc/self/task')) == 1, 'owner-read-single-untraced-thread')
+        need(all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4]),
+             'owner-read-original-code')
+        need(nine(os.lstat(self.source['path'])) == self.source['signature9']
+             and read(self.source, private=False) is not None, 'owner-read-source-closure')
+
+    def _run(self, operation, path, *, ancestor=False):
+        global _OWNER_READ_FAILED
+        # Arguments are primitive immutable values. No path protocols/callbacks,
+        # semantic validators, GC, signal handlers or network run as owner UID.
+        self.assert_root()
+        need(type(operation) is str and operation in ('stat', 'directory', 'names', 'file')
+             and type(path) is str and str(absolute(path)) == path
+             and (self.contains(path) or ancestor and path in {str(x) for x in self.root.parents}), 'owner-read-fixed-scope')
+        blocked = signal.pthread_sigmask(signal.SIG_BLOCK, signal.valid_signals() - {signal.SIGKILL, signal.SIGSTOP})
+        enabled = gc.isenabled(); gc.disable(); self.busy = True
+        primary = None; result = None; fds = []
+        try:
+            # A signal handler could have started a thread since assert_root.
+            # Repeat after handlers/GC are suppressed, directly before lowering.
+            if sys.gettrace() is not None or sys.getprofile() is not None or threading.active_count() != 1 or len(os.listdir('/proc/self/task')) != 1:
+                raise Held('owner-read-masked-single-untraced-thread')
+            os.setresuid(-1, 1000, -1)
+            if os.getresuid() != (0, 1000, 0) or os.getresgid() != (0, 0, 0) or os.getgroups() != [0]:
+                raise Held('owner-read-switched-identity')
+            fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
+            parts = path.split('/')[1:]
+            for part in parts[:-1]:
+                fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+            ancestors = tuple(fds)
+            if operation == 'stat':
+                result = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False) if parts[-1] else os.fstat(fd)
+            else:
+                flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
+                flags |= os.O_NONBLOCK if operation == 'file' else os.O_DIRECTORY
+                leaf = os.open(parts[-1], flags, dir_fd=fd); fds.append(leaf)
+                before = os.fstat(leaf)
+                if operation == 'directory':
+                    result = leaf; fds.pop()
+                elif operation == 'names':
+                    names = []
+                    with os.scandir(leaf) as entries:
+                        for entry in entries:
+                            names.append(entry.name)
+                            if len(names) > 100000:raise Held('owner-read-namespace-bound')
+                    result = (before, tuple(sorted(names)), os.fstat(leaf))
+                else:
+                    if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not 0 < before.st_size <= MAX:
+                        raise Held('owner-read-file-bound')
+                    chunks = []; left = before.st_size
+                    while left:
+                        block = os.read(leaf, min(left, 1024**2))
+                        if not block:raise Held('owner-read-short')
+                        chunks.append(block); left -= len(block)
+                    if os.read(leaf, 1):raise Held('owner-read-growth')
+                    result = (b''.join(chunks), before, os.fstat(leaf), os.stat(parts[-1], dir_fd=fd, follow_symlinks=False))
+            # Fresh no-follow path walk must still reach every held ancestor.
+            fresh = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+            try:
+                for index, original in enumerate(ancestors):
+                    if index:
+                        nxt = os.open(parts[index - 1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fresh)
+                        os.close(fresh); fresh = nxt
+                    left = os.fstat(original); right = os.fstat(fresh)
+                    if (left.st_dev, left.st_ino, left.st_mode, left.st_uid, left.st_gid) != (right.st_dev, right.st_ino, right.st_mode, right.st_uid, right.st_gid):
+                        raise Held('owner-read-ancestor-FD-path5')
+            finally:os.close(fresh)
+        except BaseException as exc:
+            primary = exc
+        finally:
+            for fd in reversed(fds):
+                try:os.close(fd)
+                except BaseException as exc:
+                    if primary is None:primary = exc
+            try:
+                os.setresuid(-1, 0, -1)
+                if os.getresuid() != (0, 0, 0) or os.getresgid() != (0, 0, 0) or os.getgroups() != [0]:
+                    raise Held('owner-read-restore-identity')
+            except BaseException as exc:
+                self.poisoned = True; _OWNER_READ_POISON.add(self); _OWNER_READ_FAILED = True
+                if primary is None:primary = exc
+            self.busy = False
+            # If restoration failed, do not enable callback-producing facilities.
+            if not self.poisoned:
+                if enabled:gc.enable()
+                signal.pthread_sigmask(signal.SIG_SETMASK, blocked)
+        if primary is not None:
+            if operation == 'directory' and type(result) is int:os.close(result)
+            raise primary
+        try:self.assert_root()
+        except BaseException:
+            if operation == 'directory' and type(result) is int:os.close(result)
+            raise
+        return result
+
+    def stat(self, path):
+        value = self._run('stat', str(path)); need(not stat.S_ISLNK(value.st_mode), 'owner-read-no-symlink'); return value
+
+    def names(self, path):
+        self.check()
+        before, names, after = self._run('names', str(path))
+        need(nine(before) == nine(after) == nine(self.stat(path)) and len(names) <= 100000, 'owner-read-namespace-closure')
+        self.check(); return names
+
+    def directory(self, path):
+        self.check()
+        fd = self._run('directory', str(path)); self.handles[fd] = (str(path), tuple(five(os.fstat(fd)))); self.check(); return fd
+
+    def read(self, ref):
+        self.check()
+        raw, before, after, current = self._run('file', ref['path'])
+        need(nine(before) == nine(after) == nine(current) == ref['signature9']
+             and hashlib.sha256(raw).hexdigest() == ref['sha256'], 'owner-read-original-file9-hash')
+        self.check(); return raw
+
+    def check(self):
+        self.assert_root()
+        for fd, (path, expected) in self.handles.items():
+            need(tuple(five(os.fstat(fd))) == tuple(five(self.stat(path))) == expected, 'owner-read-held-directory-path5')
+        for role in ('common_root', 'library', 'retention'):
+            ref = self.geometry[role]
+            need(five(self.stat(ref['path'])) == [ref['signature9'][i] for i in (0, 1, 5, 6, 7)], 'owner-read-original-geometry5')
+        common = self.geometry['common_root']
+        before, names, after = self._run('names', common['path'])
+        need(nine(before) == nine(after) == common['signature9'] and set(names) == {'L', 'R'}, 'owner-read-original-common-namespace9')
+        for path, value in self.nodes.items():
+            need(five(self._run('stat', path, ancestor=True)) == value, 'owner-read-original-ancestor5')
+
+    def release(self):
+        error = None
+        for fd in tuple(self.handles):
+            try:self.close_directory(fd)
+            except BaseException as exc:
+                if error is None:error = exc
+        if error is not None:raise error
+
+    def close_directory(self, fd):
+        global _OWNER_READ_FAILED
+        path, expected = self.handles[fd]; primary = None; same_inode = False
+        try:
+            actual = tuple(five(os.fstat(fd))); same_inode = actual[:2] == expected[:2]
+            need(actual == expected, 'owner-read-release-owned-FD5')
+        except BaseException as exc:primary = exc
+        finally:
+            # Close our retained inode even if its mode/owner drifted. A reused
+            # foreign descriptor is not ours to close; poison instead.
+            if same_inode:
+                try:os.close(fd)
+                except BaseException as exc:
+                    if primary is None:primary = exc
+            else:
+                self.poisoned = True; _OWNER_READ_POISON.add(self); _OWNER_READ_FAILED = True
+            self.handles.pop(fd, None)
+        if primary is not None:raise primary
+
+
+def bind_owner_reads(geometry):
+    global _OWNER_READS
+    need(not _OWNER_READ_FAILED, 'owner-read-process-poison')
+    if os.geteuid() != 0 or geometry.get('version') != 2:return None
+    need(_OWNER_READS is None, 'owner-read-no-scope-replacement')
+    actor = GeometryOwnerReads(geometry); _OWNER_READS = actor; return actor
+
+
+def release_owner_reads(actor):
+    global _OWNER_READS
+    if actor is not None:
+        need(type(actor) is GeometryOwnerReads and _OWNER_READS is actor, 'owner-read-original-release')
+        actor.release(); _OWNER_READS = None
+
+
+def owner_root_guard():
+    need(not _OWNER_READ_FAILED, 'owner-read-process-poison')
+    if _OWNER_READS is not None:_OWNER_READS.assert_root()
+
+
+def nfs_lstat(path):
+    actor = _OWNER_READS; value = str(path)
+    if actor is not None and actor.contains(value):
+        actor.check(); result = actor.stat(value); actor.check(); return result
+    return os.lstat(path)
+
+
+def nfs_names(path):
+    actor = _OWNER_READS
+    if actor is not None:
+        row = actor.handles.get(path) if type(path) is int else None
+        value = row[0] if row is not None else (None if type(path) is int else str(path))
+        if value is not None and actor.contains(value):return actor.names(value)
+    return os.listdir(path)
+
+
+def nfs_absent(path):
+    try:nfs_lstat(path)
+    except FileNotFoundError:return True
+    return False
+
+
+def nfs_directory(path):
+    actor = _OWNER_READS; value = str(path)
+    if actor is not None and actor.contains(value):return actor.directory(value)
+    return os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+
+
+def nfs_canonical(path):
+    actor = _OWNER_READS; value = str(path)
+    if actor is None or not actor.contains(value):return path.resolve(strict=True) == path and all(not x.is_symlink() for x in (path, *path.parents))
+    actor.check(); actor.stat(value); actor.check(); return True  # Full component walk uses O_DIRECTORY|O_NOFOLLOW.
+
+
 def parents(path):
     result = {}
     for node in path.parents:
-        value = os.lstat(node)
+        value = nfs_lstat(node)
         need(stat.S_ISDIR(value.st_mode), 'ancestor-type')
         result[str(node)] = five(value)
     return result
@@ -113,6 +380,11 @@ def read(ref, private=True):
          and 0 < expected[2] <= MAX
          and (not private or expected[6] == os.geteuid()
               and stat.S_IMODE(expected[5]) == 0o600), 'ref-attributes')
+    actor = _OWNER_READS
+    nodes = parents(path)
+    if actor is not None and actor.contains(str(path)):
+        need(not private or expected[6] == os.geteuid() and stat.S_IMODE(expected[5]) == 0o600, 'owner-read-private-policy')
+        raw = actor.read(ref); final({}, nodes, ()); return raw
     nodes = parents(path)
     fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
     try:
@@ -148,17 +420,17 @@ def read(ref, private=True):
 def final(files, nodes, absent):
     """Raw kernel closure; caller freezes tuples before semantic callbacks."""
     for path, expected in nodes.items():
-        z = os.lstat(path)
+        z = nfs_lstat(path)
         if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != tuple(expected):
             raise Held('ancestor-final')
     for path, expected in files.items():
-        z = os.lstat(path)
+        z = nfs_lstat(path)
         if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                 z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != tuple(expected):
             raise Held('file-final')
     for path in absent:
         try:
-            os.lstat(path)
+            nfs_lstat(path)
         except FileNotFoundError:
             continue
         raise Held('absence-final')
@@ -188,13 +460,13 @@ def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
     path=absolute(path);library=absolute(library)
     need(path!=library and path not in library.parents and library not in path.parents,'archive-retention-disjoint-library')
-    original=tuple(nine(os.lstat(path)));source=tuple(five(os.lstat(library)));nodes=tuple(parents(path/'retained-child').items())
+    original=tuple(nine(nfs_lstat(path)));source=tuple(five(nfs_lstat(library)));nodes=tuple(parents(path/'retained-child').items())
     need(type(device) is int and device>0 and original[0]==source[0]==device,'archive-retention-original-same-device')
     need(stat.S_ISDIR(original[5]) and original[6:8]==(1000,1000),'archive-retention-child-original-owner')
     need(stat.S_IMODE(original[5])==0o700 and original[:2]!=source[:2],'archive-retention-child-original-mode')
-    need(not os.listdir(path),'archive-retention-selected-empty-namespace')
+    need(not nfs_names(path),'archive-retention-selected-empty-namespace')
     final({},dict(nodes),())
-    need(tuple(nine(os.lstat(path)))==original and tuple(five(os.lstat(library)))==source,'archive-retention-original-last9')
+    need(tuple(nine(nfs_lstat(path)))==original and tuple(five(nfs_lstat(library)))==source,'archive-retention-original-last9')
     return (str(path),original,str(library),source,nodes)
 
 
@@ -307,10 +579,10 @@ class Paths:
     def child_empty(self,name):
         need(self.owner is not None and name=='nfs-lease-empty-config','configured-child-empty-purpose')
         self.owner.left();tree=_CHILD_TREES[self.owner];path=tree.root/name
-        need(not os.path.lexists(path),'configured-child-empty-exclusive')
-        tree._mkdir(path);stamp=tuple(nine(os.lstat(path)));tree.check()
-        need(not os.listdir(path),'configured-child-empty-namespace')
-        z=os.lstat(path)
+        need(nfs_absent(path),'configured-child-empty-exclusive')
+        tree._mkdir(path);stamp=tuple(nine(nfs_lstat(path)));tree.check()
+        need(not nfs_names(path),'configured-child-empty-namespace')
+        z=nfs_lstat(path)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('configured-child-empty-original9')
         return dict(path=str(path),signature9=list(stamp))
 
@@ -323,10 +595,10 @@ class Paths:
         host=absolute(self.host(value['path']));nodes=parents(host)
         fd=os.open(host,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
-            need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(os.lstat(host)))==expected and not os.listdir(fd),'nfs-empty-original-FD9-namespace')
+            need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(host)))==expected and not nfs_names(fd),'nfs-empty-original-FD9-namespace')
         finally:os.close(fd)
         session.close()
-        if tuple(nine(os.lstat(host)))!=expected:raise Held('nfs-empty-original-final9')
+        if tuple(nine(nfs_lstat(host)))!=expected:raise Held('nfs-empty-original-final9')
         row=(value['path'],str(host),expected,tuple(nodes.items()),session,session.cid,session.original_pid,owner.plan['nonce'])
         need(owner not in _NFS_EMPTY_ROWS,'nfs-empty-no-rebaseline');_NFS_EMPTY_ROWS[owner]=row
         return dict(path=str(host),signature9=list(expected))
@@ -336,11 +608,11 @@ class Paths:
         row=_NFS_EMPTY_ROWS.get(owner);need(row is not None,'nfs-empty-original-unbound')
         child,host,stamp,nodes,session,cid,pid,nonce=row
         need(value==dict(path=host,signature9=list(stamp)) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-empty-original-session-ref')
-        session.close();need(not os.listdir(host),'nfs-empty-original-empty')
+        session.close();need(not nfs_names(host),'nfs-empty-original-empty')
         for path,expected in nodes:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(expected):raise Held('nfs-empty-original5')
-        z=os.lstat(host)
+        z=nfs_lstat(host)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('nfs-empty-original9')
         return dict(path=host,signature9=list(stamp))
 
@@ -353,7 +625,7 @@ class Paths:
         host=absolute(host_map(value['path']));nodes=parents(host)
         fd=os.open(host,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
-            need(tuple(nine(os.fstat(fd)))==stamp and tuple(nine(os.lstat(host)))==stamp,'nfs-probe-original-FD9');raw=b''
+            need(tuple(nine(os.fstat(fd)))==stamp and tuple(nine(nfs_lstat(host)))==stamp,'nfs-probe-original-FD9');raw=b''
             while len(raw)<stamp[2]:
                 block=os.read(fd,min(65536,stamp[2]-len(raw)));need(bool(block),'nfs-probe-short-read');raw+=block
             need(hashlib.sha256(raw).hexdigest()==value['sha256'] and tuple(nine(os.fstat(fd)))==stamp,'nfs-probe-original-bytes')
@@ -367,7 +639,7 @@ class Paths:
         need(data['root']==fixture and data['device']==plan['expected_device'] and data['mount']==plan['mount_identity'] and data['mount']['fstype']=='nfs4' and data['forbidden_roots']==roots,'nfs-probe-original-geometry')
         directories={fixture_host:tuple(data['root9']),str(Path(fixture_host)/'source'):tuple(data['source_parent9']),str(Path(fixture_host)/'target'):tuple(data['target_parent9'])}
         for path,original in directories.items():
-            need(len(original)==9 and all(type(v) is int for v in original) and original[0]==plan['expected_device'] and stat.S_ISDIR(original[5]) and stat.S_IMODE(original[5])==0o700 and original[6:8]==(1000,1000) and tuple(nine(os.lstat(path)))==original,'nfs-probe-original-directory9')
+            need(len(original)==9 and all(type(v) is int for v in original) and original[0]==plan['expected_device'] and stat.S_ISDIR(original[5]) and stat.S_IMODE(original[5])==0o700 and original[6:8]==(1000,1000) and tuple(nine(nfs_lstat(path)))==original,'nfs-probe-original-directory9')
         for root in roots:
             physical=host_map(root);need(not (Path(physical)==Path(fixture_host) or Path(physical) in Path(fixture_host).parents or Path(fixture_host) in Path(physical).parents),'nfs-probe-protected-overlap')
         cohort_ref=outer['source_cohort'];cohort=decode(read(dict(cohort_ref,signature9=list(owner.files[cohort_ref['path']]))))
@@ -407,7 +679,7 @@ class Paths:
         result=copy.deepcopy(spec);session.close()
         need(_NFS_PROBE_ROWS.get(owner) is row and encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-final-original-table')
         for path,original in nodes:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original):raise Held('nfs-probe-original-ancestor5')
         owned_probe=session.probe_replies.probe
         started=owned_probe is not None and hasattr(owned_probe,'process') and owned_probe.process.started is True
@@ -420,25 +692,25 @@ class Paths:
                  and hashlib.sha256(owned_probe.process.kernel_output).hexdigest()==removed[5],
                  'nfs-probe-cleanup-original-successful-release')
             for path in removed[6]:
-                if os.path.lexists(path):raise Held('nfs-probe-cleanup-owned-absence-drift')
+                if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-drift')
         for path,original in directories:
             if removed is not None:
                 if not (path==removed[6][0] or Path(path).is_relative_to(removed[6][0])):
                     raise Held('nfs-probe-cleanup-no-foreign-directory')
-                if os.path.lexists(path):raise Held('nfs-probe-cleanup-directory-reappeared')
+                if not nfs_absent(path):raise Held('nfs-probe-cleanup-directory-reappeared')
                 continue
-            if not os.path.lexists(path):raise Held('nfs-probe-owned-directory-missing-before-cleanup-proof')
-            z=os.lstat(path)
+            if nfs_absent(path):raise Held('nfs-probe-owned-directory-missing-before-cleanup-proof')
+            z=nfs_lstat(path)
             actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) if started else (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
             expected=(original[0],original[1],original[5],original[6],original[7]) if started else original
             if actual!=expected:raise Held('nfs-probe-original-directory-transition')
-        z=os.lstat(host)
+        z=nfs_lstat(host)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(child['signature9']):raise Held('nfs-probe-original-final9')
         if removed is not None:
             if _NFS_PROBE_REMOVED.get(owner) is not removed or _NFS_PROBE_ROWS.get(owner) is not row:
                 raise Held('nfs-probe-cleanup-original-final-seal')
             for path in removed[6]:
-                if os.path.lexists(path):raise Held('nfs-probe-cleanup-final-absence')
+                if not nfs_absent(path):raise Held('nfs-probe-cleanup-final-absence')
         return result
 
     def original_ref(self, value):
@@ -553,7 +825,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'd18f96659df27f72e2bcc0a524ca043c790e185b03070e269b569ade48382791'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'f482cd7099b141a298f92065fa4242ab29361253506fc695d4b74324a71ce212', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'd18f96659df27f72e2bcc0a524ca043c790e185b03070e269b569ade48382791'}
 NFS_ACTIVE_SOURCE_SHA='63ec393ab36a5296ad717013a7318057ee13b83b4cbd7a9baed09a9bf2038a19'
 
 
@@ -588,6 +860,7 @@ _NFS_PROBE_LAUNCHES=weakref.WeakKeyDictionary()
 _NFS_PROBE_REMOVED=weakref.WeakKeyDictionary()
 
 def nfs_remote_guard(engine):
+    owner_root_guard()
     # Even malformed or uncertain entries remain fail-closed until source-owned
     # physical release proof removes the original window registration.
     need(engine not in _NFS_REMOTE_WINDOWS,'nfs-no-remote-under-Writer')
@@ -856,12 +1129,12 @@ def admit_common_root(value,mounts,library,retention,other_roots):
     need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and (value['version'],value['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'archive-common-schema')
     for role in ('common_root','library','retention'):
         ref=value[role];need(type(ref) is dict and set(ref)=={'path','signature9'},'archive-common-ref')
-        path=absolute(ref['path']);need(path.resolve(strict=True)==path and all(not p.is_symlink() for p in (path,*path.parents)),'archive-common-canonical')
-        v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(os.lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==(0o711 if value['version']==2 and role=='common_root' else 0o700) and v[6:8]==[1000,1000],'archive-common-original-directory9')
+        path=absolute(ref['path']);need(nfs_canonical(path),'archive-common-canonical')
+        v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(nfs_lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==(0o711 if value['version']==2 and role=='common_root' else 0o700) and v[6:8]==[1000,1000],'archive-common-original-directory9')
     root=Path(value['common_root']['path']);left=Path(value['library']['path']);right=Path(value['retention']['path'])
     if value['version']==2:need(root.name.startswith('archive-publication-') and digest(root.name.removeprefix('archive-publication-')) and left==root/'L' and right==root/'R','archive-common-disposable-names')
     need(str(left)==library and str(right)==retention and left.parent==root and right.parent==root and left!=right and len({tuple(value[k]['signature9'][:2]) for k in ('common_root','library','retention')})==3 and len({value[k]['signature9'][0] for k in ('common_root','library','retention')})==1,'archive-common-exact-two-direct-children')
-    need(set(os.listdir(root))=={left.name,right.name},'archive-common-exact-namespace')
+    need(set(nfs_names(root))=={left.name,right.name},'archive-common-exact-namespace')
     need(all(not(root==Path(p) or root in Path(p).parents or Path(p) in root.parents) for p in other_roots),'archive-common-other-scope-overlap')
     bound=[r for r in mounts if r['host']==str(root)]
     need(bound==[dict(host=str(root),child=str(root),write=True)],'archive-common-one-canonical-writable-bind')
@@ -869,10 +1142,10 @@ def admit_common_root(value,mounts,library,retention,other_roots):
         if row is bound[0]:continue
         for raw in (row['host'],row['child']):
             path=Path(raw);need(not(path==root or root in path.parents or path in root.parents),'archive-common-no-nested-or-shadow-bind')
-    fd=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    fd=nfs_directory(root)
     held=[]
     try:
-        for path in (left,right):held.append(os.open(path.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fd))
+        for path in (left,right):held.append(nfs_directory(path))
         result=(fd,copy.deepcopy(value),tuple(held),parents(root))
         check_common_root(result);return result
     except BaseException:
@@ -880,22 +1153,48 @@ def admit_common_root(value,mounts,library,retention,other_roots):
         os.close(fd);raise
 
 def close_common_root(row):
-    for fd in (row[0],*row[2]):os.close(fd)
+    for fd in (row[0],*row[2]):
+        if _OWNER_READS is not None and fd in _OWNER_READS.handles:_OWNER_READS.close_directory(fd)
+        else:os.close(fd)
 
 def check_common_root(row):
     fd,value,held,ancestors=row;root=Path(value['common_root']['path']);expected=tuple(value['common_root']['signature9'])
-    need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(os.lstat(root)))==expected,'archive-common-original-root-FD9')
+    need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(root)))==expected,'archive-common-original-root-FD9')
     names={Path(value[k]['path']).name for k in ('library','retention')}
-    fresh=os.open('.',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fd)
+    fresh=nfs_directory(root)
     try:
-        need(tuple(nine(os.fstat(fresh)))==expected and set(os.listdir(fresh))==names,'archive-common-original-namespace')
+        need(tuple(nine(os.fstat(fresh)))==expected and set(nfs_names(fresh))==names,'archive-common-original-namespace')
         for role,handle in zip(('library','retention'),held):
-            ref=value[role];v=ref['signature9'];need(tuple(five(os.fstat(handle)))==tuple(v[i] for i in (0,1,5,6,7)),'archive-common-retained-child-FD5');actual=os.stat(Path(ref['path']).name,dir_fd=fresh,follow_symlinks=False)
+            ref=value[role];v=ref['signature9'];need(tuple(five(os.fstat(handle)))==tuple(v[i] for i in (0,1,5,6,7)),'archive-common-retained-child-FD5');actual=nfs_lstat(ref['path'])
             need(tuple(five(actual))==tuple(v[i] for i in (0,1,5,6,7)),'archive-common-original-child5')
         for path,node in ancestors.items():
-            if tuple(five(os.lstat(path)))!=tuple(node):raise Held('archive-common-original-ancestor5')
-        need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(os.lstat(root)))==expected and set(os.listdir(fresh))==names,'archive-common-final-root9')
-    finally:os.close(fresh)
+            if tuple(five(nfs_lstat(path)))!=tuple(node):raise Held('archive-common-original-ancestor5')
+        need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(root)))==expected and set(nfs_names(fresh))==names,'archive-common-final-root9')
+    finally:
+        if _OWNER_READS is not None and fresh in _OWNER_READS.handles:_OWNER_READS.close_directory(fresh)
+        else:os.close(fresh)
+
+def archive_fixture_inputs(plan,request):
+    """Finite ORIGINAL local facts; never a target read or a custody factory."""
+    need(plan.get('version')==13 and request.get('version')==3,'archive-fixture-plan13-only')
+    action=pinned_module(plan['provider']);action.owner_request(request)
+    fixture=request['fixture_transition'];refs={role:fixture[role] for role in ('bootstrap','catalog')}
+    docs={role:decode(read(ref,private=False)) for role,ref in refs.items()}
+    action.fixture_documents(request,docs['bootstrap'],docs['catalog'])
+    need(fixture['nonce']==plan['nonce'] and fixture['native_id']==plan['held_native']['id'] and fixture['reader_id']==plan['reader']['id'] and fixture['worker_id']==plan['held_worker']['id'] and docs['catalog']['native_image']==plan['selected_image'],'archive-fixture-original-role-joins')
+    return refs
+
+def archive_fixture_terminal(action,request,original,receipt,preparation,reader,native,stage_child,files,names):
+    """Only an original live terminal dialogue may call this pure join."""
+    action.original_execution(original,request);action.fixture_provenance(receipt,request)
+    need(receipt['reader_stopped']==reader,'archive-fixture-original-stopped-runtime')
+    state=native['native']['inspect']['State'];expected={key:state[key] for key in ('Running','Status','Pid','StartedAt','Paused','Restarting','Dead','OOMKilled')}
+    need(receipt['native_epoch']==expected and receipt['worker_epoch']==native['worker']['State'],'archive-fixture-original-native-worker-epochs')
+    need(receipt['source_after']==preparation['source'] and receipt['equivalence']['inventory']==preparation['exceptional_witness']['virtual_original_inventory'] and receipt['equivalence']['root_metadata_sha256']==preparation['exceptional_witness']['root_metadata_sha256'] and preparation['derivative']['sha256']==request['fixture_transition']['genesis']['sha256'] and receipt['catalog_observed']==preparation['catalog'],'archive-fixture-owning-preparation-join')
+    stage=Path(stage_child);need(names.get(str(stage))==tuple(sorted(('genesis.cbz','candidate.cbz','intent.json','successor.json'))),'archive-fixture-exact-retained-census')
+    for role in ('genesis','candidate'):
+        ref=receipt[role];need(ref['path']==str(stage/(role+'.cbz')) and files.get(ref['path'])==tuple(ref['signature9']),'archive-fixture-retained-original-vectors')
+    need(original['fixture_transition']['path']==str(stage/'successor.json') and files.get(original['fixture_transition']['path'])==tuple(original['fixture_transition']['signature9']),'archive-fixture-causal-receipt-vector')
 
 class LifecycleParent:
     """Finite producer protocol; all concrete producer sources must be reviewed.
@@ -929,13 +1228,14 @@ class LifecycleParent:
             worker=plan['worker_observation'];need(type(worker) is dict and set(worker)=={'mode','source','image_sources'} and worker['mode']=='original-pipes-v1','worker-observation-finite-plan')
         need(re.fullmatch('sha256:[0-9a-f]{64}', plan['selected_image']) is not None,
              'selected-image-digest')
+        self.owner_reads = bind_owner_reads(plan['publication_geometry']) if plan.get('version') == 13 else None
         self.plan = copy.deepcopy(plan); self.engine = engine
         self.deadline = time.monotonic() + plan['seconds']; self.phase = 'admitted'; self.event_start = str(int(time.time()))
         self.mapping = Paths(plan['mounts']); self.op = absolute(plan['operation'])
-        need(not os.path.lexists(self.op), 'exclusive-operation')
+        need(nfs_absent(self.op), 'exclusive-operation')
         need(any(r['host'] == str(self.op) and r['write'] is True for r in plan['mounts']),
              'private-operation-exact-writable-mount')
-        parent = os.lstat(self.op.parent)
+        parent = nfs_lstat(self.op.parent)
         need(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.geteuid()
              and stat.S_IMODE(parent.st_mode) == 0o700, 'operation-parent-private')
         self.files = {}; self.nodes = parents(self.op); self.generated = {}
@@ -960,8 +1260,15 @@ class LifecycleParent:
         if archive:
             need(plan['action']=='archive-one' and set(plan['producer_inputs'])=={'archive_request','archive_scopes'},'archive-only-plan')
             request=decode(read(plan['producer_inputs']['archive_request']))
-            need(type(request) is dict and type(request.get('version')) is int and (request['version']==1 and set(request)=={'version','owner','operation_id'} or request['version']==2 and set(request)=={'version','owner','operation_id','terminal'} and request['terminal'] in ('forward','rollback')) and digest(request['operation_id']),'archive-owner-request')
+            need(type(request) is dict and type(request.get('version')) is int and (request['version']==1 and set(request)=={'version','owner','operation_id'} or request['version']==2 and set(request)=={'version','owner','operation_id','terminal'} and request['terminal'] in ('forward','rollback') or request['version']==3 and set(request)=={'version','owner','operation_id','terminal','fixture_transition'} and request['terminal'] in ('forward','rollback')) and digest(request['operation_id']),'archive-owner-request')
             need(request['version']==1 or plan['version']==13,'archive-explicit-terminal-plan13-only')
+            if request['version']==3:
+                fixture_action=pinned_module(plan['provider']);fixture_action.owner_request(request)
+                for fixture_ref in (request['fixture_transition'][role] for role in ('bootstrap','catalog')):
+                    for node,value in parents(Path(fixture_ref['path'])).items():
+                        need(node not in self.nodes or self.nodes[node]==value,'archive-fixture-original-node');self.nodes[node]=value
+                    read(fixture_ref,private=False);need(fixture_ref['path'] not in self.files or self.files[fixture_ref['path']]==tuple(fixture_ref['signature9']),'archive-fixture-original-file');self.files[fixture_ref['path']]=tuple(fixture_ref['signature9'])
+                archive_fixture_inputs(plan,request)
             for ref in (plan['backup_provider'],plan['observer'],*plan['producer_inputs'].values()):
                 for node,value in parents(Path(ref['path'])).items():
                     need(node not in self.nodes or self.nodes[node]==value,'archive-input-original-node');self.nodes[node]=value
@@ -1045,7 +1352,7 @@ class LifecycleParent:
                 path=root/name
                 for node,fact in parents(path).items():
                     need(node not in self.nodes or self.nodes[node]==fact,'archive-source-original-node');self.nodes[node]=fact
-                stamp=tuple(nine(os.lstat(path)))
+                stamp=tuple(nine(nfs_lstat(path)))
                 need(str(path) not in self.files or self.files[str(path)]==stamp,'archive-source-original-file');self.files[str(path)]=stamp
                 refs[name]=dict(path=str(path),sha256=pin,signature9=list(stamp))
             for value in refs.values():read(value)
@@ -1057,7 +1364,7 @@ class LifecycleParent:
                  'worker-original-image-metadata')
             worker=plan['worker_observation'];sources=decode(read(worker['image_sources']))
             need(sources=={'/app/archive_terminal_observation.py':worker['source']['sha256']},'worker-exact-installed-source-map')
-            helper=Path(__file__).with_name('comic_archive_worker_vectors.py');value={'path':str(helper),'signature9':list(nine(os.lstat(helper))),'sha256':WORKER_VECTORS_SHA}
+            helper=Path(__file__).with_name('comic_archive_worker_vectors.py');value={'path':str(helper),'signature9':list(nine(nfs_lstat(helper))),'sha256':WORKER_VECTORS_SHA}
             for node,fact in parents(helper).items():need(node not in self.nodes or self.nodes[node]==fact,'worker-helper-node-original');self.nodes[node]=fact
             need(str(helper) not in self.files or self.files[str(helper)]==tuple(value['signature9']),'worker-helper-original9');self.files[str(helper)]=tuple(value['signature9']);module=pinned_module(value);_WORKER_MODULES[self]=module
             _WORKER_FUNCTIONS[self]=(tuple((name,module.__dict__[name],module.__dict__[name].__code__) for name in ('need','encode','decode','digest','path','put','frame','pack','mapping','freeze','response')),module.Round,tuple(module.Round.__dict__.items()),module.Round.__init__.__code__,module.Round.accept.__code__)
@@ -1102,7 +1409,7 @@ class LifecycleParent:
                 path=absolute(value['path'])
                 for node,fact in parents(path).items():
                     need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-input-node');self.nodes[node]=fact
-                stamp=tuple(nine(os.lstat(path)))
+                stamp=tuple(nine(nfs_lstat(path)))
                 need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-input-file');self.files[str(path)]=stamp
             for name in ('active_scope','effective_observer_review','source_cohort','native_controls'):
                 value=active[name];read(dict(value,signature9=list(self.files[value['path']])))
@@ -1111,13 +1418,16 @@ class LifecycleParent:
             need(type(cohort) is dict and type(cohort.get('sources')) is dict and type(cohort.get('logs')) is dict,'nfs-owning-cohort-original')
             original_scope=decode(read(dict(active['active_scope'],signature9=list(self.files[active['active_scope']['path']]))))
             need(type(original_scope.get('sources')) is dict,'nfs-owning-scope-source-refs')
-            nested=[*cohort['sources'].values(),*cohort['logs'].values(),cohort['parent'],cohort['receipt'],*original_scope['sources'].values()]
+            public_sources=[*cohort['sources'].values(),cohort['parent']]
+            private_facts=[*cohort['logs'].values(),cohort['receipt'],*original_scope['sources'].values()]
+            nested=[*public_sources,*private_facts]
             for value in nested:
                 need(type(value) is dict and set(value)=={'path','sha256'},'nfs-owning-cohort-ref-shape');path=absolute(value['path'])
                 for node,fact in parents(path).items():
                     need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-cohort-node');self.nodes[node]=fact
-                stamp=tuple(nine(os.lstat(path)));need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-cohort-file');self.files[str(path)]=stamp
-            for value in nested:read(dict(value,signature9=list(self.files[value['path']])))
+                stamp=tuple(nine(nfs_lstat(path)));need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-cohort-file');self.files[str(path)]=stamp
+            for value in public_sources:read(dict(value,signature9=list(self.files[value['path']])),private=False)
+            for value in private_facts:read(dict(value,signature9=list(self.files[value['path']])))
             # The child sends no endpoint/route/config selector. Seal the one
             # original approved query plan and its private configuration now.
             query_ref=original_scope['sources']['current_komga_libraries']
@@ -1131,7 +1441,7 @@ class LifecycleParent:
             configuration_path=absolute(configuration['path'])
             for node,value in parents(configuration_path).items():
                 need(node not in self.nodes or self.nodes[node]==value,'nfs-library-original-config-node');self.nodes[node]=value
-            configuration9=tuple(nine(os.lstat(configuration_path)))
+            configuration9=tuple(nine(nfs_lstat(configuration_path)))
             need(str(configuration_path) not in self.files or self.files[str(configuration_path)]==configuration9,
                  'nfs-library-original-config9');self.files[str(configuration_path)]=configuration9
             configuration_ref=dict(configuration,signature9=list(configuration9))
@@ -1147,7 +1457,7 @@ class LifecycleParent:
             lock=Path(self.mapping.host(plan['native']['data']))/'media-writer/writer-v1.lock'
             for node,value in parents(lock).items():
                 need(node not in self.nodes or self.nodes[node]==value,'nfs-library-original-lock-node');self.nodes[node]=value
-            lock9=tuple(nine(os.lstat(lock)))
+            lock9=tuple(nine(nfs_lstat(lock)))
             need(stat.S_ISREG(lock9[5]) and stat.S_IMODE(lock9[5])==0o600 and lock9[6]==1000 and lock9[8]==1,
                  'nfs-library-original-lock-type')
             need(str(lock) not in self.files or self.files[str(lock)]==lock9,'nfs-library-original-lock9');self.files[str(lock)]=lock9
@@ -1197,7 +1507,7 @@ class LifecycleParent:
             control_path=Path(__file__).with_name('comic_child_control_projection.py')
             for node,value in parents(control_path).items():
                 need(node not in self.nodes or self.nodes[node]==value,'configured-projection-original-node');self.nodes[node]=value
-            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(os.lstat(control_path)))
+            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(nfs_lstat(control_path)))
             need(str(control_path) not in self.files or self.files[str(control_path)]==tuple(control_ref['signature9']),'configured-projection-original9')
             read(control_ref);self.files[str(control_path)]=tuple(control_ref['signature9'])
         self.core = encode(dict(plan=self.plan, files=self.files, nodes=self.nodes,
@@ -1205,23 +1515,51 @@ class LifecycleParent:
                                 thread=self.thread, deadline=self.deadline))
         final(dict(self.files), dict(self.nodes), ())
         _CORES[self] = self.core; _GENERATED[self] = encode(self.generated); _PHASES[self] = {}
-        self.op.mkdir(mode=0o700); self.op_fact = tuple(five(os.lstat(self.op))); self.sync(self.op.parent)
+        self.op.mkdir(mode=0o700); self.op_fact = tuple(five(nfs_lstat(self.op))); self.sync(self.op.parent)
         self.emit('intent.json', dict(version=2, nonce=plan['nonce'], automatic_replay=False,
                                       publication_acceptance=False))
         if CHILD_CONTROL_PROJECTION_ENABLED:
             need(os.geteuid()==0 and digest(CHILD_CONTROL_SOURCE_SHA) and self in _CONFIGURED_OVERLAYS,'configured-child-projection')
             control_path=Path(__file__).with_name('comic_child_control_projection.py')
-            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(os.lstat(control_path)))
+            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(nfs_lstat(control_path)))
             module=pinned_module(control_ref)
             child_root=Path(self.mapping.child(self.op))
-            tree=module.Tree(self.op.with_name(self.op.name+'-child'),child_root,self.op,read)
+            tree=module.Tree(self.op.with_name(self.op.name+'-child'),child_root,self.op,self.read_child_original,owner_reads=self.owner_reads)
             _CHILD_TREES[self]=tree;self.mapping.owner=self
-            _OUTPUT_NODES.setdefault(self,{})[str(tree.root)]=tuple(five(os.lstat(tree.root)))
+            _OUTPUT_NODES.setdefault(self,{})[str(tree.root)]=tuple(five(nfs_lstat(tree.root)))
         else:
             need(os.geteuid()!=0,'root-child-projection-default-disabled')
 
 
+    def read_child_original(self,ref,*,private=True):
+        need(type(private) is bool,'child-original-private-policy')
+        if not private:
+            # Tree's explicit source-policy flag is not an arbitrary public read.
+            # Rejoin only the original source roles authenticated by this Parent.
+            need(self in _NFS_SOURCE_CONTEXTS,'child-original-public-unconfigured')
+            _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];data=decode(active)
+            cohort_ref=data['source_cohort'];effective_ref=data['effective_observer_review']
+            cohort=decode(read(dict(cohort_ref,signature9=list(self.files[cohort_ref['path']]))))
+            review=decode(read(dict(effective_ref,signature9=list(self.files[effective_ref['path']]))))
+            need(type(review) is dict and set(review)=={'producer','parent_source','report','ack','runtime','acceptance','parent_ack'},'nfs-effective-seven-roles')
+            sources=[*cohort['sources'].values(),cohort['parent'],review['producer'],review['parent_source']]
+            need(type(ref) is dict and set(ref)=={'path','sha256','signature9'}
+                 and tuple(ref['signature9'])==self.files.get(ref['path'])
+                 and any(ref['path']==value['path'] and ref['sha256']==value['sha256'] for value in sources),
+                 'child-original-public-source-role')
+            return read(ref,private=False)
+        # Only these exact already-authenticated retained-owner roles differ
+        # from ordinary Root controls. The generic Tree contract stays strict.
+        if self.plan.get('version')==13 and self.plan.get('action')=='archive-one':
+            request=decode(read(self.plan['producer_inputs']['archive_request']))
+            if request.get('version')==3:
+                action=pinned_module(self.plan['provider']);action.owner_request(request)
+                if any(ref==request['fixture_transition'][role] for role in ('bootstrap','catalog')):
+                    return read(ref,private=False)
+        return read(ref)
+
     def left(self):
+        owner_root_guard()
         need(threading.get_ident() == self.thread and time.monotonic() < self.deadline, 'parent-lifetime')
         need(encode(dict(plan=self.plan, files=self.files, nodes=self.nodes,
                          source=self.source_ref, input=self.plan_ref, engine=id(self.engine),
@@ -1235,14 +1573,14 @@ class LifecycleParent:
         if self in _NFS_OUTPUT_PAIRS:
             original,physical,virtual,stamp=_NFS_OUTPUT_PAIRS[self];tree=_CHILD_TREES[self]
             need(original==_NFS_SOURCE_CONTEXTS[self][4] and physical==str(tree.root/'nfs'/'active-output') and virtual==str(tree.child_root/'nfs'/'active-output'),'nfs-active-output-original-pair')
-            z=os.lstat(Path(physical).parent)
+            z=nfs_lstat(Path(physical).parent)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=stamp:raise Held('nfs-active-output-original-parent5')
         if self in _NFS_SOURCE_CONTEXTS:
             refs,raws,active,probe,output=_NFS_SOURCE_CONTEXTS[self]
             need(encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=decode(active),probe=decode(probe),output=output,effective_absences=decode(_NFS_EFFECTIVE_ABSENCES[self])))==_NFS_SOURCE_SEALS.get(self),'nfs-owning-source-context-seal')
             for ref in refs.values():read(ref)
         if self in _NFS_EFFECTIVE_ABSENCES:
-            need(all(not os.path.lexists(path) for path in decode(_NFS_EFFECTIVE_ABSENCES[self])),'nfs-effective-original-absence')
+            need(all(nfs_absent(path) for path in decode(_NFS_EFFECTIVE_ABSENCES[self])),'nfs-effective-original-absence')
         if self in _ARCHIVE_SOURCE_GROUPS:
             refs,tape=_ARCHIVE_SOURCE_GROUPS[self]
             need(encode(refs)==tape,'archive-source-original-graph')
@@ -1263,7 +1601,7 @@ class LifecycleParent:
         ref=self.plan['producer_inputs']['archive_scopes'];scopes=decode(read(ref))
         path=absolute(scopes['retention_root'])
         # Root-owned default scopes retain their existing path and owner checks.
-        if os.lstat(path).st_uid==os.geteuid():return
+        if nfs_lstat(path).st_uid==os.geteuid():return
         library=self.mapping.host(self.plan['native']['roots'][0])
         row=retention_original(str(path),library,handoff.device)
         protected=[self.mapping.host(self.plan['native']['data']),*[self.mapping.host(r) for r in self.plan['native']['roots']],scopes['scratch']]
@@ -1281,39 +1619,39 @@ class LifecycleParent:
         need(module is not None and type(handoff) is module.StoppedNFSHandoff and handoff.owner is self
              and module._STOPPED_HANDOFFS.get(handoff) is not None,'archive-retention-original-handoff-registry')
         path,original,library,source,nodes=row
-        current=tuple(nine(os.lstat(path)));active=_ARCHIVE_RETENTION_ACTIVE.get(self)
+        current=tuple(nine(nfs_lstat(path)));active=_ARCHIVE_RETENTION_ACTIVE.get(self)
         need(current[:2]+current[5:8]==original[:2]+original[5:8]
-             and tuple(five(os.lstat(library)))==source,'archive-retention-original-directory5')
+             and tuple(five(nfs_lstat(library)))==source,'archive-retention-original-directory5')
         for node,fact in nodes:
-            need(tuple(five(os.lstat(node)))==tuple(fact),'archive-retention-original-ancestor5')
-        names=tuple(sorted(os.listdir(path)))
+            need(tuple(five(nfs_lstat(node)))==tuple(fact),'archive-retention-original-ancestor5')
+        names=tuple(sorted(nfs_names(path)))
         if active is None:
             need(current==original and not names,'archive-retention-before-execute-original9')
         else:
             need(active is value and names in ((),(allowed,)),'archive-retention-finite-owned-transition')
             if names:
-                z=os.lstat(Path(path)/allowed)
+                z=nfs_lstat(Path(path)/allowed)
                 need(stat.S_ISDIR(z.st_mode) and stat.S_IMODE(z.st_mode)==0o700 and z.st_uid==1000 and z.st_dev==original[0],'archive-retention-owned-adoption-directory')
         read(dict(path=ref[0],sha256=ref[1],signature9=list(ref[2])))
         need(_ARCHIVE_RETENTION.get(self) is value and _ARCHIVE_RETENTION_ACTIVE.get(self) is active,'archive-retention-original-row')
-        need(tuple(sorted(os.listdir(path)))==names,'archive-retention-final-original-namespace')
-        need(tuple(five(os.lstat(library)))==source,'archive-retention-final-library5')
+        need(tuple(sorted(nfs_names(path)))==names,'archive-retention-final-original-namespace')
+        need(tuple(five(nfs_lstat(library)))==source,'archive-retention-final-library5')
         for node,fact in nodes:
-            need(tuple(five(os.lstat(node)))==tuple(fact),'archive-retention-final-ancestor5')
+            need(tuple(five(nfs_lstat(node)))==tuple(fact),'archive-retention-final-ancestor5')
         expected=current if active is None else current[:2]+current[5:8]
-        now=tuple(nine(os.lstat(path)))
+        now=tuple(nine(nfs_lstat(path)))
         need((now if active is None else now[:2]+now[5:8])==expected,'archive-retention-final-original-directory')
 
     def archive_retention_original(self,path):
         value=_ARCHIVE_RETENTION.get(self);active=_ARCHIVE_RETENTION_ACTIVE.get(self)
         need(value is not None and str(path)==value[0][0],'archive-retention-original-scope-unbound')
-        row=value[0];current=tuple(nine(os.lstat(row[0])))
+        row=value[0];current=tuple(nine(nfs_lstat(row[0])))
         # Current metadata is a distinct observation, captured before callbacks;
         # the original full9 remains immutable across the owned execute window.
         self.left();self.check_archive_retention()
         need(_ARCHIVE_RETENTION.get(self) is value and _ARCHIVE_RETENTION_ACTIVE.get(self) is active
              and (active is None or active is value),'archive-retention-original-descriptor-phase')
-        need(tuple(nine(os.lstat(row[0])))==current,'archive-retention-descriptor-original-current9')
+        need(tuple(nine(nfs_lstat(row[0])))==current,'archive-retention-descriptor-original-current9')
         return dict(path=row[0],signature9=list(current),original_signature9=list(row[1]),device=row[1][0],owner=1000,
                     phase='initial' if active is None else 'execute-owned')
 
@@ -1360,10 +1698,10 @@ class LifecycleParent:
             path=absolute(value['path'])
             for node,fact in parents(path).items():
                 need(node not in self.nodes or self.nodes[node]==fact,'nfs-effective-original-node');self.nodes[node]=fact
-            stamp=tuple(nine(os.lstat(path)))
+            stamp=tuple(nine(nfs_lstat(path)))
             need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-effective-original-file');self.files[str(path)]=stamp
             return read(dict(value,signature9=list(stamp)),private=private)
-        raws={role:retain(review[role]) for role in roles}
+        raws={role:retain(review[role],private=role not in ('producer','parent_source')) for role in roles}
         report=decode(raws['report'])
         need(type(report) is dict and type(report.get('config_files')) is dict and type(report.get('absent_config_files')) is list,'nfs-effective-original-report')
         need(type(report.get('scopes')) is dict and type(report.get('optional_absent_scopes')) is dict,'nfs-effective-original-scope')
@@ -1376,17 +1714,17 @@ class LifecycleParent:
         for value in report['scopes'].values():protected(value['host_path'])
         for rawpath,value in report['config_files'].items():
             path=protected(rawpath);need(type(value) is dict and set(value)=={'sha256','signature9'},'nfs-effective-config-ref')
-            need(tuple(value['signature9'])==tuple(nine(os.lstat(path))),'nfs-effective-config-original9')
+            need(tuple(value['signature9'])==tuple(nine(nfs_lstat(path))),'nfs-effective-config-original9')
             retain(dict(path=str(path),sha256=value['sha256']),private=False)
         absent=tuple(sorted(set(report['absent_config_files'])|set(report['optional_absent_scopes'])))
         for value in absent:
-            path=protected(value);need(not os.path.lexists(path),'nfs-effective-original-absence')
+            path=protected(value);need(nfs_absent(path),'nfs-effective-original-absence')
             for node,fact in parents(path).items():
                 need(node not in self.nodes or self.nodes[node]==fact,'nfs-effective-absence-node');self.nodes[node]=fact
         need(self not in _NFS_EFFECTIVE_ABSENCES,'nfs-effective-once-only')
         _NFS_EFFECTIVE_ABSENCES[self]=encode(absent)
         # Close original hash/identity vectors after all document callbacks.
-        for role in roles:read(dict(review[role],signature9=list(self.files[review[role]['path']])))
+        for role in roles:read(dict(review[role],signature9=list(self.files[review[role]['path']])),private=role not in ('producer','parent_source'))
         final(self.files,self.nodes,absent)
 
     def nfs_child_ref(self,ref):
@@ -1401,14 +1739,16 @@ class LifecycleParent:
         original_paths={v['path'] for v in named}
         generated_names={'nfs-uid-child.py','nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
         need(ref['path'] in original_paths and tuple(ref['signature9'])==self.files.get(ref['path']) or Path(ref['path']).parent==self.op and Path(ref['path']).name in generated_names and self.generated.get(ref['path'])==ref,'nfs-only-declared-control-origin')
-        tree=_CHILD_TREES[self];tree.reserve_nfs_control(ref);result=tree.projected(ref);self.left();return result
+        public_sources=[*cohort['sources'].values(),cohort['parent'],review['producer'],review['parent_source']]
+        public=any(ref['path']==value['path'] and ref['sha256']==value['sha256'] for value in public_sources)
+        tree=_CHILD_TREES[self];tree.reserve_nfs_control(ref,public=public);result=tree.projected(ref);self.left();return result
 
     def prepare_nfs_inputs(self):
         self.left();need(self in _NFS_SOURCE_CONTEXTS and self in _CHILD_TREES,'nfs-owning-default-unconfigured')
         modules=self.nfs_host_modules();producer=modules['comic_nfs_child_input_projection.py'].Inputs(self)
         if self not in _NFS_OUTPUT_PAIRS:
             _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];original_output=decode(active)['operation_output'];tree=_CHILD_TREES[self];phase=tree.phase('nfs');physical=phase/'active-output';virtual=str(tree.child_root/'nfs'/'active-output')
-            need(not os.path.lexists(physical),'nfs-active-output-exclusive');_NFS_OUTPUT_PAIRS[self]=(original_output,str(physical),virtual,tuple(five(os.lstat(phase))))
+            need(nfs_absent(physical),'nfs-active-output-exclusive');_NFS_OUTPUT_PAIRS[self]=(original_output,str(physical),virtual,tuple(five(nfs_lstat(phase))))
         original=self.plan['nfs']['active_input'];two=dict(path=original['path'],sha256=original['sha256'])
         projected=producer.outer(two);original=producer.emitted[(projected['path'],projected['sha256'])]
         result=self.nfs_child_ref(original);self.left();return result
@@ -1441,7 +1781,7 @@ class LifecycleParent:
         value=dict(path=str(path),sha256=hashlib.sha256(result).hexdigest(),signature9=list(original))
         self.generated[str(path)]=copy.deepcopy(value);_GENERATED[self]=encode(self.generated);self.left()
         child=self.nfs_child_ref(value);self.left()
-        z=os.lstat(path)
+        z=nfs_lstat(path)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=original:raise Held('nfs-child-source-final9')
         _NFS_CHILD_SOURCE_ROWS[self]=(copy.deepcopy(value),copy.deepcopy(child))
         return value,child
@@ -1480,7 +1820,7 @@ class LifecycleParent:
         _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];admission=decode(active)['parent_admission']
         virtual=str(Path(admission['path']).parent);physical=virtual
         expected=tuple(admission['grandparent_signature'])
-        need(tuple(nine(os.lstat(physical)))==expected and stat.S_ISDIR(expected[5]) and admission['mount_identity']['fstype']=='nfs4' and expected[0]==admission['expected_device'],'nfs-child-original-nfs-grandparent')
+        need(tuple(nine(nfs_lstat(physical)))==expected and stat.S_ISDIR(expected[5]) and admission['mount_identity']['fstype']=='nfs4' and expected[0]==admission['expected_device'],'nfs-child-original-nfs-grandparent')
         protected=[self.mapping.host(self.plan['native']['data']),*[self.mapping.host(p) for p in self.plan['native']['roots']]]
         need(all(not (Path(physical)==Path(p) or Path(physical) in Path(p).parents or Path(p) in Path(physical).parents) for p in protected),'nfs-child-grandparent-protected-overlap')
         mounts=[dict(r,write=False) for r in mounts if r['child']!=str(tree.child_root)]+[dict(host=str(tree.root),child=str(tree.child_root),write=True)]
@@ -1677,7 +2017,7 @@ class LifecycleParent:
                  and tuple(current[i] for i in (0,1,5,6,7))==tuple(original[i] for i in (0,1,5,6,7)),
                  'nfs-probe-cleanup-original-directory-identity')
         for path in (fixture,parent):
-            if os.path.lexists(path):raise Held('nfs-probe-cleanup-owned-absence-required')
+            if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-required')
         return (row,session,probe,launch,lease,hashlib.sha256(process.kernel_output).hexdigest(),(fixture,parent))
 
     def end_nfs_writer_window(self,lease):
@@ -1738,7 +2078,7 @@ class LifecycleParent:
         # callback. Stored registry equality cannot prove actual pipe custody.
         if cleanup is not None:
             for path in cleanup[6]:
-                if os.path.lexists(path):raise Held('nfs-probe-cleanup-final-owned-absence')
+                if not nfs_absent(path):raise Held('nfs-probe-cleanup-final-owned-absence')
         outer=_DIALOGUES.get(self.engine,{}).get(session.cid);seal=record[8]
         need(outer is not None and _DIALOGUE_SEALS.get(self.engine,{}).get(session.cid) is seal
              and (outer['process'],outer['streams'],outer['descriptors'],outer['pid'],
@@ -1795,7 +2135,7 @@ class LifecycleParent:
                  'nfs-library-original-redirect-guard')
             if lock_fd is not None:
                 need(nine(os.fstat(lock_fd))==lock_ref['signature9']
-                     and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-each-GET')
+                     and nine(nfs_lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-each-GET')
             for name,value,code in functions:
                 need(getattr(module,name,None) is value and value.__code__ is code,'nfs-library-original-helper')
             read(configuration_ref)
@@ -1849,7 +2189,7 @@ class LifecycleParent:
         lock_fd=os.open(lock_ref['path'],os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             need(nine(os.fstat(lock_fd))==lock_ref['signature9']
-                 and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD')
+                 and nine(nfs_lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD')
             try:fcntl.flock(lock_fd,fcntl.LOCK_SH|fcntl.LOCK_NB)
             except BlockingIOError:raise Held('nfs-library-exclusive-Writer-held') from None
             before=self.inspect(reader['Id'])
@@ -1865,7 +2205,7 @@ class LifecycleParent:
             need(static(after)==static(reader) and lifecycle_state(after)==lifecycle_state(reader),
                  'nfs-library-original-reader-after')
             need(nine(os.fstat(lock_fd))==lock_ref['signature9']
-                 and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD-final')
+                 and nine(nfs_lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD-final')
         finally:os.close(lock_fd);lock_fd=None
         payload=dict(version=1,kind='parent-original-library-query',
                      query_plan_sha256=module.digest(module.encode(query)),documents=documents,
@@ -1907,6 +2247,7 @@ class LifecycleParent:
         dialogue.sequence=frame['sequence'];return response
 
     def inspect(self, cid):
+        owner_root_guard()
         need(digest(cid), 'exact-container-id')
         rows = decode(self.engine.run(['inspect', cid], max(0.001, self.deadline - time.monotonic())))
         need(type(rows) is list and len(rows) == 1 and rows[0]['Id'] == cid, 'fresh-inspect')
@@ -1926,7 +2267,7 @@ class LifecycleParent:
         directory = os.open(self.op, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         try:
             need(tuple(five(os.fstat(directory))) == self.op_fact
-                 and tuple(five(os.lstat(self.op))) == self.op_fact, 'operation-directory-FD')
+                 and tuple(five(nfs_lstat(self.op))) == self.op_fact, 'operation-directory-FD')
             fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
             try:
                 offset = 0
@@ -2018,7 +2359,7 @@ class LifecycleParent:
         phase_directory = self.op / phase
         if self in _CHILD_TREES:phase_directory=_CHILD_TREES[self].phase(phase)
         else:phase_directory.mkdir(mode=0o700)
-        info=os.lstat(phase_directory);phase_fact=tuple(five(info))
+        info=nfs_lstat(phase_directory);phase_fact=tuple(five(info))
         need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==(1000 if self in _CHILD_TREES else os.geteuid()),'phase-directory-intended-metadata')
         _OUTPUT_NODES.setdefault(self,{})[str(phase_directory)]=phase_fact
         self.sync(self.op)
@@ -2061,7 +2402,7 @@ class LifecycleParent:
                            proofs={k: self.mapping.child_ref(v) for k, v in custody['proofs'].items()},
                            seed=seed, seed_ref=seed_ref, accepted=False)
             _PHASES[self][phase] = pending
-        need(tuple(five(os.lstat(phase_directory))) == phase_fact, 'phase-directory-final')
+        need(tuple(five(nfs_lstat(phase_directory))) == phase_fact, 'phase-directory-final')
         return input_ref, actual
 
     def native_equivalent(self, original, current):
@@ -2113,7 +2454,7 @@ class LifecycleParent:
         host_path = absolute(self.mapping.host(child_path))
         # HOST incarnation is captured independently. CHILD dev/inode facts are
         # checked by the child against its original namespace, never host-normalized.
-        z = os.lstat(host_path)
+        z = nfs_lstat(host_path)
         host_ref = dict(path=str(host_path), sha256=child_ref['sha256'], signature9=nine(z))
         if self in _CHILD_TREES:
             raw,host_ref=_CHILD_TREES[self].output(child_ref,child_path,'native_scope')
@@ -2161,11 +2502,11 @@ class LifecycleParent:
         need(same_runtime(self.inspect(expected_child['Id']), expected_child), 'birth-final-child-profile')
         # No source/hash/copy/producer helper follows this raw closure.
         for path, expected in expected_nodes.items():
-            z = os.lstat(path)
+            z = nfs_lstat(path)
             if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != tuple(expected):
                 raise Held('birth-ancestor-final')
         for path, expected in expected_files.items():
-            z = os.lstat(path)
+            z = nfs_lstat(path)
             if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                     z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != expected:
                 raise Held('birth-file-final')
@@ -2246,10 +2587,10 @@ class LifecycleParent:
                 if int(Path('/proc/'+str(host_pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])!=host_ticks:
                     raise Held('writer-session-original-child-process')
                 for path,value in (*session_nodes,*writer_frames[0]):
-                    z=os.lstat(path)
+                    z=nfs_lstat(path)
                     if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('writer-session-original-node')
                 for path,value in (*session_files,*writer_frames[1]):
-                    z=os.lstat(path)
+                    z=nfs_lstat(path)
                     if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('writer-session-original-file')
                 if message is None:return None
                 frame_base={'protocol','type','nonce','input_sha256','parent_sha256','sequence','challenge'}
@@ -2272,10 +2613,10 @@ class LifecycleParent:
                                    'child_image':self.plan['selected_image'],
                                    **{k:origin[k] for k in ('native','worker','child_mounts')}})+b'\n'
                     for path,value in (*session_nodes,*writer_frames[0]):
-                        z=os.lstat(path)
+                        z=nfs_lstat(path)
                         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('writer-session-response-node')
                     for path,value in (*session_files,*writer_frames[1]):
-                        z=os.lstat(path)
+                        z=nfs_lstat(path)
                         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('writer-session-response-file')
                     return response
                 # The leave is emitted only after the installed original Writer
@@ -2341,9 +2682,9 @@ class LifecycleParent:
                 namespace_pid=[line.split()[1:] for line in Path('/proc/'+str(host_pid)+'/status').read_text().splitlines() if line.startswith('NSpid:')]
                 need(len(namespace_pid)==1 and int(namespace_pid[0][-1])==ws['process']['pid'] and host_ticks==ws['process']['start_ticks'],'writer-session-original-child-namespace')
                 writer_root=Path(self.mapping.host(self.plan['native']['data']))/'media-writer';lock=writer_root/'writer-v1.lock';marker=writer_root/'publication-v1.json'
-                z=os.lstat(writer_root);root5=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
-                z=os.lstat(lock);lock9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
-                z=os.lstat(marker);marker9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                z=nfs_lstat(writer_root);root5=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+                z=nfs_lstat(lock);lock9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                z=nfs_lstat(marker);marker9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
                 need(ws['writer_identity']==list(root5[:2]+lock9[:2]) and stat.S_ISDIR(root5[2]) and stat.S_IMODE(root5[2])==0o700
                      and root5[3]==1000 and stat.S_ISREG(lock9[5]) and stat.S_IMODE(lock9[5])==0o600 and lock9[6]==1000 and lock9[8]==1,'writer-session-original-host-identity')
                 origin=encode(dict(reader=observed['reader'],**fresh));binding=encode({k:v for k,v in ws.items() if k!='stage'})
@@ -2371,11 +2712,11 @@ class LifecycleParent:
             need(len(response) <= MAX, 'challenge-response-bound')
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'challenge-final-child')
             for path, expected in original_nodes.items():
-                z = os.lstat(path)
+                z = nfs_lstat(path)
                 if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != tuple(expected):
                     raise Held('challenge-ancestor-final')
             for path, expected in original_files.items():
-                z = os.lstat(path)
+                z = nfs_lstat(path)
                 if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                         z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != tuple(expected):
                     raise Held('challenge-file-final')
@@ -2383,10 +2724,10 @@ class LifecycleParent:
                 pipe_files=tuple(self.files.items());pipe_nodes=tuple(self.nodes.items());pipe_plan=copy.deepcopy(self.plan);pipe_core=_CORES.get(self);pipe_phase=self.phase;pipe_thread=self.thread;pipe_deadline=self.deadline
                 dialogue_close(self.engine,cid)
                 for path,value in pipe_nodes:
-                    z=os.lstat(path)
+                    z=nfs_lstat(path)
                     if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('challenge-original-pipe-node-final')
                 for path,value in pipe_files:
-                    z=os.lstat(path)
+                    z=nfs_lstat(path)
                     if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('challenge-original-pipe-file-final')
                 if tuple(self.files.items())!=pipe_files or tuple(self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
             return response
@@ -2518,22 +2859,22 @@ class LifecycleParent:
             if cid in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,cid)
             # No FD/process/time/inspect/encoding helper after this complete closure.
             for path,entries in names:
-                if tuple(sorted(os.listdir(path)))!=tuple(entries):raise Held('worker-parent-final-census')
+                if tuple(sorted(nfs_names(path)))!=tuple(entries):raise Held('worker-parent-final-census')
             for path,value in claims:
-                try:z=os.lstat(path)
+                try:z=nfs_lstat(path)
                 except FileNotFoundError:
                     if value is None:continue
                     raise Held('worker-parent-final-missing-claim')
                 if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=tuple(value):raise Held('worker-parent-final-claim')
             for path in absent:
-                try:os.lstat(path)
+                try:nfs_lstat(path)
                 except FileNotFoundError:continue
                 raise Held('worker-parent-final-absence')
             for path,value in nodes:
-                z=os.lstat(path)
+                z=nfs_lstat(path)
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('worker-parent-final-node')
             for path,value in files:
-                z=os.lstat(path)
+                z=nfs_lstat(path)
                 if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('worker-parent-final-file')
             if (module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))!=constants:raise Held('worker-parent-final-protocol-constants')
             if module.__dict__.get('Round') is not functions[1] or type(protocol) is not functions[1] or type(protocol).__getattribute__ is not object.__getattribute__ or len(functions[1].__dict__)!=len(functions[2]) or any(functions[1].__dict__.get(name) is not value for name,value in functions[2]) or functions[1].__init__.__code__ is not functions[3] or functions[1].accept.__code__ is not functions[4]:raise Held('worker-parent-final-protocol-implementation')
@@ -2607,7 +2948,8 @@ class LifecycleParent:
         documents={role:decode(read(ref)) for role,ref in mapped.items()}
         execute=documents['execution_report'];terminal=documents['terminal_report'];original=documents['originals'];request=decode(read(self.plan['producer_inputs']['archive_request']))
         owner=request['owner'];operation=request['operation_id']
-        need(type(original) is dict and set(original)=={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'} and original['version']==1 and original['kind']=='archive-one-original-custody' and original['owner']==owner and original['operation_id']==operation and original['publication_acceptance'] is False and original['mutation_authority'] is False,'archive-terminal-original-execution-record')
+        original_keys={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'}|({'fixture_transition'} if request['version']==3 else set())
+        need(type(original) is dict and set(original)==original_keys and type(original['version']) is int and original['version']==(2 if request['version']==3 else 1) and original['kind']=='archive-one-original-custody' and original['owner']==owner and original['operation_id']==operation and original['publication_acceptance'] is False and original['mutation_authority'] is False,'archive-terminal-original-execution-record')
         for doc,kind in ((execute,'archive-one-owning-execute-observation'),(terminal,'archive-one-independent-terminal-observation')):
             need(doc.get('kind')==kind and doc.get('owner')==owner and doc.get('operation_id')==operation and doc.get('outcome') in ('observed-forward','observed-rollback') and doc.get('originals')==declared['originals'] and doc.get('baseline')==original['baseline'] and doc.get('phase')=='execute' and doc.get('nonce')==self.plan['nonce'] and doc.get('final_ack_required') is True and doc.get('provider_continuity_verified') is False and all(doc.get(k) is False for k in ('reader_index_acceptance','ordinary_import_grant','publication_acceptance','mutation_authority','automatic_replay')),'archive-terminal-owning-report-joins')
         need(execute['terminal_report']==declared['terminal_report'] and execute['execute_history']==terminal['execute_history'] and execute['outcome']==terminal['outcome'],'archive-terminal-execute-fresh-verifier-join')
@@ -2623,6 +2965,17 @@ class LifecycleParent:
         for childref in (original['baseline'],original['preparation'],execute['execute_history'],terminal['history']):
             hostref=self.child_control_from_proof(childref,original_files);value=tuple(hostref['signature9']);need(hostref['path'] not in original_files or original_files[hostref['path']]==value,'archive-terminal-derived-view-conflict');original_files[hostref['path']]=value;document=decode(read(hostref))
             if childref in (execute['execute_history'],terminal['history']):need(document['owner']==owner and document['operation_id']==operation and all(document[k] is False for k in ('mutation_authority','publication_acceptance','ordinary_import_grant','reader_index_acceptance','automatic_replay')),'archive-terminal-history-owning-join')
+        if request['version']==3:
+            action=pinned_module(self.plan['provider'])
+            receipt_ref=self.child_control_from_proof(original['fixture_transition'],original_files)
+            receipt=decode(read(receipt_ref));preparation=decode(read(self.child_control_from_proof(original['preparation'],original_files)))
+            # This is the live execute reader baseline retained BEFORE the child.
+            reader=_PHASES[self]['execute']['reader']['runtime']
+            child_files={path:tuple(value) for path,value in terminal['original_vectors']['files']}
+            child_names={path:tuple(value) for path,value in terminal['original_vectors']['censuses']}
+            stage_child=str(Path(self.plan['native']['data'])/('fixture-transition-'+operation))
+            archive_fixture_terminal(action,request,original,receipt,preparation,reader,native,stage_child,child_files,child_names)
+            original_files[receipt_ref['path']]=tuple(receipt_ref['signature9'])
         stage=str(Path(self.mapping.host(original['preparation']['path'])).parent)
         need(original_files.get(stage)==tuple(original['preparation_directory9']),'archive-terminal-original-completed-stage9')
         original_files=tuple((str(k),tuple(v)) for k,v in original_files.items());original_nodes=tuple((str(k),tuple(v)) for k,v in original_nodes.items())
@@ -2647,22 +3000,22 @@ class LifecycleParent:
         self.close_archive_terminal_round(record)
         if type(self.engine) is ScopedDocker and current['Id'] in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,current['Id'])
         for path,names in original_names:
-            if tuple(sorted(os.listdir(path)))!=names:raise Held('archive-terminal-final-census')
+            if tuple(sorted(nfs_names(path)))!=names:raise Held('archive-terminal-final-census')
         for path,value in original_claims:
-            try:z=os.lstat(path)
+            try:z=nfs_lstat(path)
             except FileNotFoundError:
                 if value is not None:raise Held('archive-terminal-final-missing-claim')
                 continue
             if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
         for path in original_absent:
-            try:os.lstat(path)
+            try:nfs_lstat(path)
             except FileNotFoundError:continue
             raise Held('archive-terminal-final-absence')
         for path,value in original_nodes:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
         for path,value in original_files:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
         logical=dict(plan=self.plan,files=self.files,nodes=self.nodes,source=self.source_ref,input=self.plan_ref,engine=id(self.engine),thread=self.thread,deadline=self.deadline,core=self.core,generated=self.generated,op=str(self.op),op_fact=self.op_fact,outputs=_OUTPUT_NODES.get(self,{}),phases=_PHASES.get(self,{}))
         pending=[logical];projection=[]
@@ -2701,22 +3054,22 @@ class LifecycleParent:
         if original_seal is None or tuple(projection)!=original_seal:raise Held('archive-terminal-original-round-seal')
         original_files=record['files'];original_nodes=record['nodes'];original_claims=record['claims'];original_absent=record['absent'];original_names=record['names']
         for path,names in original_names:
-            if tuple(sorted(os.listdir(path)))!=names:raise Held('archive-terminal-final-census')
+            if tuple(sorted(nfs_names(path)))!=names:raise Held('archive-terminal-final-census')
         for path,value in original_claims:
-            try:z=os.lstat(path)
+            try:z=nfs_lstat(path)
             except FileNotFoundError:
                 if value is not None:raise Held('archive-terminal-final-missing-claim')
                 continue
             if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
         for path in original_absent:
-            try:os.lstat(path)
+            try:nfs_lstat(path)
             except FileNotFoundError:continue
             raise Held('archive-terminal-final-absence')
         for path,value in original_nodes:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
         for path,value in original_files:
-            z=os.lstat(path)
+            z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
         pending=[record];projection=[]
         while pending:
@@ -2734,7 +3087,7 @@ class LifecycleParent:
         host_path=self.op/(phase+'-input.json');directory=self.op/phase
         if self in _CHILD_TREES:directory=_CHILD_TREES[self].phase(phase)
         else:directory.mkdir(mode=0o700)
-        fact=tuple(five(os.lstat(directory)))
+        fact=tuple(five(nfs_lstat(directory)))
         need((fact[2]&0o777)==0o700 and fact[3]==(1000 if self in _CHILD_TREES else os.geteuid()),'archive-phase-private')
         _OUTPUT_NODES.setdefault(self,{})[str(directory)]=fact;self.sync(self.op)
         if self in _CHILD_TREES:
@@ -2750,6 +3103,9 @@ class LifecycleParent:
         if self.plan.get('version') in (11,12,13) and phase=='execute':
             value.update(version=2,terminal_mode='same-child-v1')
             if self.plan['version']==13:value.update(version=3,terminal=request.get('terminal','forward'),publication_protocol='rename-link-v1')
+            if request['version']==3:
+                originals=archive_fixture_inputs(self.plan,request)
+                value.update(version=4,fixture_originals={role:self.mapping.child_ref(ref) for role,ref in originals.items()})
         ref=self.emit(phase+'-input.json',value);actual=actual_command(command,ref['sha256'])
         if phase!='backup':
             need(custody_context is not None,'archive-phase-custody-required')
@@ -2761,7 +3117,7 @@ class LifecycleParent:
             need(set(seed)=={'version','kind','invocation','parent_source','birth_source','config','worker_library','selected_image'} and type(seed['version']) is int and seed['version']==1 and seed['kind']=='selected-child-native-scope-birth' and seed['invocation']==invocation and seed['parent_source']==self.mapping.child_ref(self.source_ref) and seed['birth_source']==dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=self.plan['birth_source_sha256']) and seed['selected_image']==self.plan['selected_image'],'archive-prebirth-source-binding')
             seedref=self.emit(phase+'-input.birth.json',seed)
             _PHASES[self][phase]=dict(phase=phase,input=copy.deepcopy(ref),invocation=invocation,reader=copy.deepcopy(supplied['reader']),proofs={k:self.mapping.child_ref(v) for k,v in supplied['proofs'].items()},seed=seed,seed_ref=seedref,accepted=False)
-        need(tuple(five(os.lstat(directory)))==fact,'archive-phase-original-directory')
+        need(tuple(five(nfs_lstat(directory)))==fact,'archive-phase-original-directory')
         return ref,actual
 
     def phase_write(self,row,phase):
@@ -2782,7 +3138,7 @@ class LifecycleParent:
         facts=decode(read(ref));request=decode(read(self.plan['producer_inputs']['archive_request']))
         library=self.mapping.host(self.plan['native']['roots'][0])
         need(facts['kind']=='archive-one-owning-active-to-stopped-nfs-facts' and facts['execute_input']==input_ref and facts['nonce']==self.plan['nonce'] and facts['owner']==request['owner'] and facts['operation_id']==request['operation_id'] and facts['mount']==record['canary'].mount and facts['device']==record['canary'].device and facts['mount']['fstype']=='nfs4','archive-publication-original-ready-join')
-        need(os.lstat(library).st_dev==facts['device'],'archive-publication-original-library-device')
+        need(nfs_lstat(library).st_dev==facts['device'],'archive-publication-original-library-device')
         result=dict(version=1,protocol='rename-link-v1',nonce=self.plan['nonce'],input_sha256=input_ref['sha256'],parent_sha256=self.source_ref['sha256'],owner=copy.deepcopy(request['owner']),operation_id=request['operation_id'],library=library,mount=copy.deepcopy(facts['mount']),device=facts['device'],execution_authority=False,publication_acceptance=False)
         need(self in _ARCHIVE_COMMON_ROOTS,'archive-publication-common-root-required')
         geometry=_ARCHIVE_COMMON_ROOTS[self];check_common_root(geometry);result['geometry']=copy.deepcopy(geometry[1])
@@ -2862,22 +3218,22 @@ class LifecycleParent:
             self.continuous();seconds=self.left()
             # Last semantic, source, engine and mapping callbacks have finished.
             for path,expected_names in names:
-                if tuple(sorted(os.listdir(path)))!=expected_names:raise Held('archive-resume-census')
+                if tuple(sorted(nfs_names(path)))!=expected_names:raise Held('archive-resume-census')
             for path,value in nodes.items():
-                z=os.lstat(path)
+                z=nfs_lstat(path)
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-resume-node')
             for path,value in files.items():
-                z=os.lstat(path)
+                z=nfs_lstat(path)
                 if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-resume-file')
             for path,value in claims:
-                try:z=os.lstat(path)
+                try:z=nfs_lstat(path)
                 except FileNotFoundError:
                     if value is not None:raise Held('archive-resume-missing-claim')
                     continue
                 actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)
                 if value is None or actual!=value:raise Held('archive-resume-claim')
             for path in absent:
-                try:os.lstat(path)
+                try:nfs_lstat(path)
                 except FileNotFoundError:continue
                 raise Held('archive-resume-absence')
             resumed=self.engine.run(['start',self.plan['reader']['id']],seconds).decode().strip();need(resumed==self.plan['reader']['id'],'archive-resume-ACK-unknown')
@@ -2978,20 +3334,20 @@ class LifecycleParent:
             self.continuous(); seconds = self.left()
             # All semantic/engine/producer callbacks have completed.
             for path, expected in censuses:
-                if tuple(sorted(os.listdir(path))) != expected:
+                if tuple(sorted(nfs_names(path))) != expected:
                     raise Held('resume-namespace-final')
             for path, expected in nodes.items():
-                z = os.lstat(path)
+                z = nfs_lstat(path)
                 if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != expected:
                     raise Held('resume-ancestor-final')
             for path, expected in files.items():
-                z = os.lstat(path)
+                z = nfs_lstat(path)
                 if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                         z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != expected:
                     raise Held('resume-file-final')
             for path in absent:
                 try:
-                    os.lstat(path)
+                    nfs_lstat(path)
                 except FileNotFoundError:
                     continue
                 raise Held('resume-absence-final')
@@ -3011,9 +3367,20 @@ class LifecycleParent:
 
 def run_operation(plan_ref, source_ref, *, engine, configured=None, nfs_sources=None, nfs_intents=None):
     """Explicit owning integration; forward original configured inputs unchanged."""
-    if configured is None and nfs_sources is None and nfs_intents is None:
-        return LifecycleParent(plan_ref, source_ref, engine).execute()
-    return LifecycleParent(plan_ref, source_ref, engine,configured=configured,nfs_sources=nfs_sources,nfs_intents=nfs_intents).execute()
+    owner = None
+    try:
+        if configured is None and nfs_sources is None and nfs_intents is None:
+            owner = LifecycleParent(plan_ref, source_ref, engine)
+        else:
+            owner = LifecycleParent(plan_ref, source_ref, engine,configured=configured,nfs_sources=nfs_sources,nfs_intents=nfs_intents)
+        return owner.execute()
+    finally:
+        primary = sys.exc_info()[1]
+        try:
+            actor = getattr(owner, 'owner_reads', None) if owner is not None else _OWNER_READS
+            release_owner_reads(actor)
+        except BaseException:
+            if primary is None:raise
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ p = composer.p
 need = p.need
 HERE = Path(__file__).absolute().parent
 PINS = {
-    'genuine_plan13_producer.py': '53975b4e111d07e91c80586ee972c2df5c55ed13a0e99819bdc5d0425da53fdf',
+    'genuine_plan13_producer.py': 'ea7b559d9856dbad9feff99b8c9aa07199e00bc39e7466d277f561ca514ef310',
     'comic_negative_nfs_active_parent.py': '63ec393ab36a5296ad717013a7318057ee13b83b4cbd7a9baed09a9bf2038a19',
     'genuine_source_cohort.py': '9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d',
 }
@@ -37,11 +37,13 @@ def fresh(value):
 
 
 class Assembly:
-    def __init__(self, request_ref, output):
+    def __init__(self, request_ref, output, *, owner_reads=None):
+        need(owner_reads is None or type(owner_reads) is p.GeometryOwnerReads and p._OWNER_READS is owner_reads, 'active-owning-read-scope')
+        self.owner_reads = owner_reads
         self.originals = composer.Originals(); self.parent_fd = self.fd = None
         self.output = p.absolute(str(output)); self.files = {}; self.names = set()
         need(not os.path.lexists(self.output), 'active-output-no-adoption')
-        z = os.lstat(self.output.parent)
+        z = p.nfs_lstat(self.output.parent)
         need(stat.S_ISDIR(z.st_mode) and stat.S_IMODE(z.st_mode) == 0o700
              and z.st_uid == os.geteuid(), 'active-private-parent')
         self.parent5 = p.five(z); self.originals.nodes.update(p.parents(self.output))
@@ -121,7 +123,7 @@ class Assembly:
         for value in scope['sources'].values():follow(value)
         review = docs['effective_observer_review']
         need(type(review) is dict and set(review) == set(composer.EFFECTIVE), 'active-effective-seven')
-        effective = {name: follow(ref) for name, ref in review.items()}
+        effective = {name: follow(ref, private=name not in ('producer', 'parent_source')) for name, ref in review.items()}
         report, runtime, ack, acceptance, parent_ack = (p.decode(effective[k]) for k in ('report', 'runtime', 'ack', 'acceptance', 'parent_ack'))
         reader = roles['reader']; fresh(runtime['observed'])
         need(runtime.get('kind') == 'reviewed-komga-effective-scope-runtime'
@@ -151,13 +153,14 @@ class Assembly:
         for path, ref in report['config_files'].items():
             full = dict(path=path, **ref); need(refs.get(path) == full, 'active-effective-config-original'); follow(pair(full), private=False)
         for path in (*report['absent_config_files'], *report['optional_absent_scopes']):
-            path = p.absolute(path); need(not os.path.lexists(path), 'active-effective-absence')
+            path = p.absolute(path); need(p.nfs_absent(path), 'active-effective-absence')
             self.originals.absent.add(str(path)); self.remember(p.parents(path))
         cohort = docs['source_cohort']; images = dict(native=roles['native']['image'], selected=roles['native']['image'], reader=reader['image'], worker=roles['worker']['image'])
         need(cohort.get('kind') == 'approved-disposable-nfs-current-source-cohort' and cohort.get('images') == images
              and set(cohort.get('sources', {})) == set(cohort_source.ROLES)
              and set(cohort.get('logs', {})) == {'stdout', 'stderr'}, 'active-source-cohort')
-        for value in (*cohort['sources'].values(), *cohort['logs'].values(), cohort['parent']):follow(value)
+        for value in (*cohort['sources'].values(), cohort['parent']):follow(value, private=False)
+        for value in cohort['logs'].values():follow(value)
         receipt = p.decode(follow(cohort['receipt']))
         need(receipt.get('kind') == 'owned-nfs-current-source-fixture-readiness' and receipt.get('images') == images
              and receipt.get('parent_sha256') == cohort['parent']['sha256']
@@ -195,8 +198,15 @@ class Assembly:
         need(type(scope['forbidden_roots']) is list and 1 <= len(scope['forbidden_roots']) <= 32
              and len(set(scope['forbidden_roots'])) == len(scope['forbidden_roots']), 'active-scope-roots')
         roots = [p.absolute(x) for x in scope['forbidden_roots']]
-        need(all(stat.S_ISDIR(os.lstat(x).st_mode) for x in roots), 'active-scope-root-kind')
-        for path in roots:self.remember(p.parents(path)); self.remember({str(path): p.five(os.lstat(path))})
+        if getattr(self, 'owner_reads', None) is not None:
+            self.owner_reads.check()
+            geometry = self.owner_reads.geometry
+            need(self.owner_reads.root.name == 'archive-publication-' + self.document['nonce'], 'active-owner-read-bootstrap-nonce')
+            need(probe['library_root'] == geometry['library']['path']
+                 and str(Path(probe['fixture_parent']).parent) == geometry['retention']['path']
+                 and p.nine(self.owner_reads.stat(geometry['retention']['path'])) == self.document['parent_admission']['grandparent_signature'], 'active-owner-read-exact-probe-geometry')
+        need(all(stat.S_ISDIR(p.nfs_lstat(x).st_mode) for x in roots), 'active-scope-root-kind')
+        for path in roots:self.remember(p.parents(path)); self.remember({str(path): p.five(p.nfs_lstat(path))})
         active.exact(probe, ('version', 'kind', 'scope', 'fixture_parent', 'fixture_name',
             'fixture_parent_signature', 'library_root', 'expected_device', 'mount_identity', 'output_root'))
         need(type(probe['version']) is int and probe['version'] == 2
@@ -208,18 +218,18 @@ class Assembly:
         # Host preparation binds absence and the existing grandparent instead.
         parent = p.absolute(probe['fixture_parent']); admission = self.document['parent_admission']
         active.exact(admission, ('path', 'grandparent_signature', 'expected_device', 'mount_identity'))
-        grandparent = parent.parent; stamp = p.nine(os.lstat(grandparent))
+        grandparent = parent.parent; stamp = p.nine(p.nfs_lstat(grandparent))
         need(admission['path'] == str(parent) and re.fullmatch(r'[.]comic-nfs-private-[0-9a-f]{32}', parent.name)
-             and probe['fixture_parent_signature'] is None and not os.path.lexists(parent)
+             and probe['fixture_parent_signature'] is None and p.nfs_absent(parent)
              and stamp == admission['grandparent_signature'] and stat.S_ISDIR(stamp[5])
-             and stamp[0] == probe['expected_device'] == os.lstat(probe['library_root']).st_dev,
+             and stamp[0] == probe['expected_device'] == p.nfs_lstat(probe['library_root']).st_dev,
              'active-original-precreation-parent')
         need(probe['output_root'] == str(p.absolute(self.document['operation_output']) / 'probe'),
              'active-probe-operation-output')
         self.neutral_parent = parent; self.grandparent9 = stamp
         self.originals.absent.add(str(parent)); self.remember(p.parents(parent))
         fixture = parent / probe['fixture_name']; out = p.absolute(probe['output_root'])
-        need(not os.path.lexists(fixture) and not os.path.lexists(out)
+        need(p.nfs_absent(fixture) and not os.path.lexists(out)
              and active.outside(fixture, roots) and active.outside(out, roots)
              and fixture not in out.parents and out not in fixture.parents, 'active-original-probe-geometry')
         mount = probe['mount_identity']; active.exact(mount, ('source', 'target', 'fstype', 'fsroot', 'options', 'maj:min'))
@@ -232,13 +242,13 @@ class Assembly:
         self.originals.close()
         if hasattr(self, 'neutral_parent'):
             need(not os.path.lexists(self.neutral_parent)
-                 and p.nine(os.lstat(self.neutral_parent.parent)) == self.grandparent9,
+                 and p.nine(p.nfs_lstat(self.neutral_parent.parent)) == self.grandparent9,
                  'active-precreation-parent-closure')
-        need(p.five(os.fstat(self.parent_fd)) == self.parent5 == p.five(os.lstat(self.output.parent)), 'active-output-parent')
+        need(p.five(os.fstat(self.parent_fd)) == self.parent5 == p.five(p.nfs_lstat(self.output.parent)), 'active-output-parent')
         fresh(self.document['observed'])
         if hasattr(self, 'tape'):need(p.encode(self.document) == self.tape, 'active-request-changed')
         if self.fd is not None:
-            need(p.five(os.fstat(self.fd)) == self.output5 == p.five(os.lstat(self.output))
+            need(p.five(os.fstat(self.fd)) == self.output5 == p.five(p.nfs_lstat(self.output))
                  and set(os.listdir(self.fd)) == self.names, 'active-output-custody')
             for ref in self.files.values():p.read(ref)
 
@@ -282,6 +292,6 @@ class Assembly:
             if fd is not None:os.close(fd); setattr(self, name, None)
 
 
-def assemble(request_ref, output):
+def assemble(request_ref, output, *, owner_reads=None):
     """Only private input files are written; all operational rights stay absent."""
-    return Assembly(request_ref, output).execute()
+    return Assembly(request_ref, output, owner_reads=owner_reads).execute()

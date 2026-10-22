@@ -15,6 +15,25 @@ _REG=weakref.WeakKeyDictionary()
 def need(v,r):
     if not v:raise Held(r)
 
+def _host_readers(owner):
+    method = owner.left; g = method.__func__.__globals__
+    need(type(owner) is g.get('LifecycleParent') and owner.thread == threading.get_ident()
+         and str(Path(method.__func__.__code__.co_filename).absolute()) == owner.source_ref['path'], 'nfs-owner-read-original-parent')
+    if 'owner_root_guard' in g:g['owner_root_guard']()
+    else:need(os.geteuid()!=0,'nfs-owner-read-root-module-required')
+    return g
+
+
+def _host_stat(owner, path):
+    g = _host_readers(owner)
+    return g['nfs_lstat'](path) if 'nfs_lstat' in g else os.lstat(path)
+
+
+def _host_names(owner, path):
+    g = _host_readers(owner)
+    return g['nfs_names'](path) if 'nfs_names' in g else os.listdir(path)
+
+
 def parent_module(owner):
     method=owner.left;g=method.__func__.__globals__
     need(type(owner) is g.get('LifecycleParent') and g.get('_CORES',{}).get(owner)==owner.core and owner.thread==threading.get_ident(),'nfs-existing-owning-parent')
@@ -97,13 +116,13 @@ class RetainedObservation:
         for path,stamp in facts['files']:
             need(type(path) is str and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp),'nfs-retained-original-file-vector')
             host=host_map(path);expected=tuple(stamp)
-            need(tuple(g['nine'](os.lstat(host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
+            need(tuple(g['nine'](_host_stat(owner, host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
         nodes=dict(owner.nodes)
         for path,stamp in (*tree.nodes,*tree.directories):
             need(path not in nodes or nodes[path]==tuple(stamp),'nfs-retained-host-node-conflict');nodes[path]=tuple(stamp)
         names=[]
         for path,expected in facts['names']:
-            host=host_map(path);need(tuple(sorted(os.listdir(host)))==tuple(sorted(expected)),'nfs-retained-original-namespace');names.append((host,frozenset(expected)))
+            host=host_map(path);need(tuple(sorted(_host_names(owner, host)))==tuple(sorted(expected)),'nfs-retained-original-namespace');names.append((host,frozenset(expected)))
         absent=tuple(host_map(path) for path in facts['absent'])
         self.files,self.nodes,self.names,self.absent=tuple(files),tuple(nodes.items()),tuple(names),absent
         self.original=(owner,session,self.tape,g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device)),self.files,self.nodes,self.names,self.absent)
@@ -115,10 +134,10 @@ class RetainedObservation:
         session.request('check',stopped=owner.phase not in ('admitted','stopping'))
         owner.left()
         for path,expected in names:
-            need(frozenset(os.listdir(path))==expected,'nfs-retained-original-namespace-tail')
+            need(frozenset(_host_names(owner, path))==expected,'nfs-retained-original-namespace-tail')
         self.g['final'](dict(files),dict(nodes),absent)
         for path in absent:
-            try:os.lstat(path)
+            try:_host_stat(owner, path)
             except FileNotFoundError:continue
             raise Held('nfs-retained-original-absence')
     def current(self,*,stopped):
@@ -179,22 +198,22 @@ class StoppedNFSHandoff:
         need(session.successful_exit()==origin[7],'nfs-stopped-original-successful-exit')
         need(g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device,stopped=self.stopped,library=self.library))==tape,'nfs-stopped-original-facts')
         for path,expected in names:
-            need(frozenset(os.listdir(path))==expected,'nfs-stopped-original-namespace-tail')
+            need(frozenset(_host_names(owner, path))==expected,'nfs-stopped-original-namespace-tail')
         need(g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device,stopped=self.stopped,library=self.library))==tape,'nfs-stopped-final-original-facts')
         original()
         g['final'](dict(files),dict(nodes),absent)
         for path,expected in names:
-            need(frozenset(os.listdir(path))==expected,'nfs-stopped-final-namespace')
+            need(frozenset(_host_names(owner, path))==expected,'nfs-stopped-final-namespace')
         original()
         # Raw retained vectors again after the final replaceable helper.
         for path,fact in nodes:
-            z=os.lstat(path)
+            z=_host_stat(owner, path)
             need((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==tuple(fact),'nfs-stopped-final-node')
         for path,fact in files:
-            z=os.lstat(path)
+            z=_host_stat(owner, path)
             need((z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)==tuple(fact),'nfs-stopped-final-file')
         for path in absent:
-            try:os.lstat(path)
+            try:_host_stat(owner, path)
             except FileNotFoundError:continue
             raise Held('nfs-stopped-original-owned-absence')
     def current(self,*,stopped):
@@ -207,7 +226,7 @@ class StoppedNFSHandoff:
         result=owner.engine.canary(['findmnt','--json','--target',facts['library'],'--output','SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN'],input=None,capture_output=True,check=False,timeout=min(30,owner.left()))
         need(result.returncode==0 and len(result.stdout)<=1024**2 and len(result.stderr)<=1024**2
              and g['decode'](result.stdout)=={'filesystems':[facts['mount']]},'nfs-stopped-original-current-export')
-        need(os.lstat(facts['library']).st_dev==facts['device'],'nfs-stopped-original-library-device')
+        need(_host_stat(owner, facts['library']).st_dev==facts['device'],'nfs-stopped-original-library-device')
         self.close();need(_STOPPED_HANDOFFS.get(self) is saved,'nfs-stopped-final-current-registry')
         return list(current.values())
 
@@ -234,15 +253,15 @@ def stop_owned(owner):
     seconds=owner.left();r['canary'].close()
     final_files=(*before[0],(intent['path'],tuple(intent['signature9'])))
     for p,v in before[2]:
-        if frozenset(os.listdir(p)) != v:raise Held('nfs-prestop-census')
+        if frozenset(_host_names(owner, p)) != v:raise Held('nfs-prestop-census')
     for p,v in before[1]:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('nfs-prestop-ancestor')
     for p,v in final_files:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('nfs-prestop-file')
     for p in before[3]:
-        try:os.lstat(p)
+        try:_host_stat(owner, p)
         except FileNotFoundError:continue
         raise Held('nfs-prestop-cleanup-absence')
     raw=owner.engine.run(['stop','--timeout','60',owner.plan['reader']['id']],seconds)
@@ -289,15 +308,15 @@ def nfs_ready(owner,request,*,watch):
     result=dict(version=1,phase='nfs-ready',nonce=request['nonce'],evidence=dict(evidence=copy.deepcopy(output)))
     r['canary'].close();owner.continuous();owner.left()
     for p,v in before[2]:
-        if frozenset(os.listdir(p))!=v:raise Held('nfs-ready-census')
+        if frozenset(_host_names(owner, p))!=v:raise Held('nfs-ready-census')
     for p,v in before[1]:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('nfs-ready-ancestor')
     for p,v in (*before[0],(output['path'],tuple(output['signature9']))):
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('nfs-ready-file')
     for p in before[3]:
-        try:os.lstat(p)
+        try:_host_stat(owner, p)
         except FileNotFoundError:continue
         raise Held('nfs-ready-cleanup-absence')
     return result
@@ -339,15 +358,15 @@ def nfs_ready_archive(owner,request,*,watch):
     file_items=tuple(files.items());node_items=tuple(nodes.items())
     r['canary'].close();owner.continuous();owner.left()
     for p,v in before[2]:
-        if frozenset(os.listdir(p))!=v:raise Held('archive-nfs-final-census')
+        if frozenset(_host_names(owner, p))!=v:raise Held('archive-nfs-final-census')
     for p,v in node_items:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('archive-nfs-final-node')
     for p,v in file_items:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('archive-nfs-final-file')
     for p in before[3]:
-        try:os.lstat(p)
+        try:_host_stat(owner, p)
         except FileNotFoundError:continue
         raise Held('archive-nfs-final-cleanup-absence')
     return result
@@ -374,8 +393,10 @@ def nfs_ready_archive_v13(owner,request,*,watch):
             value=tuple(value);need(path not in nodes or nodes[path]==value,'archive-nfs-original-node-conflict');nodes[path]=value
     for ref in refs:g['read'](ref)
     doc=g['decode'](g['read'](inp));original=g['decode'](g['read'](owner.plan['producer_inputs']['archive_request']))
-    need(type(original) is dict and type(original.get('version')) is int and (original['version']==1 and set(original)=={'version','owner','operation_id'} or original['version']==2 and set(original)=={'version','owner','operation_id','terminal'} and original['terminal'] in ('forward','rollback')),'archive-nfs-original-owner-request')
+    need(type(original) is dict and type(original.get('version')) is int and (original['version']==1 and set(original)=={'version','owner','operation_id'} or original['version']==2 and set(original)=={'version','owner','operation_id','terminal'} and original['terminal'] in ('forward','rollback') or original['version']==3 and set(original)=={'version','owner','operation_id','terminal','fixture_transition'} and original['terminal'] in ('forward','rollback')),'archive-nfs-original-owner-request')
     need(doc.get('terminal','forward')==original.get('terminal','forward'),'archive-nfs-original-terminal-request')
+    if original['version']==3:
+        need(doc.get('version')==4 and doc.get('fixture_originals')=={role:owner.mapping.child_ref(original['fixture_transition'][role]) for role in ('bootstrap','catalog')},'archive-nfs-fixture-original-projection')
     expected=['/lsiopy/bin/python3','-I','-B',owner.mapping.child(owner.plan['provider']['path']),'--phase','execute','--input',owner.mapping.child(inp['path']),'--input-sha256',inp['sha256'],'--source-sha256',owner.plan['provider']['sha256']]
     need(context['command']==expected and doc['action']=='archive-one' and doc['owner']==original['owner'] and doc['operation_id']==original['operation_id'],'archive-nfs-exact-owner-command')
     need(doc['controls']=={k:owner.mapping.child_ref(v) for k,v in ctx['controls'].items()} and doc['archive_scopes']==owner.mapping.child_ref(ctx['archive_scopes']),'archive-nfs-original-input-controls')
@@ -390,15 +411,15 @@ def nfs_ready_archive_v13(owner,request,*,watch):
     file_items=tuple(files.items());node_items=tuple(nodes.items())
     r['canary'].close();owner.continuous();owner.left()
     for p,v in before[2]:
-        if frozenset(os.listdir(p))!=v:raise Held('archive-nfs-final-census')
+        if frozenset(_host_names(owner, p))!=v:raise Held('archive-nfs-final-census')
     for p,v in node_items:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('archive-nfs-final-node')
     for p,v in file_items:
-        z=os.lstat(p)
+        z=_host_stat(owner, p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('archive-nfs-final-file')
     for p in before[3]:
-        try:os.lstat(p)
+        try:_host_stat(owner, p)
         except FileNotFoundError:continue
         raise Held('archive-nfs-final-cleanup-absence')
     return result

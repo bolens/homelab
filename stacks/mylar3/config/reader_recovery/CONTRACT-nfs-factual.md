@@ -137,3 +137,22 @@ exclusion prerequisite. Independent same-UID/root actors writing names inside
 the syscall boundary are outside that contract; no inode-conditional unlink
 exists on NFS. Installed connected factories and actual NFS/terminal/ACK proof
 remain mandatory.
+
+
+The explicit plan13 `searchable-common-root-nfs` geometry permits finite host
+reads as effective UID1000 on the original disposable G/L/R. The host retains
+its real/saved UID and original GIDs/groups; it verifies restoration to Root
+before any semantic callback, pipe, Docker or API operation. Reads require one
+untraced thread, blocked signals and disabled garbage collection during the
+credential interval. Only bounded no-follow metadata, namespace and original
+file reads are exposed. No callback, write, permission change, mount-policy
+change or retry after a permissions error is part of this interface.
+
+The read scope preserves G's original full9 and L/R's original identity5. Each
+read closes its own FD/path/ancestor sample; CurrentRoles separately retains its
+fresh post-bootstrap full9. The scope does not adopt old evidence or replace
+owning stop, Writer, NFS, backup, final-ACK or publication admission. Assembly
+may receive only its own Parent module's exact in-memory read scope, joined to
+the original Bootstrap geometry, probe L and current admission R. Private
+facts and credentials stay private; only explicitly typed original source
+roles may retain their original public ownership/mode under full9/hash custody.

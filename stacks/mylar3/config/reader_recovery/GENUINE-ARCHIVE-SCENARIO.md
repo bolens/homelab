@@ -41,6 +41,22 @@ behavior; old request v1 selects forward in plan13. Old plans10–12 and input
 versions1–2 retain their exact schemas and local exchange behavior. The private
 request is not an added public API route or an uncertain-operation replay.
 
+For the original disposable fixture only, private request v3 adds an exact
+`fixture_transition` joining original Bootstrap/catalog records and the actual
+catalog-derived genesis archive. Input v4 carries the two factual copies through
+the existing checked Tree; Root retains the original UID1000 references. No
+caller supplies replacement archive bytes. Request v1/v2 and input v1/v2/v3
+retain their existing schemas and behavior.
+
+After genuine stopped-reader custody and existing Writer admission, the action
+durably preserves the valid genesis, derives one supported missing directory
+slash and verifies byte-exact repair back to genesis before changing the held
+fixture inode. Originals v2 and terminal consumers retain this causal record
+and every stage vector. Forward repair reproduces genesis; explicit rollback
+restores the malformed successor. Failure or uncertainty preserves the hold
+without automatic reset or replay. These fixture records grant no live import,
+ACK, publication acceptance or independent custody.
+
 The six source-owned steps are retain-displaced (no-clobber hardlink),
 detach-source, publish (no-clobber hardlink), detach-stage, retain-original
 (no-clobber hardlink), and detach-displaced. Each has a durable intent and done

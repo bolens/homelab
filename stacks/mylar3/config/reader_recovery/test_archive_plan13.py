@@ -94,6 +94,7 @@ class EntrypointTests(unittest.TestCase):
     def test_legacy_entry_keeps_original_constructor_call(self):
         plan=object();source=object();engine=object()
         with patch.object(parent,'LifecycleParent') as boundary:
+            boundary.return_value.owner_reads=None
             parent.run_operation(plan,source,engine=engine)
         boundary.assert_called_once_with(plan,source,engine);boundary.return_value.execute.assert_called_once_with()
     def test_constructor_refusal_never_executes(self):

@@ -34,20 +34,22 @@ The installed SourceCohort gate is accepted. Next obtain fresh effective-scope
 and current-role observations within their 120-second window, then exercise the
 connected owning factories and archive terminal path.
 
-The corrected private source projection passes the complete isolated
-SourceFixture gate: all 1,302 controls across 73 suites, with zero skips,
-installed-source checks before and after execution, and verified owned-container
-cleanup. Preserve both failed histories without replay. Fresh effective scope,
-current roles and connected factory/archive-terminal acceptance remain next;
-no aggregate task is complete on this source proof alone. See [the current handoff correction](evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21).
+The installed SourceFixture generation passes 1,302 controls across 73 suites
+with zero skips, source checks before/after and verified owned-container cleanup.
+The successor assembler retains the absent probe parent until the owning Parent
+creates it; its 1,306 source controls and 14 owning runner checks pass under
+Python 3.10. These are distinct generations, with failed histories preserved.
+See [installed proof](evidence-history.md#sourcefixture-private-directory-handoff-correction---2026-10-21)
+and [the phase correction](evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
 
-The host assembler now matches the owning Parent's precreation phase: it retains
-an absent nonce-named parent and the existing grandparent's full identity, while
-only the Parent creates the directory and derives its signature. All 1,306
-source controls across 73 suites pass on Python 3.10 with zero skips; the 14
-owning runner checks and independent review also pass. The earlier installed
-SourceFixture proof remains its unchanged 1,302-control generation. Connected
-execution and the aggregate task gates remain open. See [the phase correction](evidence-history.md#active-input-parent-precreation-correction---2026-10-21).
+The scoped owning-UID reader passed against all three original NFS fixture
+directories, with source/directory custody and restoration to Root verified.
+The combined owning-read and causal malformed-fixture source passes 1,392
+controls across 75 suites, zero skips, plus all 14 outer preservation checks on
+Python 3.10. Local CI, independent review and final-source checked installation
+of 27 outputs pass. Connected repair, factories
+and import/ACK acceptance remain open. Preserve the original permissions,
+receipts and task gates. See [the observed boundary](evidence-history.md#private-nfs-owner-read-boundary---2026-10-21).
 
 ## Phase 1: Setup
 
