@@ -92,10 +92,23 @@ running-child profile check during the role-namespace handshake, before reader
 stop. Preserve that consumed attempt. Inspect the exact child state and original
 startup evidence before any correction or distinct run; the combined predicate
 alone does not prove an early child exit. Feature 023 evidence history owns the
-retained details. The lifecycle correction now passes all 1,460 owning controls,
-14 outer checks and local CI. Hosted delivery, a fresh checked installation/source cohort and
-connected forward/rollback acceptance are still required; these source results
-do not complete the five open tasks.
+retained details. PR [#489](https://github.com/bolens/homelab/pull/489) delivered the lifecycle
+correction as `7130a7fd510d5104bdddac384163f41f538ab425`, with passing local and
+hosted checks, native-image publication and matching merge-tree verification.
+A fresh checked K installation verifies all 27 outputs. Its causal selected-image
+SourceFixture passes all 1,460 controls across 75 suites and verifies removal of
+its own helper. The subsequent genuine Parent attempt stops at NFS child create
+because an earlier retained helper occupies the name derived from that original
+Bootstrap nonce. Diagnosis verifies that this refusal precedes reader stop.
+Preserve the attempt and retained helper. A fresh Creator/Bootstrap/catalog/reader
+generation completes its own native processing and reader verification. M then
+passes 49 preparation controls, causal SourceFixture and active-input assembly.
+It enters the genuine Parent but holds during NFS namespace bootstrap when its
+original helper exits before the reply. Read-only diagnosis confirms reader and
+native running epochs and the worker still Created. Preserve M and its helper
+while delivering the reproduced named-FIFO identity and diagnostic correction.
+A new checked generation must prove connected forward/rollback acceptance, and these results do not complete
+the five open tasks. See [the source and fixture delivery record](../023-verified-publication-corrections/evidence-history.md#lifecycle-delivery-and-fresh-fixture-generation--2026-10-22).
 
 1. **Finish static binding before freshness.** Preserve the original installation
    INNER/output27 and compatible selected-image/native180/SDK/worker evidence.
@@ -105,7 +118,9 @@ do not complete the five open tasks.
    source pairs; do not relabel a prior cohort when those pairs change. SourceFixture
    and static staging precede the effective observer and `genuine_current_roles.run`;
    their original role/process/scope facts must still be within the owning 120-second
-   window when consumed.
+   window when consumed. Leave the private NFS probe parent absent, with only its
+   existing retention grandparent bound. The owning Parent creates that node;
+   precreating it makes the active-input assembler refuse before Parent entry.
 2. **Enter the existing connected path once.** `genuine_active_inputs.assemble`
    writes input originals only. Feed those originals to
    `genuine_plan13_producer.Producer.execute(activate=True)`, which rederives the

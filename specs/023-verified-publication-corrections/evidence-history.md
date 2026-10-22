@@ -1581,3 +1581,90 @@ copy maps are refreshed. The complete `run_publication_reader_controls.py` famil
 including its outer checks and separate 1,460-control pass with zero skips;
 local CI passes. Hosted verification remains required. This correction supplies
 no operational acceptance.
+
+
+## Lifecycle delivery and fresh fixture generation — 2026-10-22
+
+PR [#489](https://github.com/bolens/homelab/pull/489) merges as
+`7130a7fd510d5104bdddac384163f41f538ab425`. The reviewed head and squash merge have
+the same tree. All hosted checks, final main validation and native-image
+publication pass. GitHub and the intended Gitea mirror agree. The correction
+retains immutable Created provenance and exact running/terminal comparisons.
+
+A distinct checked K installation and independent export verify all 27 original
+outputs. The original native/worker image and SDK evidence remains bound to its
+unchanged inputs. The actual selected-native-image SourceFixture completes all
+1,460 controls across 75 suites with no skips, closes its source references and
+verifies its own helper is absent. A genuine Producer/Parent attempt then refuses
+NFS child creation before reader stop: an earlier retained helper already owns
+the name derived from that immutable Bootstrap nonce. The original attempt and
+helper remain preserved. This is no terminal, replay or reader-resume grant.
+
+A fresh Creator batch passes its actual privilege-isolation check, binds fresh
+inputs after authentication and completes the owning Bootstrap, native catalog
+processing, reader scan/progress and queue observations. Its local/NFS parents,
+three roles, catalog and genesis are distinct originals. The next forward packet
+joins those originals through the owning fixture-document checker and passes all
+47 preparation controls, including the actual 692-file bundle check. Its new
+effective-parent/readiness pair still requires causal SourceCohort execution
+before fresh observations and genuine Parent entry. Forward and separate rollback
+acceptance remain open. No task checkbox or production/bulk authority changes.
+
+The next L packet completes its own actual 1,460-control/75-suite SourceFixture,
+source closure and owned-helper absence, followed by fresh role and effective
+observer capture. Active-input assembly then refuses before Producer/Parent entry:
+preparation created the private probe directory, while the owning contract
+requires absence so Parent alone can create it. No reader stop or archive
+operation occurs. The consumed packet remains unchanged. The correction leaves a
+new proposed path absent and tests the actual owning precreation predicate on the
+real rejected and proposed NFS paths. These filesystem checks run in a separate
+child so their imports cannot disturb the verified-loader control family.
+
+
+The corrected M packet passes 49 preparation controls, including the actual
+precreation predicate against the rejected existing path and proposed absent
+path. Its own selected-image SourceFixture again completes all 1,460 controls
+across 75 suites, closes original sources and verifies owned-helper absence.
+Fresh role and effective observations pass, active-input assembly succeeds and
+the genuine Producer enters the owning Parent.
+
+M then holds during NFS namespace bootstrap, before reader stop. The original
+create and first-started profiles identify its exact newly created helper. A
+bounded read-only check finds that helper exited with code 2 and no OOM event.
+Its log contains the first namespace request only. The Parent's protected trace
+finds the helper's original host process absent before writing the reply. The
+packet's 120-second budget and roughly 47-second container lifetime do not
+establish a timeout. The underlying child failure remains undiagnosed because
+the child entry point suppresses its exception. Native and reader roles retain
+their original running epochs, and the permanent worker remains Created.
+
+The consumed M request, helper and original records remain preserved. There is
+no accepted NFS-ready, forward terminal, reader stop, resume or archive operation.
+Separate rollback execution has not begun. Another SourceCohort nonce cannot
+release M's Bootstrap-derived helper name. Further work must first establish the
+child/transport failure, then use a distinct reviewed generation for any new
+execution. No task checkbox changes.
+
+
+The prospective child diagnostic preserves refusal exit code 2 and emits only
+coarse exception categories, fixed transport reasons and at most eight approved
+source callsites. Unknown source basenames become `external`; exception text,
+locals and host paths are excluded. Four new controls cover frame bounds,
+redaction, the actual generated-name CLI entry and closed stderr. The new
+controls fail against the previous source. All twelve child transport controls pass
+on Python 3.10. This correction does not identify M's lost historical exception
+or grant a new execution. The original installation and operational source
+worktree remain frozen; changed host bytes require a distinct checked generation.
+
+
+A separate real named-FIFO reproduction exposes a transport defect: the child
+captures full9 metadata for its inherited FIFOs and refuses after its own write
+changes mtime/ctime. The original anonymous-pipe fixtures do not expose that
+behavior. The correction retains device, inode, complete mode and ownership,
+matching the owning host pump's FIFO identity contract. A real two-way named-FIFO
+exchange now passes, while a real permission change and descriptor replacement
+still refuse. Regular control-file identities and hashes are unchanged. This
+reproduction establishes the source defect, but M's suppressed historical
+exception cannot prove that it caused M's exit. The six new controls increase
+the exact owning collection to 1,466 across the same 75 suites. No operational
+acceptance follows from this prospective correction.

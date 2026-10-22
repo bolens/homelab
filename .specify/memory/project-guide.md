@@ -520,6 +520,33 @@ capture its bytes and full file identity; validate the pair before invoking the
 emitter. Do not reuse an older input with a new request nonce or rewrite its
 historical reference to pass the join. A constructor refusal and attempted
 cleanup do not prove resource absence; verify the retained cleanup outcome.
+The archive NFS helper name derives from the immutable Bootstrap nonce. A fresh
+SourceCohort alone does not give a held attempt a new helper name. Preserve the
+consumed request and retained child. Prepare a distinct Creator, Bootstrap,
+catalog and reader generation for a new forward attempt, then another generation
+for rollback. Derive all role IDs, genesis references, Writer roots, mounts and
+observer inputs from those new originals. Do not replace only the nonce or adopt
+the old helper. Check network capacity before binding a new operational request.
+Leave the proposed private NFS probe parent absent. Preparation binds its
+existing retention grandparent and the intended child name. The owning Parent
+alone creates the child. Exercise the actual active-input precreation predicate
+on both an existing rejected path and the proposed absent path before execution.
+An empty network inspection does not prove that a network is unused: inspect
+references from stopped containers as well before any explicitly authorized
+network removal.
+
+For retained FIFO transport, compare device, inode, complete mode and ownership.
+Named FIFO I/O changes mtime and ctime. A full regular-file identity check on a
+FIFO can reject its own successful write. Cover both a real named-FIFO exchange
+and security-metadata drift; keep regular control-file full9/hash checks intact.
+
+If an NFS helper vanishes during namespace bootstrap, retain its original create
+and first-started profiles, exact current state, bounded logs and Parent failure
+trace before changing code. A missing `/proc` entry identifies a lost original
+process, not its cause. Compare the actual packet budget and original lifecycle
+timestamps before calling it a timeout. A generic exit code or suppressed child
+exception does not authorize replay, helper replacement or reader resume.
+
 SourceFixture logs require their exact phase filenames in one private directory
 containing only those leaves. Test a preparer's output with the actual `Logs`
 validator; dictionary keys alone do not verify filenames or namespace isolation.

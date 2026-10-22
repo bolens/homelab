@@ -10,7 +10,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1406 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1466 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 `genuine_active_inputs.py` assembles the original input graph before the owning
 Parent creates its disposable probe parent. It requires that nonce-named parent
@@ -79,6 +79,20 @@ original identity, ownership, controlled namespace and final closure remain
 mandatory. A checked tmpfs fixture does not prove the operational filesystem.
 
 ## Configured child ownership and retained NFS session
+
+The child retains each original FIFO's device, inode, complete mode and ownership.
+Named FIFO I/O changes mtime and ctime, so those timestamps are not pipe identity.
+Descriptor replacement, type, mode and ownership drift still refuse. Regular
+control files retain their complete nine-field identities and byte hashes.
+
+A failed UID1000 NFS child writes one bounded JSON diagnostic to stderr before
+its unchanged exit code 2. The record includes at most eight source callsites,
+coarse exception categories and a fixed allowlist of transport hold reasons.
+It excludes exception text, locals, payloads and host paths. Failure to write
+the diagnostic preserves the refusal exit. This is diagnostic evidence only.
+It cannot supply a terminal result, cleanup, replay or reader-resume authority.
+Inspect retained originals and the exact helper state before any new execution.
+
 
 The maintained host installer `install_configured_reader_parent.py` validates
 its exact reviewed Parent, provider, producer and admission bytes before making
