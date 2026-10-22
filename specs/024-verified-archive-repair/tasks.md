@@ -64,23 +64,71 @@ Goal: adopt the exact repaired bytes through current correction/native/reader po
 Independent test: one isolated owned repair completes with matching reader/native state; rejected owners, mixed phases and lost responses cannot publish or replay.
 
 - [x] T011 [US3] Implement the dedicated same-payload native repair capability in `publication_archive_owned.py`, `publication_native.py` and `publication_api.py`; prove fresh complete owner/census/catalog/source/stage/custody checks without widening nested lineage, ordinary `require` or generic import.
-- [ ] T012 [US3] Integrate exact reader continuity, finite phase/CAS and filesystem preservation/rollback in the owning native and normalizer processing boundaries; test complete affected book/page reference preservation and zero unrelated row/member changes. Depend on feature 023 T022/T026 checked lifecycle parent/provider and current installed cohort.
+- [ ] T012 [US3] Complete the isolated connected repair through `stacks/mylar3/config/reader_recovery/genuine_active_inputs.py` (`assemble`) and `genuine_plan13_producer.py` (`Producer.execute`), using the checked installation and current original cohort. Require actual installed Parent/Birth/stopped-reader/completed-preparation factories, same-mount NFS forward and explicit rollback phase evidence, independent archive/member/compressed-byte/page/metadata preservation, exact affected reader references and zero unrelated native/reader changes. Retain unknown outcomes without replay. Coordinate the feature 023 T026 owning-integration milestone and T029 runtime proof; local controls or an assembled plan alone do not complete this task.
 - [x] T013 [US3] Integrate durable preparation/dispatch/acceptance/rollback history and native/worker recovery consumption in owning workflow/import modules; lost acknowledgements retain evidence, imports/cleanup wait for actual terminal acceptance, and no remote call runs under Writer.
 
 ## Phase 6: Delivery
 
 - [x] T014 Update Mylar/Komga README and inspect their Compose, environment, metadata, preparation and ingress contracts together; diagnostics reuse existing settings/mounts/ports/privileges and introduce no new dependency. Regenerate affected catalog sources only through owning generators.
-- [ ] T015 Complete independent integrated failure review, actual selected-native/worker source-image tests, focused checks, `make validate` and `make ci-local`; deliver reviewed source through `RELEASING.md` and record source/image proof in this file. All required hosted checks and local checks must pass on the reviewed final head; no CI waiver or branch-protection bypass is authorized. Feature 023 T022/T026 owning lifecycle/code/installation gates are prerequisites; historical image proof does not accept this new cohort.
+- [ ] T015 Close both delivery and configured-runtime evidence: independently review the final integrated source/failure boundaries, pass focused and owning source/runtime suites, `make validate`, `make ci-local` and all required hosted checks, then deliver through `RELEASING.md` with exact matching installed native/worker source/type proofs. Reuse unchanged accepted image proofs only for their exact original inputs. Complete the connected factory/NFS/terminal-consumption portion jointly with T012 and feature 023 T026/T029 when every criterion passes; source checks, publication or historical image proof alone are insufficient. No CI waiver or protection bypass is authorized.
 
 ## Phase 7: Scoped live acceptance
 
-- [ ] T016 Coordinate writers, capture fresh affected-state/reader/native baselines, measure and create consistent backup plus independently verified restore, then deploy compatible matching images following owning READMEs using brief affected-operation writer windows and normal Mylar startup; record exact actual image/process and private evidence digests in this file.
-- [ ] T017 [US3] Execute the supported retained-original repair through its dedicated owning route, verify actual archive/owner/catalog/reader state and guarded repeat handling, and reconcile DDL only through actual ordinary import acknowledgement; update feature 022/023 acceptance evidence without claiming general writer release prematurely.
-- [ ] T018 [US3] Verify restart, rollback/lost-response refusal and complete current-library acceptance; reference feature 023 T018 shared current-library acceptance before experimental bulk resumption and feature 022 T024 final post-bulk acceptance. Ordinary Mylar remains available under its existing per-operation checks; prune only conclusively superseded operation-owned copies while retaining one independently verified current backup and unresolved originals.
+- [ ] T016 After T012 connected readiness and T015 matching-source/image delivery, coordinate the affected writers and validate or create a measured application-consistent backup with independently verified isolated restore for the exact live operation. Capture fresh affected archive/owner/catalog/reader state and actual image/process/configuration bindings; retain a compatible rollback image. Follow `stacks/mylar3/README.md` and `stacks/komga/README.md` for any necessary scoped rollout, normal Mylar startup and brief per-operation exclusion. Reuse an existing verified backup only while its original scopes/state still cover this operation; otherwise refresh through the owning backup route. Record private evidence digests without starting the experimental bulk worker.
+- [ ] T017 [US3] With T016 backup/restore and fresh owning admission, execute the selected supported retained-original repair through the dedicated configured `archive-one` route in `stacks/mylar3/config/publication_archive_owned.py`, not the disposable fixture transition or generic import. Compare exact original/repaired members, pages, compressed bytes, metadata, native owner/catalog/census and affected reader records; require genuine terminal vectors and intended native/worker factual consumption. Preserve the four failed selected histories; reconcile a current DDL capture only from actual ordinary import and a fresh matching catalog-to-ACK event; prove guarded repeat handling without replay or manufactured historical ACKs. Record feature 022/023 joins and retain originals on uncertainty; do not release general writers prematurely.
+- [ ] T018 [US3] After T017 scoped repair/import acceptance, verify restart reconciliation and the supported rollback/lost-response refusal evidence, then complete the protected current-library archive/owner/catalog/reader comparisons shared with feature 023 T018 before experimental bulk resumption. Feature 022 T024 separately supplies final post-bulk/idempotence acceptance. Record results in `specs/024-verified-archive-repair/tasks.md`; ordinary Mylar stays available under existing per-operation checks. Prune only conclusively accepted operation-owned copies after these gates, retaining one independently verified current backup, every unresolved original and durable failure history; do not treat a healthy service or successful Parent return as whole-library acceptance.
 
 ## Dependencies and execution
 
 T001 → T002–T003 → US1 T004–T007 → US2 T008–T010 → US3 T011–T013 → T014–T015 reviewed source/image delivery → T016 verified live rollout → T017 scoped repair/import → T018 final acceptance/retention. US1 is independently deliverable; it does not complete US2/US3 or release features 022/023. IDs follow execution order. No production task is complete from earlier private experiments.
+
+## Next execution and completion evidence
+
+The current G source candidate has passed 1,401 controls in 75 suites plus 14
+outer checks locally. PR #482 still needs its required hosted delivery checks.
+The causal SourceFixture has separately passed its original P690/1,302-control,
+73-suite contract with source closure and owned-container absence; fresh effective
+and current-role observations and the Writer-protocol projection have passed.
+The last actual attempt stopped in active-input assembly, before Writer acquisition
+or Parent execution. Those component facts do not complete any of the five open
+tasks. The reviewed G census/mixed-source-origin correction needs delivered source
+and fresh original bindings before another attempt; expired observations and old
+output directories cannot be reused.
+
+1. **Finish static binding before freshness.** Preserve the original installation
+   INNER/output27 and compatible selected-image/native180/SDK/worker evidence.
+   Bind the actual used host module URIs/full9, scoped geometry, existing Writer
+   protocol, query/protection inputs and reviewed finite operation request. Use the
+   existing causal SourceFixture supplier for the exact effective-parent/readiness
+   source pairs; do not relabel a prior cohort when those pairs change. SourceFixture
+   and static staging precede the effective observer and `genuine_current_roles.run`;
+   their original role/process/scope facts must still be within the owning 120-second
+   window when consumed.
+2. **Enter the existing connected path once.** `genuine_active_inputs.assemble`
+   writes input originals only. Feed those originals to
+   `genuine_plan13_producer.Producer.execute(activate=True)`, which rederives the
+   checked installation and calls `comic_reader_lifecycle_parent.run_operation`.
+   The owning Parent alone acquires/retains Writer, stops the isolated reader,
+   verifies backup/restore, produces Birth/custody, runs `archive-one` and checks
+   independent terminal vectors before its permitted reader resume. Retain the
+   original preparation/execution/ACK/terminal/phase receipts and full preservation
+   comparisons. No external wrapper or elapsed test count can supply these facts.
+3. **Close milestones without a task cycle.** Feature 023 T022 checked installation
+   and T026 owning integration are source/installation prerequisites, not a demand
+   to finish all of T026 before entering shared runtime proof. One reviewed isolated
+   batch may jointly close the configured portions of 023 T026/T029 and 024
+   T012/T015 only when all their independent factory, selected-image, NFS,
+   preservation and factual-consumption criteria pass. A partial batch leaves each
+   unmet task unchecked; archive terminal/Parent completion still grants no live
+   import ACK or general release.
+4. **Then perform scoped live acceptance.** T016 validates applicable existing
+   backup/restore evidence before creating anything new or rolling an image.
+   T017 consumes a genuine retained malformed original; the causal malformed
+   fixture transition is isolated-test-only. Require a fresh ordinary import ACK
+   for the exact current event before reconciling retained history. T018 closes
+   restart/current-library and later post-bulk retention gates. Unknown/partial
+   operations preserve their evidence and are not retried automatically; actual
+   rollback is invoked only through its supported owned route, never as a reset.
 
 ## Parallel opportunities
 

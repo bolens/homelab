@@ -25,8 +25,11 @@ Run the owning `test_publication_archive_nfs.py` component suite and the isolate
 `run_reader_recovery_controls.py` collection from `stacks/mylar3/config/`.
 Their local filesystem/schema controls do not establish genuine Parent/Birth or
 NFS execution. The [scenario prerequisites](../../stacks/mylar3/config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md)
-identify the unbuilt genuine application bootstrap/plan producer. The legacy
-exchange probe is diagnostic only and is not the new protocol's admission gate.
+describe the maintained bootstrap, current-role/active-input assembler and checked
+plan13 producer. The isolated bootstrap and component controls exist; connected
+Parent/factory/NFS/terminal acceptance remains open in [tasks.md](tasks.md). The
+legacy exchange probe is diagnostic only and is not the new protocol's admission
+gate.
 
 ## Repository checks
 

@@ -966,10 +966,11 @@ retained accepted members remain held for their owning recovery route. A failed
 pass retains the normalizer recovery fence and originals for review. Never clear
 that fence or replace a capture/member merely to retry.
 
-This single pass does not enable future automatic pack processing. While the
-normal worker remains Created/stopped, future packs wait. Once its owning
-rollout gates permit resuming the normal worker, the existing maintenance
-`Packs.cycle()` remains the automated path; this mode adds no service or loop.
+The selected command runs without a loop. Future captures wait while no worker
+is running. After its selected-canary, backup, matching-image and configured
+acceptance checks pass, the explicit `--packs-only` override provides restricted
+ongoing recovery. The default full maintenance cycle retains its separate bulk
+acceptance gates.
 
 ## Effective persistent scope observer
 
