@@ -1,6 +1,9 @@
 """Original graph assembly controls; synthetic evidence never proves NFS/factories."""
+import ast
 import copy
 import hashlib
+import os
+import stat
 from pathlib import Path
 import sys
 import tempfile
@@ -12,16 +15,44 @@ sys.path.insert(0, str(Path(__file__).parent))
 import genuine_active_inputs as g
 
 
+# Exact predecessor parent block; immutable RED evidence, not a production loader.
+LEGACY_PARENT_BLOCK = "parent = p.absolute(probe['fixture_parent']); stamp = p.nine(os.lstat(parent))\nneed(stamp == probe['fixture_parent_signature'] and stat.S_ISDIR(stamp[5])\n     and stamp[0] == probe['expected_device'] == os.lstat(probe['library_root']).st_dev, 'active-original-probe-parent')\nself.remember(p.parents(parent)); self.remember({str(parent): p.five(os.lstat(parent))})\n"
+LEGACY_PARENT_BLOCK_SHA256 = 'e721c5628b79a514c42f866d933b58cb255d05bdc3b2e03290dce92b1f6edb77'
+
+def owning_precreation(outer, roots, library):
+    """Execute the exact owning Parent block and genuine lifecycle method.
+
+    Only mount observation/role selection/emission are explicit test doubles;
+    all directory absence/full9/NFS-choice/creation predicates are genuine.
+    This local disposable filesystem is not actual NFS acceptance.
+    """
+    import comic_negative_nfs_active_lifecycle as lifecycle
+    source = Path(g.active.__file__).read_text(); tree = ast.parse(source)
+    body = next(n.body for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == '_run_owned_lifecycle')
+    first = next(i for i,n in enumerate(body) if isinstance(n, ast.Assign) and any(isinstance(t,ast.Name) and t.id=='core' for t in n.targets))
+    last = next(i for i,n in enumerate(body[first:],first) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Subscript) and isinstance(t.value,ast.Name) and t.value.id=='core' for t in n.targets))
+    selected = ast.Module(body=body[first:last+1], type_ignores=[])
+    scope = dict(Path=Path, outer=outer, roots=roots, initial={'mapping':'explicit-role-double'}, roles=None,
+        selected_library_root=lambda mapping,roles:library, canonical=g.active.canonical,
+        stamp=g.active.stamp, observe_mount=lambda path:outer['probe_plan']['mount_identity'],
+        check=g.active.check, output=Path(outer['operation_output']), module=lifecycle,
+        gated=True, ancestors={}, emit=lambda *args:None)
+    exec(compile(selected,str(Path(g.active.__file__)),'exec'),scope)
+    return scope['parent'],scope['core']
+
+
 class Fixture:
     def __init__(self, root, config_ref=None):
         self.root = root; self.refs = {}; self.serial = 0; self.nonce = 'a' * 64
         self.facts = root / 'facts'; self.facts.mkdir(mode=0o700)
-        self.library = root / 'L'; self.library.mkdir(mode=0o700)
+        self.nfs = root / 'nfs'; self.nfs.mkdir(mode=0o700)
+        self.library = self.nfs / 'L'; self.library.mkdir(mode=0o700)
         self.config = root / 'config'; self.config.mkdir(mode=0o700)
         self.index = self.config / 'index'; self.index.mkdir(mode=0o700)
         self.fonts = self.config / 'fonts'
         self.native = root / 'native'; self.native.mkdir(mode=0o700)
-        self.parent = root / 'nfs'; self.parent.mkdir(mode=0o700)
+        self.grandparent = self.nfs / 'R'; self.grandparent.mkdir(mode=0o700)
+        self.parent = self.grandparent / ('.comic-nfs-private-' + 'c' * 32)
         self.output_parent = root / 'outputs'; self.output_parent.mkdir(mode=0o700)
         self.output = self.output_parent / 'assembled'
         now = int(time.time()); images = {role: 'sha256:' + str(n) * 64 for n, role in enumerate(('native', 'reader', 'worker'), 1)}
@@ -79,13 +110,13 @@ class Fixture:
             current_active_scanner_publication_paths_reviewed=True, future_mylar_destination_verified=False, future_mylar_destination=None,
             writer_lifecycle_resume_authorized=False, forbidden_roots=[str(self.library), str(self.config)], sources=scope_sources))
         self.scope = scope
-        mount = dict(source='source-fixture:/export', target=str(root), fstype='nfs4', fsroot='/', options='rw,source-fixture', **{'maj:min': '0:123'})
+        mount = dict(source='source-fixture:/export', target=str(self.nfs), fstype='nfs4', fsroot='/', options='rw,source-fixture', **{'maj:min': '0:123'})
         device = self.library.lstat().st_dev
         probe = dict(version=2, kind='approved-negative-nfs-active-probe-parent', scope=g.pair(scope), fixture_parent=str(self.parent), fixture_name='.comic-nfs-probe-' + 'd' * 32,
-            fixture_parent_signature=g.p.nine(self.parent.lstat()), library_root=str(self.library), expected_device=device, mount_identity=mount, output_root=str(self.output_parent / 'probe'))
+            fixture_parent_signature=None, library_root=str(self.library), expected_device=device, mount_identity=mount, output_root=str(self.output_parent / 'nfs-operation' / 'probe'))
         self.document = dict(version=1, kind='disposable-original-active-input-assembly', nonce=self.nonce, observed=now, current_roles=current,
             active_scope=scope, query=self.query, native_controls=receipt, effective_observer_review=review, source_cohort=cohort,
-            parent_admission=dict(expected_device=device, mount_identity=mount), probe_plan=probe, operation_output=str(self.output_parent / 'nfs-operation'),
+            parent_admission=dict(path=str(self.parent), grandparent_signature=g.p.nine(self.grandparent.lstat()), expected_device=device, mount_identity=mount), probe_plan=probe, operation_output=str(self.output_parent / 'nfs-operation'),
             originals=self.refs, sources={name: self.ref(g.HERE / name) for name in (*g.PINS, 'genuine_active_inputs.py')})
 
     def ref(self, path):return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(), signature9=g.p.nine(path.lstat()))
@@ -226,8 +257,8 @@ class ActiveInputsTests(unittest.TestCase):
                     old = f.document['effective_observer_review']; replacement = f.fact(review)
                     f.refs.pop(old['path']); f.document['effective_observer_review'] = replacement
                 else:
-                    # A same-spelled replacement is not the reviewed parent9.
-                    f.parent.rename(f.root / 'retained-parent'); f.parent.mkdir(mode=0o700)
+                    # A same-spelled replacement is not the reviewed grandparent9.
+                    f.grandparent.rename(f.nfs / 'retained-grandparent'); f.grandparent.mkdir(mode=0o700)
                 ref = self.request(f)
                 with self.assertRaises(ValueError):g.assemble(ref, f.output)
                 self.assertFalse(f.output.exists())
@@ -279,5 +310,46 @@ class ActiveInputsTests(unittest.TestCase):
         names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
         self.assertFalse({'subprocess', 'sqlite3', 'urllib', 'Writer', 'ScopedDocker'} & names)
 
+
+    def test_original_host_scope_red_for_actual_parent_precreation_contract(self):
+        f = self.fixture(); actor = object.__new__(g.Assembly); actor.document=f.document;actor.originals=g.composer.Originals()
+        self.assertEqual(hashlib.sha256(LEGACY_PARENT_BLOCK.encode()).hexdigest(),LEGACY_PARENT_BLOCK_SHA256)
+        scope=dict(p=g.p,need=g.need,stat=stat,os=os,self=actor,probe=f.document['probe_plan'])
+        with self.assertRaises(FileNotFoundError):exec(compile(LEGACY_PARENT_BLOCK,'original-parent-precreation-block','exec'),scope)
+        self.assertFalse(f.parent.exists());self.assertFalse(f.output.exists())
+        g.Assembly.host_scope(actor,g.p.decode(g.p.read(f.scope)),f.document['probe_plan']);actor.originals.close()
+        self.assertFalse(f.parent.exists())
+
+    def test_genuine_parent_precreation_consumes_assembled_none_and_derives_full9(self):
+        self.assertEqual(os.geteuid(),1000,'genuine disposable parent source control runs as UID1000')
+        f=self.fixture();result=g.assemble(self.request(f),f.output);outer=g.p.decode(g.p.read(result['active_input']))
+        self.assertIsNone(outer['probe_plan']['fixture_parent_signature']);self.assertFalse(f.parent.exists())
+        parent,derived=owning_precreation(outer,[f.library,f.config],f.library)
+        self.assertEqual(parent['path'],str(f.parent));self.assertEqual(derived['fixture_parent_signature'],g.p.nine(f.parent.lstat()));self.assertEqual(derived['fixture_parent_signature'],parent['signature'])
+        self.assertEqual(stat.S_IMODE(f.parent.stat().st_mode),0o700);self.assertFalse(list(f.parent.iterdir()))
+        with self.assertRaises(ValueError):owning_precreation(outer,[f.library,f.config],f.library)
+        for key in('publication_acceptance','actual_nfs_verified','installed_factories_verified','mutation_authority'):self.assertIs(result[key],False)
+
+    def test_forged_existing_parent_signature_and_wrong_parent_or_output_refuse(self):
+        for change in('signature','existing','name','admission','output','grandparent'):
+            with self.subTest(change=change):
+                f=self.fixture()
+                if change=='signature':f.document['probe_plan']['fixture_parent_signature']=g.p.nine(f.grandparent.lstat())
+                if change=='existing':f.parent.mkdir(mode=0o700)
+                if change=='name':f.document['probe_plan']['fixture_parent']=str(f.grandparent/'not-an-owned-name');f.document['parent_admission']['path']=f.document['probe_plan']['fixture_parent']
+                if change=='admission':f.document['parent_admission']['path']=str(f.grandparent/'foreign')
+                if change=='output':f.document['probe_plan']['output_root']=str(f.output_parent/'detached-probe')
+                if change=='grandparent':f.document['parent_admission']['grandparent_signature'][1]+=1
+                with self.assertRaises(ValueError):g.assemble(self.request(f),f.output)
+                self.assertFalse(f.output.exists())
+
+    def test_late_parent_birth_or_grandparent_metadata_change_refuse_before_write(self):
+        for change in('parent','grandparent'):
+            with self.subTest(change=change):
+                f=self.fixture();actor=g.Assembly(self.request(f),f.output)
+                if change=='parent':f.parent.mkdir(mode=0o700)
+                else:(f.grandparent/'foreign').write_bytes(b'explicit-disposable-mutation')
+                with self.assertRaises(ValueError):actor.execute()
+                self.assertFalse(f.output.exists())
 
 if __name__ == '__main__':unittest.main()

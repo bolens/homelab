@@ -1085,3 +1085,26 @@ Both failed histories stay retained without replay. Fresh effective-scope and
 current-role observations, connected factories, archive terminal, NFS, retained
 live import and ACK acceptance remain open, as do all 16 aggregate task markers.
 The accepted generation-nine bootstrap is unaffected.
+
+## Active-input parent precreation correction - 2026-10-21
+
+The host assembler required an existing probe parent and its signature, but the
+owning Parent must create that directory and requires a null incoming signature.
+The corrected assembler retains the absent nonce-named parent, the original
+existing grandparent's full identity and the exact operation/probe output join.
+Only the two known absent intermediate parents receive explicit ancestor anchors;
+no recursive fallback or directory creation is added. Final closure refuses late
+parent birth or grandparent drift. The owning Parent and lifecycle are unchanged.
+
+All 19 focused controls pass, including the genuine Parent precreation source
+block and complete lifecycle creation method with explicit disposable mount/role
+doubles. The complete 1,306-control/73-suite collection passes on Python 3.10 with
+zero skips and original source closure; all 14 owning runner controls pass.
+Independent source/integration review, source-map closure and local repository
+validation pass. Hosted delivery remains pending.
+
+These are host tools excluded from installed application modules. Installed SDK,
+image and all 16 consumed SourceCohort role originals remain unchanged. The
+accepted earlier receipt remains its actual 1,302-control generation; it is not
+relabelled or replayed. Fresh effective/current-role inputs and genuine connected
+factory, archive-terminal, NFS and live import/ACK acceptance remain required.
