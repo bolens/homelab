@@ -2,30 +2,35 @@
   <title id="clare-nighttime-cartoons-title">Clare's Nighttime Cartoons</title>
   <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
   <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#b8afff" stroke-width="5" />
-  <g transform="translate(0 8.50)">
-    <g stroke-linejoin="round" stroke-linecap="round">
-      <path d="M194 57a123 123 0 1 0 93 203C176 289 107 151 194 57Z" fill="#8f87cf" stroke="#b8afff" stroke-width="4" />
-      <path d="M167 69C74 117 73 254 186 280 63 272 34 125 167 69Z" fill="#cfc8ff" />
-      <path d="M95 104q-43 52-18 114" fill="none" stroke="#e4dfff" stroke-width="5" />
-      <circle cx="91" cy="161" r="10" fill="#9d95d4" />
-      <circle cx="104" cy="235" r="7" fill="#9d95d4" />
-      <path d="M122 260c-8-57 40-90 100-76 60 14 67 88 20 115-37 21-106 11-120-39Z" fill="#6e67a3" stroke="#b8afff" stroke-width="4" />
-      <path d="M138 260c-11-37 26-70 71-66-25 7-38 24-38 51 0 27 28 44 59 43-55 12-86-1-92-28Z" fill="#827abb" />
-      <path d="m124 204-7-52 40 29 27-9 34 2 38-26-2 53c20 53-122 61-130 3Z" fill="#a99fe3" stroke="#544d85" stroke-width="5" />
-      <path d="m127 169 7 27 12-8Zm115 1-15 18 16 7Z" fill="#d7b7d9" />
-      <path d="M140 193q40-17 99 0-5 38-48 43-43-2-51-43Z" fill="#bdb3ef" />
-      <path d="M176 180v11m16-14v12m16-10v11" stroke="#8278ba" stroke-width="4" />
-      <path d="m143 204 11 7 13-7m45 0 12 7 12-7" fill="none" stroke="#45416c" stroke-width="5" />
-      <path d="m181 219 10 7 10-7Z" fill="#6b567f" />
-      <path d="M191 225v6m0 0q-8 7-14 0m14 0q8 7 14 0" fill="none" stroke="#6b567f" stroke-width="3" />
-      <path d="m138 218-16-3m18 11-17 3m119-11 15-3m-17 11 17 3" stroke="#e0d7f8" stroke-width="3" />
-      <path d="M240 282c-54 28-94 1-70-25 8-9 20-11 33-9" fill="none" stroke="#aaa0df" stroke-width="18" />
-      <path d="M238 279c-45 24-78 3-65-18" fill="none" stroke="#c8bef0" stroke-width="4" />
-      <ellipse cx="194" cy="284" rx="21" ry="10" fill="#c8bef0" />
-      <path d="M188 281v6m9-6v6" stroke="#8278ba" stroke-width="3" />
-      <path d="M258 73h33l-33 34h33m1 21h23l-23 24h23" stroke="#b8afff" stroke-width="6" fill="none" />
-      <path d="m226 66 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="#e1d9ff" />
-    </g>
+  <g id="clare-nighttime-cartoons-icon" transform="translate(0 -0.5)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- A lavender crescent cradles a curled amber tabby. -->
+    <path d="M199 59C119 65 63 122 63 194c0 75 60 132 133 132 40 0 78-20 101-54-67 28-139-4-159-68-17-53 7-110 61-145Z" fill="#8c83c9" stroke="#d6d0ff" stroke-width="4" />
+    <path d="M183 66C97 106 80 213 141 276c35 36 91 44 133 20-24 19-49 27-78 27-71 0-130-55-130-129 0-66 49-119 117-128Z" fill="#b8aff0" />
+    <path d="M153 83c-57 27-86 82-77 137" fill="none" stroke="#e6e0ff" stroke-width="5" />
+    <circle cx="88" cy="177" r="9" fill="#9389cb" />
+    <circle cx="103" cy="246" r="6" fill="#9389cb" />
+    <circle cx="128" cy="284" r="8" fill="#9389cb" />
+    <!-- Low, rounded body and a tucked head make the sleeping pose explicit. -->
+    <path d="M140 247c-1-37 25-66 65-66 43 0 76 29 76 69 0 38-34 62-79 62-39 0-66-24-62-65Z" fill="#cb854d" stroke="#f0c18c" stroke-width="4" />
+    <path d="M202 188c34-1 66 24 69 55-8-16-24-24-42-26-27-2-45 15-49 39-4 19 2 35 16 49-32-5-47-29-43-56 4-35 20-60 49-61Z" fill="#e8a465" />
+    <path d="m208 187-7 22m29-16-9 22m29-7-13 18" stroke="#a7643f" stroke-width="8" />
+    <path d="M128 256c-21-6-34-24-28-43l-5-40 32 18c11-4 23-5 35-1l28-18-2 42c12 30-17 52-60 42Z" fill="#efb77d" stroke="#754f47" stroke-width="4" />
+    <path d="m103 185 4 23 14-9Zm78-1-17 15 15 8Z" fill="#d98986" />
+    <path d="M108 220c9 5 14 5 22 0m24 0c8 5 14 5 22 0" fill="none" stroke="#4f4148" stroke-width="5" />
+    <path d="M121 232c7-7 15-5 22-1 8-4 16-4 22 2-1 15-30 22-44-1Z" fill="#ffdfb5" />
+    <path d="m136 231 8 5 8-5Z" fill="#98616a" />
+    <path d="M144 236v4m0 0q-7 6-13 0m13 0q7 6 13 0" fill="none" stroke="#754f56" stroke-width="2.5" />
+    <path d="m130 194 3 11m10-13 1 12m11-10-1 10" stroke="#b67b51" stroke-width="5" />
+    <path d="m111 234-15-1m16 8-14 4m75-11 16-2m-17 9 15 4" stroke="#ffdfb5" stroke-width="2.5" />
+    <!-- The tail wraps around the paws rather than crossing the face. -->
+    <path d="M257 249c18 32-9 53-46 53-28 0-49-7-44-25 3-10 15-12 23-7" fill="none" stroke="#754f47" stroke-width="27" />
+    <path d="M257 249c18 32-9 53-46 53-28 0-49-7-44-25 3-10 15-12 23-7" fill="none" stroke="#efb77d" stroke-width="20" />
+    <path d="M264 268c1 18-20 29-48 29" fill="none" stroke="#ffdcad" stroke-width="4" />
+    <path d="m246 290 4 10m-25-5 1 10" stroke="#bd784a" stroke-width="6" />
+    <ellipse cx="145" cy="260" rx="22" ry="11" fill="#ffdbad" stroke="#754f47" stroke-width="3" />
+    <path d="M138 259v5m9-5v5" stroke="#bf8a65" stroke-width="2.5" />
+    <path d="m243 77 4 10 10 4-10 4-4 10-4-10-10-4 10-4Z" fill="#f8df9c" />
+    <path d="M270 116h25l-25 27h25m-9 20h18l-18 20h18" fill="none" stroke="#d6d0ff" stroke-width="5" />
   </g>
   <g fill="#b8afff" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 13.5)">
     <text x="535" y="126" font-size="64">CLARE'S</text>
