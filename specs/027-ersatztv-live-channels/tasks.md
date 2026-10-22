@@ -1351,3 +1351,38 @@
   and existing recording rules are preserved. Operation-only backups, restore
   copies and the disconnected test container are removed after acceptance;
   established backup generations and retention remain intact.
+
+
+## Current follow-up pass
+
+- [ ] T081 Trace and repair season-zero XMLTV identity collisions in Plex without
+  changing correct source titles, season numbering, files or recording rules.
+  Add a deterministic reproduction and verify affected specials and normal
+  episodes separately in the actual Plex guide.
+- [x] T082 Exclude nonfiction/talk programming from Sitcom Shuffle and animation
+  from Prime Crime TV. Verify the exact removals, preserve every other current
+  member and test future-import, source/type and quarantine boundaries with
+  the native analyzer.
+- [x] T083 Refine Star Wars, Jurassic and Planet of the Apes artwork. Preserve
+  source attribution, station names, wordmarks, frames and centered icon bounds;
+  verify full-size and small-guide renders. File Wes Anderson under Directors
+  in the lineup manifest.
+- [ ] T084 Install the reviewed changes after verified native backup restores,
+  compare station identities and persistent data, verify downstream guide and
+  artwork behavior, clean operation-only copies and deliver through passing
+  repository checks. Preserve the user's Mylar-wait waiver.
+
+
+- T082–T083: the native analyzer checks all 104 literal collections against the
+  captured 14,142-document index. Sitcom Shuffle changes from 2,325 to 2,167
+  episodes, removing only the four nonfiction/talk series identified in the
+  audit. Prime Crime TV changes from 1,993 to 1,669 episodes, removing only six
+  animated series. Every other prior member survives. Nineteen native-analyzer
+  fixtures pass future-import, source/library/type and quarantine boundaries.
+  The source genres and other stations remain intact.
+
+  Three SVG/PNG pairs pass deterministic export, safe local-reference checks,
+  full-size and guide-size visual review. The existing wordmarks, frames and
+  vertical centering remain intact; source licenses and adaptation notes are
+  retained. Wes Anderson's manifest section is Directors, with its name and
+  number unchanged.
