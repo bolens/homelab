@@ -1431,3 +1431,55 @@ source defect. The 258-file reader manifest and both 436-row outer maps close
 against the new bytes. Full local CI, Markdown checks and focused Ruff pass.
 Normal hosted delivery and a fresh checked installation remain pending. Task
 states remain 59 complete and 16 open across features 022–024.
+
+
+While PR #487 runs normal hosted CI, the distinct I installation and independent
+export both succeed. All 27 configured outputs verify against the new source
+bindings. The original H outputs remain intact. INNER, origin and outer receipt
+hashes are respectively `55a9fb42876fb69704e894008583b9ec4c1418fd54a462edb4ce2014c7ba64f6`,
+`16da4091447c8f54962549174d3afb32ab801164a2426dcc240ff5ed50cb106d`
+and `86f9f33601ae1697131547c9bbc6251eee75fee2c439d1a116f9d400405a9fab`.
+No container lifecycle, library, import or restart action runs. This completes
+installation integrity only. Fresh configured execution, NFS/terminal proof and
+import ACK remain pending under the existing open tasks.
+
+
+The corrected read-only H3 query joins provider pins to the generated configured
+Parent through the original H INNER and saved entry intent. Both provider pins
+match. All three fixture profiles and process epochs match their originals,
+target/unrelated full9 and SHA match, G/L/R full9 match and retention is empty.
+The operation still contains only its initial intent, with private preparation
+directories retained. These are bounded disposition observations, not continuous
+NFS custody or acceptance. Preserve H3 held and require a distinct fresh request.
+
+
+The distinct I run passes SourceFixture staging, preparation, invocation and owned
+container absence. The owning Parent now projects the empty stderr, public sources,
+cohort receipt, effective review and scope successfully. It then refuses with
+`unmapped-child` when `Inputs.outer` sends the original host operation-output path
+to the child-to-host mapper. The assembler declares a host path and the Parent
+already registers its original/physical/virtual output join. Project that original
+host path directly to the child, and test the complete outer projection with real
+nonidentity mappings before creating the next checked installation.
+
+I remains held without replay. The operation has its initial intent and four
+projected input documents, with no child-creation or stop intent. Its child-control
+namespace has 35 entries. Read-only checks confirm the fixture native and reader
+still running and its worker still Created. This closes neither NFS nor terminal
+acceptance; task states remain unchanged.
+
+
+PR #487 merges as `c015f05e303fd8c77098bd0d7f1443db9804d488` after every
+required hosted check passes. Its tree matches the reviewed head. GitHub, local
+main and the intended Gitea mirror match that merge. The I disposition query also
+matches original file hashes/full9, geometry, empty retention, generated provider
+pins and all three original profiles/process epochs. It remains a prechild hold.
+
+The output-path correction passes all 1,412 controls in 75 suites under Python
+3.10, all 14 outer controls, seven import-copy controls and full local CI. The
+complete outer-input regression uses real nonidentity `Paths`, the owning Tree
+and distinct original, physical and virtual output paths. The predecessor refuses
+`unmapped-child`; corrected projection preserves hash joins and protected roots,
+and still rejects foreign paths. Independent review of all coordinate/ref paths
+finds no further confirmed conversion defect. Source pins and all finite maps
+close. New checked installation, hosted delivery and actual execution remain open.
