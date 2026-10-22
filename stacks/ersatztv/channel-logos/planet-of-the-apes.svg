@@ -1,6 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 384" role="img" aria-labelledby="planet-of-the-apes-title">
   <title id="planet-of-the-apes-title">Planet of the Apes Cinema</title>
-  <defs />
+  <defs>
+    <linearGradient id="planet-of-the-apes-fur" gradientUnits="userSpaceOnUse" x1="90" y1="65" x2="251" y2="304">
+      <stop offset="0" stop-color="#626565" /><stop offset=".4" stop-color="#343b3d" /><stop offset="1" stop-color="#202c32" />
+    </linearGradient>
+    <linearGradient id="planet-of-the-apes-skin" gradientUnits="userSpaceOnUse" x1="115" y1="143" x2="231" y2="284">
+      <stop offset="0" stop-color="#c4b097" /><stop offset=".5" stop-color="#9e8870" /><stop offset="1" stop-color="#6d5a50" />
+    </linearGradient>
+    <linearGradient id="planet-of-the-apes-muzzle" gradientUnits="userSpaceOnUse" x1="128" y1="218" x2="222" y2="293">
+      <stop offset="0" stop-color="#e0c6a1" /><stop offset=".55" stop-color="#ad947c" /><stop offset="1" stop-color="#7e6a5c" />
+    </linearGradient>
+  </defs>
   <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
   <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#bbd79b" stroke-width="5" />
   <g transform="translate(0 0.0)">
@@ -10,17 +20,24 @@
         <ellipse cx="271" cy="184" rx="24" ry="35" fill="#806e60" />
         <ellipse cx="80" cy="184" rx="11" ry="21" fill="#393633" />
         <ellipse cx="270" cy="184" rx="11" ry="21" fill="#393633" />
-        <path d="M175 57c-69 0-102 58-91 122l12 76c7 46 37 75 79 75s72-29 79-75l12-76c11-64-22-122-91-122Z" fill="#343b3d" />
-        <path d="m111 123 8-20 19 9 16-20 21 17 21-17 16 20 19-9 8 20-7 57 10 56c8 45-22 79-67 86-45-7-75-41-67-86l10-56Z" fill="#9d8c7c" />
-        <path d="M175 109v213q67-13 67-86l-10-56 7-57-8-20-19 9-16-20Z" fill="#7c6e64" />
+        <path d="M175 57c-69 0-102 58-91 122l12 76c7 46 37 75 79 75s72-29 79-75l12-76c11-64-22-122-91-122Z" fill="url(#planet-of-the-apes-fur)" />
+        <path d="m111 123 8-20 19 9 16-20 21 17 21-17 16 20 19-9 8 20-7 57 10 56c8 45-22 79-67 86-45-7-75-41-67-86l10-56Z" fill="url(#planet-of-the-apes-skin)" />
+        <path d="M175 109v213q67-13 67-86l-10-56 7-57-8-20-19 9-16-20Z" fill="#64584f" opacity=".4" />
         <path d="m112 154 28-14 35 15 35-15 28 14-10 17-24-5-29 12-29-12-24 5Z" fill="#393633" />
-        <path d="m128 176 21-2m52 0 21 2" stroke="#e2cfa6" stroke-width="5" stroke-linecap="round" />
-        <path d="M124 239c0-31 19-43 51-43s51 12 51 43v26c0 35-28 45-51 45s-51-10-51-45Z" fill="#b5a08e" />
-        <path d="M175 198v111q51-3 51-44v-26q0-34-51-41Z" fill="#9b8777" />
+        <path d="M122 174q14-13 31 0-15 15-31 0Zm75 0q17-13 31 0-16 15-31 0Z" fill="#1b272a" />
+        <path d="M127 173q11-7 22 0m52 0q11-7 22 0" fill="none" stroke="#dfc6a0" stroke-width="3" stroke-linecap="round" />
+        <ellipse cx="139" cy="175" rx="4" ry="5" fill="#ca9b55" /><ellipse cx="211" cy="175" rx="4" ry="5" fill="#ca9b55" />
+        <circle cx="140" cy="173" r="1.5" fill="#fff3d0" /><circle cx="212" cy="173" r="1.5" fill="#fff3d0" />
+        <path d="m105 120-6 22m8 5-8 28m11 17-7 25m140-97 6 22m-8 5 8 28m-11 17 7 25M127 88l-8 10m25-21-8 12m59-12 8 12m15-1 8 10" fill="none" stroke="#80817a" stroke-width="4" stroke-linecap="round" opacity=".65" />
+        <path d="M134 211q7-9 16-10m45 0q9 1 16 10m-60-88 24 9 24-9" fill="none" stroke="#ead1aa" stroke-width="3" opacity=".7" />
+        <path d="M124 239c0-31 19-43 51-43s51 12 51 43v26c0 35-28 45-51 45s-51-10-51-45Z" fill="url(#planet-of-the-apes-muzzle)" />
+        <path d="M175 198v111q51-3 51-44v-26q0-34-51-41Z" fill="#6c594d" opacity=".3" />
         <path d="M148 232q27-16 54 0l-9 19h-36Z" fill="#554c44" />
         <ellipse cx="162" cy="237" rx="5" ry="7" fill="#201f1e" />
         <ellipse cx="188" cy="237" rx="5" ry="7" fill="#201f1e" />
-        <path d="M144 274q31-10 62 0m-56 16q25 9 50 0M133 212l11-12m61 0 11 12m-64-79 23 7 23-7" fill="none" stroke="#6d5e52" stroke-width="5" stroke-linecap="round" />
+        <path d="M143 269q32 6 64 0" fill="none" stroke="#55473f" stroke-width="5" stroke-linecap="round" />
+        <path d="M151 278q24 6 48 0m-44 18q20 5 40 0" fill="none" stroke="#e0c3a0" stroke-width="3" stroke-linecap="round" />
+        <path d="M133 240q-4 12 0 23m84-23q4 12 0 23m-74-6 13 2m38 0 13-2" fill="none" stroke="#775e4e" stroke-width="3" stroke-linecap="round" />
       </g>
     </g>
   </g>

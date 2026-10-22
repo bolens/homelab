@@ -207,6 +207,14 @@ unrelated titles such as Buddy or The Grand Budapest Hotel.
 Review holiday plot matches for character names such as “Lloyd Christmas” and
 incidental prologues; use scoped title/year exclusions for verified false matches.
 
+Sitcom Shuffle keeps scripted comedy separate from nonfiction and talk programming.
+Apply `show_genre` exclusions for documentary, reality and talk-show categories
+outside the complete comedy query. Prime Crime TV focuses on live-action crime;
+exclude inherited animation genres outside its complete query. Preserve the
+source genres and retain those series in their fitting cartoon, documentary,
+variety and franchise stations. Test future imports and confirm that every other
+current member survives either change.
+
 Episode filters use inherited `show_genre` and `show_content_rating` fields;
 plain episode genre/rating fields can omit otherwise eligible shows.
 An incomplete index or stale media availability can hide existing library items;
@@ -324,6 +332,22 @@ shuffling every episode in one pool. Otherwise a long series receives more
 slots. Shuffle the schedule items for variety and use Shuffle in Order for a
 serialized show whose story should remain in sequence. Keep multipart episodes
 together. Check the generated guide to prove the intended mix and ordering.
+
+### Plex special-episode guide collisions
+
+Compare source episode identities with Plex's actual guide, including specials.
+Source XMLTV represents a season-zero episode such as `S00E07` with a negative
+`-1` season component in `xmltv_ns`. Affected Plex parsers can merge that identity
+with `S02E07`, substituting one episode's title for the other at the correct airtime.
+Dispatcharr can preserve the source title and season correctly while Plex still
+shows the collision. Check the wire XMLTV and Plex episode GUID separately from
+channel mapping and guide coverage.
+
+Preserve correct source metadata, files and recurring recording rules when this
+happens. Do not renumber source episodes or omit legitimate specials to hide a
+consumer error. Keep the mismatch visible in the correctness observer until a
+Plex-compatible representation is verified end to end, including distinct normal
+and special episode titles and recording behavior.
 
 ### Station presentation and calendar specials
 
