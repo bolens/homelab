@@ -51,10 +51,14 @@ PR #480 delivers the profile and original-source continuity correction after
 passing hosted CI. Its 1,401 source controls across 75 suites and all 14 outer
 checks pass. The next Root batch refused during SourceFixture preparation:
 the fresh request nonce did not match its older readiness-input nonce. The
-emitter, fresh observations and owning Parent did not run. Owned cleanup was
-attempted; cleanup and resource absence still require verification. The paired-readiness correction passes six controls and independent
-review; the configured run remains unverified. Earlier accepted
-originals remain unchanged; connected repair and import/ACK gates remain open.
+emitter, fresh observations and owning Parent did not run in that attempt.
+The corrected paired input then passed the actual SourceFixture run and owned
+cleanup/absence checks. Effective observation and current-role capture also
+passed, before projection refused its assumption that the writer lock is empty.
+The file matches the owning writer’s 22-byte protocol marker. Its exact bytes
+must be verified against that source before another attempt; no lock is reset
+or truncated. No Writer acquisition or repair Parent ran. Historical originals
+remain unchanged; connected repair and import/ACK gates remain open.
 
 ## Phase 1: Setup
 

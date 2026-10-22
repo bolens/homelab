@@ -1256,9 +1256,19 @@ source worktree remains frozen for its original references.
 The next combined Root batch refused at `source-original-readiness-nonce`
 during SourceFixture preparation. Its fresh request nonce was paired with an
 older readiness input. The emitter, fresh observations and owning Parent never
-ran. Existing failure handling attempted owned cleanup, but cleanup and
-resource absence remain unverified. The private coupled-readiness adapter passes six isolated controls and
-independent review; its configured run remains unverified. No canonical guard
-relaxation or historical input rewrite is required. Prior accepted SourceCohort originals remain untouched.
-No connected factory, repair, NFS mutation or import ACK acceptance follows.
+ran in that attempt. The paired-input correction passes six isolated controls
+and independent review. The next batch verified the prior cleanup and exact
+container absence, then completed a new causal SourceCohort and verified its
+own disposable-container cleanup. Its unchanged P690 context remains labelled
+1,302 controls across 73 suites, separate from the current F source collection.
+
+The corrected effective observer and current-role capture passed. Read-only
+projection then refused `original-empty-lock-FD`. The original writer lock
+contains the exact 22-byte `media_writer.PROTOCOL` marker; the observer had
+assumed an empty lock file. The installed lease reference was independently
+confirmed against the authenticated installation table. No Writer lock was
+acquired and the owning repair Parent did not run. Correct the observer to verify
+the owning protocol’s exact bytes through the original FD and full file identity;
+do not truncate or replace the lock to satisfy the old assumption. Prior accepted SourceCohorts remain intact;
+no connected factory, repair, NFS mutation or import ACK acceptance follows.
 All 75 task IDs and states remain unchanged: 59 complete and 16 open.
