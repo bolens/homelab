@@ -500,6 +500,13 @@ refresh the affected copy manifests. The inner collection passing does not
 verify these outer regression checks. Run the outer operational semantic-pin
 test before the long collection after changing a pinned host producer; keep
 `genuine_current_roles.SOURCE_PINS` aligned with the actual bootstrap source.
+When changing an owning Parent callback, also run the complete
+`run_publication_reader_controls.py` family. Its root writer-session fixtures
+compile the actual callback and are outside the inner recovery collection.
+Keep extracted factories’ closure bindings aligned with their stated lifecycle
+boundary: an established-running fixture retains its exact running static,
+epoch and StartedAt values; it must not fabricate a Created-to-running proof or
+remove the owning callback’s assertions to accommodate a missing binding.
 Bind CurrentRoles source roles to their actual loaded module origins, including
 the config parser; do not assume all generations share one directory. Retain
 Bootstrap helper/probe/scope URIs from their original authenticated context,

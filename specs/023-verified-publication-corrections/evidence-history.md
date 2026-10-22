@@ -1567,3 +1567,17 @@ unchanged. These are source/component results. Hosted delivery, a fresh checked
 27-output installation and coherent source cohort, then genuine forward and
 separate fresh-fixture rollback execution remain required. No task, live import,
 ACK, reader-resume or bulk authority follows from these tests.
+
+### Writer-session CI fixture correction — 2026-10-22
+
+PR #489’s first hosted native-image run fails while compiling the complete owning
+Writer callback into its mechanical test factory: the factory lacks the callback’s
+three new running-profile closure variables. The production callback already has
+those bindings. The fixture starts at an established running row, so it now seeds
+that exact static profile, lifecycle epoch and StartedAt value. All 15 existing
+Writer assertions and nine dependent negative-session assertions pass on Python
+3.10; production checks and startup-transition tests are unchanged. Both declared
+copy maps are refreshed. The complete `run_publication_reader_controls.py` family passes on Python 3.10,
+including its outer checks and separate 1,460-control pass with zero skips;
+local CI passes. Hosted verification remains required. This correction supplies
+no operational acceptance.

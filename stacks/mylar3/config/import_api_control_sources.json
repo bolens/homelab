@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "979325176027d8aebcc87cf8f004f08a2f0e7f51250470706e4651438c2430b4"
+    "sha256": "14c6c0abb244f83a8ed7063150a64b0ba829e57a0cdb9c071692cf5dbbcf8767"
   },
   {
     "path": "story_arc_search.py",
@@ -1457,7 +1457,7 @@
   },
   {
     "path": "test_ready_writer_session.py",
-    "sha256": "eeec1bcdfed0c08a373f7ddfeaa475a8b056eb226a7a6fcc4377d910ba5db8bb"
+    "sha256": "e11b027627a285312e976fa131dbc28ec31530c19aea80b5b4c3b1b6fdd70c1a"
   },
   {
     "path": "test_release_calendar.py",
