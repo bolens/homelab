@@ -5,7 +5,7 @@ RUN apt-get update \
         build-essential=12.9ubuntu3 libicu-dev=70.1-2 pkg-config=0.29.2-1ubuntu3 \
         libssl-dev=3.0.2-0ubuntu1.30 libffi-dev=3.4.2-4 \
         libsqlite3-dev=3.37.2-2ubuntu0.8 zlib1g-dev=1:1.2.11.dfsg-2ubuntu9.2 \
-        libbz2-dev=1.0.8-5ubuntu0.1 liblzma-dev=5.2.5-2ubuntu1.1 \
+        libbz2-dev=1.0.8-5ubuntu0.1 liblzma-dev=5.2.5-2ubuntu1.2 \
     && rm -rf /var/lib/apt/lists/*
 COPY tagger-sources.json /tmp/tagger-sources.json
 COPY config/fetch_tagger_sources.py /tmp/fetch_tagger_sources.py
@@ -60,7 +60,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential=12.9ubuntu3 pkg-config=0.29.2-1ubuntu3 \
         zlib1g-dev=1:1.2.11.dfsg-2ubuntu9.2 libbz2-dev=1.0.8-5ubuntu0.1 \
-        liblzma-dev=5.2.5-2ubuntu1.1 libzstd-dev=1.4.8+dfsg-3build1 \
+        liblzma-dev=5.2.5-2ubuntu1.2 libzstd-dev=1.4.8+dfsg-3build1 \
         liblz4-dev=1.9.3-2build2 libacl1-dev=2.3.1-1 \
         libxml2-dev=2.9.13+dfsg-1ubuntu0.14 nettle-dev=3.7.3-1build2 \
     && rm -rf /var/lib/apt/lists/*
@@ -85,7 +85,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends poppler-utils libarchive13=3.6.0-1ubuntu1.9 \
         libssl3=3.0.2-0ubuntu1.30 libffi8=3.4.2-4 libsqlite3-0=3.37.2-2ubuntu0.8 \
         zlib1g=1:1.2.11.dfsg-2ubuntu9.2 libbz2-1.0=1.0.8-5ubuntu0.1 \
-        liblzma5=5.2.5-2ubuntu1.1 libzstd1=1.4.8+dfsg-3build1 \
+        liblzma5=5.2.5-2ubuntu1.2 libzstd1=1.4.8+dfsg-3build1 \
         liblz4-1=1.9.3-2build2 libacl1=2.3.1-1 \
         libnettle8=3.7.3-1build2 libhogweed6=3.7.3-1build2 \
         libgmp10=2:6.2.1+dfsg-3ubuntu1 libxml2=2.9.13+dfsg-1ubuntu0.14 \

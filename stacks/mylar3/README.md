@@ -1272,6 +1272,12 @@ bounded bulk application and rollback follow the owning Komga instructions.
 The image bundles a read-only payload verifier from the same immutable
 archiving-utils artifact used by the matching normalizer, with source-built
 libarchive 3.8.9. The official release tarball is SHA-256 pinned in the Dockerfile.
+Both CPython/libarchive build stages and the runtime pin Ubuntu Jammy's
+`liblzma-dev`/`liblzma5` pair to `5.2.5-2ubuntu1.2`. The development package
+requires that exact runtime version, whose SONAME remains `liblzma.so.5`.
+Update all three Dockerfile pins together after checking the official Ubuntu
+package indexes. An installed older base library does not prove that its
+matching development package remains available from the current archive.
 The build uses the same pinned base as the runtime, runs upstream library tests
 and keeps compilers and development headers in a separate stage. The runtime
 selects the shared library under `/opt/libarchive` and verifies its loaded version
