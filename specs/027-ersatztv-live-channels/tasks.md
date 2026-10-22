@@ -1367,7 +1367,7 @@
   source attribution, station names, wordmarks, frames and centered icon bounds;
   verify full-size and small-guide renders. File Wes Anderson under Directors
   in the lineup manifest.
-- [ ] T084 Install the reviewed changes after verified native backup restores,
+- [x] T084 Install the reviewed changes after verified native backup restores,
   compare station identities and persistent data, verify downstream guide and
   artwork behavior, clean operation-only copies and deliver through passing
   repository checks. Preserve the user's Mylar-wait waiver.
@@ -1386,3 +1386,31 @@
   vertical centering remain intact; source licenses and adaptation notes are
   retained. Wes Anderson's manifest section is Directors, with its name and
   number unchanged.
+
+
+- T084: verified isolated database restores and asset hashes precede installation.
+  Final native SQLite integrity and foreign keys pass; every original media ID,
+  all 95 populated playouts and 17,687 unrelated future programme records survive.
+  All 95 native/Dispatcharr guides agree over the next day with no missing
+  channels, gaps or overlaps. All 502 Plex mappings, the DVR identity, recording
+  rules, channel links and memberships survive. The three public logos and
+  Plex's 240 × 120 thumbnails pass. Both updated channels decode four seconds of
+  video and audio; their sessions expire automatically. Container images,
+  environment, mounts and exposure remain unchanged and services are healthy.
+
+  Overnight imports advance stream `last_seen` timestamps and copy the three
+  reviewed `tvg-logo` values into stream metadata. These exact expected changes
+  are verified separately; every other persistent field matches the baseline.
+  The initial Plex refresh still showed the old pools for the two changed
+  channels. Their actual guide entries converge after import completion.
+
+  T081 remains incomplete: five title substitutions in the final next-day Plex
+  guide reproduce negative-season specials colliding with season-two identities.
+  Source and Dispatcharr titles, episode numbering and air times are correct.
+  No speculative rewrite is installed, and the correctness observer continues
+  reporting the limitation. Correct source metadata and recording rules remain
+  intact. Native analyzer, artwork checks, `make validate-changed` and
+  `make ci-local` pass; the separate self-review finds no actionable regression.
+  Both publication secret scanners pass. Final retained backups pass isolated
+  restore verification; operation-only database/index/restore copies are removed
+  while normal backup generations and retention are preserved.
