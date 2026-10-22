@@ -154,7 +154,7 @@ class Controls(unittest.TestCase):
   with self.assertRaises(p.Held):p.produce('phase-custody',request,watch=self.parent.continuous)
  def test_last_close_callback_never_acknowledged(self):
   real=p.close;fired=[]
-  def late(originals):real(originals);(self.config/'database.sqlite').chmod(0o640);fired.append(True)
+  def late(originals,**kwargs):real(originals,**kwargs);(self.config/'database.sqlite').chmod(0o640);fired.append(True)
   with patch.object(p,'close',side_effect=late),self.assertRaises(p.Held):self.go()
   self.assertTrue(fired)
  def test_worker_shadow_refused(self):

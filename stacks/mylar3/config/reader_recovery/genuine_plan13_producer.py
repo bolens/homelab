@@ -49,7 +49,7 @@ class Originals:
             p.read(ref, private=False)
         p.final({name: tuple(ref['signature9']) for name, ref in self.refs.items()}, self.nodes, self.absent)
         for path, names in self.namespaces.items():
-            need(set(os.listdir(path)) == names, 'producer-original-namespace')
+            need(set(p.nfs_names(path)) == names, 'producer-original-namespace')
 
 
 def checked_installation(originals, result_ref, base_manifest_ref):
@@ -77,7 +77,7 @@ def checked_installation(originals, result_ref, base_manifest_ref):
         'publication_reader_admission.overlay.py', 'configured-sdk-map.json',
         'configured-cohort.json', 'configured-source-observation.json'}
     need(type(refs) is dict and set(refs) == {str(root / name) for name in names}
-         and set(os.listdir(root)) == names, 'producer-installation-exact-namespace')
+         and set(p.nfs_names(root)) == names, 'producer-installation-exact-namespace')
     originals.namespaces[str(root)] = names
     def ref(name):
         value = refs[str(root / name)]
@@ -122,12 +122,12 @@ def nested_originals(originals, active_ref, supplied):
     need(type(supplied) is dict and 1 <= len(supplied) <= 128
          and all(name == ref.get('path') for name, ref in supplied.items()), 'producer-finite-original-facts')
     used = set()
-    def follow(ref):
+    def follow(ref, *, private=True):
         need(type(ref) is dict and set(ref) == {'path', 'sha256'} and ref['path'] in supplied,
              'producer-missing-original-fact')
         full = supplied[ref['path']]
         need(full['sha256'] == ref['sha256'], 'producer-original-fact-pin')
-        used.add(ref['path']); return originals.read(full)
+        used.add(ref['path']); return originals.read(full, private=private)
     active = originals.json(active_ref)
     need(type(active) is dict and set(active) == {'version', 'kind', *NESTED, 'parent_admission',
          'probe_plan', 'operation_output'} and type(active['version']) is int and active['version'] == 1
@@ -135,7 +135,7 @@ def nested_originals(originals, active_ref, supplied):
     docs = {name: p.decode(follow(active[name])) for name in NESTED}
     review = docs['effective_observer_review']
     need(type(review) is dict and set(review) == set(EFFECTIVE), 'producer-effective-seven-originals')
-    effective = {name: follow(review[name]) for name in EFFECTIVE}
+    effective = {name: follow(review[name], private=name not in ('producer', 'parent_source')) for name in EFFECTIVE}
     report = p.decode(effective['report'])
     need(type(report.get('config_files')) is dict and type(report.get('absent_config_files')) is list
          and type(report.get('optional_absent_scopes')) is dict, 'producer-effective-original-report')
@@ -144,7 +144,7 @@ def nested_originals(originals, active_ref, supplied):
         need(path in supplied and supplied[path] == full, 'producer-config-original-fact')
         used.add(path); originals.read(full, private=False)
     for path in (*report['absent_config_files'], *report['optional_absent_scopes']):
-        path = p.absolute(path); need(not os.path.lexists(path), 'producer-original-absence')
+        path = p.absolute(path); need(p.nfs_absent(path), 'producer-original-absence')
         originals.absent.add(str(path))
         for name, value in p.parents(path).items():
             need(name not in originals.nodes or originals.nodes[name] == value, 'producer-absence-original-ancestor')
@@ -154,7 +154,8 @@ def nested_originals(originals, active_ref, supplied):
          and type(cohort.get('logs')) is dict and set(cohort['logs']) == {'stdout', 'stderr'}
          and type(scope.get('sources')) is dict and 1 <= len(scope['sources']) <= 32,
          'producer-source-cohort-original-graph')
-    for value in (*cohort['sources'].values(), *cohort['logs'].values(), cohort['parent'], cohort['receipt'], *scope['sources'].values()):follow(value)
+    for value in (*cohort['sources'].values(), cohort['parent']):follow(value, private=False)
+    for value in (*cohort['logs'].values(), cohort['receipt'], *scope['sources'].values()):follow(value)
     query = p.decode(follow(scope['sources']['current_komga_libraries']))
     need(query.get('kind') == 'approved-active-komga-library-query', 'producer-original-reader-query')
     follow(query['configuration'])
@@ -224,15 +225,25 @@ def compose(document, originals, installation):
          and all(next(book['hashes'] for book in books if book['path'] == row['path']) == row['pages'] for row in files),
          'producer-original-reader-native-output-join')
     request = originals.json(document['archive_request']); scopes = originals.json(document['archive_scopes'])
-    need(type(request) is dict and set(request) == {'version', 'owner', 'operation_id', 'terminal'}
-         and type(request['version']) is int and request['version'] == 2 and request['owner'] == target['owner']
+    need(type(request) is dict and set(request) == ({'version', 'owner', 'operation_id', 'terminal','fixture_transition'} if request.get('version')==3 else {'version', 'owner', 'operation_id', 'terminal'})
+         and type(request['version']) is int and request['version'] in (2,3) and request['owner'] == target['owner']
          and p.digest(request['operation_id']) and request['terminal'] in ('forward', 'rollback'), 'producer-original-target-request')
+    if request['version']==3:
+        action=p.pinned_module(installation['refs']['comic_archive_repair_action.py']);action.owner_request(request)
+        value=request['fixture_transition']
+        need(value['bootstrap']==document['bootstrap_result'] and value['catalog']==document['catalog'] and value['nonce']==document['nonce'] and value['native_id']==roles['native']['id'] and value['reader_id']==roles['reader']['id'] and value['worker_id']==roles['worker']['id'],'producer-fixture-original-request-joins')
+        action.fixture_documents(request,result,catalog)
     need(type(scopes) is dict and set(scopes) == {'version', 'scratch', 'retention_root'} and scopes['version'] == 1, 'producer-original-scopes')
     geometry = copy.deepcopy(document['publication_geometry'])
-    need(set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}, 'producer-current-geometry')
+    need(set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
+         and type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs'))
+         and (geometry['version'],geometry['kind']) == (old['geometry']['version'],old['geometry']['kind']), 'producer-current-geometry')
     for name in ('common_root', 'library', 'retention'):
-        bootstrap.directory(geometry[name])
-        need(tuple(geometry[name]['signature9'][i] for i in (0, 1, 5, 6, 7)) == tuple(old['geometry'][name]['signature9'][i] for i in (0, 1, 5, 6, 7)), 'producer-original-geometry-identity')
+        ref = geometry[name]; path = p.absolute(ref['path']); value = ref['signature9']
+        need(p.nfs_canonical(path) and p.nine(p.nfs_lstat(path)) == value and stat.S_ISDIR(value[5])
+             and stat.S_IMODE(value[5]) == (0o711 if geometry['version'] == 2 and name == 'common_root' else 0o700)
+             and value[6:8] == [1000, 1000], 'producer-original-geometry9')
+        need(geometry[name]['path'] == old['geometry'][name]['path'] and tuple(geometry[name]['signature9'][i] for i in (0, 1, 5, 6, 7)) == tuple(old['geometry'][name]['signature9'][i] for i in (0, 1, 5, 6, 7)), 'producer-original-geometry-identity')
     common = Path(geometry['common_root']['path']); library = Path(geometry['library']['path'])
     need(result['reader']['library']['root'] == str(library), 'producer-original-reader-library-root')
     state = p.absolute(old['state_root']['path']); operation = p.absolute(document['operation'])
@@ -258,7 +269,9 @@ def compose(document, originals, installation):
     need(docs['source_cohort'].get('images') == dict(native=roles['native']['image'], selected=roles['native']['image'],
          reader=roles['reader']['image'], worker=roles['worker']['image']), 'producer-cohort-original-images')
     refs = installation['refs']
-    need(docs['source_cohort']['parent'] == {key: refs['comic_negative_nfs_active_parent.py'][key] for key in ('path', 'sha256')}, 'producer-cohort-owning-parent-original')
+    original_parent = installation['receipt']['original_source_refs']['comic_negative_nfs_active_parent.py']
+    need(docs['source_cohort']['parent'] == {key: original_parent[key] for key in ('path', 'sha256')}
+         and refs['comic_negative_nfs_active_parent.py']['sha256'] == original_parent['sha256'], 'producer-cohort-owning-parent-original')
     originals.read(document['nfs_intents']); originals.read(document['selected_image_metadata'])
     need(document['observer']['sha256'] == OBSERVER_SHA
          and Path(document['observer']['path']).name == 'comic_archive_terminal_vectors.py', 'producer-reviewed-observer')
@@ -302,15 +315,33 @@ class Producer:
         # Missing prerequisites refuse before writes, loading Parent or engine.
         need(type(self.document) is dict and {'installation', 'base_manifest'} <= set(self.document), 'producer-installation-required')
         installation = checked_installation(self.originals, self.document['installation'], self.document['base_manifest'])
-        self.plan, self.source, self.configured, self.nfs_sources = compose(self.document, self.originals, installation)
-        self.tape = p.encode(self.document); self.deadline = time.monotonic() + self.document['seconds']
-        self.bound = p.encode(dict(plan=self.plan, source=self.source, configured=self.configured, nfs_sources=self.nfs_sources))
-        catalog = self.originals.json(self.document['catalog'], private=False)
-        self.target = next(row['path'] for row in catalog['files'] if row['role'] == 'target')
+        old = self.originals.json(self.document['bootstrap_plan'], private=False)
+        geometry = self.document['publication_geometry']
+        need(old.get('nonce') == self.document.get('nonce') and all(
+            [geometry[role]['signature9'][i] for i in (0, 1, 5, 6, 7)] == [old['geometry'][role]['signature9'][i] for i in (0, 1, 5, 6, 7)]
+            and geometry[role]['path'] == old['geometry'][role]['path'] for role in ('common_root', 'library', 'retention')), 'producer-owner-read-bootstrap-identity')
+        self.owner_reads = p.bind_owner_reads(geometry)
+        try:
+            self.plan, self.source, self.configured, self.nfs_sources = compose(self.document, self.originals, installation)
+            self.tape = p.encode(self.document); self.deadline = time.monotonic() + self.document['seconds']
+            self.bound = p.encode(dict(plan=self.plan, source=self.source, configured=self.configured, nfs_sources=self.nfs_sources))
+            catalog = self.originals.json(self.document['catalog'], private=False)
+            self.target = next(row['path'] for row in catalog['files'] if row['role'] == 'target')
+        except BaseException:
+            try:
+                p.release_owner_reads(getattr(self, 'owner_reads', None))
+                self.owner_reads = None
+            except BaseException:pass
+            raise
 
     def execute(self, *, activate=False):
         need(activate is True and os.geteuid() == 0, 'producer-explicit-root-activation')
-        return self._enter()
+        try:return self._enter()
+        finally:
+            primary = __import__('sys').exc_info()[1]
+            try:p.release_owner_reads(getattr(self, 'owner_reads', None))
+            except BaseException:
+                if primary is None:raise
 
     def _enter(self):
         """Finite owning call; host controls may exercise pre-engine refusal."""

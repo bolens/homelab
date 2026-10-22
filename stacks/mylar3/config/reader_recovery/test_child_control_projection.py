@@ -193,4 +193,60 @@ class Controls(unittest.TestCase):
     def test_nfs_phase_keeps_fixed_absent_active_output(self):
         directory=self.tree.phase('nfs');self.assertEqual(directory,self.tree.root/'nfs');self.assertFalse((directory/'active-output').exists());self.tree.check()
 
+    def test_only_explicit_source_role_projects_public0644_original(self):
+        import comic_reader_lifecycle_parent as parent
+        tree=c.Tree(self.base/'public-child','/_public',self.op,parent.read,uid=os.geteuid(),gid=os.getegid())
+        path=self.base/'canonical-source.py';path.write_bytes(b'# disposable public source\n');path.chmod(0o644)
+        ref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(c.nine(path.lstat())))
+        tree.reserve_nfs_control(ref,public=True);copy=tree.project(ref);tree.check()
+        self.assertEqual(Path(copy['path']).read_bytes(),path.read_bytes());self.assertEqual(path.stat().st_mode&0o777,0o644)
+        self.assertEqual(copy['signature9'][5]&0o777,0o600)
+        path.write_bytes(b'late original drift')
+        with self.assertRaises(c.Held):tree.check()
+
+    def test_private_projection_does_not_infer_public_policy_from_mode(self):
+        import comic_reader_lifecycle_parent as parent
+        tree=c.Tree(self.base/'unclassified-child','/_unclassified',self.op,parent.read,uid=os.geteuid(),gid=os.getegid())
+        path=self.base/'unclassified.py';path.write_bytes(b'# unclassified\n');path.chmod(0o644)
+        ref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(c.nine(path.lstat())))
+        with self.assertRaises(parent.Held):tree.reserve_nfs_control(ref)
+        tree.reserve_nfs_control(ref,public=True)
+        with self.assertRaisesRegex(c.Held,'original-conflict'):tree.reserve_nfs_control(ref,public=False)
+
+    def test_real_parent_callback_joins_public_source_roles_through_tree(self):
+        import json
+        import comic_reader_lifecycle_parent as parent
+        owner=parent.LifecycleParent.__new__(parent.LifecycleParent)
+        # Explicit constructor-context fixture; this proves the real bound callback, not Parent admission.
+        owner.plan={'version':13,'action':'negative-five'};owner.files={}
+        def ref(path):
+            return dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(parent.nine(path.lstat())))
+        source=self.base/'original-source.py';source.write_bytes(b'# public original\n');source.chmod(0o644);original=ref(source)
+        private=self.base/'private-report.json';private.write_bytes(b'{}');private.chmod(0o600);private_ref=ref(private)
+        two=lambda value:{key:value[key] for key in ('path','sha256')}
+        cohort_path=self.base/'cohort.json';cohort_path.write_text(json.dumps(dict(sources={'actual':two(original)},parent=two(original))));cohort_path.chmod(0o600)
+        cohort=ref(cohort_path)
+        review_path=self.base/'effective.json';review_path.write_text(json.dumps({role:two(original if role in ('producer','parent_source') else private_ref) for role in ('producer','parent_source','report','ack','runtime','acceptance','parent_ack')}));review_path.chmod(0o600)
+        review=ref(review_path)
+        for value in (original,private_ref,cohort,review):owner.files[value['path']]=tuple(value['signature9'])
+        parent._NFS_SOURCE_CONTEXTS[owner]=({}, {}, parent.encode(dict(source_cohort=two(cohort),effective_observer_review=two(review))),b'',str(self.op))
+        self.addCleanup(parent._NFS_SOURCE_CONTEXTS.pop,owner,None)
+        tree=c.Tree(self.base/'real-parent-public','/_parent-public',self.op,owner.read_child_original,uid=os.geteuid(),gid=os.getegid())
+        with self.assertRaises(parent.Held):tree.reserve_nfs_control(original)
+        tree.reserve_nfs_control(original,public=True);projected=tree.project(original);tree.check()
+        self.assertEqual(Path(projected['path']).read_bytes(),source.read_bytes())
+        self.assertEqual(source.stat().st_mode&0o777,0o644)
+        self.assertEqual(owner.read_child_original(private_ref),b'{}')
+        with self.assertRaisesRegex(parent.Held,'public-source-role'):owner.read_child_original(private_ref,private=False)
+        with self.assertRaisesRegex(parent.Held,'private-policy'):owner.read_child_original(original,private=0)
+        unconfigured=parent.LifecycleParent.__new__(parent.LifecycleParent)
+        with self.assertRaisesRegex(parent.Held,'public-unconfigured'):unconfigured.read_child_original(original,private=False)
+        with self.assertRaisesRegex(parent.Held,'public-source-role'):owner.read_child_original(dict(original,sha256='a'*64),private=False)
+        changed=dict(original,signature9=list(original['signature9']));changed['signature9'][3]+=1
+        with self.assertRaisesRegex(parent.Held,'public-source-role'):owner.read_child_original(changed,private=False)
+        outsider=self.base/'unclassified.py';outsider.write_bytes(b'# not an admitted role\n');outsider.chmod(0o644);outside=ref(outsider);owner.files[outside['path']]=tuple(outside['signature9'])
+        with self.assertRaisesRegex(parent.Held,'public-source-role'):owner.read_child_original(outside,private=False)
+        source.write_bytes(b'late source replacement')
+        with self.assertRaises((parent.Held,c.Held)):tree.check()
+
 if __name__=='__main__':unittest.main()

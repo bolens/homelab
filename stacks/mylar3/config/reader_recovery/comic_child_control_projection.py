@@ -20,10 +20,16 @@ def frozen(ref):
     need(type(p) is str and Path(p).is_absolute() and '..' not in Path(p).parts and type(sha) is str and len(sha)==64 and all(x in '0123456789abcdef' for x in sha) and type(stamp) in (list,tuple) and len(stamp)==9 and all(type(x) is int for x in stamp),'child-control-ref-values')
     return p,sha,tuple(stamp)
 def reference(row):return dict(path=row[0],sha256=row[1],signature9=list(row[2]))
-def ancestors(path):
+def owner_stat(actor,path):
+    if actor is None:return os.lstat(path)
+    g=actor.assert_root.__func__.__globals__
+    need(type(actor) is g.get('GeometryOwnerReads') and g.get('_OWNER_READS') is actor,'child-original-owner-read-type')
+    actor.assert_root();return g['nfs_lstat'](path)
+
+def ancestors(path,actor=None):
     rows=[]
     for p in Path(path).parents:
-        z=os.lstat(p);need(stat.S_ISDIR(z.st_mode),'child-control-ancestor');rows.append((str(p),five(z)))
+        z=owner_stat(actor,p);need(stat.S_ISDIR(z.st_mode),'child-control-ancestor');rows.append((str(p),five(z)))
     return tuple(rows)
 def raw(ref, owner):
     p,sha,stamp=frozen(ref);nodes=ancestors(p)
@@ -39,30 +45,35 @@ def raw(ref, owner):
     close(((p,stamp),),nodes)
     return data,nodes
 
-def close(files,nodes):
+def close(files,nodes,actor=None):
     for p,v in nodes:
-        z=os.lstat(p)
+        z=owner_stat(actor,p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('child-control-final5')
     for p,v in files:
-        z=os.lstat(p)
+        z=owner_stat(actor,p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('child-control-final9')
 
 class Tree:
     """One parent creates this new child tree; all root originals stay distinct."""
-    def __init__(self, root, child_root, original_operation, read_original, uid=UID, gid=GID):
+    def __init__(self, root, child_root, original_operation, read_original, uid=UID, gid=GID, *, owner_reads=None):
+        if owner_reads is not None:
+            g=read_original.__globals__
+            need(type(owner_reads) is g.get('GeometryOwnerReads') and g.get('_OWNER_READS') is owner_reads,'child-owner-read-original-parent')
+        self.owner_reads=owner_reads
         self.root=Path(root);self.child_root=Path(child_root);self.original_operation=Path(original_operation)
         need(self.root.is_absolute() and self.child_root.is_absolute() and self.original_operation.is_absolute() and not os.path.lexists(self.root),'child-tree-exclusive')
         need(type(uid) is int and type(gid) is int and uid>=0 and gid>=0 and (os.geteuid()==0 or (uid,gid)==(os.geteuid(),os.getegid())),'child-tree-owner')
         self.uid,self.gid=uid,gid;self.read_original=read_original
         self.nodes=ancestors(self.root);self.directories=();self.pairs=();self.outputs=();self.scopes=();self.nfs_controls=()
-        self.identity=(str(self.root),str(self.child_root),str(self.original_operation),uid,gid,id(read_original))
+        self.identity=(str(self.root),str(self.child_root),str(self.original_operation),uid,gid,id(read_original),id(owner_reads))
         self._mkdir(self.root);self._seal()
+    def stat(self,path):return owner_stat(self.owner_reads,path)
     def _seal(self):
         _SEALS[self]=(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls)
     def _state(self):
         return (self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls)
     def _append(self,field,value,expected):
-        need(self._state()==expected and (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original))==self.identity,'child-tree-original-before-commit')
+        need(self._state()==expected and (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads))==self.identity,'child-tree-original-before-commit')
         setattr(self,field,getattr(self,field)+value);self._seal()
     def _mkdir(self,path):
         expected=self._state()
@@ -70,7 +81,7 @@ class Tree:
         try:
             born=five(os.fstat(fd));need(stat.S_ISDIR(born[2]) and stat.S_IMODE(born[2])==0o700 and born[3:]==(os.geteuid(),os.getegid()),'child-directory-birth')
             os.fchown(fd,self.uid,self.gid);os.fsync(fd);current=five(os.fstat(fd))
-            need(current[:3]==born[:3] and current[3:]==(self.uid,self.gid) and five(os.lstat(path))==current,'child-directory-owned-transition')
+            need(current[:3]==born[:3] and current[3:]==(self.uid,self.gid) and five(self.stat(path))==current,'child-directory-owned-transition')
         finally:os.close(fd)
         self._append('directories',((str(path),current),),expected)
         return path
@@ -79,18 +90,19 @@ class Tree:
         path=self.root/name
         if not any(p==str(path) for p,_ in self.directories):self._mkdir(path)
         return path
-    def reserve_nfs_control(self,ref):
+    def reserve_nfs_control(self,ref,*,public=False):
+        need(type(public) is bool,'nfs-control-source-policy')
         original=frozen(ref);expected=self._state()
-        rows=[r for r in self.nfs_controls if r[0]==original[0]]
+        rows=[r for r in self.nfs_controls if r[0][0]==original[0]]
         if rows:
-            need(rows==[original],'nfs-control-original-conflict');self.check();return
+            need(rows==[(original,public)],'nfs-control-original-conflict');self.check();return
         need(len(self.nfs_controls)<48,'nfs-control-declared-bound')
-        data=self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'nfs-control-original-source')
-        self._append('nfs_controls',(original,),expected);self.check()
+        data=self.read_original(reference(original),private=False) if public else self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'nfs-control-original-source')
+        self._append('nfs_controls',((original,public),),expected);self.check()
 
     def _pair_bound(self,original=None):
-        ordinary=sum(p[0] not in self.nfs_controls for p in self.pairs)+len(self.outputs)
-        need(ordinary<32 or original in self.nfs_controls,'child-control-bound')
+        ordinary=sum(p[0] not in [row[0] for row in self.nfs_controls] for p in self.pairs)+len(self.outputs)
+        need(ordinary<32 or original in [row[0] for row in self.nfs_controls],'child-control-bound')
         need(len(self.pairs)+len(self.outputs)<80,'child-control-total-bound')
 
     def project(self,ref):
@@ -111,8 +123,9 @@ class Tree:
              'child-copy-owned-directory')
         expected=self._state()
         original_nodes=ancestors(original[0])
-        data=self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'child-root-original-hash')
-        need(nine(os.lstat(original[0]))==original[2],'child-root-original9')
+        public=(original,True) in self.nfs_controls
+        data=self.read_original(reference(original),private=False) if public else self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'child-root-original-hash')
+        need(nine(self.stat(original[0]))==original[2],'child-root-original9')
         fd=os.open(target,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
         try:
             born=nine(os.fstat(fd));need(stat.S_ISREG(born[5]) and stat.S_IMODE(born[5])==0o600 and born[6:]==(os.geteuid(),os.getegid(),1) and born[:2]!=original[2][:2],'child-copy-exclusive')
@@ -192,7 +205,7 @@ class Tree:
     def scope(self, original_path, role):
         need(role in ('scratch','retention_root'),'child-private-scope-role')
         expected=self._state()
-        original_path=Path(original_path);before=five(os.lstat(original_path));nodes=ancestors(original_path)
+        original_path=Path(original_path);before=five(self.stat(original_path));nodes=ancestors(original_path,self.owner_reads)
         need(stat.S_ISDIR(before[2]) and stat.S_IMODE(before[2])==0o700,'child-private-scope-original')
         rows=[r for r in self.scopes if r[0]==str(original_path)]
         if rows:
@@ -201,7 +214,7 @@ class Tree:
         if not direct:need(not os.listdir(original_path),'child-private-scope-nonempty-original')
         placeholder=self.root/('scope-'+role+'-'+hashlib.sha256(str(original_path).encode()).hexdigest()[:16])
         self._mkdir(placeholder);expected=self._state()
-        target=original_path if direct else placeholder;stamp=before if direct else five(os.lstat(target))
+        target=original_path if direct else placeholder;stamp=before if direct else five(self.stat(target))
         self._append('scopes',((str(original_path),before,str(target),stamp,role,nodes),),expected);self.check()
         return str(target)
     def scope_owner(self,path):
@@ -216,7 +229,7 @@ class Tree:
             data,_=raw(reference(existing[0][3]),os.geteuid());self.check();return data,reference(existing[0][3])
         self._pair_bound()
         expected=self._state()
-        host=self.host(child[0]);hoststamp=nine(os.lstat(host))
+        host=self.host(child[0]);hoststamp=nine(self.stat(host))
         need(hoststamp==child[2],'child-output-returned-original9')
         hostref=dict(path=host,sha256=child[1],signature9=list(hoststamp))
         data,nodes=raw(hostref,self.uid)
@@ -225,7 +238,7 @@ class Tree:
             folder.mkdir(mode=0o700);folder_fd=os.open(folder,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
             try:
                 folder_stamp=five(os.fstat(folder_fd));need(stat.S_ISDIR(folder_stamp[2]) and stat.S_IMODE(folder_stamp[2])==0o700 and folder_stamp[3:]==(os.geteuid(),os.getegid()),'child-output-folder-creator')
-                need(five(os.lstat(folder))==folder_stamp,'child-output-folder-path')
+                need(five(self.stat(folder))==folder_stamp,'child-output-folder-path')
             finally:os.close(folder_fd)
             self._append('nodes',((str(folder),folder_stamp),),expected);expected=self._state()
         rootpath=folder/(hashlib.sha256(host.encode()).hexdigest()+'.json')
@@ -246,7 +259,7 @@ class Tree:
     def check(self):
         sealed=_SEALS.get(self)
         need(sealed==(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls),'child-tree-logical-seal')
-        need((str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original))==self.identity,'child-tree-original-identity')
+        need((str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads))==self.identity,'child-tree-original-identity')
         pairs=self.pairs;directories=self.directories;outputs=self.outputs;nodes=self.nodes
         files=tuple((p[0][0],p[0][2]) for p in pairs)+tuple((p[1][0],p[1][2]) for p in pairs)+tuple((r[0],r[2]) for r in outputs)+tuple((r[3][0],r[3][2]) for r in outputs)
         all_nodes=nodes+directories+tuple(n for p in pairs for n in (*p[2],*p[3]))+tuple(n for r in outputs for n in (*r[6],*r[7]))+tuple((r[0],r[1]) for r in self.scopes)+tuple((r[2],r[3]) for r in self.scopes)+tuple(n for r in self.scopes for n in r[5])
@@ -256,16 +269,16 @@ class Tree:
         namespaces=tuple((path,tuple(sorted(Path(p[1][0]).name for p in pairs if Path(p[1][0]).parent==Path(path)))) for path,_ in directories if Path(path).name.startswith('control-'))
         viewfolder=self.original_operation/'child-output-views'
         if any(p==str(viewfolder) for p,_ in nodes):namespaces+=((str(viewfolder),tuple(sorted(Path(r[3][0]).name for r in outputs))),)
-        close(files,all_nodes)
+        close(files,all_nodes,self.owner_reads)
         actual_root=set(os.listdir(self.root))
         if not root_required<=actual_root<=root_allowed:raise Held('child-tree-root-namespace')
         for path,expected_names in namespaces:
             if tuple(sorted(os.listdir(path)))!=expected_names:raise Held('child-tree-control-namespace')
         # Original tuple facts survive all replaceable helpers above.
         for path,v in all_nodes:
-            z=os.lstat(path)
+            z=self.stat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('child-tree-original5')
         for path,v in files:
-            z=os.lstat(path)
+            z=self.stat(path)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('child-tree-original9')
         if sealed!=(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls) or _SEALS.get(self)!=sealed:raise Held('child-tree-logical-final')

@@ -7,10 +7,11 @@ from pathlib import Path
 import stat
 import tempfile
 import time
+import threading
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'dc216f79407216aef121484ced36b1d758d58cb15b25c973e41649ff76a29b05', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
+PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'db2a3d59b1859325b4626803cf3ad3a8095a6d313cf717f0f5bc5ecc4563a411', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need
@@ -18,20 +19,37 @@ need=a.need
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 def same(left,right):return a.encoded(left)==a.encoded(right)
 
+
+def _parent_readers(owner):
+ if owner is None or os.geteuid()!=0:return None
+ method=owner.left;g=method.__func__.__globals__
+ need(type(owner) is g.get('LifecycleParent') and owner.thread==threading.get_ident()
+      and str(Path(method.__func__.__code__.co_filename).absolute())==owner.source_ref['path'],'archive-original-owner-read-parent')
+ g['owner_root_guard']();return g
+
+
+def _host_stat(owner,path):
+ g=_parent_readers(owner);return os.lstat(path) if g is None else g['nfs_lstat'](path)
+
+
+def _host_names(owner,path):
+ g=_parent_readers(owner);return os.listdir(path) if g is None else g['nfs_names'](path)
+
+
 class Originals:
- def __init__(self,paths,trees=()):
-  self.files={};self.nodes={};self.absent=set();self.names={}
+ def __init__(self,paths,trees=(),*,owner=None):
+  self.owner=owner;self.files={};self.nodes={};self.absent=set();self.names={}
   # Raw complete originals precede every replaceable read/watch/module helper.
   for rawpath in paths:
    path=Path(rawpath)
    for node in path.parents:
-    z=os.lstat(node);value=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    z=self.stat(node);value=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
     if node in self.nodes and self.nodes[node]!=value:raise Held('archive-producer-initial-node-conflict')
     self.nodes[node]=value
   for rawroot in trees:
    pending=[Path(rawroot)]
    while pending:
-    path=pending.pop();z=os.lstat(path)
+    path=pending.pop();z=self.stat(path)
     value=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
     if path in self.files and self.files[path]!=value:raise Held('archive-producer-initial-tree-conflict')
     self.files[path]=value
@@ -48,13 +66,15 @@ class Originals:
     elif (z.st_mode & 0o170000)!=0o100000:raise Held('archive-producer-initial-tree-type')
   for path in paths:
    self.admit(path)
-   try:z=os.lstat(path)
+   try:z=self.stat(path)
    except FileNotFoundError:continue
    if (z.st_mode & 0o170000)==0o040000:self.record(path,a.nine(z));self.nodes[Path(path)]=tuple(a.five(z))
+ def stat(self,path):return _host_stat(self.owner,path)
+ def census(self,path):return _host_names(self.owner,path)
  def admit(self,path):
   path=Path(path)
   for p in path.parents:
-   v=tuple(a.five(os.lstat(p)));need(p not in self.nodes or self.nodes[p]==v,'archive-producer-original-node');self.nodes[p]=v
+   v=tuple(a.five(self.stat(p)));need(p not in self.nodes or self.nodes[p]==v,'archive-producer-original-node');self.nodes[p]=v
  def ref(self,ref,private=True,*,json_value=True):
   self.admit(ref['path']);raw,fact,nodes=a.checked(ref,private)
   path=Path(ref['path']);v=tuple(fact);need(path not in self.files or self.files[path]==v,'archive-producer-original-file');self.files[path]=v
@@ -62,25 +82,25 @@ class Originals:
   return a.decode(raw) if json_value else raw
  def missing(self,path):
   path=Path(path);self.admit(path)
-  try:os.lstat(path)
+  try:self.stat(path)
   except FileNotFoundError:self.absent.add(path);return
   raise Held('archive-producer-companion-present')
  def record(self,path,value):
   path=Path(path);self.admit(path);v=tuple(value);need(path not in self.files or self.files[path]==v,'archive-producer-file-incarnation');self.files[path]=v
  def frozen(self):return (tuple((str(p),v) for p,v in self.files.items()),tuple((str(p),v) for p,v in self.nodes.items()),tuple(map(str,self.absent)),tuple((str(p),tuple(n)) for p,n in self.names.items()))
 
-def close(originals):
+def close(originals,*,owner=None):
  files,nodes,absent,censuses=originals
  for p,names in censuses:
-  if set(os.listdir(p))!=set(names):raise Held('archive-producer-final-census')
+  if set(_host_names(owner,p))!=set(names):raise Held('archive-producer-final-census')
  for p,value in nodes:
-  z=os.lstat(p)
+  z=_host_stat(owner,p)
   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-producer-final-node')
  for p,value in files:
-  z=os.lstat(p)
+  z=_host_stat(owner,p)
   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-producer-final-file')
  for p in absent:
-  try:os.lstat(p)
+  try:_host_stat(owner,p)
   except FileNotFoundError:continue
   raise Held('archive-producer-final-absence')
 
@@ -90,12 +110,17 @@ def module(name,o):
  for p,value in nodes.items():need(o.nodes.get(p,tuple(value))==tuple(value),'archive-producer-code-node');o.nodes[p]=tuple(value)
  spec=importlib.util.spec_from_file_location('checked_archive_'+name.replace('.','_'),path);m=importlib.util.module_from_spec(spec);exec(compile(raw,str(path),'exec'),m.__dict__);return m
 
+def fixture_source_ref(o,owner,role):
+ need(owner.get('version')==3 and role in ('bootstrap','catalog'),'archive-producer-fixture-retained-role')
+ a.owner_request(owner);ref=owner['fixture_transition'][role];o.admit(ref['path'])
+ return o.ref(ref,private=False)
+
 def context(request,watch,extra,*,trees=()):
  need(type(request) is dict and set(request)=={'version','phase','nonce','operation','deadline_monotonic','parent_plan','parent_source','context'} and type(request['version']) is int and request['version']==1,'archive-producer-request')
  need(type(request['deadline_monotonic']) in (int,float) and 0<request['deadline_monotonic']-time.monotonic()<=3600,'archive-producer-deadline')
  need(callable(watch) and getattr(watch,'__self__',None) is not None and getattr(watch,'__func__',None) is not None and watch.__func__.__name__=='continuous' and Path(watch.__func__.__code__.co_filename).absolute()==Path(request['parent_source']['path']),'archive-producer-parent-watch')
  declared=[Path(__file__),*map(lambda n:HERE/n,PINS),request['parent_plan']['path'],request['parent_source']['path'],*extra]
- o=Originals(declared,trees);o.ref(request['parent_source'],json_value=False);plan=o.ref(request['parent_plan'])
+ o=Originals(declared,trees,owner=watch.__self__);o.ref(request['parent_source'],json_value=False);plan=o.ref(request['parent_plan'])
  o.ref(plan['sdk_map']) # Original source-bound ref9/hash, before watch/module/copy callbacks.
  need(plan['nonce']==request['nonce'] and plan['operation']==request['operation'] and plan['action']=='archive-one','archive-producer-original-plan')
  need(set(plan['producer_inputs'])=={'archive_request','archive_scopes'},'archive-producer-distinct-inputs')
@@ -128,7 +153,7 @@ def capture_pairs(o,root):
   base=Path(root)/name;pair={}
   for suffix in ('','-wal','-shm'):
    p=Path(str(base)+suffix)
-   try:z=os.lstat(p)
+   try:z=o.stat(p)
    except FileNotFoundError:o.missing(p);continue
    fact=list(a.nine(z));need(stat.S_ISREG(z.st_mode) and z.st_nlink==1,'archive-producer-pair-file')
    # FD-bound whole bytes through the neutral checked reader, including full9.
@@ -142,7 +167,7 @@ def private_scopes(o,scopes,observations,restore,mapping=None):
  roots=[Path(scopes[k]) for k in ('scratch','retention_root')]
  need(roots[0]!=roots[1] and not roots[0].is_relative_to(roots[1]) and not roots[1].is_relative_to(roots[0]),'archive-producer-disjoint-private-scopes')
  for p in roots:
-  z=os.lstat(p);owner=z.st_uid==os.geteuid()
+  z=o.stat(p);owner=z.st_uid==os.geteuid()
   if not owner and p==roots[1] and mapping is not None:
    actual=getattr(mapping,'owner',None);g=actual.left.__func__.__globals__ if actual is not None else {}
    need(type(actual) is g.get('LifecycleParent') and type(mapping) is g.get('Paths') and actual.mapping is mapping and g.get('_CORES',{}).get(actual)==actual.core,'archive-producer-owning-retention-mapping')
@@ -158,7 +183,7 @@ def private_scopes(o,scopes,observations,restore,mapping=None):
   need(p.is_absolute() and p.resolve()==p and not any(x.is_symlink() for x in (p,*p.parents)) and (z.st_mode & 0o170000)==0o040000 and owner and (z.st_mode & 0o777)==0o700,'archive-producer-private-scopes')
   need(all(not p.is_relative_to(q) and not q.is_relative_to(p) for q in protected),'archive-producer-scopes-outside-source')
   o.record(p,a.nine(z));o.nodes[p]=tuple(a.five(z))
- need(not os.listdir(roots[0]),'archive-producer-private-scratch-empty');o.names[roots[0]]=frozenset()
+ need(not o.census(roots[0]),'archive-producer-private-scratch-empty');o.names[roots[0]]=frozenset()
  return roots
 
 def backup_controls(request,*,watch):
@@ -187,7 +212,7 @@ def backup_controls(request,*,watch):
    p=root if row['path']=='.' else root/row['path'];o.record(p,row['stamp'])
    if row['kind']=='directory':o.names[p]=frozenset(x['path'].rsplit('/',1)[-1] for x in rows if x['path']!='.' and (root/x['path']).parent==p)
  current=capture_pairs(o,config);restored=capture_pairs(o,restore)
- out=Path(request['operation'])/'archive-proofs';o.admit(out);need(not os.path.lexists(out),'archive-producer-exclusive-output');out.mkdir(mode=0o700);created=os.lstat(out);o.nodes[out]=(created.st_dev,created.st_ino,created.st_mode,created.st_uid,created.st_gid);o.names[out]=frozenset()
+ out=Path(request['operation'])/'archive-proofs';o.admit(out);need(not os.path.lexists(out),'archive-producer-exclusive-output');out.mkdir(mode=0o700);created=o.stat(out);o.nodes[out]=(created.st_dev,created.st_ino,created.st_mode,created.st_uid,created.st_gid);o.names[out]=frozenset()
  scratch=Path(scopes['scratch']);need(scratch.is_absolute() and scratch.resolve()==scratch and not scratch.is_relative_to(config) and not scratch.is_relative_to(restore) and not config.is_relative_to(scratch) and not restore.is_relative_to(scratch),'archive-producer-scratch-scope')
  values={}
  for name,pair in restored.items():
@@ -195,7 +220,7 @@ def backup_controls(request,*,watch):
    db=Path(folder)/name
    for suffix,ref in pair.items():raw,_,_=a.checked(ref,False);Path(str(db)+suffix).write_bytes(raw)
    values[name]=schema.schema(db,request['deadline_monotonic'])
- o.files[Path(scopes['scratch'])]=tuple(a.nine(os.lstat(scopes['scratch'])))
+ o.files[Path(scopes['scratch'])]=tuple(a.nine(o.stat(scopes['scratch'])))
  schema_ref=emit(o,out,'schema.json',{'version':1,'kind':'archive-full-reader-schema','producer_sha256':source,'schema_source_sha256':PINS['comic_reader_schema.py'],'databases':values,'mutation_authority':False})
  snapshot=emit(o,out,'reader-snapshot.json',{'version':1,'kind':'archive-full-reader-table-observation','producer_sha256':source,'databases':manifest['databases'],'schema_sha256':schema_ref['sha256'],'current_pairs':current,'restore_pairs':restored,'reader_sql_mutation':False,'publication_acceptance':False})
  custody=emit(o,out,'custody.json',{'restore_root':str(restore),'pairs':restored,'reader_root':str(config),'current_pairs':current})
@@ -208,20 +233,20 @@ def backup_controls(request,*,watch):
   host=mapping.private_scope(scopes[k],k);mapped_scopes[k]=mapping.child(host);need(mapping.host(mapped_scopes[k])==host,'archive-producer-scope-roundtrip')
  scope_ref=emit(o,out,'archive-scopes.json',dict(version=1,**mapped_scopes))
  controls=dict(stopped_runtime=stopped_ref,backup_ack=ack,backup_manifest=copy.deepcopy(backup['manifest']),backup_acceptance=acceptance,schema=schema_ref,reader_snapshot=snapshot,archive_request=copy.deepcopy(plan['producer_inputs']['archive_request']),custody=custody)
- need(set(controls)==ROLES,'archive-producer-eight-roles');o.record(out,a.nine(os.lstat(out)))
- originals=o.frozen();runtime(watch,expected);o.ref(request['parent_plan']);o.ref(request['parent_source'],json_value=False);close(originals)
+ need(set(controls)==ROLES,'archive-producer-eight-roles');o.record(out,a.nine(o.stat(out)))
+ originals=o.frozen();runtime(watch,expected);o.ref(request['parent_plan']);o.ref(request['parent_source'],json_value=False);close(originals,owner=watch.__self__)
  # Inline originals again AFTER the last replaceable close/read/watch helper.
  files,nodes,absent,censuses=originals
  for path,names in censuses:
-  if set(os.listdir(path))!=set(names):raise Held('archive-producer-ACK-census')
+  if set(o.census(path))!=set(names):raise Held('archive-producer-ACK-census')
  for path,value in nodes:
-  z=os.lstat(path)
+  z=o.stat(path)
   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-producer-ACK-node')
  for path,value in files:
-  z=os.lstat(path)
+  z=o.stat(path)
   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-producer-ACK-file')
  for path in absent:
-  try:os.lstat(path)
+  try:o.stat(path)
   except FileNotFoundError:continue
   raise Held('archive-producer-ACK-absence')
  return {'controls':controls,'archive_scopes':scope_ref}
@@ -268,7 +293,11 @@ def phase_custody(request,*,watch):
  else:need(type(plan.get('version')) is int and plan['version']==10 and 'terminal_mode' not in plan,'archive-producer-exact-legacy-plan')
  expected_input={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}|({'execution_originals'} if ctx['phase']=='verify-terminal' else set())|({'terminal_mode'} if same_child else set())
  if plan.get('version')==13:expected_input|={'terminal','publication_protocol'}
- need(set(input_doc)==expected_input and type(input_doc['version']) is int and input_doc['version']==(3 if plan.get('version')==13 else 2 if same_child else 1) and (not same_child or input_doc['terminal_mode']=='same-child-v1') and same(a.owner_request(dict(version=owner['version'],owner=input_doc['owner'],operation_id=input_doc['operation_id'],**({'terminal':input_doc['terminal']} if owner['version']==2 else {}))),owner) and input_doc['parent_sha256']==inv['parent_sha256'] and input_doc['selected_image']==plan['selected_image'],'archive-producer-exact-action-join')
+ if owner['version']==3:
+  expected_input.add('fixture_originals');expected_refs={role:refchild(owner['fixture_transition'][role]) for role in ('bootstrap','catalog')}
+  need(same(input_doc.get('fixture_originals'),expected_refs),'archive-producer-fixture-original-projection')
+  for role in expected_refs:fixture_source_ref(o,owner,role)
+ need(set(input_doc)==expected_input and type(input_doc['version']) is int and input_doc['version']==(4 if owner['version']==3 else 3 if plan.get('version')==13 else 2 if same_child else 1) and (not same_child or input_doc['terminal_mode']=='same-child-v1') and same(a.owner_request(dict(version=owner['version'],owner=input_doc['owner'],operation_id=input_doc['operation_id'],**({'terminal':input_doc['terminal']} if owner['version'] in (2,3) else {}),**({'fixture_transition':owner['fixture_transition']} if owner['version']==3 else {}))),owner) and input_doc['parent_sha256']==inv['parent_sha256'] and input_doc['selected_image']==plan['selected_image'],'archive-producer-exact-action-join')
  if plan.get('version')==13:need(input_doc['publication_protocol']=='rename-link-v1' and input_doc['terminal']==owner.get('terminal','forward'),'archive-producer-original-nfs-protocol')
  need(inv['command']==command and input_doc['command_template']==command[:9]+['<INPUT_SHA256>']+command[10:] and input_doc['nonce']==request['nonce'] and input_doc['action']=='archive-one' and input_doc['controls']=={k:refchild(v) for k,v in ctx['controls'].items()} and input_doc['archive_scopes']==refchild(ctx['archive_scopes']) and input_doc['sdk_map']==refchild(plan['sdk_map']),'archive-producer-exact-child-input')
  if ctx['phase']=='verify-terminal':need(input_doc['execution_originals']==refchild(ctx['execution_originals']),'archive-producer-original-execute-input')
@@ -287,19 +316,19 @@ def phase_custody(request,*,watch):
  need(child(physical)==library,'archive-producer-library-child-geometry')
  seed={'version':1,'kind':'selected-child-native-scope-birth','invocation':copy.deepcopy(inv),'parent_source':refchild(request['parent_source']),'birth_source':{'path':'/app/mylar3/mylar/publication_native_scope_birth.py','sha256':plan['birth_source_sha256']},'config':{'path':config_child,'sha256':digest(raw)},'worker_library':selected[0],'selected_image':plan['selected_image']}
  result={'reader':reader,'proofs':proofs,'birth_seed':seed}
- originals=o.frozen();runtime(watch,expected);o.ref(request['parent_source'],json_value=False);o.ref(request['parent_plan']);close(originals)
+ originals=o.frozen();runtime(watch,expected);o.ref(request['parent_source'],json_value=False);o.ref(request['parent_plan']);close(originals,owner=watch.__self__)
  # Inline originals again AFTER the last replaceable close/read/watch helper.
  files,nodes,absent,censuses=originals
  for path,names in censuses:
-  if set(os.listdir(path))!=set(names):raise Held('archive-producer-ACK-census')
+  if set(o.census(path))!=set(names):raise Held('archive-producer-ACK-census')
  for path,value in nodes:
-  z=os.lstat(path)
+  z=o.stat(path)
   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-producer-ACK-node')
  for path,value in files:
-  z=os.lstat(path)
+  z=o.stat(path)
   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-producer-ACK-file')
  for path in absent:
-  try:os.lstat(path)
+  try:o.stat(path)
   except FileNotFoundError:continue
   raise Held('archive-producer-ACK-absence')
  return result

@@ -134,11 +134,12 @@ def merge(target,values,reason):
   need(p not in target or target[p]==value,reason);target[p]=value
 
 def owner_request(value):
- need(type(value) is dict and type(value.get('version')) is int and (value['version']==1 and set(value)=={'version','owner','operation_id'} or value['version']==2 and set(value)=={'version','owner','operation_id','terminal'} and value['terminal'] in ('forward','rollback')),'repair-request-shape')
+ need(type(value) is dict and type(value.get('version')) is int and (value['version']==1 and set(value)=={'version','owner','operation_id'} or value['version']==2 and set(value)=={'version','owner','operation_id','terminal'} and value['terminal'] in ('forward','rollback') or value['version']==3 and set(value)=={'version','owner','operation_id','terminal','fixture_transition'} and value['terminal'] in ('forward','rollback')),'repair-request-shape')
  owner=value['owner'];need(type(owner) is dict and set(owner)=={'table','issueid','parentcomicid','releasecomicid'} and owner['table'] in ('issues','annuals'),'repair-owner-shape')
  need(all(type(owner[k]) is str and re.fullmatch('[1-9][0-9]{0,15}',owner[k]) for k in ('issueid','parentcomicid','releasecomicid')),'repair-owner-keys')
  need(owner['table']!='issues' or owner['parentcomicid']==owner['releasecomicid'],'repair-issue-parent')
  need(type(value['operation_id']) is str and re.fullmatch('[0-9a-f]{64}',value['operation_id']),'repair-operation-id')
+ if value['version']==3:fixture_request(value['fixture_transition'])
  return copy.deepcopy(value)
 
 def installed(modules):
@@ -173,6 +174,7 @@ def control_join(plan,custody):
  for name,ref in plan['controls'].items():need(custody.proofs.get(name)==ref,'repair-parent-original-control')
  need(plan['controls']['backup_manifest']==custody.backup_manifest and plan['controls']['backup_acceptance']==custody.backup_acceptance,'repair-neutral-full-backup-joins')
  raw,_,_=checked(plan['controls']['archive_request']);request=owner_request(decode(raw))
+ need((request['version']==3)==(plan.get('version')==4),'repair-fixture-input-request-version')
  need(request['owner']==plan['owner'] and request['operation_id']==plan['operation_id'] and request.get('terminal','forward')==plan.get('terminal','forward'),'repair-original-request')
  # The dedicated lease independently compares all current/restore reader tables;
  # no five-row plan/timestamp semantics are imported here.
@@ -241,10 +243,222 @@ def rollback_owned(cap,modules):
  close_vectors(vectors)
  return result,vectors
 
+# Disposable fixture preparation, never ordinary archive admission. The caller
+# supplies no replacement bytes: the existing installed pure algorithms must
+# independently prove that repair of the constructed defect equals genesis.
+_FIXTURE_KEY=object()
+_FIXTURE_CAPS={}
+_FIXTURE_SEALS={}
+FIXTURE_LIMIT=16*1024**2
+
+def fixture_inverse(raw,modules,deadline):
+ import io,struct,time
+ need(type(raw) is bytes and 0<len(raw)<=FIXTURE_LIMIT and time.monotonic()<deadline,'fixture-bounded-genesis')
+ g=modules['publication_guard'];repair=modules['publication_archive_repair'];d=modules['publication_archive_derivative']
+ initial=repair.classify(raw,g,deadline);need(initial['status']=='verified-no-repair','fixture-valid-genesis-only')
+ rows,envelope=modules['publication_archive_layout'].layout(io.BytesIO(raw),len(raw))
+ matches=[row for row in rows if row['name']=='Pages/' and stat.S_IFMT(row['external_attr']>>16)==stat.S_IFDIR and row['external_attr']&0x10 and row['bytes']==0 and row['stored_crc32']==0]
+ need(len(matches)==1,'fixture-exact-empty-Pages-marker');target=matches[0];at=target['header_offset']
+ nl=struct.unpack_from('<H',raw,at+26)[0];cut=at+30+nl-1
+ need(nl>1 and raw[cut:cut+1]==b'/','fixture-local-marker')
+ local=bytearray(raw[:envelope['central_offset']]);del local[cut];struct.pack_into('<H',local,at+26,nl-1)
+ central=[];pos=envelope['central_offset']
+ for row in rows:
+  name,extra,comment=struct.unpack_from('<3H',raw,pos+28);length=46+name+extra+comment
+  record=bytearray(raw[pos:pos+length]);struct.pack_into('<L',record,42,row['header_offset']-(row['header_offset']>at))
+  if row['index']==target['index']:
+   need(name==nl and record[46+name-1:46+name]==b'/','fixture-central-marker')
+   del record[46+name-1];struct.pack_into('<H',record,28,name-1)
+  central.append(bytes(record));pos+=length
+ central=b''.join(central);footer=bytearray(raw[envelope['eocd_offset']:]);struct.pack_into('<L',footer,12,len(central));struct.pack_into('<L',footer,16,len(local))
+ malformed=bytes(local)+central+bytes(footer);need(len(malformed)==len(raw)-2,'fixture-exact-two-byte-shrink')
+ plan=repair.classify(malformed,g,deadline)
+ need(plan['status']=='repair-candidate' and plan['reason']=='zip32-one-empty-directory-missing-slash' and plan['entry']['index']==target['index'] and plan['entry']['name']=='Pages','fixture-one-supported-defect')
+ before,metadata=d.independent(raw,g,deadline);after,after_metadata=d.independent(malformed,g,deadline,target['index'])
+ need(before==after and metadata==after_metadata,'fixture-all-members-pages-XML-preserved')
+ return malformed,dict(entry_index=target['index'],inventory=before,root_metadata_sha256=metadata,genesis_sha256=hashlib.sha256(raw).hexdigest(),candidate_sha256=hashlib.sha256(malformed).hexdigest(),compressed_and_all_other_header_bytes_preserved=True)
+
+def fixture_roundtrip(genesis,candidate,modules,deadline,candidate_ref):
+ core=modules['publication_archive_owned'];g=modules['publication_guard'];d=modules['publication_archive_derivative'];repair=modules['publication_archive_repair']
+ actual=core.fact(Path(candidate_ref['path']),FIXTURE_LIMIT,deadline)
+ need(actual==candidate_ref and core.read_checked(Path(actual['path']),actual['signature9'],FIXTURE_LIMIT,deadline)==candidate,'fixture-original-candidate-copy')
+ plan=repair.classify(candidate,g,deadline)
+ need(plan['status']=='repair-candidate','fixture-staged-supported-defect')
+ witness=core.witness(candidate,actual,plan,(None,None,g,None,None,d,modules['publication_archive_layout']),deadline)
+ restored,evidence=repair.dispatch(candidate,plan,witness,g,deadline)
+ need(restored==genesis,'fixture-byte-exact-genesis-roundtrip')
+ return dict(candidate=actual,reconstructed_sha256=hashlib.sha256(restored).hexdigest(),roundtrip_verified=True)
+
+def fixture_request(value):
+ need(type(value) is dict and set(value)=={'version','kind','nonce','bootstrap','catalog','genesis','native_id','reader_id','worker_id'},'fixture-request-shape')
+ need(type(value['version']) is int and value['version']==1 and value['kind']=='disposable-stopped-directory-marker-v1','fixture-request-purpose')
+ for key in ('nonce','native_id','reader_id','worker_id'):
+  need(type(value[key]) is str and re.fullmatch('[0-9a-f]{64}',value[key]),'fixture-request-identity')
+ need(len({value[k] for k in ('native_id','reader_id','worker_id')})==3,'fixture-distinct-roles')
+ for key in ('bootstrap','catalog','genesis'):
+  ref=value[key];need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and type(ref['path']) is str and Path(ref['path']).is_absolute() and '..' not in Path(ref['path']).parts and type(ref['sha256']) is str and re.fullmatch('[0-9a-f]{64}',ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(n) is int for n in ref['signature9']),'fixture-original-reference')
+  fact=ref['signature9'];need(stat.S_ISREG(fact[5]) and fact[8]==1 and 0<fact[2]<=FIXTURE_LIMIT and stat.S_IMODE(fact[5]) in ((0o600,0o644) if key=='genesis' else (0o600,)) and fact[6:8]==[1000,1000],'fixture-reference-role')
+ return copy.deepcopy(value)
+
+def fixture_documents(request,bootstrap,catalog):
+ value=fixture_request(request['fixture_transition'])
+ need(type(bootstrap) is dict and bootstrap.get('kind')=='disposable-application-bootstrap-observation' and bootstrap.get('nonce')==value['nonce'] and bootstrap.get('native_catalog_processing')==value['catalog'] and bootstrap.get('native_catalog_processing_observed') is True,'fixture-original-bootstrap-join')
+ need(type(catalog) is dict and catalog.get('kind')=='disposable-native-catalog-processing-observation' and catalog.get('nonce')==value['nonce'] and catalog.get('native_CID')==value['native_id'] and catalog.get('native_catalog_processing_observed') is True,'fixture-original-catalog-join')
+ need(bootstrap.get('ordinary_ack_verified') is False and catalog.get('ordinary_ack_verified') is False and catalog.get('birth_verified') is False and all(doc.get(k) is False for doc in (bootstrap,catalog) for k in ('publication_acceptance','mutation_authority','automatic_replay')),'fixture-original-no-grants')
+ files=catalog.get('files');need(type(files) is list and len(files)==2 and {row.get('role') for row in files}=={'target','unrelated'},'fixture-two-original-outputs')
+ target=next(row for row in files if row['role']=='target');other=next(row for row in files if row['role']=='unrelated')
+ need(target.get('owner')==request['owner'] and {k:target.get(k) for k in ('path','sha256','signature9')}==value['genesis'] and other.get('owner')!=target['owner'] and other.get('path')!=target['path'],'fixture-genesis-catalog-owner-join')
+ books=bootstrap.get('reader',{}).get('books')
+ need(type(books) is list and len(books)==2 and {book.get('path') for book in books}=={row['path'] for row in files} and all(next(book.get('hashes') for book in books if book.get('path')==row['path'])==row.get('pages') for row in files),'fixture-original-reader-pages-join')
+ return target,other
+
+def fixture_originals(plan,request):
+ refs=plan.get('fixture_originals');need(type(refs) is dict and set(refs)=={'bootstrap','catalog'},'fixture-two-projected-originals')
+ docs={}
+ for role,ref in refs.items():
+  need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(n) is int for n in ref['signature9']) and ref['sha256']==request['fixture_transition'][role]['sha256'],'fixture-projected-original-source-hash')
+  raw,_,_=checked(ref);docs[role]=decode(raw)
+ return fixture_documents(request,docs['bootstrap'],docs['catalog'])
+
+def fixture_provenance(value,request):
+ fixture=fixture_request(request['fixture_transition'])
+ expected={'version','kind','nonce','fixture_nonce','operation_id','owner','bootstrap','catalog','catalog_observed','reader_stopped','native_epoch','worker_epoch','deadline_monotonic','equivalence','roundtrip','phase','source_before','genesis','candidate','automatic_replay','reset_authority','publication_acceptance','mutation_authority','source_after'}
+ need(type(value) is dict and set(value)==expected and type(value['version']) is int and value['version']==1 and value['kind']=='causal-stopped-fixture-directory-marker' and value['phase']=='observed-malformed-successor','fixture-causal-receipt-schema')
+ need(value['fixture_nonce']==fixture['nonce'] and value['nonce']==fixture['nonce'] and value['operation_id']==request['operation_id'] and value['owner']==request['owner'] and value['bootstrap']==fixture['bootstrap'] and value['catalog']==fixture['catalog'] and value['source_before']==fixture['genesis'],'fixture-causal-original-joins')
+ need(all(value[k] is False for k in ('automatic_replay','reset_authority','publication_acceptance','mutation_authority')),'fixture-causal-no-grants')
+ before=value['source_before'];after=value['source_after'];need(type(after) is dict and set(after)=={'path','signature9','sha256'} and after['path']==before['path'] and type(after['signature9']) is list and len(after['signature9'])==9 and all(type(n) is int for n in after['signature9']) and after['signature9'][:2]==before['signature9'][:2] and after['signature9'][2]==before['signature9'][2]-2 and after['signature9'][3]==before['signature9'][3] and after['signature9'][5:]==before['signature9'][5:],'fixture-causal-exact-source-successor')
+ for role,original in (('genesis',before),('candidate',after)):
+  ref=value[role];need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and ref['sha256']==original['sha256'] and ref['signature9'][2]==original['signature9'][2] and Path(ref['path']).name==role+'.cbz','fixture-causal-retained-copy')
+ roundtrip=value['roundtrip'];need(type(roundtrip) is dict and set(roundtrip)=={'candidate','reconstructed_sha256','roundtrip_verified'} and roundtrip['candidate']==value['candidate'] and roundtrip['reconstructed_sha256']==before['sha256'] and roundtrip['roundtrip_verified'] is True,'fixture-causal-roundtrip')
+ observed=value['reader_stopped'];need(type(observed) is dict and observed.get('Id')==fixture['reader_id'] and observed.get('State',{}).get('Running') is False and type(observed['State'].get('Pid')) is int and observed['State'].get('Pid')==0 and observed['State'].get('Status')=='exited','fixture-causal-reader-stop')
+ need(value['catalog_observed']['owner']['path']==before['path'],'fixture-causal-catalog-source')
+ return value
+
+class _FixtureSuccessor:
+ def __init__(self,key,stage,refs,nodes,receipt):
+  need(key is _FIXTURE_KEY,'fixture-owning-successor-only');self.stage=stage;self.directory9=nine(os.lstat(stage));self.refs=copy.deepcopy(refs);self.nodes=copy.deepcopy(nodes);self.receipt=copy.deepcopy(receipt)
+  self.seal=hashlib.sha256(encoded(dict(stage=str(stage),directory9=self.directory9,refs=self.refs,nodes={str(k):v for k,v in self.nodes.items()},receipt=self.receipt))).hexdigest();_FIXTURE_SEALS[self]=self.seal
+ def close(self):
+  need(_FIXTURE_SEALS.get(self)==self.seal and hashlib.sha256(encoded(dict(stage=str(self.stage),directory9=self.directory9,refs=self.refs,nodes={str(k):v for k,v in self.nodes.items()},receipt=self.receipt))).hexdigest()==self.seal,'fixture-successor-seal')
+  need(nine(os.lstat(self.stage))==self.directory9 and sorted(os.listdir(self.stage))==sorted(self.refs),'fixture-retained-namespace')
+  for ref in self.refs.values():checked(ref)
+  raw_controls({self.stage:self.directory9},self.nodes)
+ def vectors(self):
+  self.close();return seal_vectors({self.stage:self.directory9,**{Path(r['path']):r['signature9'] for r in self.refs.values()}},self.nodes,(),{}, {self.stage:tuple(sorted(self.refs))})
+
+def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receipt,modules):
+ """Held-FD finite write. guard is the original owning closure, not a grant.
+
+ No independent actor may write these selected names. A cooperating Writer and
+ stopped reader do not supply a kernel compare-and-swap against a hostile UID.
+ Every replaceable closure runs BEFORE the final raw FD/path CAS and write.
+ Failure retains stage/source verbatim; this function never resets or retries.
+ """
+ import time
+ need(type(genesis) is bytes and type(candidate) is bytes and 0<len(genesis)<=FIXTURE_LIMIT,'fixture-replacement-bound')
+ need(not os.path.lexists(stage),'fixture-no-replay');nodes=core.ancestors([source,stage.parent]);parent5=nodes[stage.parent]
+ refs={};source=Path(source);stage=Path(stage)
+ parent_stat=os.lstat(stage.parent);need(stat.S_IMODE(parent_stat.st_mode)==0o700 and parent_stat.st_uid==os.geteuid() and parent_stat.st_gid==os.getegid(),'fixture-private-DATA-stage')
+ with core.directory_fd(stage.parent,parent5) as parent:
+  os.mkdir(stage.name,0o700,dir_fd=parent);os.fsync(parent)
+ nodes.update(core.ancestors([stage]));stage5=nodes[stage]
+ # These durable copies precede the intent and first mutation. Never overwrite.
+ core.write(stage/'genesis.cbz',genesis,stage5);refs['genesis.cbz']=dict(path=str(stage/'genesis.cbz'),sha256=hashlib.sha256(genesis).hexdigest(),signature9=nine(os.lstat(stage/'genesis.cbz')))
+ core.write(stage/'candidate.cbz',candidate,stage5);refs['candidate.cbz']=dict(path=str(stage/'candidate.cbz'),sha256=hashlib.sha256(candidate).hexdigest(),signature9=nine(os.lstat(stage/'candidate.cbz')))
+ need(core.fact(stage/'genesis.cbz',FIXTURE_LIMIT,receipt['deadline_monotonic'])==refs['genesis.cbz'],'fixture-original-genesis-copy')
+ roundtrip=fixture_roundtrip(genesis,candidate,modules,receipt['deadline_monotonic'],refs['candidate.cbz'])
+ guard('candidate-durable')
+ intent=dict(receipt,roundtrip=roundtrip,phase='intent-before-write',source_before=sourcefact,genesis=refs['genesis.cbz'],candidate=refs['candidate.cbz'],automatic_replay=False,reset_authority=False,publication_acceptance=False,mutation_authority=False)
+ refs['intent.json']=write(stage/'intent.json',intent,expected_nodes=nodes)
+ retained=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['intent.json'])
+ with core.directory_fd(source.parent,nodes[source.parent]) as parent:
+  fd=os.open(source.name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent);primary=None
+  try:
+   need(nine(os.fstat(fd))==sourcefact['signature9'] and stat.S_ISREG(sourcefact['signature9'][5]) and stat.S_IMODE(sourcefact['signature9'][5]) in (0o600,0o644) and sourcefact['signature9'][8]==1 and sourcefact['signature9'][6:8]==[os.geteuid(),os.getegid()],'fixture-original-write-FD')
+   guard('before-write');retained.close()
+   need(time.monotonic()<receipt['deadline_monotonic'],'fixture-write-deadline')
+   # No user callback between final namespace/CAS and destructive syscalls.
+   need(nine(os.fstat(fd))==sourcefact['signature9'] and nine(os.stat(source.name,dir_fd=parent,follow_symlinks=False))==sourcefact['signature9'],'fixture-source-final-CAS')
+   need(os.pread(fd,len(genesis)+1,0)==genesis,'fixture-genesis-final-bytes')
+   offset=0
+   while offset<len(candidate):
+    need(time.monotonic()<receipt['deadline_monotonic'],'fixture-write-deadline');count=os.pwrite(fd,candidate[offset:offset+1024**2],offset);need(count>0,'fixture-partial-write');offset+=count
+   os.ftruncate(fd,len(candidate));os.utime(fd,ns=(os.fstat(fd).st_atime_ns,sourcefact['signature9'][3]));os.fsync(fd);os.fsync(parent)
+   after=nine(os.fstat(fd));need(after[:2]==sourcefact['signature9'][:2] and after[5:]==sourcefact['signature9'][5:] and os.pread(fd,len(candidate)+1,0)==candidate and nine(os.stat(source.name,dir_fd=parent,follow_symlinks=False))==after,'fixture-successor-FD-path-readback')
+   guard('after-write')
+   need(nine(os.fstat(fd))==after and nine(os.stat(source.name,dir_fd=parent,follow_symlinks=False))==after,'fixture-successor-final-CAS')
+   successor=dict(path=str(source),signature9=after,sha256=hashlib.sha256(candidate).hexdigest())
+  except BaseException as error:
+   primary=error;raise
+  finally:
+   try:os.close(fd)
+   except BaseException:
+    if primary is None:raise
+ result=dict(intent,phase='observed-malformed-successor',source_after=successor)
+ refs['successor.json']=write(stage/'successor.json',result,expected_nodes=nodes)
+ outcome=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['successor.json']);outcome.close();return outcome
+
+def fixture_roles(value,rows):
+ need(type(rows) is tuple and len(rows)==3,'fixture-three-original-profiles')
+ for row,key in zip(rows,('native_id','reader_id','worker_id')):
+  need(row['Id']==value[key] and row['Config'].get('Labels',{}).get('com.homelab.archive.bootstrap')==value['nonce'] and row['Config']['Labels'].get('com.homelab.archive.purpose')=='genuine-archive-fixture','fixture-original-disposable-roles')
+
+
+def fixture_stage(controller,source,operation):
+ need(len(controller.roots)==1 and source.is_relative_to(Path(controller.roots[0])) and source!=Path(controller.roots[0]),'fixture-original-library-target')
+ need(Path(controller.root)!=Path(controller.roots[0]) and Path(controller.root) not in Path(controller.roots[0]).parents and Path(controller.roots[0]) not in Path(controller.root).parents,'fixture-stage-outside-library')
+ return controller.root/('fixture-transition-'+operation)
+
+def fixture_source(request,target,actual):
+ need(str(actual)==request['fixture_transition']['genesis']['path']==target['path'],'fixture-genesis-actual-source-path')
+
+def fixture_transition(plan,modules,custody,scope,controller,writer,request,publication=None):
+ import time,threading
+ # The Parent must separately join original Bootstrap/catalog refs and exact
+ # original gen9 profiles; receipt JSON alone cannot construct either factory.
+ need(plan.get('version')==4 and plan.get('terminal_mode')=='same-child-v1','fixture-plan13-same-child-only')
+ need(exact_pair(modules,custody,scope)==(controller,writer),'fixture-same-owning-pair');scope._writer_proof()
+ value=fixture_request(request['fixture_transition']);need(value['nonce']==scope._native['inspect']['Config'].get('Labels',{}).get('com.homelab.archive.bootstrap'),'fixture-original-nonce')
+ fixture_roles(value,(scope._native['inspect'],custody.reader['runtime'],scope._worker['inspect']))
+ core=modules['publication_archive_owned'];g=modules['publication_guard'];deadline=min(custody.deadline,time.monotonic()+120)
+ core.writer_pair(controller,writer,core.sdk());scope.revalidate();custody.revalidate_stopped()
+ target,other=fixture_originals(plan,request)
+ catalog,claims,nodes=core.catalog(controller,request['owner'],g,deadline);source=Path(catalog['owner']['path'])
+ need(publication is not None,'fixture-original-nfs-selection')
+ adoption=modules['publication_archive_adoption']
+ need(type(publication) is adoption.NFSRepairPublication and publication.custody is custody and publication.scope is scope,'fixture-exact-nfs-selection')
+ selection=adoption._NFS_SELECTIONS.get(publication)
+ need(selection is not None and selection[:2]==(custody,scope) and selection[2]==core.compact(publication.facts) and selection[3]==threading.get_ident()==publication.thread and selection[4] is False and custody.archive_publication_original(scope)==publication.facts,'fixture-original-unconsumed-nfs-selection')
+ need(publication.facts['owner']==request['owner'] and publication.facts['operation_id']==request['operation_id'],'fixture-nfs-purpose-join')
+ adoption.nfs_child_geometry(publication.facts,source,publication.facts['geometry']['retention']['path'])
+ fixture_source(request,target,source)
+ stage=fixture_stage(controller,source,request['operation_id'])
+ other_ref={k:other[k] for k in ('path','sha256','signature9')}
+ need(Path(other['path']).is_relative_to(Path(controller.roots[0])) and core.fact(Path(other['path']),FIXTURE_LIMIT,deadline)==other_ref,'fixture-unrelated-original')
+ fact=core.fact(source,FIXTURE_LIMIT,deadline);need(fact['sha256']==value['genesis']['sha256'] and fact['signature9']==value['genesis']['signature9'],'fixture-original-genesis-join')
+ raw=core.read_checked(source,fact['signature9'],FIXTURE_LIMIT,deadline);candidate,evidence=fixture_inverse(raw,modules,deadline)
+ attributes=core.attributes(source);snapshot=g.media_snapshot(controller.database,writer.root/'publication-v1.json')
+ def guard(phase):
+  custody.revalidate_stopped();scope.revalidate();scope._writer_proof();core.writer_pair(controller,writer,core.sdk())
+  need(core.catalog(controller,request['owner'],g,deadline)[0]==catalog,'fixture-full-catalog-unchanged')
+  need(g.media_snapshot(controller.database,writer.root/'publication-v1.json')==snapshot,'fixture-authority-unchanged')
+  need(core.attributes(source)==attributes,'fixture-source-attributes-unchanged')
+  fixture_originals(plan,request)
+  need(core.fact(Path(other['path']),FIXTURE_LIMIT,deadline)==other_ref,'fixture-unrelated-original-closure')
+  need(adoption._NFS_SELECTIONS.get(publication) is selection and custody.archive_publication_original(scope)==publication.facts,'fixture-nfs-selection-continuity')
+  adoption.nfs_child_geometry(publication.facts,source,publication.facts['geometry']['retention']['path'])
+ receipt=dict(version=1,kind='causal-stopped-fixture-directory-marker',nonce=plan['nonce'],fixture_nonce=value['nonce'],operation_id=request['operation_id'],owner=request['owner'],bootstrap=value['bootstrap'],catalog=value['catalog'],catalog_observed=catalog,reader_stopped=copy.deepcopy(custody.observed),native_epoch=copy.deepcopy(scope._native['state']),worker_epoch=copy.deepcopy(scope._worker['state']),deadline_monotonic=deadline,equivalence=evidence)
+ successor=_fixture_replace(source,raw,candidate,fact,stage,core,guard,receipt,modules)
+ fixture_provenance(decode(checked(successor.receipt)[0]),request);successor.close();return successor
+
+
 def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,publication=None):
  core=modules['publication_archive_owned'];request=control_join(plan,custody)
  owner=modules['publication_guard'].exact_owner(request['owner']);need(owner==request['owner'],'repair-exact-owner')
- stage=controller.root/('archive-repair-'+request['operation_id'])
+ stage=controller.root/('archive-repair-'+request['operation_id']);transition=None
+ if request['version']==3:
+  need(not os.path.lexists(stage),'fixture-no-preexisting-repair-stage')
+  transition=fixture_transition(plan,modules,custody,scope,controller,writer,request,publication)
  if not os.path.lexists(stage):
   prep=core.prepare_existing(controller,writer,owner,request['operation_id'])
   modules['publication_archive_history'].prepared(prep)
@@ -258,6 +472,7 @@ def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,p
  need(type(lease) is modules['publication_archive_reader'].RepairReaderLease and lease.custody is custody and lease.source==source,'repair-exact-reader-lease')
  cap=modules['publication_archive_adoption'].prepare_existing(prep,lease,retention,**({'publication':publication} if publication is not None else {}))
  need(type(cap) is modules['publication_archive_adoption'].RepairAdoption and cap.preparation is prep and cap.reader is lease,'repair-exact-owning-adoption')
+ if transition is not None:transition.close();_FIXTURE_CAPS[cap]=transition
  return cap
 
 def execute_one(plan,modules,custody,scope):
@@ -318,10 +533,12 @@ def worker_original_roles(cap,modules,custody,scope):
 
 def original_execution(value,plan):
  expected={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'}
- need(type(value) is dict and set(value)==expected and type(value['version']) is int and value['version']==1 and value['kind']=='archive-one-original-custody' and value['publication_acceptance'] is False and value['mutation_authority'] is False,'repair-original-execute-schema')
+ extended=plan.get('version')==3 and 'fixture_transition' in plan
+ if extended:expected.add('fixture_transition')
+ need(type(value) is dict and set(value)==expected and type(value['version']) is int and value['version']==(2 if extended else 1) and value['kind']=='archive-one-original-custody' and value['publication_acceptance'] is False and value['mutation_authority'] is False,'repair-original-execute-schema')
  request=owner_request({'version':1,'owner':value['owner'],'operation_id':value['operation_id']})
  need(encoded(request)==encoded({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']}),'repair-original-execute-join')
- for role in ('baseline','preparation'):
+ for role in ('baseline','preparation',*(['fixture_transition'] if extended else [])):
   ref=value[role]
   need(type(ref) is dict and set(ref)=={'path','signature9','sha256'} and type(ref['path']) is str and Path(ref['path']).is_absolute() and type(ref['sha256']) is str and re.fullmatch('[0-9a-f]{64}',ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(x) is int for x in ref['signature9']),'repair-original-execute-reference')
  need(type(value['preparation_directory9']) is list and len(value['preparation_directory9'])==9 and all(type(x) is int for x in value['preparation_directory9']) and type(value['reader']) is dict,'repair-original-execute-custody')
@@ -371,11 +588,12 @@ def require_terminal_observers(modules):
 
 def validate_plan(plan,args,argv):
  base={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}
- same=type(plan) is dict and type(plan.get('version')) is int and plan['version'] in (2,3)
- if type(plan) is dict and plan.get('version')==3:base|={'terminal','publication_protocol'}
+ same=type(plan) is dict and type(plan.get('version')) is int and plan['version'] in (2,3,4)
+ if type(plan) is dict and plan.get('version') in (3,4):base|={'terminal','publication_protocol'}
+ if type(plan) is dict and plan.get('version')==4:base.add('fixture_originals')
  expected=base|({'execution_originals'} if args.phase=='verify-terminal' else set())|({'terminal_mode'} if same else set())
- need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2,3) and plan['action']=='archive-one','repair-exact-action-input')
- if type(plan) is dict and plan.get('version')==3:need(plan['terminal'] in ('forward','rollback') and plan['publication_protocol']=='rename-link-v1','repair-finite-explicit-terminal')
+ need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2,3,4) and plan['action']=='archive-one','repair-exact-action-input')
+ if type(plan) is dict and plan.get('version') in (3,4):need(plan['terminal'] in ('forward','rollback') and plan['publication_protocol']=='rename-link-v1','repair-finite-explicit-terminal')
  if same:need(args.phase=='execute' and plan['terminal_mode']=='same-child-v1','repair-exact-same-child-mode')
  need(args.phase in ('execute','verify-terminal'),'repair-finite-action-phase');owner_request({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']})
  need(type(plan['nonce']) is str and re.fullmatch('[0-9a-f]{64}',plan['nonce']) and type(plan['parent_sha256']) is str and re.fullmatch('[0-9a-f]{64}',plan['parent_sha256']) and re.fullmatch('sha256:[0-9a-f]{64}',plan['selected_image']),'repair-parent-identities')
@@ -550,16 +768,19 @@ def same_child_ack(modules,custody,scope,cap,witness,reference,vectors,source_fi
  if written!=len(frame):raise Held('repair-final-ACK-partial-no-replay')
 
 def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args):
- need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version') in (2,3),'repair-same-child-default-disabled')
+ need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version') in (2,3,4),'repair-same-child-default-disabled')
  controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
- publication=modules['publication_archive_adoption'].nfs_publication(custody,scope) if plan['version']==3 else None
+ publication=modules['publication_archive_adoption'].nfs_publication(custody,scope) if plan['version'] in (3,4) else None
  with scope.writer_session(controller,writer):
   modules['publication_archive_history'].directory(controller,writer)
   scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,*((publication,) if publication is not None else ()))
   baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
   original={'version':1,'kind':'archive-one-original-custody','owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'baseline':{'path':str(baseline),'signature9':list(cap._files[baseline]),'sha256':cap._contents[baseline]},'preparation':{'path':str(prep_path),'signature9':list(cap.preparation._files[prep_path]['signature9']),'sha256':cap.preparation._files[prep_path]['sha256']},'preparation_directory9':list(cap.preparation._directory),'reader':cap.reader.binding,'publication_acceptance':False,'mutation_authority':False}
+  transition=_FIXTURE_CAPS.get(cap)
+  if transition is not None:
+   transition.close();original=dict(original,version=2,fixture_transition=transition.receipt)
   originals=emit(operation,'execution-originals.json',original,());cap.close()
   cap.install()
   if plan.get('terminal','forward')=='rollback':
@@ -567,6 +788,8 @@ def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args
   else:cap.complete()
   execute_history=modules['publication_archive_history'].executed(cap)
   observed,vectors=same_child_observation(cap,modules,custody,scope,scratch)
+  if transition is not None:
+   for field,values in transition.vectors().items():vectors[field]+=values
   vectors['files']+=((originals['path'],tuple(originals['signature9'])),)
   vectors['nodes']+=tuple((str(p),tuple(v)) for p,v in opnodes.items())
   vectors['censuses']=tuple((p,n) for p,n in vectors['censuses'] if p!=str(operation))+((str(operation),('execute-report.json','execution-originals.json','terminal-report.json')),)
@@ -590,7 +813,7 @@ def main():
  need(sys.dont_write_bytecode,'repair-bytecode-off');own=Path(__file__).absolute();_,source_fact,source_nodes=checked({'path':str(own),'sha256':args.source_sha256});raw,input_fact,input_nodes=checked({'path':args.input,'sha256':args.input_sha256});plan=validate_plan(decode(raw),args,list(sys.orig_argv))
  need(PARENT_SOURCE_SHA is not None and plan['parent_sha256']==PARENT_SOURCE_SHA,'repair-owning-parent-not-installed')
  # Admit every declared control ancestor BEFORE checked module loading/birth.
- refs=[plan['sdk_map'],plan['archive_scopes'],*plan['controls'].values()]
+ refs=[plan['sdk_map'],plan['archive_scopes'],*plan['controls'].values(),*plan.get('fixture_originals',{}).values()]
  if args.phase=='verify-terminal':refs.append(plan['execution_originals'])
  nodes={};merge(nodes,source_nodes,'repair-source-node-conflict');merge(nodes,input_nodes,'repair-input-node-conflict')
  for ref in refs:

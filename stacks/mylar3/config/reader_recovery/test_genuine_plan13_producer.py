@@ -69,6 +69,7 @@ class Fixture:
         blobs = {**artifacts, **g.installer.build_nfs({key: sources[key] for key in g.installer.EXPECTED_NFS}),
             'publication_reader_admission.overlay.py': artifacts['publication_reader_admission.py'],
             'configured-sdk-map.json': g.installer_json(sdk), 'configured-cohort.json': g.installer_json(cohort)}
+        self.original_source_refs = source_refs
         receipt.update(original_source_refs=source_refs, base_sdk_ref=sdk_ref, worker_observation_profile=worker,
             worker_observation_image=self.worker_image, worker_observation_installed_parity_verified=False,
             nfs_session_admission_proven=False, actual_overlay_origins_verified=False,
@@ -90,7 +91,7 @@ class Fixture:
         scope = fact(dict(sources=dict(current_komga_libraries=query), forbidden_roots=[str(self.data)]))
         cohort = fact(dict(images=dict(native=self.image, selected=self.image, reader=self.image, worker=self.worker_image),
             sources={str(n): fact(dict(fixture=n)) for n in range(16)}, logs={name: fact(dict(fixture=name)) for name in ('stdout', 'stderr')},
-            parent=pair(self.refs['comic_negative_nfs_active_parent.py']), receipt=fact(dict(source_mode_fixture=True))))
+            parent=pair(self.original_source_refs['comic_negative_nfs_active_parent.py']), receipt=fact(dict(source_mode_fixture=True))))
         review = {}
         for role in g.EFFECTIVE:
             review[role] = fact(dict(config_files={}, absent_config_files=[], optional_absent_scopes={}, scopes={}) if role == 'report' else dict(source_mode_fixture=role))
@@ -171,6 +172,42 @@ class Tests(unittest.TestCase):
         self.assertEqual(len(nfs), 8)
         self.assertEqual(plan['observer'], self.f.doc['observer'])
         self.assertFalse(Path(plan['operation']).exists()); frame.close()
+
+    def test_cohort_parent_is_original_canonical_source_not_derived_output(self):
+        (plan, _, _, _), frame=self.f.compose()
+        self.assertNotEqual(self.f.original_source_refs['comic_negative_nfs_active_parent.py']['path'],self.f.refs['comic_negative_nfs_active_parent.py']['path'])
+        self.assertEqual(plan['nfs']['active_parent'],self.f.refs['comic_negative_nfs_active_parent.py']);frame.close()
+
+    def test_cohort_foreign_original_path_or_hash_refuses(self):
+        for change in ('path','hash'):
+            frame=g.Originals();installation=g.checked_installation(frame,self.f.install_ref,self.f.base_manifest)
+            original=installation['receipt']['original_source_refs']['comic_negative_nfs_active_parent.py']
+            original['path' if change=='path' else 'sha256']='/different/original.py' if change=='path' else '0'*64
+            with self.assertRaisesRegex(g.p.Held,'producer-cohort-owning-parent-original'):g.compose(copy.deepcopy(self.f.doc),frame,installation)
+
+    def test_tampered_installed_parent_derivative_refuses_original_join(self):
+        frame=g.Originals();installation=g.checked_installation(frame,self.f.install_ref,self.f.base_manifest)
+        installation['refs']['comic_negative_nfs_active_parent.py']['sha256']='0'*64
+        with self.assertRaisesRegex(g.p.Held,'producer-cohort-owning-parent-original'):g.compose(copy.deepcopy(self.f.doc),frame,installation)
+
+    def searchable(self):
+        old=g.p.decode(g.p.read(self.f.doc['bootstrap_plan']));self.f.common.chmod(0o711)
+        geometry=dict(self.f.doc['publication_geometry'],version=2,kind='searchable-common-root-nfs',common_root=self.f.directory(self.f.common))
+        old['geometry']=copy.deepcopy(geometry);self.f.doc['bootstrap_plan']=self.f.put(old);self.f.doc['publication_geometry']=geometry
+
+    def test_real_searchable_common711_geometry_composes(self):
+        self.searchable();(plan,_,_,_),frame=self.f.compose()
+        self.assertEqual(plan['publication_geometry']['common_root']['signature9'][5]&0o777,0o711);frame.close()
+
+    def test_wrong_geometry_kind_and_legacy_common711_refuse(self):
+        self.searchable()
+        for version,kind in ((2,'unknown'),(1,'private-common-root-nfs')):
+            doc=copy.deepcopy(self.f.doc);doc['publication_geometry'].update(version=version,kind=kind)
+            with self.assertRaises(g.p.Held):self.f.compose(doc)
+
+    def test_searchable_leaf711_refuses(self):
+        self.searchable();self.f.library.chmod(0o711);self.f.doc['publication_geometry']['library']=self.f.directory(self.f.library)
+        with self.assertRaises(g.p.Held):self.f.compose()
 
     def test_changed_installed_bytes_never_adopted_even_new_hash(self):
         path = Path(self.f.refs['comic_archive_repair_action.py']['path']); path.write_bytes(path.read_bytes() + b'\n')

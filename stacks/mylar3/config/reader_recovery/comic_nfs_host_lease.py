@@ -50,16 +50,21 @@ def stopped_epoch(state,epoch):
 
 class LeaseChannel:
     """Real Popen and inherited FD/ACK lifetime. Never emulates subprocess."""
-    def __init__(self,process,token,writer_root,writer_sha,seconds=900):
+    def __init__(self,process,token,writer_root,writer_sha,seconds=900,*,owner=None):
         need(type(process) is subprocess.Popen and process.poll() is None,'lease-real-process')
         need(type(token) is str and re.fullmatch('[a-f0-9]{64}',token) and re.fullmatch('[a-f0-9]{64}',writer_sha),'lease-token-source')
+        self.owner=owner
+        if owner is not None:
+            g=owner.left.__func__.__globals__
+            need(type(owner) is g.get('LifecycleParent') and g.get('_CORES',{}).get(owner)==owner.core
+                 and owner.thread==threading.get_ident() and str(Path(owner.left.__func__.__code__.co_filename).absolute())==owner.source_ref['path'],'lease-release-owning-read-parent')
         self.process=process;self.token=token;self.root=Path(writer_root);self.writer_sha=writer_sha;self.thread=threading.get_ident()
         self.streams=(process.stdin,process.stdout,process.stderr);need(all(x is not None for x in self.streams),'lease-real-streams')
         self.fds=tuple((s.fileno(),five(os.fstat(s.fileno()))) for s in self.streams)
         need(all(stat.S_ISFIFO(v[2]) for _,v in self.fds),'lease-pipes')
         self.pid=process.pid;self.start=ticks(self.pid);self.deadline=time.monotonic()+seconds;self.released=False;self.aborted=False
         self.root5,self.files=namespace(self.root);self.nodes=tuple((str(p),five(os.lstat(p))) for p in self.root.parents)
-        self.pending=bytearray();self.seal=(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline)
+        self.pending=bytearray();self.seal=(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner))
     def raw(self):
         for p,v in self.nodes:
             z=os.lstat(p)
@@ -72,7 +77,7 @@ class LeaseChannel:
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('lease-original-file')
     def check(self):
         need(not self.released and not self.aborted and threading.get_ident()==self.thread and self.process.poll() is None,'lease-process-lifetime')
-        need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline),'lease-original-logical')
+        need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner)),'lease-original-logical')
         need(self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr)
              and ticks(self.pid)==self.start and tuple((s.fileno(),five(os.fstat(s.fileno()))) for s in self.streams)==self.fds,'lease-original-process-pipes')
         need(time.monotonic()<self.deadline,'lease-deadline');self.raw()
@@ -94,18 +99,23 @@ class LeaseChannel:
         need(os.write(self.fds[0][0],raw)==len(raw),'lease-write-unknown-no-replay');self.check()
     def pulse(self):
         self.send('pulse',False);return self.receive('held')
+    def release_stat(self,path):
+        if self.owner is None:return os.lstat(path)
+        owner=self.owner;g=owner.left.__func__.__globals__
+        need(type(owner) is g.get('LifecycleParent') and g.get('_CORES',{}).get(owner)==owner.core and owner.thread==threading.get_ident(),'lease-release-original-read-parent')
+        g['owner_root_guard']();return g['nfs_lstat'](path)
     def release(self,absent,files=(),nodes=()):
         """Only exact owning caller supplies its detached absence/original tapes."""
         absent=tuple(str(Path(p)) for p in absent);files=tuple((str(p),tuple(v)) for p,v in files);nodes=tuple((str(p),tuple(v)) for p,v in nodes)
         self.pulse();self.process.stdin.flush();self.check()
         for p,v in nodes:
-            z=os.lstat(p)
+            z=self.release_stat(p)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-release-original5')
         for p,v in files:
-            z=os.lstat(p)
+            z=self.release_stat(p)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('lease-release-original9')
         for p in absent:
-            try:os.lstat(p)
+            try:self.release_stat(p)
             except FileNotFoundError:continue
             raise Held('lease-release-owned-present')
         raw=encode(dict(token=self.token,action='release',owned_absence_verified=True))+b'\n'
@@ -118,19 +128,19 @@ class LeaseChannel:
         need(self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr)
              and tuple((stream.fileno(),five(os.fstat(stream.fileno()))) for stream in self.streams)==self.fds,'lease-release-original-process-pipes')
         for p in absent:
-            try:os.lstat(p)
+            try:self.release_stat(p)
             except FileNotFoundError:continue
             raise Held('lease-postrelease-owned-present')
         self.raw()
         # All readline/wait/namespace helpers precede the detached original tail.
         for p,v in nodes:
-            z=os.lstat(p)
+            z=self.release_stat(p)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-final-release-original5')
         for p,v in files:
-            z=os.lstat(p)
+            z=self.release_stat(p)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('lease-final-release-original9')
         for p in absent:
-            try:os.lstat(p)
+            try:self.release_stat(p)
             except FileNotFoundError:continue
             raise Held('lease-final-release-absence')
         self.released=True;return ack
@@ -138,7 +148,7 @@ class LeaseChannel:
         """Failure resource release only. No successful release or cleanup ACK."""
         need(not self.released and not self.aborted and threading.get_ident()==self.thread
              and type(self.process) is subprocess.Popen,'lease-abort-original-process')
-        need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline)
+        need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner))
              and self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr), 'lease-abort-original-seal')
         original_seal=self.seal;original_files=tuple((p,tuple(v)) for p,v in self.files);original_nodes=tuple((p,tuple(v)) for p,v in self.nodes)
         for stream,(fd,v) in zip(self.streams,self.fds):
@@ -153,7 +163,7 @@ class LeaseChannel:
         for stream,(fd,v) in zip(self.streams[1:],self.fds[1:]):
             need(not stream.closed and stream.fileno()==fd and five(os.fstat(fd))==v,'lease-abort-final-original-pipe')
         self.raw()
-        need(self.seal==original_seal and original_seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline),'lease-abort-final-original-seal')
+        need(self.seal==original_seal and original_seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner)),'lease-abort-final-original-seal')
         for path,v in original_nodes:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-abort-final-marker5')
@@ -277,7 +287,7 @@ class HostWriterLease:
         self.cid=cid;self.cid_original=cid;self.profile('created')
         process=subprocess.Popen([*self.g['DOCKER'],'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
         self.process=process
-        self.channel=LeaseChannel(process,self.token,self.root,self.writer_sha,max(1,int(self.owner.left())))
+        self.channel=LeaseChannel(process,self.token,self.root,self.writer_sha,max(1,int(self.owner.left())),owner=self.owner)
         ack=self.channel.receive('prepared');row=self.profile('running')
         self.runtime_pid=row['State']['Pid'];self.runtime_ticks=ticks(self.runtime_pid)
         _WINDOWS[self]=('PREPARED',(self.cid_original,self.process,self.channel,self.epoch,self.runtime_pid,self.runtime_ticks))
@@ -308,7 +318,7 @@ class HostWriterLease:
         row=self.profile('exited')
         need(row['State']['ExitCode']==0,'lease-own-child-zero-exit')
         for p in paths:
-            try:os.lstat(p)
+            try:self.g['nfs_lstat'](p)
             except FileNotFoundError:continue
             raise Held('lease-own-final-absence')
         return ack

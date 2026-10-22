@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import threading
 import types
 import unittest
 from unittest.mock import patch
@@ -14,6 +15,26 @@ sys.path.insert(0,str(Path(__file__).parent))
 import comic_nfs_parent_session as S
 import comic_nfs_factual_successor as N
 import comic_reader_lifecycle_parent as P
+
+
+def seal_fixture_owner(owner):
+    # Explicit constructor projection; actual Parent.left and metadata readers
+    # retain their original method/module/thread/source and registry contracts.
+    owner.core=P.encode(dict(plan=owner.plan,files=owner.files,nodes=owner.nodes,
+        source=owner.source_ref,input=owner.plan_ref,engine=id(owner.engine),
+        thread=owner.thread,deadline=owner.deadline))
+    P._CORES[owner]=owner.core;P._GENERATED[owner]=P.encode(owner.generated)
+
+
+def fixture_owner():
+    owner=object.__new__(P.LifecycleParent)
+    owner.thread=threading.get_ident();owner.deadline=time.monotonic()+3600
+    owner.op=Path('/fixture-operation');owner.plan=dict(nonce='fixture',operation=str(owner.op))
+    owner.engine=object();owner.files={};owner.nodes={};owner.plan_ref={};owner.generated={}
+    source=Path(P.__file__).absolute()
+    owner.source_ref=dict(path=str(source),sha256=P.hashlib.sha256(source.read_bytes()).hexdigest(),signature9=P.nine(source.stat()))
+    seal_fixture_owner(owner)
+    return owner
 
 class Exit(unittest.TestCase):
     def pump(self,body='pass'):
@@ -54,11 +75,11 @@ class SessionExit(unittest.TestCase):
     pump=Exit.pump
     def session(self):
         _,pump=self.pump();pump.finish()
-        class Owner:pass
-        owner=Owner();owner.generated={};owner.left=lambda:3600.;owner.nfs_host_modules=lambda:None
+        owner=fixture_owner();owner.nfs_host_modules=lambda:None
         session=object.__new__(S.RetainedChild);session.owner=owner;session.pump=pump;session.state='finished'
         session.cid='a'*64;session.original_pid=pump.pid;session.created_static=b'original';session.output='/fixture'
         session.packet_ref=dict(path='/fixture/packet',sha256='b'*64,signature9=[1]*9);owner.generated[session.packet_ref['path']]=session.packet_ref
+        seal_fixture_owner(owner)
         session.engine_replies=object();session.probe_replies=object()
         session.lease_replies=types.SimpleNamespace(done=True,lease=types.SimpleNamespace(physical_exit=lambda:True,channel=types.SimpleNamespace(released=True,aborted=False)))
         session.g=dict(read=lambda ref:None);session.lease_class=object();session.abort_method=object();session.abort_code=object()
@@ -188,8 +209,7 @@ class RetainedClose(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.root.chmod(0o700)
         self.leaf=self.root/'leaf';self.leaf.write_bytes(b'original');self.leaf.chmod(0o600)
-        class Owner:pass
-        self.owner=Owner();self.owner.phase='admitted';self.owner.left=lambda:None
+        self.owner=fixture_owner();self.owner.phase='admitted'
         self.session=types.SimpleNamespace(state='ready',request=lambda *a,**k:None)
         self.canary=object.__new__(N.RetainedObservation);c=self.canary;c.owner=self.owner;c.session=self.session
         c.tape=b'original-ready-facts';c.binding=dict(native_grant=False);c.mount=dict(fstype='nfs4');c.device=self.root.stat().st_dev
@@ -218,7 +238,7 @@ class Constructor(unittest.TestCase):
         session=self.session();owner=session.owner
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);root=Path(self.tmp.name);root.chmod(0o700)
         leaf=root/'leaf';leaf.write_bytes(b'original');leaf.chmod(0o600)
-        owner.core=b'core';owner.engine=object();owner.thread=1;owner.plan=dict(nonce='original');owner.plan_ref={};owner.source_ref={}
+        owner.engine=object();owner.plan=dict(nonce='original',operation=str(owner.op));seal_fixture_owner(owner)
         owner.nfs_host_modules=lambda:{'comic_nfs_parent_session.py':S}
         observed=dict(reader=dict(Name='/reader',State=dict(Running=False,Pid=0)))
         owner.stop_state=copy.deepcopy(observed['reader']['State'])
@@ -301,10 +321,8 @@ class Stopped(unittest.TestCase):
         self.addCleanup(lambda:process.wait(timeout=5));self.pump=pump
         self.rows={k:dict(Name='/'+k,State=dict(Pid=0,Running=False)) for k in ('reader','held_native','held_worker')}
         self.mount=dict(source='server:/export',target=str(root),fstype='nfs4',fsroot='/',options='rw,vers=4.2',**{'maj:min':'0:1'})
-        self.owner=types.SimpleNamespace() # replaced below: weak-keyable fixture, no Parent claim
-        class Owner:pass
-        owner=Owner();self.owner=owner;owner.core=b'original-core';owner.thread=1;owner.plan=dict(nonce='n');owner.engine=types.SimpleNamespace()
-        owner.left=lambda:3600.;owner.continuous=lambda:copy.deepcopy(self.rows)
+        owner=fixture_owner();self.owner=owner;owner.plan=dict(nonce='n',operation=str(owner.op));owner.engine=types.SimpleNamespace()
+        owner.continuous=lambda:copy.deepcopy(self.rows);seal_fixture_owner(owner)
         self.remote=[]
         def canary(*args,**kwargs):
             self.remote.append(args);return types.SimpleNamespace(returncode=0,stdout=json.dumps({'filesystems':[self.mount]}).encode(),stderr=b'')

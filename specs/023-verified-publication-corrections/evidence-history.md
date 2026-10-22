@@ -1108,3 +1108,53 @@ image and all 16 consumed SourceCohort role originals remain unchanged. The
 accepted earlier receipt remains its actual 1,302-control generation; it is not
 relabelled or replayed. Fresh effective/current-role inputs and genuine connected
 factory, archive-terminal, NFS and live import/ACK acceptance remain required.
+
+## Private NFS owner-read boundary - 2026-10-21
+
+The bounded read-only generation-nine geometry check completed successfully:
+UID 0 received EACCES for all three original geometry directories, while
+effective UID 1000 could enumerate their exact bounded namespaces. Ancestor,
+original identity and current metadata closure passed. The check changed only
+effective UID temporarily; it does not prove equivalence to the complete child
+credential profile, Docker bindability, NFS mutation or publication acceptance.
+Permissions and export settings were unchanged. The private checkpoint retains
+the exact diagnostic source hash and observed metadata.
+
+The combined source implements explicit owning-UID reads and the causal
+malformed-directory-marker transition inside the existing stopped-reader/Writer
+action. The transition derives from the actual imported archive, preserves its
+valid genesis and requires byte-exact forward repair. Rollback restores the
+malformed successor. It cannot substitute a separately seeded archive or reset
+a failed attempt automatically.
+
+The actual metadata-only owning-reader check passed against the three original
+NFS directories using the reviewed combined Parent source. It enumerated two
+common-root entries, two library entries and an empty retention directory,
+closed original source/directory custody, and restored Root identity. It made no
+Docker calls or application writes. This resolves the host read-access
+prerequisite, while full NFS mutation, installed factories, repair and ACK remain
+unproved. The original installation and SourceCohort receipts remain immutable.
+Integrated review caught a public-source callback mismatch before activation.
+The full source run also caught legacy constructor-call drift and mock fixtures
+that did not model the owning Parent. Their corrections preserve the original
+assertions; the full source gate must pass before connected execution.
+No task checkbox changes.
+
+The revised checked installer completed an actual private installation with
+27 new output references and source closure. It retained the unchanged active
+parent's original source URI and preserved the accepted earlier installation
+and SourceCohort. No container or service changed, no lifecycle ran, and the
+installation explicitly grants no configured admission. The integrated source
+gate remains required before the connected action.
+
+The final combined source passes all 1,392 controls across 75 suites on Python
+3.10 with zero skips, plus all 14 outer collection/preservation checks. Source
+custody closes before and after the private-copy runs. Independent integrated
+review, Python 3.10 syntax, Ruff, Markdown, repository validation and normal
+`make ci-local` pass. Legacy constructor calls and all original adverse
+assertions are preserved. Historical failed runs and the earlier installation
+generation remain retained. The final-source checked installation subsequently passed with 27 new outputs,
+original source closure and no lifecycle or configured admission. Its original
+receipt identity was captured separately; earlier generations remain unchanged.
+Hosted CI is the next delivery check. Connected factories, NFS mutation, repair and
+catalog-to-ACK acceptance remain open. All 75 task IDs/order/states are unchanged.
