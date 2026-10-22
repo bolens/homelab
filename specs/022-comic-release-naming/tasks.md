@@ -27,8 +27,10 @@ The primary refusal is `configured-overlay-exact-approved-edits`: the packet map
 the operation to its host path instead of the installer-owned `/_operation`. The
 source correction adds an early mapping check and fixes the separate actor/finalizer
 descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
-pass locally; delivery, a fresh checked installation and corrected new packet remain
-required under feature 023 T026. Preserve the consumed generation and all
+pass locally. A fresh H installation and independent verification of all 27 outputs
+also pass without lifecycle changes. PR #485 delivered these corrections with all
+required hosted checks passing. The corrected new packet and connected execution
+remain required under feature 023 T026. Preserve the consumed generation and all
 failed histories; no automatic replay, import ACK or bulk acceptance is granted.
 See [the current owning boundary](../023-verified-publication-corrections/evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
 
