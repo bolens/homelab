@@ -134,6 +134,48 @@ class Tests(unittest.TestCase):
         with self.assertRaises(p.Held):self.admit(value)
 
 
+class ProbeRetentionBinding(unittest.TestCase):
+    """Actual common-root FD custody; Parent left() explicitly projected."""
+    setUp=Tests.setUp
+    admit=Tests.admit
+    searchable=Tests.searchable
+    def mapping(self,searchable=True):
+        from unittest.mock import patch
+        value=self.searchable() if searchable else self.geometry;row=self.admit(value)
+        owner=p.LifecycleParent.__new__(p.LifecycleParent)
+        owner.plan=dict(version=13,kind='reviewed-archive-one-lifecycle-protocol',publication_geometry=value)
+        mapping=p.Paths(self.mounts);owner.mapping=mapping;mapping.owner=owner
+        p._ARCHIVE_COMMON_ROOTS[owner]=row
+        self.addCleanup(p._ARCHIVE_COMMON_ROOTS.pop,owner,None)
+        self.patch=patch.object(p.LifecycleParent,'left',lambda self:None);self.patch.start();self.addCleanup(self.patch.stop)
+        self.root_patch=patch.object(p.Paths,'nfs_roots',lambda self:(str(value['common_root']['path']),));self.root_patch.start();self.addCleanup(self.root_patch.stop)
+        self.fixture=self.retention/('.comic-nfs-private-'+'b'*32)/('.comic-nfs-probe-'+'c'*32)
+        return mapping,row
+    def test_original_retention_descriptor_uses_birth_identity5(self):
+        mapping,row=self.mapping();before=mapping.nfs_probe_binding(str(self.fixture))
+        (self.retention/'unrelated').write_bytes(b'original')
+        self.assertEqual(mapping.nfs_probe_binding(str(self.fixture)),before)
+        self.assertEqual(before,dict(host_root=str(self.retention),child_root=str(self.retention),root5=[self.geometry['retention']['signature9'][i] for i in (0,1,5,6,7)]))
+    def test_missing_registry_and_foreign_geometry_refuse(self):
+        mapping,row=self.mapping();owner=mapping.owner;p._ARCHIVE_COMMON_ROOTS.pop(owner)
+        with self.assertRaises(p.Held):mapping.nfs_probe_binding(str(self.fixture))
+        p._ARCHIVE_COMMON_ROOTS[owner]=row;owner.plan['publication_geometry']=dict(row[1],kind='foreign')
+        with self.assertRaises(p.Held):mapping.nfs_probe_binding(str(self.fixture))
+    def test_foreign_fixture_ancestor_or_names_refuse(self):
+        mapping,row=self.mapping()
+        for root in (self.library/self.fixture.name,self.fixture.parent,self.fixture.parent/'foreign',self.retention/'.comic-nfs-private-alias'/self.fixture.name):
+            with self.subTest(root=root),self.assertRaises(p.Held):mapping.nfs_probe_binding(str(root))
+    def test_retention_fd_swap_refuses(self):
+        mapping,row=self.mapping();self.retention.rename(self.root/'retained');self.retention.mkdir(mode=0o700)
+        with self.assertRaises(p.Held):mapping.nfs_probe_binding(str(self.fixture))
+    def test_legacy_plan13_geometry_keeps_direct_fixture_binding(self):
+        mapping,row=self.mapping(searchable=False)
+        self.assertIsNone(mapping.nfs_probe_binding(str(self.fixture)))
+    def test_legacy_mapping_does_not_gain_retention_bind(self):
+        mapping,row=self.mapping();mapping.owner.plan['version']=12
+        self.assertIsNone(mapping.nfs_probe_binding(str(self.fixture)))
+
+
 
 
 class OwnerReadTests(unittest.TestCase):

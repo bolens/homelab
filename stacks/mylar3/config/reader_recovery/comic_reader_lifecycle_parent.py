@@ -971,6 +971,26 @@ class Paths:
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('nfs-empty-original9')
         return dict(path=host,signature9=list(stamp))
 
+    def nfs_probe_binding(self, fixture):
+        if not self.plan13():return None
+        owner=self.owner
+        need(type(owner) is LifecycleParent and owner.mapping is self,'nfs-probe-retention-owning-mapping')
+        owner.left();row=_ARCHIVE_COMMON_ROOTS.get(owner)
+        need(row is not None and row[1]==owner.plan['publication_geometry'],'nfs-probe-original-retention-row')
+        check_common_root(row);geometry=row[1]
+        if geometry['version']==1 and geometry['kind']=='private-common-root-nfs':return None
+        need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs','nfs-probe-searchable-retention-geometry')
+        retention=absolute(geometry['retention']['path']);root=absolute(fixture)
+        need(root.parent.parent==retention and retention.name=='R'
+             and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+             and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
+             and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None
+             and self.nfs_host(str(retention))==self.nfs_child(str(retention))==str(retention),
+             'nfs-probe-exact-retention-descendant')
+        stamp=geometry['retention']['signature9']
+        result=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
+        check_common_root(row);owner.left();return result
+
     def admit_nfs_probe(self,value):
         need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner;owner.left()
         child_map,host_map=(self.nfs_child,self.nfs_host) if self.plan13() else (self.child,self.host)
@@ -1005,8 +1025,11 @@ class Paths:
             sources.append(self.child_host_ref(dict(original,signature9=list(owner.files[original['path']]))))
         virtual_sources=[child_map(str(Path(row['path']))) for row in sources]
         output=str(Path(session.output)/'probe');output_host=host_map(output)
-        mounts=[[fixture_host,fixture,True],[fixture_host,'/config',False],[output_host,output,True],*[ [r['path'],v,False] for r,v in zip(sources,virtual_sources) ],[str(host),value['path'],False],*[ [host_map(root),root,False] for root in roots ]]
+        binding=self.nfs_probe_binding(fixture)
+        bind_host,bind_child=(binding['host_root'],binding['child_root']) if binding is not None else (fixture_host,fixture)
+        mounts=[[bind_host,bind_child,True],[bind_host,'/config',False],[output_host,output,True],*[ [r['path'],v,False] for r,v in zip(sources,virtual_sources) ],[str(host),value['path'],False],*[ [host_map(root),root,False] for root in roots ]]
         spec=dict(image=owner.plan['selected_image'],mounts=mounts,probe=virtual_sources[0],kernel=virtual_sources[1],input=value['path'],input_sha256=value['sha256'],probe_sha256=sources[0]['sha256'])
+        if binding is not None:spec['binding']=binding
         session.close();need(owner not in _NFS_PROBE_ROWS,'nfs-probe-no-rebaseline')
         row=(copy.deepcopy(value),str(host),tuple(nodes.items()),tuple(directories.items()),session,session.cid,session.original_pid,owner.plan['nonce'],copy.deepcopy(spec))
         _NFS_PROBE_ROWS[owner]=row;_NFS_PROBE_SEALS[owner]=encode(dict(child=row[0],host=row[1],nodes=row[2],directories=row[3],cid=row[5],pid=row[6],nonce=row[7],spec=row[8]))
@@ -1031,6 +1054,7 @@ class Paths:
                 block=os.read(fd,min(65536,child['signature9'][2]-len(raw)));need(bool(block),'nfs-probe-original-current-short');raw+=block
             need(hashlib.sha256(raw).hexdigest()==child['sha256'] and tuple(nine(os.fstat(fd)))==tuple(child['signature9']),'nfs-probe-original-current-bytes')
         finally:os.close(fd)
+        if 'binding' in spec:need(spec['binding']==self.nfs_probe_binding(decode(raw)['root']),'nfs-probe-original-retention-binding')
         result=copy.deepcopy(spec);session.close()
         need(_NFS_PROBE_ROWS.get(owner) is row and encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-final-original-table')
         for path,original in nodes:
@@ -1180,8 +1204,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '88370d08fcf7a8cdb8eff9eceb5c6a6c29a1663d3d07e0e752bf1af5b594dd14', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '0b95ffa40f11f8667e3f20bab3cdb61293fdaccf7ca64a721da042fd8d1524b7', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
-NFS_ACTIVE_SOURCE_SHA='891b377f87c35d2c5a8d8cfc6450f47b943e3437a31ec6f035ceabb9472b82b3'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '7ae045e6eaef629f07d906870510e989d8e795e8a02852dc2fe67f966fb17247', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '0b95ffa40f11f8667e3f20bab3cdb61293fdaccf7ca64a721da042fd8d1524b7', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_ACTIVE_SOURCE_SHA='3641cf78d3faa6eaa72ece09a08092ce3b64f9575cf16b421b56632b54c300af'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):

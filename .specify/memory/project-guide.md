@@ -126,6 +126,15 @@ fixture, or change export privileges to bypass this refusal. Use only the owning
 explicit disposable geometry contract; keep library and retention leaves private
 and prove the actual bind with a new empty fixture before connected acceptance.
 
+A successful flat NFS bind does not prove that Docker can resolve a nested
+probe behind private retention ancestors. Test the exact source lookup boundary
+before consuming a recovery packet. Where the owning plan13 contract explicitly
+admits the retention-root probe bind, retain original R identity/FD authority
+separately from freshly observed prepared-to-write directory metadata. Keep the
+nested fixture identity unchanged, preserve unrelated retention entries, and
+retain the direct-fixture route for original legacy geometry. Read-only mount
+observation and daemon bindability are separate prerequisites.
+
 The configured reader-parent installer and disposable Creator use different SDK
 inputs. Derive the installer's subset from its pinned base manifest's
 required_sdk_names, joined to the accepted current image map. Preserve the

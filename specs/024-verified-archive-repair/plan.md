@@ -94,6 +94,34 @@ and installation receipts, pass delivery gates, and use a fresh installation and
 fixture. This host-only correction does not complete forward or rollback
 acceptance or change image inputs.
 
+## Corrective requirement: original retention-root probe binding
+
+A bounded daemon check accepts a fresh empty mode0700 UID1000 bind source
+whose parent is searchable, but refuses the nested probe directory behind
+mode0700 retention ancestors with `permission denied`. Owner-principal mount
+observation does not fix Docker's Root source lookup. Preserve the unconsumed
+forward and rollback packets and all diagnostic originals.
+
+For genuine plan13 common-root geometry only, bind the original retention R
+at its identical canonical child path instead of binding the nested fixture.
+Keep the private fixture, source and target identities unchanged. Do not make
+private ancestors searchable, bind writable common G or library L, or admit an
+arbitrary ancestor. Retain original geometry, held descriptors, source and
+namespace closure through preparation and the first mutation.
+
+Extend the prepared namespace proof explicitly for this exact retention bind.
+The owning HostProbe must join the created mount to its original sealed mapping
+and the child must independently observe the same binding before prepared ACK
+and again before mutation. Preserve exact export, fsroot, device, options and
+original nested root9 checks. Legacy direct-fixture and ungated behavior retain
+their existing strict contracts. Refuse aliases, foreign ancestors, substituted
+proofs and late row or geometry changes.
+
+Require focused regression controls, independent integrated review, complete
+source-pin closure, local and hosted delivery, and fresh checked installation
+and fixture inputs. Actual forward and distinct rollback remain acceptance
+requirements. This correction changes no permanent mounts or export policy.
+
 ## Constitution Check
 
 Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. The dedicated plan13 NFS purpose explicitly amends transient bind admission for a private G containing only library L and retention R; permanent Compose mounts, settings, ports and privileges remain unchanged. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.

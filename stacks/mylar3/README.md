@@ -1529,6 +1529,15 @@ retains Root identity and Docker dispatch retains its existing identity. Exact
 source-derived command admission, mount/device comparisons and final custody
 checks still apply; a failed observer remains held.
 
+The configured plan13 hardlink probe binds the original private retention R
+through searchable common G instead of binding a nested private fixture that
+Docker cannot resolve on a root-squashed export. This temporary probe can access
+the whole owned retention directory. Original R identity and descriptor custody,
+the exact nested fixture, actual child mount rows and prepared-to-write metadata
+continuity remain required. Unrelated retention entries must survive unchanged.
+Common G and library L remain outside its writable mounts. Legacy probes retain
+their fixture-only bind. Connected forward and rollback acceptance remain open.
+
 Control-tree checks avoid repeated metadata reads for identical original paths
 within each closure pass. Conflicting facts and changes after callbacks still
 refuse. Failure diagnostics include bounded original context frames without
