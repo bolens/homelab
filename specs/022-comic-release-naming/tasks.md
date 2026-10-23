@@ -9,30 +9,24 @@
 
 ## Current remaining work
 
-**Updated 2026-10-22.** 21 of 24 tasks are complete; 3 retain their full acceptance gates. T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred. The verified older backup index supplies no exact candidate for 19 historical missing DDL originals; this does not complete current-library reconciliation.
+**Updated 2026-10-23.** 21 of 24 tasks are complete. T019/T023 require configured
+recovery and current-library acceptance before the combined naming/metadata
+passes; T024 proves final idempotence, preservation and cleanup afterward.
+Preserve dotted fields and the hyphen before the verified release group.
 
-Historical installed import-to-release-name/metadata checks remain accepted for their inspected generation. Ordinary Mylar runs the published PR #405 image after verified backup and isolated restore. It is healthy, and the complete original-bound post-update preservation check is accepted, including the source-specific scheduler and workflow classifications. Exact-key comparison preserves all 16,432 issue records and every field except 111 Wanted records whose empty DateAdded becomes the current date. Komga remains running; the permanent worker and combined bulk pass remain inactive. The four selected-pack histories contain no accepted import or ACK. T019/T023/T024 still require configured recovery, combined passes and final acceptance, with dot separators and a hyphen before the verified group. See the shared [current rollout record](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20).
+The immediate shared recovery work is owned by [feature 024's current
+work](../024-verified-archive-repair/tasks.md#current-remaining-work). Reuse its
+accepted evidence where applicable; this feature requires no additional archive
+fixture or repeated source-delivery gate. Installed naming/metadata component
+proof and the accepted ordinary native baseline retain their recorded scope.
+The permanent worker and combined bulk pass stay inactive. The separate
+reading-progress audit remains deferred.
 
-PR #390 delivers bounded import-dispatch diagnostics with passing required CI and security review. It does not resolve the fourth attempt's missing historical reason or accept a new import. The corrected reader-helper follow-up now completes all three read-only GETs and maps both library roots with original custody and helper cleanup. Owning Parent/NFS, complete current-library and bulk acceptance remain open. See [the current reader evidence](../023-verified-publication-corrections/evidence-history.md#configured-reader-helper-startup-profile--2026-10-18).
-
-The shared single-authentication launcher and ninth isolated bootstrap pass
-actual execution checks. T019/T023 remain held on their broader configured and
-current-library gates. See [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
-
-PR #482 delivered the assembler correction with passing local and hosted checks.
-A fresh batch passes the causal SourceFixture, source closure, owned-container
-absence, current-role/protocol observations, active assembly and intent construction.
-It enters the owning producer once, then fails without an accepted terminal return.
-The primary refusal is `configured-overlay-exact-approved-edits`: the packet mapped
-the operation to its host path instead of the installer-owned `/_operation`. The
-source correction adds an early mapping check and fixes the separate actor/finalizer
-descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
-pass locally. A fresh H installation and independent verification of all 27 outputs
-also pass without lifecycle changes. PR #485 delivered these corrections with all
-required hosted checks passing. The corrected new packet and connected execution
-remain required under feature 023 T026. Preserve the consumed generation and all
-failed histories; no automatic replay, import ACK or bulk acceptance is granted.
-See [the current owning boundary](../023-verified-publication-corrections/evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
+The older backup index supplies no exact candidate for 19 historical missing DDL
+originals. Keep that gap and the four selected-pack histories separate from
+current-library acceptance; no selected import or ACK is accepted. Historical
+proof and refusals remain in [evidence history](evidence-history.md) and the
+[shared history](../023-verified-publication-corrections/evidence-history.md).
 
 ## Phase 1: Setup
 

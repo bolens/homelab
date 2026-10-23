@@ -125,7 +125,16 @@ class RetainedChild:
         need(g['digest'](cid) and packet_ref['path'] in owner.generated and owner.generated[packet_ref['path']]==packet_ref,'nfs-session-own-packet')
         packet=g['decode'](g['read'](packet_ref))
         need(packet['nonce']==owner.plan['nonce'] and packet['kind']=='owning-nfs-retained-host-lease-child-v2','nfs-session-original-nonce')
-        modules=owner.nfs_host_modules()
+        host_modules=g['LifecycleParent'].nfs_host_modules
+        bound=owner.nfs_host_modules
+        need(getattr(bound,'__self__',None) is owner and getattr(bound,'__func__',None) is host_modules,
+             'nfs-session-original-module-checker')
+        self.host_modules_guard=(host_modules,host_modules.__code__,host_modules.__defaults__)
+        modules=host_modules(owner)
+        need(host_modules.__code__ is self.host_modules_guard[1]
+             and host_modules.__defaults__ is self.host_modules_guard[2]
+             and getattr(owner.nfs_host_modules,'__func__',None) is host_modules,
+             'nfs-session-module-checker-constructor-drift')
         need(type(engine_replies) is modules['comic_nfs_host_engine.py'].EngineReplies and type(lease_replies) is modules['comic_nfs_lease_session.py'].HostLeaseReplies and type(probe_replies) is modules['comic_nfs_host_probe.py'].HostProbeReplies,'nfs-session-original-handler-types')
         self.lease_class=modules['comic_nfs_host_lease.py'].HostWriterLease
         self.abort_method=self.lease_class.abort_original;self.abort_code=self.abort_method.__code__
@@ -136,7 +145,7 @@ class RetainedChild:
         need(engine_replies.owner is owner and engine_replies.cid==cid and lease_replies.dialogue is engine_replies and probe_replies.dialogue is engine_replies,'nfs-session-original-handlers')
         self.packet_ref=dict(path=packet_ref['path'],sha256=packet_ref['sha256'],signature9=list(packet_ref['signature9']));self.output=operation_output
         packet_original=(packet_ref['path'],packet_ref['sha256'],tuple(packet_ref['signature9']))
-        self.seal=(owner,g,cid,engine_replies,lease_replies,probe_replies,packet_original,operation_output)
+        self.seal=(owner,g,cid,engine_replies,lease_replies,probe_replies,packet_original,operation_output,self.host_modules_guard)
         _SESSION_SEALS[self]=self.seal
         self.created_static=bytes(created_static)
         self.last=None;self.state='starting';self.original_pid=process.pid
@@ -145,14 +154,33 @@ class RetainedChild:
         _SESSION_PUMPS[self]=self.pump
     def close(self):
         if self in _SESSION_PUMPS:need(self.pump is _SESSION_PUMPS[self],'nfs-session-original-pump')
-        self.owner.left();self.owner.nfs_host_modules();self.g['read'](self.packet_ref);self.g['dialogue_close'](self.owner.engine,self.cid)
-        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code) and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output),'nfs-session-original-seal')
+        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
+             and self.seal[-1] is self.host_modules_guard,'nfs-session-original-module-guard-seal')
+        method,code,defaults=self.host_modules_guard
+        bound=self.owner.nfs_host_modules
+        need(type(self.owner) is self.g.get('LifecycleParent')
+             and type(self.owner).nfs_host_modules is method
+             and getattr(bound,'__self__',None) is self.owner and getattr(bound,'__func__',None) is method
+             and method.__globals__ is self.g and method.__code__ is code and method.__defaults__ is defaults,
+             'nfs-session-original-module-checker')
+        # The sealed original checker calls the full Parent.left itself. Keep
+        # every transport guard; avoid a second identical Parent closure here.
+        method(self.owner)
+        self.g['read'](self.packet_ref);self.g['dialogue_close'](self.owner.engine,self.cid)
+        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code) and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output,self.host_modules_guard),'nfs-session-original-seal')
         epoch=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
         if epoch is not None:
             need(len(epoch)==6 and epoch[0] is self and epoch[1]==self.cid,'nfs-session-original-local-epoch')
             ticks=int(self.g['Path']('/proc/'+str(epoch[2])+'/stat').read_text().rsplit(')',1)[1].split()[19]);need(ticks==epoch[4],'nfs-session-original-local-starttick')
         need(self.owner.generated.get(self.packet_ref['path'])==self.packet_ref,'nfs-session-original-packet-row')
         need(self.engine_replies.owner is self.owner and self.engine_replies.cid==self.cid and self.engine_replies.nonce==self.owner.plan['nonce'] and self.lease_replies.dialogue is self.engine_replies and self.probe_replies.dialogue is self.engine_replies,'nfs-session-original-binding')
+        bound=self.owner.nfs_host_modules
+        need(type(self.owner).nfs_host_modules is method and method.__globals__ is self.g
+             and getattr(bound,'__self__',None) is self.owner and getattr(bound,'__func__',None) is method
+             and method.__code__ is code and method.__defaults__ is defaults
+             and self.host_modules_guard is self.seal[-1]
+             and _SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code),
+             'nfs-session-module-checker-callback-drift')
     def until(self,kind):
         need(kind in ('nfs-ready','nfs-result','nfs-done') and self.state not in ('failed','finished'),'nfs-session-finite-state')
         original_pump=_SESSION_PUMPS.get(self,self.pump)
@@ -205,14 +233,14 @@ class RetainedChild:
         """Only a finished original release dialogue supplies this local witness."""
         need(self.state=='finished' and _SESSION_PUMPS.get(self) is self.pump,'nfs-session-release-exit-required')
         need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
-             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output),'nfs-session-exit-original-seal')
+             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output,self.host_modules_guard),'nfs-session-exit-original-seal')
         value=self.pump.successful_exit()
         self.owner.left();self.owner.nfs_host_modules();self.g['read'](self.packet_ref)
         need(self.owner.generated.get(self.packet_ref['path'])==self.packet_ref
              and self.lease_replies.done is True and self.lease_replies.lease.physical_exit() is True
              and self.lease_replies.lease.channel.released is True and self.lease_replies.lease.channel.aborted is False,'nfs-session-complete-physical-release')
         need(self.state=='finished' and _SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
-             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output)
+             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output,self.host_modules_guard)
              and _SESSION_PUMPS.get(self) is self.pump and self.pump.successful_exit()==value,'nfs-session-exit-final-originals')
         return (self,self.owner,self.cid,self.original_pid,self.created_static,value)
 

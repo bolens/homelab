@@ -83,7 +83,8 @@ class SessionExit(unittest.TestCase):
         session.engine_replies=object();session.probe_replies=object()
         session.lease_replies=types.SimpleNamespace(done=True,lease=types.SimpleNamespace(physical_exit=lambda:True,channel=types.SimpleNamespace(released=True,aborted=False)))
         session.g=dict(read=lambda ref:None);session.lease_class=object();session.abort_method=object();session.abort_code=object()
-        session.seal=(owner,session.g,session.cid,session.engine_replies,session.lease_replies,session.probe_replies,('/fixture/packet','b'*64,(1,)*9),session.output)
+        method=P.LifecycleParent.nfs_host_modules;session.host_modules_guard=(method,method.__code__,method.__defaults__)
+        session.seal=(owner,session.g,session.cid,session.engine_replies,session.lease_replies,session.probe_replies,('/fixture/packet','b'*64,(1,)*9),session.output,session.host_modules_guard)
         S._SESSION_PUMPS[session]=pump;S._SESSION_SEALS[session]=(*session.seal,session.created_static,session.lease_class,session.abort_method,session.abort_code)
         return session
     def test_finished_original_session_positive_after_child_budget(self):
@@ -789,6 +790,98 @@ class TypedControls(unittest.TestCase):
             self.assertEqual(h._none_network_profile_bytes(value),expected)
         self.assertNotEqual(h._none_network_profile_bytes({'v':True}),h._none_network_profile_bytes({'v':1}))
         self.assertNotEqual(h._none_network_profile_bytes({'v':False}),h._none_network_profile_bytes({'v':0}))
+
+
+class SessionClose(unittest.TestCase):
+    """Actual Parent module checker; only process dialogue admission is projected."""
+    def session(self):
+        owner=fixture_owner();calls=[]
+        original_left=P.LifecycleParent.left
+        def counted_left(value):
+            calls.append(True);return original_left(value)
+        owner.left=types.MethodType(counted_left,owner)
+        context=({}, {}, P.encode({}), P.encode({}), '/fixture')
+        P._NFS_SOURCE_CONTEXTS[owner]=context
+        P._NFS_EFFECTIVE_ABSENCES[owner]=P.encode([])
+        P._NFS_SOURCE_SEALS[owner]=P.encode(dict(refs={},raw_sha={},active={},probe={},output='/fixture',effective_absences=[]))
+        P._NFS_HOST_MODULES[owner]={};P._NFS_HOST_MODULE_SEALS[owner]=((),())
+        temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
+        packet=Path(temp.name)/'packet';packet.write_bytes(b'original packet');packet.chmod(0o600)
+        ref=dict(path=str(packet),sha256=P.hashlib.sha256(packet.read_bytes()).hexdigest(),signature9=P.nine(packet.stat()))
+        owner.generated[ref['path']]=ref;seal_fixture_owner(owner)
+        session=object.__new__(S.RetainedChild);session.owner=owner;session.g=P.__dict__;session.cid='a'*64
+        session.packet_ref=ref;session.output='/fixture';session.created_static=b'original'
+        session.engine_replies=types.SimpleNamespace(owner=owner,cid=session.cid,nonce=owner.plan['nonce'])
+        session.lease_replies=types.SimpleNamespace(dialogue=session.engine_replies)
+        session.probe_replies=types.SimpleNamespace(dialogue=session.engine_replies)
+        session.lease_class=object;session.abort_method=object;session.abort_code=None
+        method=P.LifecycleParent.nfs_host_modules
+        session.host_modules_guard=(method,method.__code__,method.__defaults__)
+        session.seal=(owner,session.g,session.cid,session.engine_replies,session.lease_replies,session.probe_replies,
+                      (ref['path'],ref['sha256'],tuple(ref['signature9'])),session.output,session.host_modules_guard)
+        S._SESSION_SEALS[session]=(*session.seal,session.created_static,session.lease_class,session.abort_method,session.abort_code)
+        patcher=patch.object(P,'dialogue_close',lambda *args:None);patcher.start();self.addCleanup(patcher.stop)
+        return session,calls,packet
+    def test_actual_constructor_retains_original_checker_and_real_pipes(self):
+        import comic_nfs_host_engine as engine_module
+        import comic_nfs_host_lease as lease_module
+        import comic_nfs_lease_session as lease_session
+        import comic_nfs_host_probe as probe_module
+        projected,_,packet=self.session();owner=projected.owner
+        del owner.left;owner.engine=object.__new__(P.ScopedDocker)
+        packet.write_bytes(P.encode(dict(nonce=owner.plan['nonce'],kind='owning-nfs-retained-host-lease-child-v2')))
+        ref=dict(path=str(packet),sha256=P.hashlib.sha256(packet.read_bytes()).hexdigest(),signature9=P.nine(packet.stat()))
+        owner.generated[ref['path']]=ref;seal_fixture_owner(owner)
+        modules={'comic_nfs_host_engine.py':engine_module,'comic_nfs_host_lease.py':lease_module,
+                 'comic_nfs_lease_session.py':lease_session,'comic_nfs_host_probe.py':probe_module}
+        P._NFS_HOST_MODULES[owner]=modules;P._NFS_HOST_MODULE_SEALS[owner]=(tuple(modules.items()),())
+        engine=object.__new__(engine_module.EngineReplies);engine.owner=owner;engine.cid=projected.cid;engine.nonce=owner.plan['nonce']
+        lease=object.__new__(lease_session.HostLeaseReplies);lease.dialogue=engine
+        probe=object.__new__(probe_module.HostProbeReplies);probe.dialogue=engine
+        process,pump=Exit.pump(self,'input()')
+        P.dialogue_register(owner.engine,projected.cid,process,pump.streams,pump.descriptors,pump.deadline,process.pid)
+        session=S.RetainedChild(owner,projected.cid,process,engine,lease,probe,ref,'/fixture',b'original')
+        self.assertIs(session.host_modules_guard[0],P.LifecycleParent.nfs_host_modules)
+        self.assertIs(S._SESSION_PUMPS[session],session.pump);session.close()
+
+    def test_exactly_one_actual_parent_guard_per_close(self):
+        session,calls,_=self.session();session.close();self.assertEqual(len(calls),1)
+        session.close();self.assertEqual(len(calls),2)
+    def test_replaced_instance_method_refuses_before_packet_read(self):
+        session,calls,_=self.session();session.owner.nfs_host_modules=types.MethodType(lambda owner:{},session.owner)
+        with patch.object(P,'read') as read,self.assertRaisesRegex(S.Held,'original-module-checker'):session.close()
+        read.assert_not_called();self.assertEqual(calls,[])
+    def test_replaced_class_method_refuses_before_packet_read(self):
+        session,calls,_=self.session()
+        with patch.object(P.LifecycleParent,'nfs_host_modules',lambda owner:{}),patch.object(P,'read') as read:
+            with self.assertRaisesRegex(S.Held,'original-module-checker'):session.close()
+        read.assert_not_called();self.assertEqual(calls,[])
+    def test_inplace_checker_code_change_refuses(self):
+        session,calls,_=self.session();method,code,_=session.host_modules_guard
+        try:
+            method.__code__=(lambda owner,guard=None,code=None:{}).__code__
+            with self.assertRaisesRegex(S.Held,'original-module-checker'):session.close()
+        finally:method.__code__=code
+        self.assertEqual(calls,[])
+    def test_same_value_replacement_defaults_refuse(self):
+        session,calls,_=self.session();method,_,defaults=session.host_modules_guard
+        try:
+            method.__defaults__=tuple(list(defaults))
+            with self.assertRaisesRegex(S.Held,'original-module-checker'):session.close()
+        finally:method.__defaults__=defaults
+        self.assertEqual(calls,[])
+    def test_late_packet_callback_cannot_replace_checker(self):
+        session,calls,_=self.session();original=P.read;fired=[]
+        def read(ref):
+            result=original(ref);fired.append(True)
+            session.owner.nfs_host_modules=types.MethodType(lambda owner:{},session.owner)
+            return result
+        with patch.object(P,'read',read),self.assertRaisesRegex(S.Held,'module-checker-callback-drift'):session.close()
+        self.assertEqual(calls,[True]);self.assertEqual(fired,[True])
+    def test_original_packet_byte_drift_still_refuses(self):
+        session,calls,packet=self.session();packet.write_bytes(b'changed packet')
+        with self.assertRaises(P.Held):session.close()
+        self.assertEqual(calls,[True])
 
 
 if __name__=='__main__':unittest.main()

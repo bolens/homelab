@@ -6,6 +6,23 @@
 
 Install bounded refusal diagnostics first, then a dedicated native-owned preparation/adoption route for one lossless ZIP directory-spelling repair. Ordinary inventory, nested metadata lineage, correction policy and import acknowledgements retain their current meaning. A diagnostic or prepared copy cannot authorize publication.
 
+The four corrective designs below are implemented and delivered through PRs
+#507, #509, #510 and #511. They document the retained boundaries, not a new
+implementation queue. The remaining execution order is owned by
+[tasks.md](tasks.md#current-remaining-work): one isolated forward, one distinct
+rollback, then separately scoped operational acceptance. Do not add another
+plan, fixture generation or review layer unless a concrete uncovered failure
+requires it.
+
+The current held forward run reaches prewrite with a 137-second-old scope.
+Correct only the duplicated Parent guard in the retained NFS session: the
+original module checker already executes the full Parent guard. Retain that
+checker’s function/code/defaults in the existing session seal and verify its
+binding before and after direct invocation. Preserve all transport checks,
+4096-byte writes, independent observations and the 120-second freshness limit.
+Measure the resulting connected run; a reduced call count alone is not runtime
+acceptance.
+
 ## Technical Context
 
 - Runtime: the existing Mylar and normalizer Python images; actual selected-runtime checks include Mylar Python 3.10.
@@ -15,7 +32,7 @@ Install bounded refusal diagnostics first, then a dedicated native-owned prepara
 - Limits: 128 MiB for buffered runtime diagnostics within the existing 768 MiB worker allowance, 512 MiB source for owned native repair preparation, existing 4,096-member/4 GiB expanded/per-member/metadata limits and monotonic deadlines. No remote access during classification or while Writer is held.
 - Profile: one empty stored Unix directory with consistent directory flag and missing slash in a closed ZIP32 archive. Other ordinary supported variants stay on ordinary inventory.
 
-## Corrective requirement: finite owning metadata closure
+## Delivered correction: finite owning metadata closure
 
 The preserved U attempt passes SourceCohort but fails the effective-runtime
 freshness guard before NFS-ready or reader stop. Its original runtime is 109.94
@@ -47,7 +64,7 @@ permitted. Require hostile-callback and restoration regressions, actual bounded
 Root/NFS timing, delivery, a new checked installation and a fresh fixture before
 configured acceptance. Historical source and benchmark results remain partial.
 
-## Corrective requirement: original host operation and child namespaces
+## Delivered correction: original host operation and child namespaces
 
 V reaches the owning NFS child but holds while the UID1000 mapping validator
 physically resolves an original host mount source behind the Root-owned private
@@ -70,7 +87,7 @@ receipts together, then use a fresh disposable fixture. No native SDK, selected
 image, worker image, freshness guard or runtime permissions change follows from
 this correction. Source tests alone do not close configured recovery acceptance.
 
-## Corrective requirement: owner-principal mount observation
+## Delivered correction: owner-principal mount observation
 
 X passes the original operation namespace check, then holds when the Root host
 engine runs `findmnt` against the helper's newly created UID1000 mode0700 NFS
@@ -94,7 +111,7 @@ and installation receipts, pass delivery gates, and use a fresh installation and
 fixture. This host-only correction does not complete forward or rollback
 acceptance or change image inputs.
 
-## Corrective requirement: original retention-root probe binding
+## Delivered correction: original retention-root probe binding
 
 A bounded daemon check accepts a fresh empty mode0700 UID1000 bind source
 whose parent is searchable, but refuses the nested probe directory behind
