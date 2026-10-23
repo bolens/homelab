@@ -8,7 +8,7 @@ The source review is a self-review, not independent verification.
 
 ## Completed checks
 
-- Seven Librarr tests passed: missing inputs, absent media mount refusal,
+- Eight Librarr tests passed: missing inputs, absent media mount refusal,
   repeated preparation without data/config replacement or lifecycle calls,
   source-registry preservation, default exposure, retained torrent payloads,
   optional reader-network merge, read-only matching reader roots and existing
@@ -36,8 +36,8 @@ run; Gitleaks and the separate file scanner are the recorded coverage.
 
 The only externally generated Compose bundle skipped was PostHog. Existing
 native validation reported optional archive-backend controls as unproved; this
-change does not alter or claim those live Mylar controls. Browser interaction
-and live network/provider checks were not run for this stack-only change.
+change does not alter or claim those live Mylar controls. Live network/provider checks were not run. The corrected site test was later
+verified with the complete local browser suite (14 passing tests).
 
 GitHub delivery checks and post-merge verification are recorded in the PR;
 local success alone does not establish that delivery.
@@ -55,3 +55,20 @@ Deployment must supply credentials, verify mounted filesystems and permissions,
 back up and verify affected existing reader state, select wanted overrides,
 configure exact library IDs and verify a permitted download/import. Bookshelf's
 automatic direct-download fulfillment and NZBGet integration remain unsupported.
+
+## CI compatibility correction
+
+The first GitHub run exposed a test-only difference: the hosted Compose v2 JSON
+renderer omits `create_host_path` when false; local Compose 5.6.0 includes it.
+The existing optional-stack tests already handle this omission. Librarr's tests
+now use that same rendered representation and independently require explicit
+`create_host_path: false` in every new source bind. No mount behavior changed.
+The corrected eight-test suite passed locally; the updated PR requires a fresh
+GitHub check result.
+
+The initial site-quality job also exposed a hardcoded 217-application total in
+the catalog-filter browser test after the catalog grew to 218. The test now
+compares the actual total and visible card counts with the displayed status,
+including nonempty filtering, instead of hardcoding a fleet size.
+
+`make site-test` passed all 14 tests after the catalog assertion correction.

@@ -93,6 +93,19 @@ class LibrarrPreparationTests(unittest.TestCase):
             self.assertNotIn("fixture-secret-keep-out-of-output", second.stdout + second.stderr)
 
 
+class LibrarrSourceContractTests(unittest.TestCase):
+    def test_host_path_creation_is_explicitly_disabled_in_all_source_binds(self):
+        for stack, name in (("librarr", "docker-compose.yml"),
+                            ("kavita", "docker-compose.librarr.yml"),
+                            ("komga", "docker-compose.librarr.yml")):
+            source = yaml.safe_load((ROOT / "stacks" / stack / name).read_text())
+            mounts = source["services"][stack]["volumes"]
+            for mount in mounts:
+                with self.subTest(stack=stack, target=mount["target"]):
+                    self.assertIs(mount["bind"]["create_host_path"], False)
+
+
+# Compose v2 omits false bind fields in JSON; explicit source values are checked above.
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI unavailable")
 class LibrarrComposeTests(unittest.TestCase):
     def render(self, stack, *overrides, extra="", remove=None):
@@ -138,7 +151,7 @@ class LibrarrComposeTests(unittest.TestCase):
         self.assertEqual(app["environment"]["ZLIBRARY_ENABLED"], "false")
         self.assertEqual(app["platform"], "linux/amd64")
         self.assertIn("@sha256:", app["image"])
-        self.assertTrue(all(not v["bind"]["create_host_path"] for v in app["volumes"]))
+        self.assertTrue(all(not v.get("bind", {}).get("create_host_path", False) for v in app["volumes"]))
         source = next(v for v in app["volumes"] if v["target"] == "/etc/librarr/sources.json")
         self.assertTrue(source["read_only"])
 
@@ -165,7 +178,7 @@ class LibrarrComposeTests(unittest.TestCase):
                     mount = next(v for v in reader["volumes"] if v["target"] == target)
                     self.assertEqual(mount["source"], "/path/to/media" + owner_env[key][len("/data"):])
                     self.assertTrue(mount["read_only"])
-                    self.assertFalse(mount["bind"]["create_host_path"])
+                    self.assertFalse(mount.get("bind", {}).get("create_host_path", False))
                 result = self.render(stack, "docker-compose.librarr.yml")
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("LIBRARR_MEDIA_PATH", result.stderr)
