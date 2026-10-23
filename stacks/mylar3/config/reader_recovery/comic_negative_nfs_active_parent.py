@@ -557,6 +557,27 @@ def current_plan(roles):
     return plan
 
 
+def original_operation_mount(plan, mounts):
+    """One original HOST reference, physically retained by the owning Root Parent.
+
+    The UID helper receives the authenticated original plan, but its actual
+    /_operation bind is the private child Tree. Never resolve that one HOST
+    string in the child's filesystem namespace. Other HOST paths and every
+    CHILD path keep their existing physical canonical checks.
+    """
+    operation = plan.get('operation')
+    check(type(operation) is str and operation.startswith('/')
+          and not operation.startswith('//') and str(Path(operation)) == operation
+          and '..' not in Path(operation).parts
+          and not any(c in operation for c in ('\x00', '\n', '\r', ',', '\\')),
+          'disposable-mapping-operation-spelling')
+    expected = dict(host=operation, child='/_operation', write=True)
+    check([row for row in mounts if row['host'] == operation] == [expected]
+          and [row for row in mounts if row['child'] == '/_operation'] == [expected],
+          'disposable-mapping-operation-bind')
+    return operation
+
+
 def disposable_archive_mapping(rows, roots, roles, plan):
     """Finite creator geometry only; no NFS/platform or publication grant.
 
@@ -590,7 +611,11 @@ def disposable_archive_mapping(rows, roots, roles, plan):
     for mount in mounts:
         exact(mount, ('host','child','write'))
         check(type(mount['write']) is bool, 'disposable-mapping-mount-mode')
-        canonical(mount['host']); canonical(mount['child'])
+    operation = original_operation_mount(plan, mounts)
+    for mount in mounts:
+        if mount['host'] != operation:
+            canonical(mount['host'])
+        canonical(mount['child'])
     bound = [mount for mount in mounts if mount['host'] == str(common)]
     check(bound == [dict(host=str(common),child=str(common),write=True)], 'disposable-mapping-common-bind')
     for mount in mounts:

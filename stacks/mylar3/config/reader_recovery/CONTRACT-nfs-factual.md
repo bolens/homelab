@@ -126,6 +126,17 @@ and cleans its own child before retention admission; G remains excluded as an
 ancestor of the protected library. Native DATA, reader config, scratch and
 operation output remain outside G. Permanent service contracts are unchanged.
 
+The authenticated original plan13 operation mount remains a HOST reference.
+The Root Parent retains its private host operation and ancestry, while its
+actual UID1000 NFS helper receives the separately owned child Tree at
+`/_operation`. The disposable mapping validator permits exactly one original
+`operation` → `/_operation` writable row, with strict primitive absolute
+spelling. It does not physically resolve that one host string inside the
+child namespace. Every other host source and every child destination retain
+physical canonical checks. Original plan/source closure and exact created and
+started helper profile joins remain required. This distinction neither opens
+Root directories nor grants host reads, new mounts or recovery authority.
+
 The Parent joins its process-local consumed NFS owner and exact NFS-ready input
 to one pre-Writer request on the original pipe. Custody retains these facts
 separately from native-observation projections. They grant no publication and

@@ -52,6 +52,9 @@ class Mapping(unittest.TestCase):
         self.plan = dict(version=13,kind='reviewed-archive-one-lifecycle-protocol',terminal_mode='same-child-v1',action='archive-one',nonce=self.nonce,
                          publication_geometry=self.geometry,native=dict(data='/config/data',roots=[str(self.library)]),
                          mounts=[dict(host=str(self.common),child=str(self.common),write=True)])
+        self.operation = self.base/'operation';self.operation.mkdir(mode=0o700)
+        self.plan['operation'] = str(self.operation)
+        self.plan['mounts'].append(dict(host=str(self.operation),child='/_operation',write=True))
         self.source = ref(self.base/'parent.py', b'# Captured source fixture, not an installed Parent\n')
         self.seal()
 
@@ -165,7 +168,7 @@ class Mapping(unittest.TestCase):
                        [exact,dict(host=str(self.library),child='/extra',write=False)],
                        [exact,dict(host='/other',child=str(self.retention),write=True)],
                        [exact,dict(host=str(self.base),child='/ancestor',write=False)]):
-            self.plan['mounts']=mounts;self.seal()
+            self.plan['mounts']=[*mounts,dict(host=str(self.operation),child='/_operation',write=True)];self.seal()
             with self.assertRaises(m.Held):self.mapping()
 
     def test_worker_wrong_data_or_start_refuses(self):
@@ -207,6 +210,84 @@ class Mapping(unittest.TestCase):
             return value
         with patch.object(m,'current_plan',side_effect=changed):
             with self.assertRaisesRegex(m.Held,'static-original'):self.mapping()
+
+    def operation_mount(self):
+        self.private = self.base/'root-private';self.private.mkdir(mode=0o700)
+        self.operation = self.private/'operation';self.operation.mkdir(mode=0o700)
+        self.plan['operation'] = str(self.operation)
+        self.plan['mounts'][-1] = dict(host=str(self.operation),child='/_operation',write=True)
+        self.seal()
+
+    def test_original_operation_host_is_opaque_in_child_namespace(self):
+        self.operation_mount()
+        self.private.chmod(0)
+        try:
+            with self.assertRaises(PermissionError):os.stat(self.operation)
+            original=m.canonical
+            def namespace(raw):
+                if str(raw)==str(self.operation):os.stat(raw)
+                return original(raw)
+            with patch.object(m,'canonical',side_effect=namespace):self.mapping()
+        finally:self.private.chmod(0o700)
+
+    def test_original_operation_requires_exact_single_writable_projection(self):
+        self.operation_mount();original=copy.deepcopy(self.plan['mounts'])
+        for rows in (original[:-1],original+[original[-1]],
+                     original[:-1]+[dict(original[-1],write=False)],
+                     original[:-1]+[dict(original[-1],child='/elsewhere')],
+                     original+[dict(host='/foreign',child='/_operation',write=False)],
+                     original+[dict(host=str(self.operation),child='/other',write=True)]):
+            with self.subTest(rows=rows):
+                self.plan['mounts']=rows;self.seal()
+                with self.assertRaisesRegex(m.Held,'operation-bind'):self.mapping()
+
+    def test_operation_spelling_is_primitive_and_exact(self):
+        self.operation_mount();original=str(self.operation)
+        for value in (None,1,{},'//'+original.lstrip('/'),original+'/',original+'/../operation',
+                      original+'/./child',original+'\x00',original+'\n',original+',x',original+'\\x'):
+            with self.subTest(value=value):
+                self.plan['operation']=value;self.seal()
+                with self.assertRaisesRegex(m.Held,'operation-spelling'):self.mapping()
+
+    def test_foreign_operation_reference_cannot_exempt_original_host(self):
+        self.operation_mount();self.plan['operation']=str(self.private/'foreign');self.seal()
+        with self.assertRaisesRegex(m.Held,'operation-bind'):self.mapping()
+
+    def test_nonoperation_host_permission_fault_remains_physical(self):
+        self.operation_mount();extra=self.private/'other';extra.mkdir()
+        self.plan['mounts'].append(dict(host=str(extra),child='/other',write=False));self.seal()
+        self.private.chmod(0)
+        try:
+            original=m.canonical
+            def namespace(raw):
+                if str(raw)==str(extra):os.stat(raw)
+                return original(raw)
+            with patch.object(m,'canonical',side_effect=namespace):
+                with self.assertRaises(PermissionError):self.mapping()
+        finally:self.private.chmod(0o700)
+
+    def test_operation_child_and_other_host_symlinks_remain_physical(self):
+        self.operation_mount();link=self.base/'alias';link.symlink_to(self.operation,target_is_directory=True)
+        self.plan['mounts'].append(dict(host=str(link),child='/other',write=False));self.seal()
+        with self.assertRaisesRegex(m.Held,'canonical'):self.mapping()
+        self.plan['mounts'].pop();self.seal();original=m.canonical;seen=[]
+        def child_path(raw):
+            seen.append(str(raw))
+            if str(raw)=='/_operation':return original(str(link))
+            return original(raw)
+        with patch.object(m,'canonical',side_effect=child_path):
+            with self.assertRaisesRegex(m.Held,'canonical'):self.mapping()
+        self.assertIn('/_operation',seen)
+
+    def test_late_original_operation_plan_mutation_refuses(self):
+        self.operation_mount();original=m.current_plan;calls=[]
+        def changed(roles):
+            value=original(roles);calls.append(None)
+            if len(calls)==2:
+                path=Path(self.roles['plan']['path']);path.write_bytes(m.encode(dict(self.plan,operation='/foreign')))
+            return value
+        with patch.object(m,'current_plan',side_effect=changed):
+            with self.assertRaises(m.Held):self.mapping()
 
     def test_legacy_function_source_bytes_remain_exact(self):
         source=Path(m.__file__).read_text()

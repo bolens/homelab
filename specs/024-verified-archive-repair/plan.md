@@ -47,6 +47,29 @@ permitted. Require hostile-callback and restoration regressions, actual bounded
 Root/NFS timing, delivery, a new checked installation and a fresh fixture before
 configured acceptance. Historical source and benchmark results remain partial.
 
+## Corrective requirement: original host operation and child namespaces
+
+V reaches the owning NFS child but holds while the UID1000 mapping validator
+physically resolves an original host mount source behind the Root-owned private
+operation parent. The actual child uses the separately owned projected operation
+tree. Preserve V and its helper without replay. Do not make Root directories
+searchable or reinterpret a permission failure as successful validation.
+
+Before another configured attempt, distinguish the exact original plan13
+operation host reference from the actual child operation destination. Keep the
+original plan and source authenticated, Root host-directory custody and final
+closure, exact created/started helper profile joins, and physical child-path
+checks. Any exception must be finite to the original writable operation mount,
+with strict primitive absolute spelling and exact host/child joins. All other
+host sources retain physical canonical checks. Refuse aliases, shadowing,
+foreign destinations, altered original plans and late ancestry changes.
+
+Verify the private Root/UID1000 geometry and refusal boundaries with focused
+controls and independent review. Advance host-only source pins and installation
+receipts together, then use a fresh disposable fixture. No native SDK, selected
+image, worker image, freshness guard or runtime permissions change follows from
+this correction. Source tests alone do not close configured recovery acceptance.
+
 ## Constitution Check
 
 Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. The dedicated plan13 NFS purpose explicitly amends transient bind admission for a private G containing only library L and retention R; permanent Compose mounts, settings, ports and privileges remain unchanged. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.
