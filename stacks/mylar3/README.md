@@ -1536,7 +1536,10 @@ the whole owned retention directory. Original R identity and descriptor custody,
 the exact nested fixture, actual child mount rows and prepared-to-write metadata
 continuity remain required. Unrelated retention entries must survive unchanged.
 Common G and library L remain outside its writable mounts. Legacy probes retain
-their fixture-only bind. Connected forward and rollback acceptance remain open.
+their fixture-only bind. The two checked probe source copies use child-tree
+virtual destinations so protected host ancestry cannot block UID1000 reads.
+Physical sources remain readonly with their original hash and identity checks.
+Connected forward and rollback acceptance remain open.
 
 Control-tree checks avoid repeated metadata reads for identical original paths
 within each closure pass. Conflicting facts and changes after callbacks still

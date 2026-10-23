@@ -1026,7 +1026,8 @@ class Paths:
         for key in ('probe','hardlink_kernel'):
             original=cohort['sources'][key];need(original['path'] in owner.files,'nfs-probe-source-original-membership')
             sources.append(self.child_host_ref(dict(original,signature9=list(owner.files[original['path']]))))
-        virtual_sources=[child_map(str(Path(row['path']))) for row in sources]
+        # Source copies use Tree destinations even beneath protected data roots.
+        virtual_sources=[self.child(row['path']) for row in sources]
         output=str(Path(session.output)/'probe');output_host=host_map(output)
         binding=self.nfs_probe_binding(fixture)
         bind_host,bind_child=(binding['host_root'],binding['child_root']) if binding is not None else (fixture_host,fixture)

@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "019366599f1ea9749c4c0d488457c9c41a8484eb6aa6c71ed04377bc9bcb2b0a"
+      "sha256": "ec82d0cdddaa203972d912820c393a00bb09b4a55c6e224cc902cc34c18d758d"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "542062bb4d66957d9ddba02c4641f60b48ed111f15cef76d5e8c182b2c55ea55"
+      "sha256": "e18fff6391488871957d748da27a911f22c78b1553cb72a65ab55994bcf128be"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "09b92e35688a32b803ed81599fd238046563555055168ff9307c98037d670a8f"
+      "sha256": "9f6a9dc902c2f7478fad7f5f09008544bfa1846adc7e2519bef2ec66ec612127"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "b9c01acb660bca919aa627e907f4f3a265fa12fdfa3addc16b9d0bd15969dc9b"
+      "sha256": "5d3b5bc6879bbacde47255da5a13786a5806492718c18cd053d5f6b504d4cdf2"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -709,7 +709,7 @@
       "sha256": "43b8793ff8ae3f9354f6e7f434ecb85d8525778b56cbb2dcd5bce718b09d8775"
     },
     "test_nfs_parent_admission.py": {
-      "sha256": "326cee1c4b25f393400df6b01e66a6e5421662017ccca275884220284097e85e"
+      "sha256": "004ba96b20843768011bd3e224b365896638f62341c9ca63321fe6f66c3e4862"
     },
     "test_nfs_parent_session.py": {
       "sha256": "fbf27a10c2d52b2e2446fb02c3c2e642e82ad271344f91f861a7ac383962b0fc"

@@ -9,8 +9,8 @@ implementation tasks T019–T022 are delivered; they are not additional runtime
 acceptance gates. T012/T015 share one forward run and one distinct-fixture
 rollback with feature 023 T026/T029 and the isolated portion of T027.
 
-1. Resolve the demonstrated nested probe-validation latency without changing the
-   120-second guard, then use a fresh disposable forward attempt. Independently
+1. Correct the demonstrated nested probe source destination, then use a fresh
+   disposable forward attempt with the unchanged 120-second guard. Independently
    compare archive bytes/members, native records and reader references/progress.
 2. After accepted forward proof, complete the prepared separate rollback fixture
    and compare its actual causal original plus the complete native preimage.
@@ -27,16 +27,21 @@ validation correction after local and hosted checks passed. Its actual Root/NFS
 benchmark reduced 24 common-root checks from 2.744 seconds to 0.185 seconds.
 Final source also rejects foreign ancestor keys before Root metadata reads.
 
-The fresh isolated AH run passed the previous deadline boundary, then held at
-the child mount comparison about 41 seconds after helper start, before reader
-stop. Native/reader epochs and the inactive worker remain unchanged. Independent
-post-hold comparison preserves both archives, reader records/progress and six
-page hashes. The next correction normalizes expected mount rows after the host
-reply's JSON round trip, preserving exact path, access mode, type and count
-checks. Terminal acceptance remains unproved. This stays within T012, with no
-new task or acceptance gate.
-Preserve all earlier attempts and
-originals without replay. Historical refusals remain in [evidence
+AH passed the previous deadline boundary, then held at the child mount
+comparison before reader stop. The correction normalizes expected mount rows
+after JSON transport. AJ held at current-role readiness before Producer entry.
+Its rejected probe reply was not retained, so the exact cause is unproved.
+AL passed current roles and the mount comparison, then its nested probe could
+not read source paths beneath protected host ancestry. The next correction
+routes only those two checked source-copy destinations through the child Tree.
+Both archives, reader records/progress and six page hashes remain unchanged
+after each hold. Terminal acceptance remains unproved.
+
+These corrections stay within T012, with no new task or acceptance gate.
+Authorized disposable tests may precede merge using reviewed frozen source and
+its matching checked installation. Hosted CI still gates merge; final delivery
+and original runtime evidence must join before T012/T015 completion. Preserve
+all earlier attempts without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
 
 ## Phase 1: Setup
