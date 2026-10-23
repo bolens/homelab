@@ -872,3 +872,14 @@ post-callback identity checks without caching across calls. Local syscall counts
 do not establish configured Root/NFS latency. Bounded failure diagnostics should
 retain sanitized suppressed-context frames through direct exception slots; omit
 messages, locals and raw paths, and bound traversal as well as output.
+
+A finite owner-read vector must preserve both independent Tree passes and every
+existing lifetime boundary. Capture the actual constructor seal, registry,
+callable, code and semantic defaults before callbacks; authenticate the same
+objects again and invoke the captured original directly for final closure.
+Reject replaced source-reader helpers before running them. Keep local metadata
+under Root and only fixed no-follow reads under the masked owner UID; restore
+Root before validation and retain primary errors, descriptor custody and poison.
+Label projection wrapper counts as wrapper invocations, not kernel metadata
+operations or NFS RPCs. Only measured complete Root/NFS and fresh configured
+execution can establish latency or admission.

@@ -473,5 +473,298 @@ class OwnerReadTests(unittest.TestCase):
             for fd in held:
                 with self.assertRaises(OSError):os.fstat(fd)
 
+    def control_tree(self):
+        import hashlib
+        from unittest import mock
+        import comic_child_control_projection as projection
+        exec('def _tree_control_read(ref, private=True):\n return read(ref, private=False)\n',p.__dict__)
+        local=self.root.parent/'local-control.json';local.write_bytes(b'{"original":true}');local.chmod(0o600)
+        ref=dict(path=str(local),sha256=hashlib.sha256(local.read_bytes()).hexdigest(),signature9=p.nine(local.lstat()))
+        operation=self.root.parent/'operation';operation.mkdir(mode=0o700)
+        # The credential double retains real UID1000 file births; do not forge
+        # ownership metadata or claim this is actual Root/NFS execution.
+        with mock.patch.object(p.os,'geteuid',return_value=os.getuid()):
+            tree=projection.Tree(self.root.parent/'child','/_operation',operation,p._tree_control_read,
+                                 uid=os.getuid(),gid=os.getgid(),owner_reads=self.actor)
+            tree.scope(str(self.root/'R'),'retention_root');tree.project(ref)
+        return projection,tree,local,ref
+
+    def test_control_vector_mixed_paths_and_fresh_invocations(self):
+        local=self.root.parent/'local';local.write_bytes(b'original')
+        remote=self.root/'L'/'remote';remote.write_bytes(b'original')
+        files=tuple((str(path),tuple(p.nine(path.lstat())))for path in (local,remote))
+        nodes=((str(self.root/'R'),tuple(p.five((self.root/'R').lstat()))),)
+        self.actor.control_vector(files+files,nodes+nodes);self.assertEqual(self.uid,0)
+        remote.write_bytes(b'changed')
+        with self.assertRaises(p.Held):self.actor.control_vector(files,nodes)
+
+    def test_control_vector_primitive_conflicts_refuse_before_io(self):
+        from unittest import mock
+        path=str(self.root/'L');node=tuple(p.five((self.root/'L').lstat()));changed=(*node[:1],node[1]+1,*node[2:])
+        rows=[([],()),((),((Path(path),node),)),((),((path,(*node[:1],True,*node[2:])),)),
+              ((),((path,node),(path,changed))), ((),(('relative',node),)),((),((path,node),)*513)]
+        for files,nodes in rows:
+            with self.subTest(files=type(files).__name__,rows=len(nodes)),mock.patch.object(p.os,'lstat')as io:
+                with self.assertRaises(p.Held):self.actor.control_vector(files,nodes)
+                io.assert_not_called()
+
+    def test_control_vector_cross_width_conflict_and_combined_bound(self):
+        from unittest import mock
+        path=self.root.parent/'file';path.write_bytes(b'original');file=tuple(p.nine(path.lstat()))
+        directory=tuple(p.five((self.root/'L').lstat()))
+        for files,nodes in [(((str(path),file),),((str(path),directory),)),
+                            ((),tuple((str(self.root/'L'/str(i)),directory)for i in range(513))),
+                            (tuple((str(self.root.parent/('file-'+str(i))),file)for i in range(300)),
+                             tuple((str(self.root/'L'/str(i)),directory)for i in range(300)))]:
+            with mock.patch.object(p.os,'lstat')as io:
+                with self.assertRaises(p.Held):self.actor.control_vector(files,nodes)
+                io.assert_not_called()
+
+    def test_stats_later_path_failure_closes_descriptors_and_restores_root(self):
+        first=self.root/'L'/'first';first.write_bytes(b'original')
+        before=set(os.listdir('/proc/self/fd'))
+        with self.assertRaises(FileNotFoundError):self.actor._run('stats',(str(first),str(self.root/'R'/'missing')))
+        self.assertEqual(self.uid,0);self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
+    def test_stats_scope_and_symlink_escape_refuse(self):
+        link=self.root/'L'/'link';link.symlink_to('/etc')
+        for paths in [('/etc/passwd',),(str(link/'passwd'),),[str(self.root/'L')],(str(self.root/'L'),)*2]:
+            with self.subTest(paths=paths),self.assertRaises((p.Held,OSError)):self.actor._run('stats',paths)
+            self.assertEqual(self.uid,0)
+        expected=((str(link),tuple(p.five((self.root/'L').lstat()))),)
+        with self.assertRaises(p.Held):self.actor.control_vector((),expected)
+
+    def test_stats_later_error_survives_failed_restoration_and_poison(self):
+        from unittest import mock
+        first=self.root/'L'/'first';first.write_bytes(b'original')
+        def switch(real,effective,saved):
+            if effective==0:raise RuntimeError('disposable restore refusal')
+            self.uid=effective
+        enabled=p.gc.isenabled();mask=p.signal.pthread_sigmask(p.signal.SIG_BLOCK,set())
+        try:
+            with mock.patch.object(p.os,'setresuid',side_effect=switch):
+                with self.assertRaises(FileNotFoundError):self.actor._run('stats',(str(first),str(self.root/'R'/'missing')))
+            self.assertTrue(self.actor.poisoned)
+        finally:
+            self.uid=0;p.signal.pthread_sigmask(p.signal.SIG_SETMASK,mask)
+            if enabled:p.gc.enable()
+        with self.assertRaises(p.Held):p.owner_root_guard()
+
+    def test_stats_late_ancestor_replacement_refuses(self):
+        from unittest import mock
+        first=self.root/'L'/'first';second=self.root/'L'/'second'
+        first.write_bytes(b'first');second.write_bytes(b'second');original=p.os.stat;changed=[False]
+        def replace(name,*args,**kwargs):
+            if name=='second'and self.uid==1000 and not changed[0]:
+                changed[0]=True;(self.root/'L').rename(self.root/'old');(self.root/'L').mkdir(mode=0o700)
+            return original(name,*args,**kwargs)
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=replace),self.assertRaises((p.Held,OSError)):
+                self.actor._run('stats',(str(first),str(second)))
+            self.assertTrue(changed[0]);self.assertEqual(self.uid,0)
+        finally:
+            if changed[0]:(self.root/'L').rmdir();(self.root/'old').rename(self.root/'L')
+
+    def test_vector_semantic_dependency_and_defaults_refuse_without_callback(self):
+        from unittest import mock
+        called=[]
+        def fake(*args,**kwargs):called.append(True);return b'forged'
+        with mock.patch.object(p,'read',fake),self.assertRaises(p.Held):self.actor.control_vector((),())
+        self.assertFalse(called)
+        keywords=p._read_original.__kwdefaults__;old=keywords['empty_stderr'];keywords['empty_stderr']=True
+        try:
+            with self.assertRaises(p.Held):self.actor.control_vector((),())
+        finally:keywords['empty_stderr']=old
+        keywords=type(self.actor)._run.__kwdefaults__;old=keywords['ancestor'];keywords['ancestor']=True
+        try:
+            with self.assertRaises(p.Held):self.actor.control_vector((),())
+        finally:keywords['ancestor']=old
+
+    def test_vector_original_seal_and_registry_cannot_be_replaced(self):
+        original=p._OWNER_READ_SEALS[self.actor];p._OWNER_READ_SEALS[self.actor]=tuple(list(original))
+        try:
+            with self.assertRaises(p.Held):self.actor.control_vector((),())
+        finally:p._OWNER_READ_SEALS[self.actor]=original
+        bound=p._OWNER_READS;p._OWNER_READS=object()
+        try:
+            with self.assertRaises(p.Held):self.actor.control_vector((),())
+        finally:p._OWNER_READS=bound
+
+    def test_vector_replaced_trailing_source_callback_is_refused_before_running(self):
+        from unittest import mock
+        path=self.root.parent/'target';path.write_bytes(b'original');files=((str(path),tuple(p.nine(path.lstat()))),)
+        called=[];original=p.os.lstat;patcher=mock.patch.object(p,'read',lambda *a,**k:called.append(True));changed=[False]
+        def sample(value,*args,**kwargs):
+            result=original(value,*args,**kwargs)
+            if str(value)==str(path)and not changed[0]:changed[0]=True;patcher.start()
+            return result
+        try:
+            with mock.patch.object(p.os,'lstat',side_effect=sample),self.assertRaises(p.Held):self.actor.control_vector(files,())
+            self.assertTrue(changed[0]);self.assertFalse(called);self.assertEqual(path.read_bytes(),b'original')
+        finally:patcher.stop()
+
+    def test_vector_late_source_bytes_refuse_using_private_source_copy(self):
+        from unittest import mock
+        source=self.root.parent/'parent-copy.py';source.write_bytes(Path(p.__file__).read_bytes());source.chmod(0o600)
+        with mock.patch.object(p,'__file__',str(source)):actor=p.GeometryOwnerReads(self.geometry)
+        original_actor=p._OWNER_READS;p._OWNER_READS=actor
+        path=self.root.parent/'target';path.write_bytes(b'original');files=((str(path),tuple(p.nine(path.lstat()))),)
+        original=p.os.lstat;changed=[False]
+        def sample(value,*args,**kwargs):
+            result=original(value,*args,**kwargs)
+            if str(value)==str(path)and not changed[0]:changed[0]=True;source.write_bytes(b'changed private source')
+            return result
+        try:
+            with mock.patch.object(p.os,'lstat',side_effect=sample),self.assertRaises(p.Held):actor.control_vector(files,())
+            self.assertTrue(changed[0]);self.assertEqual(self.uid,0)
+        finally:actor.release();p._OWNER_READS=original_actor
+
+    def test_tree_vector_independent_passes_and_no_cross_call_cache(self):
+        from unittest import mock
+        _,tree,local,_=self.control_tree();original=p.os.lstat;calls=[]
+        def sample(path,*args,**kwargs):
+            if str(path)==str(local):calls.append(True)
+            return original(path,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=sample):tree.check();tree.check()
+        self.assertEqual(len(calls),4)
+        local.write_bytes(b'changed')
+        with self.assertRaises(p.Held):tree.check()
+
+    def test_tree_replaced_first_close_cannot_bypass_late_fact_mutation(self):
+        from unittest import mock
+        projection,tree,local,_=self.control_tree();original=projection.os.listdir;changed=[False]
+        def names(path):
+            result=original(path)
+            if str(path)==str(tree.root)and not changed[0]:changed[0]=True;local.write_bytes(b'changed')
+            return result
+        with mock.patch.object(projection,'close',return_value=None),mock.patch.object(projection.os,'listdir',side_effect=names):
+            with self.assertRaises(p.Held):tree.check()
+        self.assertTrue(changed[0])
+
+    def test_tree_final_vector_rejects_method_and_code_replacement(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();original=projection.os.listdir
+        for member in ('control_vector','_run','check','assert_root'):
+            called=[];patcher=mock.patch.object(type(self.actor),member,lambda *a,**k:called.append(True));changed=[False]
+            def names(path):
+                result=original(path)
+                if str(path)==str(tree.root)and not changed[0]:changed[0]=True;patcher.start()
+                return result
+            try:
+                with mock.patch.object(projection.os,'listdir',side_effect=names),self.assertRaises(projection.Held):tree.check()
+                self.assertFalse(called)
+            finally:patcher.stop()
+        function=type(self.actor).control_vector;code=function.__code__;changed=[False]
+        def forged(*args,**kwargs):return None
+        def names(path):
+            result=original(path)
+            if str(path)==str(tree.root)and not changed[0]:changed[0]=True;function.__code__=forged.__code__
+            return result
+        try:
+            with mock.patch.object(projection.os,'listdir',side_effect=names),self.assertRaises(projection.Held):tree.check()
+        finally:function.__code__=code
+
+    def test_tree_final_vector_rejects_foreign_actor_seal_and_logical_mutation(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();original=projection.os.listdir;actor=self.actor;seal=p._OWNER_READ_SEALS[actor]
+        for field in ('actor','none','seal','logical','dependency'):
+            changed=[False];pairs=tree.pairs
+            original_read=p.read
+            def names(path):
+                result=original(path)
+                if str(path)==str(tree.root)and not changed[0]:
+                    changed[0]=True
+                    if field=='actor':tree.owner_reads=object.__new__(type(actor))
+                    elif field=='none':tree.owner_reads=None
+                    elif field=='seal':p._OWNER_READ_SEALS[actor]=tuple(list(seal))
+                    elif field=='dependency':p.read=lambda *args,**kwargs:self.fail('replaced source callback must not run')
+                    else:tree.pairs=()
+                return result
+            try:
+                with mock.patch.object(projection.os,'listdir',side_effect=names),self.assertRaises((p.Held,projection.Held)):tree.check()
+            finally:tree.owner_reads=actor;p._OWNER_READ_SEALS[actor]=seal;tree.pairs=pairs;p.read=original_read
+
+    def test_geometry_batch_preserves_distinct_fd_checks(self):
+        from unittest import mock
+        fd=os.dup(next(iter(self.actor.handles)));self.actor.handles[fd]=next(iter(self.actor.handles.values()))
+        original=os.fstat;seen=[];self.events.clear()
+        def sample(handle):
+            seen.append((handle,self.uid));return original(handle)
+        with mock.patch.object(p.os,'fstat',side_effect=sample):self.actor.check()
+        self.assertEqual(self.events,[1000,0]*3)
+        for handle in self.actor.handles:self.assertEqual(seen.count((handle,0)),2)
+
+    def test_geometry_conflicting_path_refuses_before_io(self):
+        from unittest import mock
+        fd=next(iter(self.actor.handles));original=self.actor.handles[fd];path,fact=original
+        self.actor.handles[fd]=(path,(fact[0],fact[1]+1,*fact[2:]))
+        try:
+            with mock.patch.object(p.os,'fstat') as sample,mock.patch.object(p.os,'lstat') as path_sample:
+                with self.assertRaises(p.Held):self.actor.check()
+                sample.assert_not_called();path_sample.assert_not_called()
+        finally:self.actor.handles[fd]=original
+
+    def test_geometry_final_fd_pass_rejects_reuse(self):
+        from unittest import mock
+        target=next(iter(self.actor.handles));saved=os.dup(target)
+        foreign=self.root.parent/'foreign';foreign.write_bytes(b'foreign')
+        source=os.open(foreign,os.O_RDONLY|os.O_NOFOLLOW);original=p.os.stat;changed=[]
+        def sample(path,*args,**kwargs):
+            result=original(path,*args,**kwargs)
+            if self.uid==1000 and path==Path(tuple(self.actor.nodes)[-2]).name and not changed:changed.append(True);os.dup2(source,target)
+            return result
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=sample),self.assertRaises(p.Held):self.actor.check()
+            self.assertTrue(changed);self.assertEqual(os.pread(target,32,0),b'foreign')
+        finally:os.dup2(saved,target);os.close(saved);os.close(source)
+
+    def test_geometry_final_ledger_primitives_refuse_without_callbacks(self):
+        from unittest import mock
+        actor=self.actor;handles=actor.handles;nodes=actor.nodes;original=p.os.stat;calls=[]
+        class Foreign:
+            def __iter__(self):calls.append('iterate');return iter(next(iter(nodes.values())))
+            def __eq__(self,other):calls.append('equal');return True
+        for change in ('handle-object','node-iterable','handles-copy','nodes-copy'):
+            saved_handles=dict(handles);saved_nodes=dict(nodes);changed=[]
+            def sample(path,*args,**kwargs):
+                result=original(path,*args,**kwargs)
+                if self.uid==1000 and path==Path(tuple(self.actor.nodes)[-2]).name and not changed:
+                    changed.append(True)
+                    if change=='handle-object':handles[next(iter(handles))]=Foreign()
+                    elif change=='node-iterable':nodes[next(iter(nodes))]=Foreign()
+                    elif change=='handles-copy':actor.handles=dict(handles)
+                    else:actor.nodes=dict(nodes)
+                return result
+            try:
+                with self.subTest(change=change),mock.patch.object(p.os,'stat',side_effect=sample),self.assertRaises(p.Held):actor.check()
+                self.assertTrue(changed);self.assertEqual(calls,[])
+            finally:
+                actor.handles=handles;actor.nodes=nodes;handles.clear();handles.update(saved_handles);nodes.clear();nodes.update(saved_nodes)
+
+    def test_geometry_ancestor_batch_has_exact_scope(self):
+        from unittest import mock
+        paths=tuple(self.actor.nodes);values=self.actor._run('stats',paths,ancestor=True)
+        self.assertEqual([p.five(value) for value in values],list(self.actor.nodes.values()))
+        for requested,flag in ((paths,False),((str(self.root.parent/'foreign'),),True),(paths,1)):
+            with self.subTest(flag=flag),mock.patch.object(p.os,'setresuid') as switch:
+                with self.assertRaises(p.Held):self.actor._run('stats',requested,ancestor=flag)
+                switch.assert_not_called()
+        original=p.os.lstat;sampled=[]
+        def local(path,*args,**kwargs):
+            if path==paths[0]:sampled.append(self.uid)
+            return original(path,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=local):self.actor.control_vector((),((paths[0],tuple(self.actor.nodes[paths[0]])),))
+        self.assertEqual(sampled,[0])
+
+    def test_geometry_later_ancestor_error_closes_fds_and_restores_root(self):
+        from unittest import mock
+        original=p.os.stat;before=set(os.listdir('/proc/self/fd'));error=OSError('later-ancestor');fired=[]
+        def sample(path,*args,**kwargs):
+            if self.uid==1000 and path==Path(tuple(self.actor.nodes)[-2]).name:fired.append(True);raise error
+            return original(path,*args,**kwargs)
+        with mock.patch.object(p.os,'stat',side_effect=sample),self.assertRaises(OSError) as held:self.actor.check()
+        self.assertIs(held.exception,error);self.assertEqual(self.uid,0);self.assertEqual(fired,[True])
+        self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
 if __name__ == '__main__':
     unittest.main()
