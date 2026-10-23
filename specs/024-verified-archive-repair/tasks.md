@@ -32,8 +32,10 @@ delegates registered common-root custody to its existing complete geometry
 checker. A separate actual Root/NFS benchmark of 24 identical private controls
 reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
 controls, geometry and source bytes. This measures metadata closure, not the
-connected recovery path; terminal acceptance remains unproved. This stays
-within T012, with no new task or acceptance gate.
+connected recovery path. Final source additionally checks the exact ancestor
+key set before any Root path access; its regression verifies that consistently
+forged ledgers cannot trigger a foreign metadata read. Terminal acceptance
+remains unproved. This stays within T012, with no new task or acceptance gate.
 Preserve all earlier attempts and
 originals without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).

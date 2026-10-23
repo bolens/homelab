@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "4f311f92fb18cf9e2f6a152e757fbb01f1bf9dea62ae424c40c35d3389e7ee82"
+      "sha256": "c918676e0eedf576027ec3f454aed990b5924dd18076fcddb7ca8b3985bc089d"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "ede80f98ef693186761c6d10e4c0b352ce93046abe6a487164efef334d0b8c97"
+      "sha256": "854fa4788760f50eb6ef6fb934629d265ff9c263fd833451caf0ebe724f7dc5f"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "1b84ef446e24deb6a00d24746387c1dcf5c8810b10be17e7a11b1a8e7fa599fb"
+      "sha256": "1ec30d117166b8ebf5d0bcb171d8e3a3c66ac7c96309f0fdee0cf35e0f14f368"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "04638b421a26415513ab65862abfef1e98c5da1e9c1f4c62d499840a7efff59a"
+      "sha256": "bb388dc10abdaac0cddb014920068c18c3b11366d1d96a764ae3fc24bbd8993d"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -556,7 +556,7 @@
       "sha256": "f5cef00de1fe3b9bf82daf352de3c1ed6670581bb827deb581692a76947bd1c0"
     },
     "test_archive_common_root.py": {
-      "sha256": "a1706ec59379012e49ff7f8f54511ffef1d8cbdd463648d34a2c82d284409d88"
+      "sha256": "5038ffc6726b5e4a8b53bd435638a4b486f43856c2f2eb7eec36ad6aa7ecfef9"
     },
     "test_archive_native_geometry.py": {
       "sha256": "52516b748747f613bbd83212a8940ea3380bdf42eb9e988d63055abb09027aaa"

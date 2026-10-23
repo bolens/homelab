@@ -1616,6 +1616,7 @@ def check_common_root(row):
                  and all(type(handle) is int for handle in handles)
                  and encode(value)==original_value and encode(actor.geometry)==seal[0]
                  and encode(ancestors)==original_nodes==encode(actor.nodes)
+                 and set(ancestors)=={str(path) for path in root.parents}
                  and all(actor.handles.get(handle)==(path,fact) for handle,path,fact in zip(handles,paths,facts)),
                  'archive-common-original-owner-row')
             need(tuple(nine(os.fstat(fd)))==expected

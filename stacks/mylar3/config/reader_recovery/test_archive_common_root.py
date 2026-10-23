@@ -297,6 +297,18 @@ class OwnerReadTests(unittest.TestCase):
         row=self.common_row();(self.root/'foreign').mkdir()
         with self.assertRaises(p.Held):p.check_common_root(row)
 
+    def test_common_root_foreign_ancestor_ledger_never_reaches_Root_stat(self):
+        from unittest import mock
+        row=self.common_row();foreign=self.root.parent/'foreign';foreign.write_bytes(b'outside owned geometry')
+        path=str(foreign);fact=p.five(foreign.lstat());seen=[];original=p.os.lstat
+        self.actor.nodes[path]=row[3][path]=fact
+        def observed(value,*args,**kwargs):
+            seen.append(str(value));return original(value,*args,**kwargs)
+        try:
+            with mock.patch.object(p.os,'lstat',side_effect=observed),self.assertRaises(p.Held):p.check_common_root(row)
+            self.assertNotIn(path,seen)
+        finally:self.actor.nodes.pop(path);row[3].pop(path)
+
     def test_run_operation_release_then_late_finalizer_cannot_close_reused_fd(self):
         from unittest import mock
         import weakref
