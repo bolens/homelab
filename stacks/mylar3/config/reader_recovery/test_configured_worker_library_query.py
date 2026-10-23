@@ -668,6 +668,25 @@ class CanaryCommandPrefix(unittest.TestCase):
             with self.subTest(command=tail[0]),patch.object(p.subprocess,'run',return_value=out)as run:
                 self.assertIs(engine.canary(args,input=b'private',capture_output=True,timeout=10,check=False),out)
                 run.assert_called_once_with(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},input=b'private',capture_output=True,timeout=10,check=False)
+    def test_findmnt_runs_only_new_child_as_fixed_owner(self):
+        args=['findmnt','--json','--target','/fixture/private','--output','SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN']
+        out=SimpleNamespace(returncode=1,stdout=b'',stderr=b'private refusal')
+        with patch.object(p.subprocess,'run',return_value=out)as run:
+            self.assertIs(p.ScopedDocker().canary(args,capture_output=True,timeout=10,check=False),out)
+            run.assert_called_once_with(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},user=1000,group=1000,extra_groups=(),capture_output=True,timeout=10,check=False)
+    def test_caller_cannot_choose_subprocess_identity(self):
+        args=['findmnt','--json','--target','/fixture/private']
+        for extra in ({'user':0},{'group':0},{'extra_groups':(0,)},{'preexec_fn':lambda:None}):
+            with self.subTest(extra=next(iter(extra))),patch.object(p.subprocess,'run')as run:
+                with self.assertRaisesRegex(p.Held,'nfs-engine-call-shape'):
+                    p.ScopedDocker().canary(args,capture_output=True,timeout=10,check=False,**extra)
+                run.assert_not_called()
+    def test_findmnt_launch_failure_and_timeout_remain_held(self):
+        args=['findmnt','--json','--target','/fixture/private']
+        for error in (PermissionError('private'),p.subprocess.TimeoutExpired(args,1)):
+            with self.subTest(error=type(error).__name__),patch.object(p.subprocess,'run',side_effect=error):
+                with self.assertRaisesRegex(p.Held,'nfs-engine-ACK-unknown'):
+                    p.ScopedDocker().canary(args,capture_output=True,timeout=10,check=False)
     def test_forbidden_and_malformed_commands_never_reach_subprocess(self):
         for args in ([],list(p.DOCKER),tuple([*p.DOCKER,'inspect','a'*64]),['docker','inspect','a'*64],[*p.DOCKER,'rm','a'*64],[*p.DOCKER,'stop','a'*64],['findmnt','--target','/']):
             with self.subTest(args=args),patch.object(p.subprocess,'run')as run:

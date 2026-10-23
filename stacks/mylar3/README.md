@@ -1522,6 +1522,13 @@ copy's original Tree projection. Source and runtime incarnations remain distinct
 in root evidence. This correction preserves the child self-path guard and does
 not establish connected NFS or terminal acceptance.
 
+The configured NFS host observer runs admitted `findmnt --json` children as
+UID1000/GID1000 without supplementary groups so they can resolve private
+owner-only staging directories on root-squashed exports. The owning Parent
+retains Root identity and Docker dispatch retains its existing identity. Exact
+source-derived command admission, mount/device comparisons and final custody
+checks still apply; a failed observer remains held.
+
 Control-tree checks avoid repeated metadata reads for identical original paths
 within each closure pass. Conflicting facts and changes after callbacks still
 refuse. Failure diagnostics include bounded original context frames without

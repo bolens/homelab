@@ -1292,7 +1292,10 @@ class ScopedDocker:
        or args[:2]==['findmnt','--json']), 'nfs-engine-command')
   need(set(kwargs)<={'input','capture_output','timeout','check'} and kwargs.get('capture_output') is True
        and kwargs.get('check') is False and 0<kwargs.get('timeout',0)<=900,'nfs-engine-call-shape')
-  try:return subprocess.run(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},**kwargs)
+  # Root-squashed NFS private staging is searchable only by its owner.
+  # Lower only the new findmnt process; the owning Parent retains Root custody.
+  identity={'user':1000,'group':1000,'extra_groups':()} if args[:2]==['findmnt','--json'] else {}
+  try:return subprocess.run(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},**identity,**kwargs)
   except (OSError,subprocess.TimeoutExpired):raise Held('nfs-engine-ACK-unknown') from None
  def interactive(self,cid,handler,seconds):
   nfs_remote_guard(self)

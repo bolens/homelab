@@ -74,6 +74,12 @@ A consumer must carry the original vectors across later report, custody and
 watch callbacks and close them again before acknowledgement. These facts do not
 construct adoption, authorize replay or prove reader indexing or ordinary import.
 
+The configured host mount observer executes only admitted `findmnt --json`
+commands in a new fixed UID1000/GID1000 child with no supplementary groups. It
+preserves private staging modes, Root Parent identity, exact original intents,
+Writer-window restrictions and physical same-mount checks. Identity options
+are not caller input; observation failure supplies no fallback or grant.
+
 ## Prospective NFS rename/link purpose
 
 Plan13 and action input v3 explicitly select `rename-link-v1` before any pending

@@ -70,6 +70,30 @@ receipts together, then use a fresh disposable fixture. No native SDK, selected
 image, worker image, freshness guard or runtime permissions change follows from
 this correction. Source tests alone do not close configured recovery acceptance.
 
+## Corrective requirement: owner-principal mount observation
+
+X passes the original operation namespace check, then holds when the Root host
+engine runs `findmnt` against the helper's newly created UID1000 mode0700 NFS
+staging directory. A read-only comparison against that exact retained directory
+succeeds as UID1000 and returns failure as Root. Preserve X and its helper
+without replay; retain the private directory mode and export policy.
+
+Run only the existing source-admitted `findmnt --json` subprocess as fixed
+UID1000/GID1000 with no supplementary groups. Lower identity in the new child
+process, never in the owning Python Parent and never through a Python pre-exec
+callback. Keep Docker commands under their current identity, exact source-derived
+argv/input/use limits, remote Writer-window guard, deadline and output bounds.
+Do not accept caller-provided identity options, extra verbs, fallback mount facts
+or synthetic success. Existing same-library mount/device and final original
+geometry/source closure remain required.
+
+Verify subprocess identity isolation, command and keyword refusals, unchanged
+Docker dispatch, failure/timeout propagation and the actual retained NFS mount
+comparison. Independently review the integrated source, update semantic pins
+and installation receipts, pass delivery gates, and use a fresh installation and
+fixture. This host-only correction does not complete forward or rollback
+acceptance or change image inputs.
+
 ## Constitution Check
 
 Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. The dedicated plan13 NFS purpose explicitly amends transient bind admission for a private G containing only library L and retention R; permanent Compose mounts, settings, ports and privileges remain unchanged. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.
