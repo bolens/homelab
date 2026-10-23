@@ -191,3 +191,21 @@ passing hosted CI. This is bootstrap execution proof, with original data and
 receipts retained; connected factories, NFS, publication, retained live-DDL and
 fresh ACK acceptance remain open. See [the current bootstrap
 record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
+
+## Configured child source refusal — 2026-10-23
+
+A fresh isolated attempt passes SourceCohort and reaches the owning Parent's NFS
+child. The child refuses `cohort-parent-path`: the executing installed source and
+the receipt's original source were projected into different control copies.
+Original child logs establish that refusal before the host's subsequent vanished
+PID check. The observed failure does not establish a timeout. Reader/native
+original epochs remain running and the worker remains Created. Independent
+post-hold comparison preserves both archives' full signatures, bytes and ZIP
+members, both reader book/progress records and all six page hashes. The held
+attempt and helper remain preserved without replay.
+
+The corrective source joins exact original and installed source incarnations
+before projecting the declared installed copy. Eight additional local controls
+include the real child cohort consumer and the prior failure. Installation,
+matching-source delivery and fresh configured forward/rollback, NFS and terminal
+acceptance remain required. T012/T015 and feature 023 T026/T029 stay open.

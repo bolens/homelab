@@ -1515,6 +1515,13 @@ reader indexing, ordinary import or live repair acceptance.
 
 The disabled archive terminal path preserves the original live adoption or rollback capability, preparation, catalog and writer facts through the last physical checks. The reviewed same-child path uses that capability for fresh forward or rollback verification and history, then joins the original parent pipe and its current conversation sequence before acknowledging. Saved receipts cannot recreate the capability or pipe custody. The separate read-only worker path retains both original pipes and its own image ancestry through observation and release. Matching installed CLI and runtime, actual bind geometry, NFS and live acceptance remain required.
 
+Configured NFS child projection joins the original Parent source retained by the
+installation receipt to the declared installed copy using exact signatures,
+source hash and bytes. The cohort and executing child then share that installed
+copy's original Tree projection. Source and runtime incarnations remain distinct
+in root evidence. This correction preserves the child self-path guard and does
+not establish connected NFS or terminal acceptance.
+
 The prospective archive plan13 path uses an explicit NFS rename/link protocol,
 selected before any pending marker. Its transient child binds one nonce-scoped common
 root containing exactly the private scanned library and a disjoint private retention

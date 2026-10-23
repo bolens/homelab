@@ -122,3 +122,13 @@ then preserve the malformed successor as the repair baseline. Rollback restores
 that malformed baseline; it does not reset the fixture to its valid genesis.
 Failure, uncertainty and lost replies hold without automatic reset or replay.
 This test-only request does not extend the public API or accept live repair.
+
+### Configured Parent incarnation correction
+
+Keep the root cohort's exact installation-receipt source binding. Project its
+Parent role through an explicit original-source to declared-installed-source
+join, with both full signatures, fixed source hash, byte identity and final
+Tree-origin closure. Use that installed copy for both child execution and child
+cohort self-path. The real consumer regression must use distinct original and
+installed incarnations. Preserve private/public role policy and all existing
+child guards. Source controls do not complete T012 or T015.

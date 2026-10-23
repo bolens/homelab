@@ -38,6 +38,37 @@ class Inputs:
         ref=self.owner.emit(name,document);child=self.owner.nfs_child_ref(ref)
         self.emitted[(child['path'],child['sha256'])]=copy.deepcopy(ref)
         return dict(path=child['path'],sha256=child['sha256'])
+    def active_parent(self,value):
+        """Join the original cohort source to its declared installed incarnation."""
+        owner=self.owner;g=self.g;owner.left()
+        need(type(value) is dict and set(value)=={'path','sha256'},'nfs-input-parent-ref')
+        context=g['_NFS_SOURCE_CONTEXTS'].get(owner)
+        need(context is not None,'nfs-input-parent-configured-context')
+        cohort_ref=g['decode'](context[2])['source_cohort']
+        need(self.document(cohort_ref)['parent']==value,'nfs-input-original-parent-role')
+        need(value['path'] in owner.files,'nfs-input-parent-original-unbound')
+        original=dict(copy.deepcopy(value),signature9=list(owner.files[value['path']]))
+        installed=copy.deepcopy(owner.plan['nfs']['active_parent'])
+        need(type(installed) is dict and set(installed)=={'path','sha256','signature9'}
+             and Path(installed['path']).name=='comic_negative_nfs_active_parent.py'
+             and original['sha256']==installed['sha256']==g['NFS_ACTIVE_SOURCE_SHA'],
+             'nfs-input-installed-parent-role')
+        def close():
+            need(owner.plan['nfs']['active_parent']==installed
+                 and owner.files.get(original['path'])==tuple(original['signature9'])
+                 and owner.files.get(installed['path'])==tuple(installed['signature9']),
+                 'nfs-input-parent-original-incarnations')
+            need(self.document(cohort_ref)['parent']=={k:original[k] for k in ('path','sha256')},
+                 'nfs-input-parent-original-cohort')
+            need(g['read'](original,private=False)==g['read'](installed),
+                 'nfs-input-parent-installed-bytes')
+        close()
+        child=owner.nfs_child_ref(installed);owner.left();close()
+        tree=g['_CHILD_TREES'].get(owner)
+        need(tree is not None and tree.original(child)==installed,'nfs-input-parent-original-projection')
+        owner.left();close()
+        need(tree.original(child)==installed,'nfs-input-parent-final-projection')
+        return dict(path=child['path'],sha256=child['sha256'])
     def cohort(self,original):
         value=self.document(original);before=copy.deepcopy(value)
         need(set(value)=={'version','kind','images','sources','writer_root','writer_sha256','native_map_count','selected_module_count','parent','receipt','logs','effective_jar_sha256','effective_commit'},'nfs-input-cohort-schema')
@@ -49,7 +80,7 @@ class Inputs:
             need(receipt[role]==value['logs'][role],'nfs-input-original-log-join')
             value['logs'][role]=self.ref(value['logs'][role]);receipt[role]=dict(value['logs'][role])
         for role in roles:value['sources'][role]=self.ref(value['sources'][role])
-        value['parent']=self.ref(value['parent'])
+        value['parent']=self.active_parent(value['parent'])
         value['writer_root']=self.child(value['writer_root'])
         value['receipt']=self.emit('nfs-cohort-receipt-input.json',receipt)
         expected=copy.deepcopy(receipt_before)
