@@ -1,0 +1,11 @@
+# Opt-in API access to readers on their existing ingress network.
+# docker compose --env-file stack.env -f docker-compose.yml -f docker-compose.readers.yml up -d
+services:
+  librarr:
+    networks:
+      - ingress-public
+
+networks:
+  ingress-public:
+    name: ingress-public
+    external: true

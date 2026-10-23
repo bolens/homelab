@@ -1,0 +1,16 @@
+# Opt-in dedicated Librarr libraries; preserve existing library roots.
+services:
+  kavita:
+    volumes:
+      - type: bind
+        source: ${LIBRARR_MEDIA_PATH:?Set LIBRARR_MEDIA_PATH to the same root as the Librarr stack}/librarr/ebooks
+        target: /data/librarr-books
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${LIBRARR_MEDIA_PATH:?Set LIBRARR_MEDIA_PATH to the same root as the Librarr stack}/librarr/manga
+        target: /data/librarr-manga
+        read_only: true
+        bind:
+          create_host_path: false

@@ -1,0 +1,87 @@
+# Librarr owns direct downloads; Prowlarr and qBittorrent are optional integrations.
+services:
+  librarr:
+    image: ghcr.io/jeremiahm37/librarr:v1.4.1@sha256:30fddf1a1e77eb9fc94120cea83e165858a7790857276903a45e7c2b52ddb5f8
+    platform: linux/amd64
+    container_name: librarr
+    user: "${PUID:-1000}:${PGID:-1000}"
+    restart: unless-stopped
+    labels:
+      logging: "true"
+    cpus: 2.0
+    mem_limit: 1g
+    memswap_limit: 2g
+    pids_limit: 256
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - stack.env
+    environment:
+      LIBRARR_PORT: "5050"
+      LIBRARR_DB_PATH: /config/librarr.db
+      SETTINGS_FILE: /config/settings.json
+      LIBRARR_SOURCES_PATH: /etc/librarr/sources.json
+      AUTH_USERNAME: ${AUTH_USERNAME:?Set AUTH_USERNAME in stack.env}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in stack.env}
+      API_KEY: ${API_KEY:?Set API_KEY in stack.env}
+      TORZNAB_API_KEY: ${TORZNAB_API_KEY:?Set TORZNAB_API_KEY in stack.env}
+      OIDC_PROXY_HEADERS_ENABLED: "false"
+      EBOOK_DIR: /data/librarr/ebooks
+      AUDIOBOOK_DIR: /data/audiobooks/Librarr
+      MANGA_DIR: /data/librarr/manga
+      INCOMING_DIR: /data/downloads/torrents/librarr/ebooks
+      MANGA_INCOMING_DIR: /data/downloads/torrents/librarr/manga
+      QB_SAVE_PATH: /data/downloads/torrents/librarr/ebooks
+      QB_AUDIOBOOK_SAVE_PATH: /data/downloads/torrents/librarr/audiobooks
+      QB_MANGA_SAVE_PATH: /data/downloads/torrents/librarr/manga
+      QB_CATEGORY: librarr-ebooks
+      QB_AUDIOBOOK_CATEGORY: librarr-audiobooks
+      QB_MANGA_CATEGORY: librarr-manga
+      IMPORT_MODE: copy
+      REMOVE_TORRENT_AFTER_IMPORT: "false"
+      SCHEDULER_ENABLED: "false"
+      SCHEDULER_AUTO_DOWNLOAD: "false"
+      AUTHOR_MONITOR_ENABLED: "false"
+      AUTO_UPGRADE_ENABLED: "false"
+      WISHLIST_CLEANUP_ENABLED: "false"
+      WISHLIST_CLEANUP_DRY_RUN: "true"
+    volumes:
+      - type: bind
+        source: ${LIBRARR_CONFIG_PATH:?Set LIBRARR_CONFIG_PATH in stack.env}
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${LIBRARR_MEDIA_PATH:?Set LIBRARR_MEDIA_PATH in stack.env}
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./sources.json
+        target: /etc/librarr/sources.json
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - ingress-admin
+      - media-automation
+      - torrents
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5050/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  ingress-admin:
+    name: ingress-admin
+    external: true
+  media-automation:
+    name: media-automation
+    external: true
+  torrents:
+    name: torrents
+    external: true

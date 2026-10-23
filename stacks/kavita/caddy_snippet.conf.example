@@ -35,3 +35,4 @@ kavita.example.com {
 		}
 	}
 }
+# Optional Librarr media mounts reuse this ingress; no additional route.
