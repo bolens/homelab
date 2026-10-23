@@ -850,3 +850,14 @@ its physical backing path, so applying it to the original host path can refuse
 before child creation. Exercise the complete outer-input projection with real
 `Paths`, distinct host/child mounts and original/physical/virtual output paths.
 Identity-mapping fixtures do not verify that direction.
+
+When the NFS cohort retains the installation receipt's original Parent source,
+its path differs from the installed Parent copy. Preserve that original binding
+through Producer admission. At child projection, join both exact original refs,
+full signatures, fixed source hash and bytes, then use the declared installed
+source's original Tree projection for both the executing module and cohort parent.
+Recheck both incarnations after callbacks. Do not infer this relationship from a
+shared basename/hash or relax the child self-path guard. Exercise distinct source
+and installed incarnations through the real cohort consumer. A vanished helper
+PID during the host's final pipe check can follow a child provenance refusal;
+read its original failure record before attributing the failure to a timeout.

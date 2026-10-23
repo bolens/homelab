@@ -156,3 +156,19 @@ may receive only its own Parent module's exact in-memory read scope, joined to
 the original Bootstrap geometry, probe L and current admission R. Private
 facts and credentials stay private; only explicitly typed original source
 roles may retain their original public ownership/mode under full9/hash custody.
+
+## Original and installed Parent source projection
+
+The root SourceCohort retains the installation receipt's original Parent path
+and hash. The retained child executes the separately installed Parent copy.
+Projection checks both original full signatures, the fixed owning source hash
+and identical bytes before selecting the installed source's existing Tree copy.
+The child cohort names that exact executing copy. Original root source and
+readiness records remain unchanged, and installed controls retain their private
+source policy. Both incarnations and the returned Tree origin are rechecked after
+projection callbacks. Changed files, undeclared roles, foreign same-hash copies
+and policy conflicts refuse. The child's self-path guard remains mandatory.
+
+Eight local controls exercise this boundary, including the actual child cohort
+consumer with distinct source and installed files and the former refusal. They
+supply no installation, NFS, Writer, terminal, resume or publication acceptance.

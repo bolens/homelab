@@ -2,6 +2,7 @@
 import ast
 import copy
 import hashlib
+import importlib.util
 import os
 import threading
 import time
@@ -16,6 +17,7 @@ import comic_archive_repair_action as action
 import comic_reader_lifecycle_parent as parent
 import comic_child_control_projection as controls
 import comic_nfs_child_input_projection as projection
+import test_nfs_current_source as source_tests
 
 
 class Tests(unittest.TestCase):
@@ -180,6 +182,100 @@ class ProjectionTests(unittest.TestCase):
         self.owner.mapping.mounts=[row for row in self.owner.mapping.mounts if row['host']!=str(self.data)]
         self.assertEqual(self.owner.mapping.nfs_child(str(self.data)),str(self.data))
         with self.assertRaisesRegex(parent.Held,'unmapped-host'):self.owner.mapping.child(str(self.data/'config.ini'))
+
+
+class ParentIncarnationTests(unittest.TestCase):
+    """Real source-mode files/projection/consumer; no installed or NFS grant."""
+    reseal=ProjectionTests.reseal
+    def setUp(self):
+        ProjectionTests.setUp(self)
+        self.owner.op_fact=tuple(parent.five(self.op.lstat()))
+        cohort_ref,_=source_tests.CohortControls.make(self)
+        self.cohort=parent.decode(Path(cohort_ref['path']).read_bytes())
+        writer=self.data/'writer';writer.mkdir(mode=0o700);self.cohort['writer_root']=str(writer)
+        self.original=copy.deepcopy(self.cohort['parent'])
+        installed=self.root/'installed'/'comic_negative_nfs_active_parent.py'
+        installed.parent.mkdir(mode=0o700);installed.write_bytes(Path(self.original['path']).read_bytes());installed.chmod(0o600)
+        self.installed=self.file_ref(installed)
+        self.owner.plan['nfs']=dict(active_parent=copy.deepcopy(self.installed))
+        self.scope.write_bytes(parent.encode(dict(forbidden_roots=[str(self.data),str(self.library)],sources={})))
+        self.ref=self.file_ref(self.scope);self.owner.source_ref=self.ref;self.owner.plan_ref=self.ref
+        self.owner.plan['nfs']['active_input']=copy.deepcopy(self.ref)
+        review=self.root/'review.json';review.write_bytes(parent.encode({k:{n:self.ref[n] for n in ('path','sha256')} for k in ('producer','parent_source','report','ack','runtime','acceptance','parent_ack')}));review.chmod(0o600)
+        path=Path(cohort_ref['path']);path.write_bytes(parent.encode(self.cohort));self.cohort_ref=self.file_ref(path)
+        declared=[self.ref,self.installed,self.file_ref(review),self.cohort_ref,*self.cohort['sources'].values(),*self.cohort['logs'].values(),self.cohort['parent'],self.cohort['receipt']]
+        self.owner.files={row['path']:tuple(parent.nine(Path(row['path']).lstat())) for row in declared}
+        active=dict(parent_admission=dict(path=str(self.retention/'canary')),active_scope={k:self.ref[k] for k in ('path','sha256')},source_cohort={k:self.cohort_ref[k] for k in ('path','sha256')},effective_observer_review={k:self.file_ref(review)[k] for k in ('path','sha256')},native_controls=self.cohort['receipt'],operation_output=str(self.root/'original-output'))
+        parent._NFS_SOURCE_CONTEXTS[self.owner]=({}, {},parent.encode(active),parent.encode({}),active['operation_output'])
+        parent._NFS_SOURCE_SEALS[self.owner]=parent.encode(dict(refs={},raw_sha={},active=active,probe={},output=active['operation_output'],effective_absences=[]))
+        # Use a real local child path so the unchanged consumer reads its copies.
+        child=self.root/'cohort-child'
+        self.tree=controls.Tree(child,str(child),self.op,parent.read,uid=os.geteuid(),gid=os.getegid())
+        parent._CHILD_TREES[self.owner]=self.tree
+        ProjectionTests.reseal(self)
+        self.inputs=projection.Inputs(self.owner)
+
+    def file_ref(self,path):
+        return dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=parent.nine(path.lstat()))
+
+    def projected_consumer(self):
+        ref=self.inputs.cohort({k:self.cohort_ref[k] for k in ('path','sha256')})
+        runtime=self.owner.nfs_child_ref(self.installed)
+        spec=importlib.util.spec_from_file_location('actual_child_parent_incarnation',runtime['path'])
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        return module,ref,runtime
+
+    def test_distinct_original_and_installed_source_reach_real_child_cohort(self):
+        module,ref,runtime=self.projected_consumer();cohort=module.SourceCohort(ref);cohort.close()
+        value=parent.decode(Path(ref['path']).read_bytes())
+        self.assertNotEqual(self.original['path'],self.installed['path'])
+        self.assertEqual(value['parent'],{k:runtime[k] for k in ('path','sha256')})
+        self.assertEqual(self.tree.original(runtime),self.installed)
+        self.assertEqual(parent.decode(Path(self.cohort_ref['path']).read_bytes()),self.cohort)
+        self.assertFalse(parent.decode(Path(value['receipt']['path']).read_bytes())['actual_nfs_verified'])
+
+    def test_independent_original_copy_reproduces_actual_child_refusal(self):
+        with patch.object(projection.Inputs,'active_parent',projection.Inputs.ref):
+            module,ref,_=self.projected_consumer()
+        with self.assertRaisesRegex(module.Held,'cohort-parent-path'):module.SourceCohort(ref)
+
+    def test_changed_installed_bytes_are_not_adopted(self):
+        path=Path(self.installed['path']);path.write_bytes(path.read_bytes()+b'\n')
+        with self.assertRaises(parent.Held):self.inputs.active_parent(self.original)
+
+    def test_original_pair_must_be_the_declared_cohort_role(self):
+        foreign=self.root/'foreign.py';foreign.write_bytes(Path(self.original['path']).read_bytes());foreign.chmod(0o644)
+        row=self.file_ref(foreign);self.owner.files[row['path']]=tuple(row['signature9']);ProjectionTests.reseal(self)
+        with self.assertRaisesRegex(projection.Held,'original-parent-role'):
+            self.inputs.active_parent({k:row[k] for k in ('path','sha256')})
+
+    def test_declared_installed_ref_keeps_fixed_source_hash(self):
+        self.owner.plan['nfs']['active_parent']['sha256']='0'*64;ProjectionTests.reseal(self)
+        with self.assertRaisesRegex(projection.Held,'installed-parent-role'):self.inputs.active_parent(self.original)
+
+    def test_same_hash_foreign_child_projection_is_refused(self):
+        method=self.owner.nfs_child_ref
+        original=dict(self.original,signature9=list(self.owner.files[self.original['path']]))
+        foreign=method(original)
+        def changed(ref):
+            result=method(ref)
+            return foreign if ref==self.installed else result
+        with patch.object(self.owner,'nfs_child_ref',side_effect=changed),self.assertRaisesRegex(projection.Held,'original-projection'):
+            self.inputs.active_parent(self.original)
+
+    def test_late_same_bytes_installed_replacement_is_refused(self):
+        method=self.owner.nfs_child_ref
+        def changed(ref):
+            result=method(ref)
+            if ref==self.installed:
+                path=Path(ref['path']);raw=path.read_bytes();path.unlink();path.write_bytes(raw);path.chmod(0o600)
+            return result
+        with patch.object(self.owner,'nfs_child_ref',side_effect=changed),self.assertRaises((parent.Held,controls.Held)):
+            self.inputs.active_parent(self.original)
+
+    def test_installed_source_policy_is_not_promoted_to_public(self):
+        self.tree.reserve_nfs_control(self.installed,public=True)
+        with self.assertRaisesRegex(controls.Held,'original-conflict'):self.inputs.active_parent(self.original)
 
 
 if __name__=='__main__':unittest.main()

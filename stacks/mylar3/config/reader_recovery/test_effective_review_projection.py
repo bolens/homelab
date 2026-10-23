@@ -151,13 +151,14 @@ class CohortReferencePolicyTests(unittest.TestCase):
   def put(name,raw,mode=0o600):
    f=self.root/name;f.write_bytes(raw);f.chmod(mode);ref=dict(path=str(f),sha256=hashlib.sha256(raw).hexdigest(),signature9=list(p.nine(f.stat())));self.refs[str(f)]=ref;return ref
   self.put=put;self.public=put('source.py',b'# disposable original public source\n',0o644);self.fact=put('fact.json',b'{}');self.stdout=put('stdout.log',b'Ran source controls\n');self.stderr=put('stderr.log',b'')
+  raw=Path(__file__).with_name('comic_negative_nfs_active_parent.py').read_bytes();self.parent_original=put('original-parent.py',raw,0o644);self.installed_parent=put('comic_negative_nfs_active_parent.py',raw)
   pair=lambda ref:{k:ref[k]for k in ('path','sha256')};self.pair=pair
   roles=('probe','hardlink_kernel','scope_projection','lifecycle','readiness','readiness_input','parity','native_map','selected_sdk','writer','tests','effective_helper','effective_parent','core_parent','core_tests','writer_fixture')
   logs=dict(stdout=pair(self.stdout),stderr=pair(self.stderr));self.receipt=put('receipt.json',p.encode(dict(stdout=logs['stdout'],stderr=logs['stderr'])))
-  cohort=dict(version=1,kind='approved-disposable-nfs-current-source-cohort',images={},sources={k:pair(self.public)for k in roles},writer_root=str(self.root/'writer'),writer_sha256='a'*64,native_map_count=180,selected_module_count=25,parent=pair(self.public),receipt=pair(self.receipt),logs=logs,effective_jar_sha256='b'*64,effective_commit='fixture')
+  cohort=dict(version=1,kind='approved-disposable-nfs-current-source-cohort',images={},sources={k:pair(self.public)for k in roles},writer_root=str(self.root/'writer'),writer_sha256='a'*64,native_map_count=180,selected_module_count=25,parent=pair(self.parent_original),receipt=pair(self.receipt),logs=logs,effective_jar_sha256='b'*64,effective_commit='fixture')
   self.cohort=put('cohort.json',p.encode(cohort));review={k:pair(self.public if k in('producer','parent_source')else self.fact)for k in ('producer','parent_source','report','ack','runtime','acceptance','parent_ack')};self.review=put('review.json',p.encode(review));self.scope=put('scope.json',p.encode(dict(sources={})))
   active=dict(source_cohort=pair(self.cohort),active_scope=pair(self.scope),effective_observer_review=pair(self.review),native_controls=pair(self.receipt))
-  owner=object.__new__(p.LifecycleParent);self.owner=owner;owner.op=self.op;owner.generated={};owner.files={k:tuple(v['signature9'])for k,v in self.refs.items()};owner.plan_ref=self.fact;owner.source_ref=self.public;owner.plan=dict(nfs=dict(active_parent=self.public,active_input=self.fact))
+  owner=object.__new__(p.LifecycleParent);self.owner=owner;owner.op=self.op;owner.generated={};owner.files={k:tuple(v['signature9'])for k,v in self.refs.items()};owner.plan_ref=self.fact;owner.source_ref=self.public;owner.plan=dict(nfs=dict(active_parent=self.installed_parent,active_input=self.fact))
   self.context=({}, {}, p.encode(active), b'{}', None);p._NFS_SOURCE_CONTEXTS[owner]=self.context;self.addCleanup(p._NFS_SOURCE_CONTEXTS.pop,owner,None)
   owner.mapping=SimpleNamespace(plan13=lambda:False,child=lambda x:x,host=lambda x:x)
   owner.left=lambda:self.tree.check()
