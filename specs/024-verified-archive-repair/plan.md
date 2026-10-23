@@ -14,6 +14,15 @@ rollback, then separately scoped operational acceptance. Do not add another
 plan, fixture generation or review layer unless a concrete uncovered failure
 requires it.
 
+The current held forward run reaches prewrite with a 137-second-old scope.
+Correct only the duplicated Parent guard in the retained NFS session: the
+original module checker already executes the full Parent guard. Retain that
+checker’s function/code/defaults in the existing session seal and verify its
+binding before and after direct invocation. Preserve all transport checks,
+4096-byte writes, independent observations and the 120-second freshness limit.
+Measure the resulting connected run; a reduced call count alone is not runtime
+acceptance.
+
 ## Technical Context
 
 - Runtime: the existing Mylar and normalizer Python images; actual selected-runtime checks include Mylar Python 3.10.
