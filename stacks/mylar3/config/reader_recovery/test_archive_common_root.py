@@ -217,6 +217,86 @@ class OwnerReadTests(unittest.TestCase):
         return p.admit_common_root(self.geometry,[dict(host=str(self.root),child=str(self.root),write=True)],
                                    str(self.root/'L'),str(self.root/'R'),[])
 
+    def test_registered_common_root_uses_one_complete_geometry_check(self):
+        row=self.common_row();before=len(self.events)
+        p.check_common_root(row)
+        self.assertEqual(len(self.events)-before,6)
+        self.assertEqual(self.uid,0)
+
+    def test_common_root_original_actor_registration_and_geometry_required(self):
+        row=self.common_row();actor=row.actor
+        try:
+            row.actor=object()
+            with self.assertRaises(p.Held):p.check_common_root(row)
+        finally:row.actor=actor
+        actor.common_roots.remove(row)
+        try:
+            with self.assertRaises(p.Held):p.check_common_root(row)
+        finally:actor.common_roots.append(row)
+        original=row[1]['kind'];row[1]['kind']='foreign'
+        try:
+            with self.assertRaises(p.Held):p.check_common_root(row)
+        finally:row[1]['kind']=original
+
+    def test_common_root_reused_child_descriptor_refuses(self):
+        row=self.common_row();target=row[2][0];foreign=self.root.parent/'foreign';foreign.mkdir()
+        other=os.open(foreign,os.O_RDONLY|os.O_DIRECTORY)
+        try:
+            os.dup2(other,target)
+            with self.assertRaises(p.Held):p.check_common_root(row)
+        finally:
+            original=os.open(self.root/'L',os.O_RDONLY|os.O_DIRECTORY)
+            try:os.dup2(original,target)
+            finally:os.close(original);os.close(other)
+
+    def test_common_root_checker_replacement_refuses_without_calling_it(self):
+        from unittest import mock
+        row=self.common_row()
+        with mock.patch.object(p.GeometryOwnerReads,'check',side_effect=AssertionError('foreign checker')) as foreign:
+            with self.assertRaises(p.Held):p.check_common_root(row)
+            foreign.assert_not_called()
+
+    def test_common_root_private_ancestor_keeps_owner_principal_fallback(self):
+        from unittest import mock
+        row=self.common_row();original=p.os.lstat;before=len(self.events)
+        def private(path,*args,**kwargs):
+            if self.uid==0 and str(path)==str(self.root):raise PermissionError('private ancestor projection')
+            return original(path,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=private):p.check_common_root(row)
+        self.assertEqual(len(self.events)-before,102)
+
+    def after_geometry_check(self,mutation,restore=lambda:None):
+        """Explicit late-callback projection; not genuine installed authority."""
+        from unittest import mock
+        self.actor.release();p._OWNER_READS=None;original=p.GeometryOwnerReads.check;armed=[False];row=None
+        def checked(actor):
+            original(actor)
+            if armed[0]:
+                armed[0]=False;mutation(row,actor)
+        with mock.patch.object(p.GeometryOwnerReads,'check',checked):
+            actor=self.actor=p.bind_owner_reads(self.geometry);roots=actor.common_roots
+            try:
+                row=self.common_row();armed[0]=True
+                with self.assertRaises((p.Held,FileNotFoundError)):p.check_common_root(row)
+            finally:
+                armed[0]=False;restore();actor.common_roots=roots
+                actor.release();p._OWNER_READS=None
+
+    def test_common_root_late_ancestor_replacement_refuses_with_original_FDs(self):
+        parent=self.root.parent;retained=parent.with_name(parent.name+'-retained')
+        def mutation(row,actor):
+            parent.rename(retained);parent.mkdir(mode=0o700)
+        def restore():
+            if retained.exists():parent.rmdir();retained.rename(parent)
+        self.after_geometry_check(mutation,restore)
+
+    def test_common_root_late_row_ledger_replacement_refuses(self):
+        self.after_geometry_check(lambda row,actor:setattr(actor,'common_roots',list(actor.common_roots)))
+
+    def test_common_root_changed_namespace_refuses(self):
+        row=self.common_row();(self.root/'foreign').mkdir()
+        with self.assertRaises(p.Held):p.check_common_root(row)
+
     def test_run_operation_release_then_late_finalizer_cannot_close_reused_fd(self):
         from unittest import mock
         import weakref

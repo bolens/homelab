@@ -1587,6 +1587,56 @@ def close_common_root(row):
 
 def check_common_root(row):
     fd,value,held,ancestors=row;root=Path(value['common_root']['path']);expected=tuple(value['common_root']['signature9'])
+    if type(row) is _CommonRoot and row.actor is not None:
+        actor=row.actor
+        need(type(actor) is GeometryOwnerReads and actor is _OWNER_READS,'archive-common-original-owner')
+        seal=_OWNER_READ_SEALS.get(actor)
+        need(seal is not None and actor.registry is _OWNER_READ_SEALS and actor.seal is seal,
+             'archive-common-original-owner')
+        checker,code=next((method,code) for name,method,code in seal[4] if name=='check')
+        paths=tuple(value[role]['path'] for role in ('common_root','library','retention'))
+        facts=tuple(tuple(value[role]['signature9'][i] for i in (0,1,5,6,7)) for role in ('common_root','library','retention'))
+        handles=(fd,*held);identities=tuple(zip(handles,facts))
+        birth=decode(seal[0])
+        need((value['version'],value['kind'])==(birth['version'],birth['kind'])
+             and paths==tuple(birth[role]['path'] for role in ('common_root','library','retention'))
+             and facts==tuple(tuple(birth[role]['signature9'][i] for i in (0,1,5,6,7)) for role in ('common_root','library','retention'))
+             and expected==tuple(birth['common_root']['signature9']),'archive-common-original-owner-geometry')
+        original_value=encode(value);original_nodes=encode(ancestors);original_roots=actor.common_roots
+        path_facts=dict(zip(paths,facts));path_facts.update((path,tuple(fact)) for path,fact in ancestors.items())
+        def close_row():
+            need(actor is _OWNER_READS and actor.registry is _OWNER_READ_SEALS
+                 and _OWNER_READ_SEALS.get(actor) is seal is actor.seal
+                 and actor.handles is seal[6] and actor.nodes is seal[7]
+                 and GeometryOwnerReads.check is checker and checker.__code__ is code,
+                 'archive-common-original-checker')
+            need(row.actor is actor and row.closed is False and actor.common_roots is original_roots
+                 and any(item is row for item in original_roots)
+                 and row.identities==identities and len(handles)==len(set(handles))==3
+                 and all(type(handle) is int for handle in handles)
+                 and encode(value)==original_value and encode(actor.geometry)==seal[0]
+                 and encode(ancestors)==original_nodes==encode(actor.nodes)
+                 and all(actor.handles.get(handle)==(path,fact) for handle,path,fact in zip(handles,paths,facts)),
+                 'archive-common-original-owner-row')
+            need(tuple(nine(os.fstat(fd)))==expected
+                 and all(tuple(five(os.fstat(handle)))==fact for handle,fact in identities),
+                 'archive-common-original-owner-FDs')
+        close_row()
+        try:
+            current={path:tuple(five(os.lstat(path))) for path in path_facts}
+        except PermissionError:
+            # Private ancestors retain the existing owner-principal path below.
+            pass
+        else:
+            need(current==path_facts,'archive-common-original-owner-paths')
+            checker(actor)
+            close_row()
+            # Close paths after the checker's trailing source callbacks, not
+            # only the still-open FDs of directories that could be renamed.
+            for path,fact in path_facts.items():
+                need(tuple(five(os.lstat(path)))==fact,'archive-common-final-owner-paths')
+            close_row()
+            return
     need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(root)))==expected,'archive-common-original-root-FD9')
     names={Path(value[k]['path']).name for k in ('library','retention')}
     fresh=nfs_directory(root)

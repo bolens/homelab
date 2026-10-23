@@ -27,9 +27,13 @@ isolated run then reached probe creation but held at the dialogue deadline
 during birth registration, before reader stop. Its original native/reader
 epochs and inactive worker remain unchanged. Independent post-hold comparisons
 preserve both archives, reader records/progress and six page hashes. The next
-correction removes repeated command construction and root observation within
-that same boundary; actual runtime improvement and terminal acceptance remain
-unproved. This stays within T012, with no new task or acceptance gate.
+correction removes repeated command construction and root observation, and
+delegates registered common-root custody to its existing complete geometry
+checker. A separate actual Root/NFS benchmark of 24 identical private controls
+reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
+controls, geometry and source bytes. This measures metadata closure, not the
+connected recovery path; terminal acceptance remains unproved. This stays
+within T012, with no new task or acceptance gate.
 Preserve all earlier attempts and
 originals without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
