@@ -185,3 +185,38 @@ bypasses exception-subclass callbacks. Messages, locals, dynamic class names and
 raw paths are omitted. These records grant no terminal or replay authority.
 The original 120-second scope/runtime freshness limit remains unchanged. Fewer
 metadata checks do not prove that a configured packet reaches admission in time.
+
+Each owning Tree pass may close one immutable metadata vector containing at most
+512 unique canonical paths. Five/full9 facts and exact-path conflicts are checked
+before filesystem I/O. Caller-supplied local metadata stays under Root. Only
+caller-supplied paths inside the original G/L/R enter the fixed UID1000 read
+interval. The geometry checker separately retains its exact original ancestor
+reads. Each path retains its own
+no-follow component walk, fresh ancestor FD/path closure and descriptor cleanup.
+Semantic validation runs after Root restoration. Failure preserves the primary
+error, restoration poison and the original G full9/namespace and L/R identity5
+requirements. Ordinary single-path APIs retain their behavior.
+
+The actor seals semantic function/code/default dependencies and its actual
+constructor seal/registry. A changed source-reader callback is rejected before
+it can run. Tree captures that original seal and callable before namespace
+callbacks, checks their identities again and invokes the original vector directly
+for its independent final pass. Replacing the first closure helper, a method or
+its code, defaults, actor or registry cannot manufacture success. Results are
+neither shared between passes nor cached between calls. These checks assume the
+kernel, hashing and JSON primitives retain their actual behavior; they do not
+claim protection against arbitrarily forged OS replies.
+
+The preserved U attempt reaches this dependency with an effective runtime that
+expires during NFS admission, before NFS-ready or reader stop. Independent
+post-hold archive/reader comparison passes. It remains held without replay. The
+vector correction requires reviewed source, a new checked installation, actual
+Root/NFS performance measurement and fresh configured forward/rollback proof.
+
+The geometry checker batches its already-admitted directory paths and, separately,
+its exact original ancestors. Common G retains its own full9 namespace read.
+Every held descriptor is sampled before and after those reads, including distinct
+descriptors naming one path. Conflicting path expectations refuse before I/O.
+The constructor seals the actual handle and ancestor dictionaries. Final closure
+revalidates primitive ledger rows before conversion or equality, so substituted
+iterables or equality callbacks cannot validate the original ledger.

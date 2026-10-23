@@ -46,6 +46,16 @@ def raw(ref, owner):
     return data,nodes
 
 def close(files,nodes,actor=None):
+    if actor is not None:
+        g=actor.assert_root.__func__.__globals__
+        need(type(actor) is g.get('GeometryOwnerReads') and g.get('_OWNER_READS') is actor,'child-original-owner-read-type')
+        seal=g['_OWNER_READ_SEALS'].get(actor)
+        need(seal is not None,'child-owner-vector-seal')
+        dependency=seal[5][0]
+        need(g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2] and dependency[1](seal[5])
+             and all(type(actor).__dict__.get(name) is value and value.__code__ is code for name,value,code in seal[4]),'child-owner-vector-code')
+        original=next(value for name,value,_ in seal[4] if name=='control_vector')
+        original(actor,tuple(files),tuple(nodes));return
     for p,v in nodes:
         z=owner_stat(actor,p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('child-control-final5')
@@ -59,13 +69,20 @@ class Tree:
         if owner_reads is not None:
             g=read_original.__globals__
             need(type(owner_reads) is g.get('GeometryOwnerReads') and g.get('_OWNER_READS') is owner_reads,'child-owner-read-original-parent')
-        self.owner_reads=owner_reads
+        self.owner_reads=owner_reads;self.owner_vector=None
+        if owner_reads is not None:
+            seal=g['_OWNER_READ_SEALS'].get(owner_reads)
+            need(seal is not None,'child-owner-vector-birth-seal')
+            dependency=seal[5][0]
+            need(g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2] and dependency[1](seal[5])
+                 and all(type(owner_reads).__dict__.get(name) is value and value.__code__ is code for name,value,code in seal[4]),'child-owner-vector-birth')
+            self.owner_vector=(type(owner_reads),seal[4],seal[5],seal,g['_OWNER_READ_SEALS'])
         self.root=Path(root);self.child_root=Path(child_root);self.original_operation=Path(original_operation)
         need(self.root.is_absolute() and self.child_root.is_absolute() and self.original_operation.is_absolute() and not os.path.lexists(self.root),'child-tree-exclusive')
         need(type(uid) is int and type(gid) is int and uid>=0 and gid>=0 and (os.geteuid()==0 or (uid,gid)==(os.geteuid(),os.getegid())),'child-tree-owner')
         self.uid,self.gid=uid,gid;self.read_original=read_original
         self.nodes=ancestors(self.root);self.directories=();self.pairs=();self.outputs=();self.scopes=();self.nfs_controls=()
-        self.identity=(str(self.root),str(self.child_root),str(self.original_operation),uid,gid,id(read_original),id(owner_reads))
+        self.identity=(str(self.root),str(self.child_root),str(self.original_operation),uid,gid,id(read_original),id(owner_reads),self.owner_vector)
         self._mkdir(self.root);self._seal()
     def stat(self,path):return owner_stat(self.owner_reads,path)
     def _seal(self):
@@ -73,7 +90,7 @@ class Tree:
     def _state(self):
         return (self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls)
     def _append(self,field,value,expected):
-        need(self._state()==expected and (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads))==self.identity,'child-tree-original-before-commit')
+        need(self._state()==expected and (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads),self.owner_vector)==self.identity,'child-tree-original-before-commit')
         setattr(self,field,getattr(self,field)+value);self._seal()
     def _mkdir(self,path):
         expected=self._state()
@@ -259,7 +276,8 @@ class Tree:
     def check(self):
         sealed=_SEALS.get(self)
         need(sealed==(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls),'child-tree-logical-seal')
-        need((str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads))==self.identity,'child-tree-original-identity')
+        identity=sealed[0]
+        need((str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads),self.owner_vector)==self.identity,'child-tree-original-identity')
         pairs=self.pairs;directories=self.directories;outputs=self.outputs;nodes=self.nodes
         files=tuple((p[0][0],p[0][2]) for p in pairs)+tuple((p[1][0],p[1][2]) for p in pairs)+tuple((r[0],r[2]) for r in outputs)+tuple((r[3][0],r[3][2]) for r in outputs)
         all_nodes=nodes+directories+tuple(n for p in pairs for n in (*p[2],*p[3]))+tuple(n for r in outputs for n in (*r[6],*r[7]))+tuple((r[0],r[1]) for r in self.scopes)+tuple((r[2],r[3]) for r in self.scopes)+tuple(n for r in self.scopes for n in r[5])
@@ -285,10 +303,29 @@ class Tree:
         for path,expected_names in namespaces:
             if tuple(sorted(os.listdir(path)))!=expected_names:raise Held('child-tree-control-namespace')
         # Original tuple facts survive all replaceable helpers above.
-        for path,v in all_nodes:
-            z=self.stat(path)
-            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('child-tree-original5')
-        for path,v in files:
-            z=self.stat(path)
-            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('child-tree-original9')
-        if sealed!=(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls) or _SEALS.get(self)!=sealed:raise Held('child-tree-logical-final')
+        if self.identity!=identity or (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads),self.owner_vector)!=identity:
+            raise Held('child-tree-post-callback-identity')
+        if identity[-1] is not None:
+            cls,methods,dependencies,seal,registry=identity[-1]
+            original=next(value for name,value,_ in methods if name=='control_vector')
+            g=original.__globals__;dependency=dependencies[0]
+            need(id(self.owner_reads)==identity[6] and self.owner_vector==identity[-1] and type(self.owner_reads) is cls
+                 and g.get('_OWNER_READS') is self.owner_reads
+                 and all(cls.__dict__.get(name) is value and value.__code__ is code for name,value,code in methods)
+                 and g.get('_OWNER_READ_SEALS') is registry and registry.get(self.owner_reads) is seal
+                 and self.owner_reads.registry is registry and self.owner_reads.seal is seal
+                 and g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2] and dependency[1](dependencies),'child-owner-vector-original-code')
+            original(self.owner_reads,files,all_nodes)
+            need(id(self.owner_reads)==identity[6] and g.get('_OWNER_READS') is self.owner_reads
+                 and all(cls.__dict__.get(name) is value and value.__code__ is code for name,value,code in methods)
+                 and g.get('_OWNER_READ_SEALS') is registry and registry.get(self.owner_reads) is seal
+                 and self.owner_reads.registry is registry and self.owner_reads.seal is seal
+                 and g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2] and dependency[1](dependencies),'child-owner-vector-final-code')
+        else:
+            for path,v in all_nodes:
+                z=self.stat(path)
+                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('child-tree-original5')
+            for path,v in files:
+                z=self.stat(path)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('child-tree-original9')
+        if (str(self.root),str(self.child_root),str(self.original_operation),self.uid,self.gid,id(self.read_original),id(self.owner_reads),self.owner_vector)!=identity or sealed!=(self.identity,self.nodes,self.directories,self.pairs,self.outputs,self.scopes,self.nfs_controls) or _SEALS.get(self)!=sealed:raise Held('child-tree-logical-final')
