@@ -1528,6 +1528,14 @@ refuse. Failure diagnostics include bounded original context frames without
 exception text or private paths. Scope/runtime freshness remains 120 seconds;
 local control checks do not prove configured latency or acceptance.
 
+Owning metadata closure uses a finite vector separately in each pass. Local
+reads remain Root-owned, while original G/L/R paths retain their bounded
+no-follow owner-principal reads. Constructor-sealed code, defaults and actor
+identities are checked after namespace callbacks; Root restoration, source and
+geometry custody remain mandatory. No result is cached between passes or calls.
+The held U attempt identified effective-runtime expiry before reader stop;
+fresh installation and configured forward/rollback acceptance remain required.
+
 The prospective archive plan13 path uses an explicit NFS rename/link protocol,
 selected before any pending marker. Its transient child binds one nonce-scoped common
 root containing exactly the private scanned library and a disjoint private retention

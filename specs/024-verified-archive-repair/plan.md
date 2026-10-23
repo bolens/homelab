@@ -15,6 +15,38 @@ Install bounded refusal diagnostics first, then a dedicated native-owned prepara
 - Limits: 128 MiB for buffered runtime diagnostics within the existing 768 MiB worker allowance, 512 MiB source for owned native repair preparation, existing 4,096-member/4 GiB expanded/per-member/metadata limits and monotonic deadlines. No remote access during classification or while Writer is held.
 - Profile: one empty stored Unix directory with consistent directory flag and missing slash in a closed ZIP32 archive. Other ordinary supported variants stay on ordinary inventory.
 
+## Corrective requirement: finite owning metadata closure
+
+The preserved U attempt passes SourceCohort but fails the effective-runtime
+freshness guard before NFS-ready or reader stop. Its original runtime is 109.94
+seconds old at helper start and 126.90 seconds old at exit. Both archives and
+reader records/pages pass independent post-hold comparison. Keep U held; do not
+retimestamp its facts or change the 120-second guard.
+
+Before the next configured generation, implement a finite metadata vector under
+the existing owning read scope. Accept only bounded immutable path/five/full9
+expectations, reject exact-path conflicts before I/O, and retain local reads as
+Root. Only original in-geometry caller-supplied control paths may enter the
+masked UID1000 interval. The geometry checker separately retains its exact
+original ancestor reads.
+Every path retains its no-follow walk and fresh ancestor FD/path closure; no
+callbacks or semantic validation run under UID1000. Preserve Root restoration,
+primary-error retention, descriptor cleanup, poison and source/code/geometry
+checks. Common G keeps full9/namespace custody and L/R keep identity5 custody.
+Batch the geometry checker's admitted paths and exact ancestors separately,
+retain both held-FD passes, and seal the actual primitive ledger dictionaries.
+Revalidate final ledger types before conversion or equality.
+
+Invoke a new vector independently for each existing Tree closure pass, retaining
+namespace callbacks between passes and final logical seals. Capture its original
+callable and dependencies from the actor's constructor seal before callbacks;
+reject changed function/code bindings before the final direct invocation and
+after replaceable closure callbacks. No cross-pass/cross-call metadata cache,
+reusable checked flag, deleted lifetime check or new operational authority is
+permitted. Require hostile-callback and restoration regressions, actual bounded
+Root/NFS timing, delivery, a new checked installation and a fresh fixture before
+configured acceptance. Historical source and benchmark results remain partial.
+
 ## Constitution Check
 
 Portable examples contain no private archive paths, identities, reader rows or credentials. Inspect Compose, environment, metadata, preparation, ingress and README together; diagnostics add no settings, mounts, privileges, ports or runtime dependencies. The dedicated plan13 NFS purpose explicitly amends transient bind admission for a private G containing only library L and retention R; permanent Compose mounts, settings, ports and privileges remain unchanged. Existing-only state and writer ordering remain mandatory. Live adoption requires measured consistent affected-state backup, independent restore, custody, actual reader/native verification and compatible rollback. Source, image and live acceptance are separate. One integration owner handles tracked files, Git, generators and live operations.

@@ -257,9 +257,21 @@ _OWNER_READ_SEALS = weakref.WeakKeyDictionary()
 _OWNER_READ_POISON = weakref.WeakSet()
 
 
+def _owner_dependencies_match(dependencies):
+    for name, value, code, defaults, keywords, owner in dependencies:
+        if owner.get(name) is not value or value.__code__ is not code or value.__defaults__ is not defaults:
+            return False
+        current = value.__kwdefaults__
+        if keywords is None:
+            if current is not None:return False
+        elif type(current) is not dict or set(current) != {key for key, _ in keywords} or any(current[key] is not item for key, item in keywords):
+            return False
+    return True
+
+
 class GeometryOwnerReads:
     """Finite read-only access to original disposable G/L/R, never a callback."""
-    __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'common_roots', 'nodes', 'root', 'source', 'code', '__weakref__')
+    __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'common_roots', 'nodes', 'root', 'source', 'code', 'seal', 'registry', '__weakref__')
 
     def __init__(self, geometry):
         need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
@@ -281,7 +293,13 @@ class GeometryOwnerReads:
         self.source = dict(path=str(Path(__file__).absolute()), sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                            signature9=nine(os.lstat(__file__)))
         self.code = tuple((name, value, value.__code__) for name, value in type(self).__dict__.items() if hasattr(value, '__code__'))
-        _OWNER_READ_SEALS[self] = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code)
+        dependencies = tuple((name, globals()[name], globals()[name].__code__, globals()[name].__defaults__,
+                              None if globals()[name].__kwdefaults__ is None else tuple(globals()[name].__kwdefaults__.items()), globals()) for name in
+                             ('_owner_dependencies_match', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'final', 'five', 'nine'))
+        dependencies += tuple((name, value, code, value.__defaults__, None if value.__kwdefaults__ is None
+                               else tuple(value.__kwdefaults__.items()), type(self).__dict__) for name, value, code in self.code)
+        self.seal = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code, dependencies, self.handles, self.nodes)
+        self.registry = _OWNER_READ_SEALS; _OWNER_READ_SEALS[self] = self.seal
         try:
             for role in ('common_root', 'library', 'retention'):
                 ref = geometry[role]; fd = self._run('directory', ref['path'])
@@ -300,6 +318,11 @@ class GeometryOwnerReads:
 
     def assert_root(self):
         seal = _OWNER_READ_SEALS.get(self)
+        if seal is None or self.registry is not _OWNER_READ_SEALS or seal is not self.seal or self.handles is not seal[6] or self.nodes is not seal[7]:
+            raise Held('owner-read-original-registry')
+        dependency = seal[5][0]
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-read-original-dependencies')
         need(seal is not None and seal[:4] == (encode(self.geometry), encode(self.source), str(self.root), self.thread), 'owner-read-original-scope-seal')
         need(not _OWNER_READ_FAILED and self not in _OWNER_READ_POISON and not self.poisoned and not self.busy and threading.get_ident() == self.thread
              and os.getresuid() == (0, 0, 0) and os.getresgid() == (0, 0, 0)
@@ -310,15 +333,27 @@ class GeometryOwnerReads:
              'owner-read-original-code')
         need(nine(os.lstat(self.source['path'])) == self.source['signature9']
              and read(self.source, private=False) is not None, 'owner-read-source-closure')
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-read-final-dependencies')
+        if not (self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+             and seal[:4] == (encode(self.geometry), encode(self.source), str(self.root), self.thread)
+             and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])
+             ):
+            raise Held('owner-read-final-source-code-seal')
 
     def _run(self, operation, path, *, ancestor=False):
         global _OWNER_READ_FAILED
         # Arguments are primitive immutable values. No path protocols/callbacks,
         # semantic validators, GC, signal handlers or network run as owner UID.
         self.assert_root()
-        need(type(operation) is str and operation in ('stat', 'directory', 'names', 'file')
-             and type(path) is str and str(absolute(path)) == path
-             and (self.contains(path) or ancestor and path in {str(x) for x in self.root.parents}), 'owner-read-fixed-scope')
+        need(type(operation) is str and operation in ('stat', 'stats', 'directory', 'names', 'file'), 'owner-read-operation')
+        paths = path if operation == 'stats' else (path,)
+        need(type(ancestor) is bool and type(paths) is tuple and 1 <= len(paths) <= 512
+             and all(type(value) is str and str(absolute(value)) == value
+                     and (self.contains(value) or ancestor and value in {str(x) for x in self.root.parents}) for value in paths)
+             and len(set(paths)) == len(paths), 'owner-read-fixed-scope')
+        seal = _OWNER_READ_SEALS[self]
         blocked = signal.pthread_sigmask(signal.SIG_BLOCK, signal.valid_signals() - {signal.SIGKILL, signal.SIGSTOP})
         enabled = gc.isenabled(); gc.disable(); self.busy = True
         primary = None; result = None; fds = []
@@ -327,51 +362,74 @@ class GeometryOwnerReads:
             # Repeat after handlers/GC are suppressed, directly before lowering.
             if sys.gettrace() is not None or sys.getprofile() is not None or threading.active_count() != 1 or len(os.listdir('/proc/self/task')) != 1:
                 raise Held('owner-read-masked-single-untraced-thread')
+            dependency = seal[5][0]
+            if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+                raise Held('owner-read-masked-dependencies')
+            if not (self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+                    and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])
+                    and seal[:4] == (encode(self.geometry), encode(self.source), str(self.root), self.thread)):
+                raise Held('owner-read-masked-original-seal')
             os.setresuid(-1, 1000, -1)
             if os.getresuid() != (0, 1000, 0) or os.getresgid() != (0, 0, 0) or os.getgroups() != [0]:
                 raise Held('owner-read-switched-identity')
-            fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
-            parts = path.split('/')[1:]
-            for part in parts[:-1]:
-                fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
-            ancestors = tuple(fds)
-            if operation == 'stat':
-                result = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False) if parts[-1] else os.fstat(fd)
-            else:
-                flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
-                flags |= os.O_NONBLOCK if operation == 'file' else os.O_DIRECTORY
-                leaf = os.open(parts[-1], flags, dir_fd=fd); fds.append(leaf)
-                before = os.fstat(leaf)
-                if operation == 'directory':
-                    result = leaf; fds.pop()
-                elif operation == 'names':
-                    names = []
-                    with os.scandir(leaf) as entries:
-                        for entry in entries:
-                            names.append(entry.name)
-                            if len(names) > 100000:raise Held('owner-read-namespace-bound')
-                    result = (before, tuple(sorted(names)), os.fstat(leaf))
-                else:
-                    if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not 0 < before.st_size <= MAX:
-                        raise Held('owner-read-file-bound')
-                    chunks = []; left = before.st_size
-                    while left:
-                        block = os.read(leaf, min(left, 1024**2))
-                        if not block:raise Held('owner-read-short')
-                        chunks.append(block); left -= len(block)
-                    if os.read(leaf, 1):raise Held('owner-read-growth')
-                    result = (b''.join(chunks), before, os.fstat(leaf), os.stat(parts[-1], dir_fd=fd, follow_symlinks=False))
-            # Fresh no-follow path walk must still reach every held ancestor.
-            fresh = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
-            try:
-                for index, original in enumerate(ancestors):
-                    if index:
-                        nxt = os.open(parts[index - 1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fresh)
-                        os.close(fresh); fresh = nxt
-                    left = os.fstat(original); right = os.fstat(fresh)
-                    if (left.st_dev, left.st_ino, left.st_mode, left.st_uid, left.st_gid) != (right.st_dev, right.st_ino, right.st_mode, right.st_uid, right.st_gid):
-                        raise Held('owner-read-ancestor-FD-path5')
-            finally:os.close(fresh)
+            samples = []
+            for path in paths:
+                path_error = None
+                try:
+                    fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
+                    parts = path.split('/')[1:]
+                    for part in parts[:-1]:
+                        fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+                    ancestors = tuple(fds)
+                    if operation in ('stat', 'stats'):
+                        result = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False) if parts[-1] else os.fstat(fd)
+                    else:
+                        flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
+                        flags |= os.O_NONBLOCK if operation == 'file' else os.O_DIRECTORY
+                        leaf = os.open(parts[-1], flags, dir_fd=fd); fds.append(leaf)
+                        before = os.fstat(leaf)
+                        if operation == 'directory':
+                            result = leaf; fds.pop()
+                        elif operation == 'names':
+                            names = []
+                            with os.scandir(leaf) as entries:
+                                for entry in entries:
+                                    names.append(entry.name)
+                                    if len(names) > 100000:raise Held('owner-read-namespace-bound')
+                            result = (before, tuple(sorted(names)), os.fstat(leaf))
+                        else:
+                            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not 0 < before.st_size <= MAX:
+                                raise Held('owner-read-file-bound')
+                            chunks = []; left = before.st_size
+                            while left:
+                                block = os.read(leaf, min(left, 1024**2))
+                                if not block:raise Held('owner-read-short')
+                                chunks.append(block); left -= len(block)
+                            if os.read(leaf, 1):raise Held('owner-read-growth')
+                            result = (b''.join(chunks), before, os.fstat(leaf), os.stat(parts[-1], dir_fd=fd, follow_symlinks=False))
+                    # Fresh no-follow path walk must still reach every held ancestor.
+                    fresh = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+                    try:
+                        for index, original in enumerate(ancestors):
+                            if index:
+                                nxt = os.open(parts[index - 1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fresh)
+                                os.close(fresh); fresh = nxt
+                            left = os.fstat(original); right = os.fstat(fresh)
+                            if (left.st_dev, left.st_ino, left.st_mode, left.st_uid, left.st_gid) != (right.st_dev, right.st_ino, right.st_mode, right.st_uid, right.st_gid):
+                                raise Held('owner-read-ancestor-FD-path5')
+                    finally:os.close(fresh)
+                except BaseException as exc:
+                    path_error = exc
+                finally:
+                    for fd in reversed(fds):
+                        try:os.close(fd)
+                        except BaseException as exc:
+                            if path_error is None:path_error = exc
+                    fds.clear()
+                if path_error is not None:raise path_error
+                samples.append(result)
+            if operation == 'stats':result = tuple(samples)
         except BaseException as exc:
             primary = exc
         finally:
@@ -403,6 +461,67 @@ class GeometryOwnerReads:
     def stat(self, path):
         value = self._run('stat', str(path)); need(not stat.S_ISLNK(value.st_mode), 'owner-read-no-symlink'); return value
 
+    def control_vector(self, files, nodes):
+        """One finite metadata closure; no reusable admission or cached result."""
+        seal = _OWNER_READ_SEALS.get(self)
+        if seal is None or _OWNER_READS is not self or self.registry is not _OWNER_READ_SEALS or self.seal is not seal:
+            raise Held('owner-vector-original-registry')
+        dependency = seal[5][0]
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-vector-original-dependencies')
+        need(type(files) is tuple and type(nodes) is tuple and len(files) <= 512 and len(nodes) <= 512,
+             'owner-vector-bound')
+        expected = {}
+        for rows, width in ((files, 9), (nodes, 5)):
+            for row in rows:
+                need(type(row) is tuple and len(row) == 2 and type(row[0]) is str
+                     and type(row[1]) is tuple and len(row[1]) == width and all(type(value) is int for value in row[1]),
+                     'owner-vector-primitive-fact')
+                path, fact = row
+                need(str(absolute(path)) == path, 'owner-vector-canonical-path')
+                need(stat.S_ISREG(fact[5]) and fact[8] == 1 and 0 <= fact[2] <= MAX if width == 9
+                     else stat.S_ISDIR(fact[2]), 'owner-vector-fact-type')
+                identity = tuple(fact[i] for i in (0, 1, 5, 6, 7)) if width == 9 else fact
+                previous = expected.get(path)
+                need(previous is None or previous[0] == identity
+                     and (width != 9 or previous[1] is None or previous[1] == fact), 'owner-vector-conflicting-fact')
+                expected[path] = (identity, fact if width == 9 else (previous[1] if previous else None))
+        need(len(expected) <= 512, 'owner-vector-unique-bound')
+        need(seal is not None and all(type(self).__dict__.get(name) is value and value.__code__ is code
+                                     for name, value, code in seal[4]), 'owner-vector-original-code')
+        methods = {name: value for name, value, _ in seal[4]}
+        methods['check'](self)
+        remote = tuple(path for path in expected if self.contains(path))
+        actual = {path: os.lstat(path) for path in expected if path not in remote}
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-vector-pre-read-dependencies')
+        if not (_OWNER_READS is self and self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+                and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])):
+            raise Held('owner-vector-pre-read-code')
+        if remote:
+            values = methods['_run'](self, 'stats', remote)
+            need(type(values) is tuple and len(values) == len(remote), 'owner-vector-result-bound')
+            actual.update(zip(remote, values))
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-vector-post-read-dependencies')
+        if not (_OWNER_READS is self and self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+                and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])):
+            raise Held('owner-vector-post-read-code')
+        methods['check'](self)
+        for path, (identity, full) in expected.items():
+            value = actual[path]
+            need(tuple(five(value)) == identity and (full is None or tuple(nine(value)) == full),
+                 'owner-vector-original-fact')
+        methods['assert_root'](self)
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-vector-final-dependencies')
+        if not (_OWNER_READS is self and self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+                and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])):
+            raise Held('owner-vector-final-code')
+
     def names(self, path):
         self.check()
         before, names, after = self._run('names', str(path))
@@ -421,17 +540,66 @@ class GeometryOwnerReads:
         self.check(); return raw
 
     def check(self):
-        self.assert_root()
-        for fd, (path, expected) in self.handles.items():
-            need(tuple(five(os.fstat(fd))) == tuple(five(self.stat(path))) == expected, 'owner-read-held-directory-path5')
-        for role in ('common_root', 'library', 'retention'):
-            ref = self.geometry[role]
-            need(five(self.stat(ref['path'])) == [ref['signature9'][i] for i in (0, 1, 5, 6, 7)], 'owner-read-original-geometry5')
-        common = self.geometry['common_root']
-        before, names, after = self._run('names', common['path'])
-        need(nine(before) == nine(after) == common['signature9'] and set(names) == {'L', 'R'}, 'owner-read-original-common-namespace9')
-        for path, value in self.nodes.items():
-            need(five(self._run('stat', path, ancestor=True)) == value, 'owner-read-original-ancestor5')
+        seal = _OWNER_READ_SEALS.get(self)
+        if seal is None or self.registry is not _OWNER_READ_SEALS or seal is not self.seal or self.handles is not seal[6] or self.nodes is not seal[7]:
+            raise Held('owner-check-original-registry')
+        dependency = seal[5][0]
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-check-original-dependencies')
+        need(type(self.handles) is dict and len(self.handles) <= 512 and type(self.nodes) is dict and len(self.nodes) <= 512,
+             'owner-check-ledger-bound')
+        need(all(type(fd) is int and fd >= 0 and type(row) is tuple and len(row) == 2 and type(row[0]) is str
+                 and type(row[1]) is tuple and len(row[1]) == 5 and all(type(value) is int for value in row[1])
+                 for fd, row in self.handles.items()), 'owner-check-handle-facts')
+        need(all(type(path) is str and type(fact) is list and len(fact) == 5 and all(type(value) is int for value in fact)
+                 for path, fact in self.nodes.items()), 'owner-check-ancestor-facts')
+        handles = tuple(self.handles.items()); nodes = tuple((path, tuple(fact)) for path, fact in self.nodes.items())
+        need({path for path, _ in nodes} == {str(path) for path in self.root.parents}, 'owner-check-exact-ancestors')
+        geometry = tuple((self.geometry[role]['path'], tuple(self.geometry[role]['signature9']))
+                         for role in ('common_root', 'library', 'retention'))
+        expected = {}
+        for path, fact in tuple(row for _, row in handles) + tuple((path, tuple(fact[i] for i in (0, 1, 5, 6, 7))) for path, fact in geometry):
+            need(type(path) is str and str(absolute(path)) == path and self.contains(path)
+                 and stat.S_ISDIR(fact[2]), 'owner-check-fixed-directory')
+            need(path not in expected or expected[path] == fact, 'owner-check-conflicting-path')
+            expected[path] = fact
+        need(len(expected) <= 512, 'owner-check-path-bound')
+        methods = {name: value for name, value, _ in seal[4]}
+        methods['assert_root'](self)
+        for fd, (_, fact) in handles:
+            need(tuple(five(os.fstat(fd))) == fact, 'owner-read-held-directory-FD5')
+        paths = tuple(expected)
+        values = methods['_run'](self, 'stats', paths)
+        need(len(values) == len(paths) and all(tuple(five(value)) == expected[path] for path, value in zip(paths, values)),
+             'owner-read-original-directory-path5')
+        common, common_fact = geometry[0]
+        before, names, after = methods['_run'](self, 'names', common)
+        need(tuple(nine(before)) == tuple(nine(after)) == common_fact and set(names) == {'L', 'R'},
+             'owner-read-original-common-namespace9')
+        ancestors = methods['_run'](self, 'stats', tuple(path for path, _ in nodes), ancestor=True)
+        need(len(ancestors) == len(nodes) and all(tuple(five(value)) == fact for (_, fact), value in zip(nodes, ancestors)),
+             'owner-read-original-ancestor5')
+        methods['assert_root'](self)
+        for fd, (_, fact) in handles:
+            need(tuple(five(os.fstat(fd))) == fact, 'owner-read-final-held-FD5')
+        need(self.handles is seal[6] and self.nodes is seal[7]
+             and type(self.handles) is dict and len(self.handles) <= 512
+             and type(self.nodes) is dict and len(self.nodes) <= 512, 'owner-read-original-ledger-objects')
+        need(all(type(fd) is int and fd >= 0 and type(row) is tuple and len(row) == 2 and type(row[0]) is str
+                 and type(row[1]) is tuple and len(row[1]) == 5 and all(type(value) is int for value in row[1])
+                 for fd, row in self.handles.items()), 'owner-read-final-handle-facts')
+        need(all(type(path) is str and type(fact) is list and len(fact) == 5 and all(type(value) is int for value in fact)
+                 for path, fact in self.nodes.items()), 'owner-read-final-ancestor-facts')
+        need(tuple(self.handles.items()) == handles
+             and tuple((path, tuple(fact)) for path, fact in self.nodes.items()) == nodes,
+             'owner-read-original-ledgers')
+        if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+            raise Held('owner-check-final-dependencies')
+        if not (self.registry is _OWNER_READ_SEALS and _OWNER_READ_SEALS.get(self) is seal is self.seal
+                and self.handles is seal[6] and self.nodes is seal[7]
+                and seal[:4] == (encode(self.geometry), encode(self.source), str(self.root), self.thread)
+                and all(type(self).__dict__.get(name) is value and value.__code__ is code for name, value, code in seal[4])):
+            raise Held('owner-check-final-seal')
 
     def release(self):
         error = None
