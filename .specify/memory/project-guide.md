@@ -861,3 +861,14 @@ shared basename/hash or relax the child self-path guard. Exercise distinct sourc
 and installed incarnations through the real cohort consumer. A vanished helper
 PID during the host's final pipe check can follow a child provenance refusal;
 read its original failure record before attributing the failure to a timeout.
+
+Check original scope/runtime observation ages against the helper's recorded start
+and failure times before changing a transport deadline. Stale inputs may already
+exceed their 120-second admission window before launch. Never retimestamp sealed
+facts or enlarge freshness limits to admit them. Measure complete staging and
+reduce repeated immutable work or move it before genuine fresh capture. Metadata
+deduplication must retain exact-path conflict checks, both closure passes and
+post-callback identity checks without caching across calls. Local syscall counts
+do not establish configured Root/NFS latency. Bounded failure diagnostics should
+retain sanitized suppressed-context frames through direct exception slots; omit
+messages, locals and raw paths, and bound traversal as well as output.

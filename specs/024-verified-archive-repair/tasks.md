@@ -209,3 +209,20 @@ before projecting the declared installed copy. Eight additional local controls
 include the real child cohort consumer and the prior failure. Installation,
 matching-source delivery and fresh configured forward/rollback, NFS and terminal
 acceptance remain required. T012/T015 and feature 023 T026/T029 stay open.
+
+## Configured admission hold — 2026-10-23
+
+After PR #505 and a fresh checked installation, T passes SourceCohort and the
+child's original/installed Parent path join. Its NFS child then exits before
+reader stop; the wrapper omits the underlying lifecycle-admission reason. Original
+scope evidence is already 199.25 seconds old at helper start, beyond the unchanged
+120-second limit. This establishes a stale-input condition, not the first thrown
+exception or a child-channel timeout. T and its helper remain preserved without
+replay. Independent post-hold comparison preserves both archives' full signatures,
+bytes and members, both reader book/progress records and six page hashes.
+
+The source correction removes duplicate identical metadata checks within each
+closure pass and retains bounded original exception-context frames. Local
+benchmark counts and controls establish neither actual Root/NFS latency nor
+configured forward/rollback, terminal, ACK or preservation acceptance. A fresh
+checked generation remains required. T012/T015 and feature 023 T026/T029 stay open.

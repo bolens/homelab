@@ -263,6 +263,16 @@ class Tree:
         pairs=self.pairs;directories=self.directories;outputs=self.outputs;nodes=self.nodes
         files=tuple((p[0][0],p[0][2]) for p in pairs)+tuple((p[1][0],p[1][2]) for p in pairs)+tuple((r[0],r[2]) for r in outputs)+tuple((r[3][0],r[3][2]) for r in outputs)
         all_nodes=nodes+directories+tuple(n for p in pairs for n in (*p[2],*p[3]))+tuple(n for r in outputs for n in (*r[6],*r[7]))+tuple((r[0],r[1]) for r in self.scopes)+tuple((r[2],r[3]) for r in self.scopes)+tuple(n for r in self.scopes for n in r[5])
+        # Shared ancestors recur for every control. Validate each original once
+        # per closure pass, retaining conflicts and the independent final pass.
+        unique_files={};unique_nodes={}
+        for path,original in files:
+            if path in unique_files and unique_files[path]!=original:raise Held('child-tree-file-fact-conflict')
+            unique_files[path]=original
+        for path,original in all_nodes:
+            if path in unique_nodes and unique_nodes[path]!=original:raise Held('child-tree-node-fact-conflict')
+            unique_nodes[path]=original
+        files=tuple(unique_files.items());all_nodes=tuple(unique_nodes.items())
         root_required={Path(p).name for p,_ in directories if Path(p).parent==self.root}|{Path(p[1][0]).name for p in pairs if Path(p[1][0]).parent==self.root}|{Path(r[0]).name for r in outputs if Path(r[0]).parent==self.root}
         root_allowed=set(root_required)
         root_allowed.update(Path(p[1][0]).with_suffix('.native-scope.json').name for p in pairs if Path(p[1][0]).parent==self.root and p[1][0].endswith('-input.json'))

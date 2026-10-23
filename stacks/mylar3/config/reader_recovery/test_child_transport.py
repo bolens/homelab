@@ -148,4 +148,53 @@ class Transport(unittest.TestCase):
     def test_default_active_source_is_unbound(self):
         self.assertIsNone(m.ACTIVE_SOURCE_SHA)
 
+    def test_suppressed_original_context_retains_only_source_frames(self):
+        scope={}
+        exec(compile("def original():\n raise ValueError('credential-secret')\n",'/private/secret/comic_negative_nfs_active_parent.py','exec'),scope)
+        try:
+            try:scope['original']()
+            except ValueError:raise RuntimeError('password-private') from None
+        except RuntimeError as error:raw=m.failure_diagnostic(error)
+        value=m.decode(raw)
+        self.assertTrue(any(row==dict(source='comic_negative_nfs_active_parent.py',line=2) for row in value['contexts'][0]['frames']))
+        for secret in (b'credential',b'secret',b'password',b'private'):self.assertNotIn(secret,raw)
+        self.assertFalse(value['terminal_accepted']);self.assertFalse(value['automatic_replay'])
+
+    def test_context_cycle_and_depth_are_bounded(self):
+        errors=[ValueError('secret') for _ in range(12)]
+        for first,second in zip(errors,errors[1:]):first.__context__=second
+        value=m.decode(m.failure_diagnostic(errors[0]));self.assertEqual(len(value['contexts']),3)
+        errors[1].__context__=errors[0]
+        value=m.decode(m.failure_diagnostic(errors[0]));self.assertEqual(len(value['contexts']),1)
+
+    def test_exception_subclass_attribute_callbacks_are_not_called(self):
+        class Hostile(ValueError):
+            def __getattribute__(self,name):raise AssertionError('attribute callback')
+            @property
+            def __traceback__(self):raise AssertionError('traceback property')
+            @property
+            def __context__(self):raise AssertionError('context property')
+        error=Hostile('credential-secret');context=Hostile('password-secret')
+        BaseException.__dict__['__context__'].__set__(error,context)
+        raw=m.failure_diagnostic(error);value=m.decode(raw)
+        self.assertEqual(value['exception'],'other');self.assertEqual(value['contexts'],[dict(frames=[])])
+        self.assertNotIn(b'secret',raw)
+
+    def test_traceback_examination_and_output_are_bounded(self):
+        import types
+        from unittest.mock import patch
+        frame=sys._getframe();trace=None
+        for _ in range(200):trace=types.TracebackType(trace,frame,frame.f_lasti,frame.f_lineno)
+        error=ValueError('secret').with_traceback(trace);original=m.Path
+        with patch.object(m,'Path',side_effect=original) as paths:
+            value=m.decode(m.failure_diagnostic(error))
+        self.assertEqual(paths.call_count,64);self.assertEqual(len(value['frames']),8)
+        self.assertEqual(set(row['source'] for row in value['frames']),{'external'})
+
+    def test_contexts_keep_original_fixed_transport_reason(self):
+        error=m.Held('child-lost-host');error.__context__=OSError('/private/password')
+        value=m.decode(m.failure_diagnostic(error))
+        self.assertEqual(value['reason'],'child-lost-host');self.assertEqual(value['exception'],'held')
+        self.assertEqual(value['contexts'],[dict(frames=[])])
+
 if __name__=='__main__':unittest.main()

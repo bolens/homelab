@@ -172,3 +172,16 @@ and policy conflicts refuse. The child's self-path guard remains mandatory.
 Eight local controls exercise this boundary, including the actual child cohort
 consumer with distinct source and installed files and the former refusal. They
 supply no installation, NFS, Writer, terminal, resume or publication acceptance.
+
+Control-tree closure deduplicates only identical original facts at the same exact
+path within one check. Conflicting full signatures or directory identities refuse
+before filesystem callbacks. Both the initial closure and independent final
+identity checks remain mandatory; no observation is cached across checks.
+
+Failure-only child diagnostics retain at most four exceptions from the original
+context chain, including suppressed contexts. Each traceback examines at most 64
+nodes and emits at most eight fixed source labels and line numbers. Slot access
+bypasses exception-subclass callbacks. Messages, locals, dynamic class names and
+raw paths are omitted. These records grant no terminal or replay authority.
+The original 120-second scope/runtime freshness limit remains unchanged. Fewer
+metadata checks do not prove that a configured packet reaches admission in time.

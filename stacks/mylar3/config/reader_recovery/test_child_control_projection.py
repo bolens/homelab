@@ -293,4 +293,59 @@ class Controls(unittest.TestCase):
         other=self.base/'ordinary-empty';other.write_bytes(b'');other.chmod(0o600);other_ref=ref(other);files[str(other)]=tuple(other_ref['signature9']);env['private_facts']=[pair(other_ref)]
         with self.assertRaises(parent.Held):exec(block,env)
 
+    def duplicate_original_facts(self):
+        self.tree.projected(self.ref)
+        other=self.op/'other.json';other.write_bytes(self.source.read_bytes());other.chmod(0o600)
+        ref=dict(path=str(other),sha256=self.ref['sha256'],signature9=list(c.nine(other.lstat())))
+        self.tree.projected(ref)
+        first,second=self.tree.pairs
+        self.tree.pairs=(first,(first[0],second[1],first[2],second[3]))
+        self.tree.nodes+=((str(self.op),c.five(self.op.lstat())),)
+        self.tree._seal()
+
+    def test_duplicate_facts_checked_once_in_each_closure_pass(self):
+        self.duplicate_original_facts();calls={};original=c.owner_stat
+        def counted(actor,path):
+            calls[str(path)]=calls.get(str(path),0)+1
+            return original(actor,path)
+        with patch.object(c,'owner_stat',counted):self.tree.check()
+        self.assertEqual(calls[str(self.source)],2)
+        self.assertEqual(calls[str(self.op)],2)
+        self.assertEqual(set(calls.values()),{2})
+
+    def test_conflicting_node_facts_refuse_before_callbacks(self):
+        self.duplicate_original_facts();path,row=self.tree.nodes[-1]
+        self.tree.nodes+=((path,(*row[:2],row[2]^0o010,*row[3:])),);self.tree._seal()
+        with patch.object(c,'close',side_effect=AssertionError('callback')):
+            with self.assertRaisesRegex(c.Held,'child-tree-node-fact-conflict'):self.tree.check()
+
+    def test_conflicting_file_facts_refuse_before_callbacks(self):
+        self.duplicate_original_facts();first,second=self.tree.pairs;path,digest,row=second[0]
+        conflicting=(path,digest,(*row[:2],row[2]+1,*row[3:]))
+        self.tree.pairs=(first,(conflicting,*second[1:]));self.tree._seal()
+        with patch.object(c,'close',side_effect=AssertionError('callback')):
+            with self.assertRaisesRegex(c.Held,'child-tree-file-fact-conflict'):self.tree.check()
+
+    def test_duplicated_file_late_namespace_callback_change_refuses(self):
+        self.duplicate_original_facts();original=c.os.listdir
+        def changed(path):
+            result=original(path)
+            if Path(path)==self.tree.root:self.source.chmod(0o640)
+            return result
+        with patch.object(c.os,'listdir',changed):
+            with self.assertRaisesRegex(c.Held,'child-tree-original9'):self.tree.check()
+
+    def test_duplicated_node_late_namespace_callback_change_refuses(self):
+        self.duplicate_original_facts();original=c.os.listdir
+        def changed(path):
+            result=original(path)
+            if Path(path)==self.tree.root:self.op.chmod(0o750)
+            return result
+        with patch.object(c.os,'listdir',changed):
+            with self.assertRaisesRegex(c.Held,'child-tree-original5'):self.tree.check()
+
+    def test_duplicate_closure_rechecks_next_invocation(self):
+        self.duplicate_original_facts();self.tree.check();self.source.chmod(0o640)
+        with self.assertRaisesRegex(c.Held,'child-control-final9'):self.tree.check()
+
 if __name__=='__main__':unittest.main()

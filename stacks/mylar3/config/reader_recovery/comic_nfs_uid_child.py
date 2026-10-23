@@ -198,16 +198,27 @@ def serve(packet_ref):
 
 def failure_diagnostic(error):
     """Bounded transport diagnosis without exception text, locals or host paths."""
-    frames=[];trace=error.__traceback__
-    while trace is not None:
-        name=Path(trace.tb_frame.f_code.co_filename).name
-        if name not in ('comic_nfs_uid_child.py','nfs-uid-child.py','comic_nfs_lease_session.py',
-                        'comic_negative_nfs_active_parent.py'):
-            name='external'
-        frames.append(dict(source=name,line=trace.tb_lineno));frames=frames[-8:]
-        trace=trace.tb_next
+    # Slot descriptors bypass exception-subclass properties and attribute hooks.
+    traceback_slot=BaseException.__dict__['__traceback__']
+    context_slot=BaseException.__dict__['__context__']
+    def original_frames(value):
+        frames=[];trace=traceback_slot.__get__(value,BaseException)
+        for _ in range(64):
+            if trace is None:break
+            name=Path(trace.tb_frame.f_code.co_filename).name
+            if name not in ('comic_nfs_uid_child.py','nfs-uid-child.py','comic_nfs_lease_session.py',
+                            'comic_negative_nfs_active_parent.py'):
+                name='external'
+            frames.append(dict(source=name,line=trace.tb_lineno));frames=frames[-8:]
+            trace=trace.tb_next
+        return frames
+    frames=original_frames(error);contexts=[];seen={id(error)};current=error
+    for _ in range(3):
+        context=context_slot.__get__(current,BaseException)
+        if context is None or id(context) in seen:break
+        seen.add(id(context));contexts.append(dict(frames=original_frames(context)));current=context
     kind=('held' if type(error) is Held else
-          'os-error' if isinstance(error,OSError) else 'other')
+          'os-error' if issubclass(type(error),OSError) else 'other')
     reason=None
     if type(error) is Held and len(error.args)==1 and type(error.args[0]) is str:
         if error.args[0] in ('child-original-pipe-drift','child-deadline',
@@ -216,7 +227,7 @@ def failure_diagnostic(error):
                             'child-response-bound','child-frame-bound'):
             reason=error.args[0]
     return encode(dict(kind='nfs-child-failure',exception=kind,reason=reason,
-                       frames=frames,terminal_accepted=False,automatic_replay=False))+b'\n'
+                       frames=frames,contexts=contexts,terminal_accepted=False,automatic_replay=False))+b'\n'
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--packet',required=True);parser.add_argument('--packet-sha256',required=True);parser.add_argument('--packet9',required=True)

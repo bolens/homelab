@@ -1522,6 +1522,12 @@ copy's original Tree projection. Source and runtime incarnations remain distinct
 in root evidence. This correction preserves the child self-path guard and does
 not establish connected NFS or terminal acceptance.
 
+Control-tree checks avoid repeated metadata reads for identical original paths
+within each closure pass. Conflicting facts and changes after callbacks still
+refuse. Failure diagnostics include bounded original context frames without
+exception text or private paths. Scope/runtime freshness remains 120 seconds;
+local control checks do not prove configured latency or acceptance.
+
 The prospective archive plan13 path uses an explicit NFS rename/link protocol,
 selected before any pending marker. Its transient child binds one nonce-scoped common
 root containing exactly the private scanned library and a disjoint private retention
