@@ -132,3 +132,16 @@ Tree-origin closure. Use that installed copy for both child execution and child
 cohort self-path. The real consumer regression must use distinct original and
 installed incarnations. Preserve private/public role policy and all existing
 child guards. Source controls do not complete T012 or T015.
+
+### Admission closure and diagnosis
+
+Deduplicate identical control metadata by exact path within each Tree check,
+refusing conflicting facts before callbacks. Preserve both closure passes,
+original seals and fresh validation on every call. Test duplicated file and node
+mutation after namespace callbacks as well as cross-call drift.
+
+Retain bounded, sanitized original exception-context frames, including contexts
+suppressed by a wrapper. Bound examined nodes and exception depth; do not read
+exception-subclass properties or emit messages, locals or raw paths. Keep
+diagnostics informational. Preserve the 120-second scope/runtime limit and prove
+actual configured latency with a fresh generation before claiming acceptance.
