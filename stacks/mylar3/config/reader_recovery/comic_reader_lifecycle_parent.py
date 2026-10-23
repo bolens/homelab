@@ -981,11 +981,14 @@ class Paths:
         if geometry['version']==1 and geometry['kind']=='private-common-root-nfs':return None
         need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs','nfs-probe-searchable-retention-geometry')
         retention=absolute(geometry['retention']['path']);root=absolute(fixture)
+        # Retention belongs to the admitted identity-preserving NFS roots.
+        # Observe that set once rather than re-entering both mapping wrappers.
+        roots=self.nfs_roots()
         need(root.parent.parent==retention and retention.name=='R'
              and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
              and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
              and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None
-             and self.nfs_host(str(retention))==self.nfs_child(str(retention))==str(retention),
+             and any(retention==Path(path) or Path(path) in retention.parents for path in roots),
              'nfs-probe-exact-retention-descendant')
         stamp=geometry['retention']['signature9']
         result=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
@@ -1204,7 +1207,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '7ae045e6eaef629f07d906870510e989d8e795e8a02852dc2fe67f966fb17247', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '73ee799c47d05bdb359ff1869aa893fb06fa510d7d84dba8743deeb91ebe1ff5', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
 NFS_ACTIVE_SOURCE_SHA='3641cf78d3faa6eaa72ece09a08092ce3b64f9575cf16b421b56632b54c300af'
 
 
@@ -1584,6 +1587,57 @@ def close_common_root(row):
 
 def check_common_root(row):
     fd,value,held,ancestors=row;root=Path(value['common_root']['path']);expected=tuple(value['common_root']['signature9'])
+    if type(row) is _CommonRoot and row.actor is not None:
+        actor=row.actor
+        need(type(actor) is GeometryOwnerReads and actor is _OWNER_READS,'archive-common-original-owner')
+        seal=_OWNER_READ_SEALS.get(actor)
+        need(seal is not None and actor.registry is _OWNER_READ_SEALS and actor.seal is seal,
+             'archive-common-original-owner')
+        checker,code=next((method,code) for name,method,code in seal[4] if name=='check')
+        paths=tuple(value[role]['path'] for role in ('common_root','library','retention'))
+        facts=tuple(tuple(value[role]['signature9'][i] for i in (0,1,5,6,7)) for role in ('common_root','library','retention'))
+        handles=(fd,*held);identities=tuple(zip(handles,facts))
+        birth=decode(seal[0])
+        need((value['version'],value['kind'])==(birth['version'],birth['kind'])
+             and paths==tuple(birth[role]['path'] for role in ('common_root','library','retention'))
+             and facts==tuple(tuple(birth[role]['signature9'][i] for i in (0,1,5,6,7)) for role in ('common_root','library','retention'))
+             and expected==tuple(birth['common_root']['signature9']),'archive-common-original-owner-geometry')
+        original_value=encode(value);original_nodes=encode(ancestors);original_roots=actor.common_roots
+        path_facts=dict(zip(paths,facts));path_facts.update((path,tuple(fact)) for path,fact in ancestors.items())
+        def close_row():
+            need(actor is _OWNER_READS and actor.registry is _OWNER_READ_SEALS
+                 and _OWNER_READ_SEALS.get(actor) is seal is actor.seal
+                 and actor.handles is seal[6] and actor.nodes is seal[7]
+                 and GeometryOwnerReads.check is checker and checker.__code__ is code,
+                 'archive-common-original-checker')
+            need(row.actor is actor and row.closed is False and actor.common_roots is original_roots
+                 and any(item is row for item in original_roots)
+                 and row.identities==identities and len(handles)==len(set(handles))==3
+                 and all(type(handle) is int for handle in handles)
+                 and encode(value)==original_value and encode(actor.geometry)==seal[0]
+                 and encode(ancestors)==original_nodes==encode(actor.nodes)
+                 and set(ancestors)=={str(path) for path in root.parents}
+                 and all(actor.handles.get(handle)==(path,fact) for handle,path,fact in zip(handles,paths,facts)),
+                 'archive-common-original-owner-row')
+            need(tuple(nine(os.fstat(fd)))==expected
+                 and all(tuple(five(os.fstat(handle)))==fact for handle,fact in identities),
+                 'archive-common-original-owner-FDs')
+        close_row()
+        try:
+            current={path:tuple(five(os.lstat(path))) for path in path_facts}
+        except PermissionError:
+            # Private ancestors retain the existing owner-principal path below.
+            pass
+        else:
+            need(current==path_facts,'archive-common-original-owner-paths')
+            checker(actor)
+            close_row()
+            # Close paths after the checker's trailing source callbacks, not
+            # only the still-open FDs of directories that could be renamed.
+            for path,fact in path_facts.items():
+                need(tuple(five(os.lstat(path)))==fact,'archive-common-final-owner-paths')
+            close_row()
+            return
     need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(root)))==expected,'archive-common-original-root-FD9')
     names={Path(value[k]['path']).name for k in ('library','retention')}
     fresh=nfs_directory(root)

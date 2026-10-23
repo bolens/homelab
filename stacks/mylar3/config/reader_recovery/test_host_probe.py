@@ -162,6 +162,64 @@ class ProbeBoundary(unittest.TestCase):
             self.process.start()
         self.assertFalse(self.process.terminal)
 
+    def test_profile_does_not_repeat_full_guards_for_command_construction(self):
+        self.process.cid = self.process.cid_original = self.cid
+        row = self.profile()
+        checks = []
+        original = self.process.close
+        def counted():
+            checks.append(True)
+            original()
+        self.process.close = counted
+        self.process.profile(row)
+        self.assertEqual(len(checks), 2)
+        self.assertEqual(self.calls, [])
+
+    def test_late_profile_callback_source_drift_refuses_acceptance(self):
+        self.process.cid = self.process.cid_original = self.cid
+        row = self.profile()
+        owner=self
+        class Labels(dict):
+            def get(self,*args):
+                owner.control.write_bytes(b'changed during profile comparison')
+                return super().get(*args)
+        row['Config']['Labels']=Labels(row['Config']['Labels'])
+        with self.assertRaisesRegex(Held, 'original-source-drift'):
+            self.process.profile(row)
+        self.assertEqual(self.calls, [])
+
+    def test_original_builder_instance_class_and_code_are_required(self):
+        from unittest.mock import patch
+        self.process.cid = self.process.cid_original = self.cid
+        row = self.profile()
+        def foreign(self):
+            raise AssertionError('foreign builder must not execute')
+        for target in (self.process,ProbeProcess):
+            with self.subTest(target=type(target).__name__),patch.object(target,'_command',foreign):
+                with self.assertRaisesRegex(Held,'original-command-builder'):
+                    self.process.profile(row)
+        builder=ProbeProcess._command;code=builder.__code__
+        try:
+            builder.__code__=foreign.__code__
+            with self.assertRaisesRegex(Held,'original-command-builder'):
+                self.process.profile(row)
+        finally:builder.__code__=code
+        self.assertEqual(self.calls,[])
+
+    def test_builder_replaced_by_profile_callback_refuses(self):
+        self.process.cid = self.process.cid_original = self.cid
+        row = self.profile();original=ProbeProcess._command
+        class Labels(dict):
+            def get(self,*args):
+                ProbeProcess._command=lambda self:[]
+                return super().get(*args)
+        row['Config']['Labels']=Labels(row['Config']['Labels'])
+        try:
+            with self.assertRaisesRegex(Held,'original-command-builder'):
+                self.process.profile(row)
+        finally:ProbeProcess._command=original
+        self.assertEqual(self.calls,[])
+
 
 class FullProfileTransitions(unittest.TestCase):
     def fixture(self):

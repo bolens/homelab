@@ -9,7 +9,7 @@ implementation tasks T019–T022 are delivered; they are not additional runtime
 acceptance gates. T012/T015 share one forward run and one distinct-fixture
 rollback with feature 023 T026/T029 and the isolated portion of T027.
 
-1. Resolve the demonstrated prewrite scope-expiry latency without changing the
+1. Resolve the demonstrated nested probe-validation latency without changing the
    120-second guard, then use a fresh disposable forward attempt. Independently
    compare archive bytes/members, native records and reader references/progress.
 2. After accepted forward proof, complete the prepared separate rollback fixture
@@ -21,14 +21,21 @@ rollback with feature 023 T026/T029 and the isolated portion of T027.
    as subsequent operational milestones. The current disposable-fixture scope
    does not authorize production T016–T018 or permanent worker activation.
 
-PR [#511](https://github.com/bolens/homelab/pull/511) is merged after all hosted
-checks passed, including the complete custom-image workflow. The final source
-passes 1,559 checks across 75 suites with zero skips, 233 focused checks, 14
-owning-runner controls and repository CI. The fresh forward fixture, checked
-installation, armed packet and independent baselines are verified. Its owning
-run holds before reader stop when the scope reaches 137 seconds at prewrite
-validation. Independent post-hold comparisons preserve both archives, reader
-records/progress and six page hashes. Terminal acceptance remains open.
+PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit and
+removed one duplicate session guard after all hosted checks passed. A fresh
+isolated run then reached probe creation but held at the dialogue deadline
+during birth registration, before reader stop. Its original native/reader
+epochs and inactive worker remain unchanged. Independent post-hold comparisons
+preserve both archives, reader records/progress and six page hashes. The next
+correction removes repeated command construction and root observation, and
+delegates registered common-root custody to its existing complete geometry
+checker. A separate actual Root/NFS benchmark of 24 identical private controls
+reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
+controls, geometry and source bytes. This measures metadata closure, not the
+connected recovery path. Final source additionally checks the exact ancestor
+key set before any Root path access; its regression verifies that consistently
+forged ledgers cannot trigger a foreign metadata read. Terminal acceptance
+remains unproved. This stays within T012, with no new task or acceptance gate.
 Preserve all earlier attempts and
 originals without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
