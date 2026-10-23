@@ -9,6 +9,7 @@ import errno
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import subprocess
@@ -126,7 +127,7 @@ def checked_file(path, expected):
         os.close(parent)
 
 
-def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
+def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, binding=None, retention9=None):
     """Join one original export to this exact owned RW subdirectory bind."""
     from pathlib import PurePosixPath
     keys={'source','target','fstype','fsroot','options','maj:min'}
@@ -143,7 +144,26 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
         absolute(row['target']);absolute(row['fsroot'])
     original=absolute(host_root);target=absolute(child_root);mountpoint=absolute(host['target'])
     need(original!=mountpoint and mountpoint in original.parents,'namespace-selected-host-subtree')
-    expected_root=str(absolute(host['fsroot'])/original.relative_to(mountpoint))
+    bind_original,bind_target=original,target
+    if binding is not None:
+        need(type(binding) is dict and set(binding)=={'host_root','child_root','root5'},'namespace-retention-binding-schema')
+        bind_original=absolute(binding['host_root']);bind_target=absolute(binding['child_root'])
+        need(original==target and bind_original==bind_target and bind_original.name=='R'
+             and re.fullmatch('archive-publication-[a-f0-9]{64}',bind_original.parent.name) is not None
+             and original.parent.parent==bind_original
+             and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',original.parent.name) is not None
+             and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',original.name) is not None
+             and mountpoint in bind_original.parents,'namespace-exact-retention-subtree')
+        root5=binding['root5']
+        need(type(root5) is list and len(root5)==5 and all(type(v) is int for v in root5)
+             and type(retention9) in (list,tuple) and len(retention9)==9
+             and all(type(v) is int for v in retention9)
+             and [retention9[i] for i in (0,1,5,6,7)]==root5
+             and root5[0]>0 and root5[1]>0 and stat.S_ISDIR(root5[2])
+             and stat.S_IMODE(root5[2])==0o700 and root5[3:]==[1000,1000],
+             'namespace-original-retention-identity')
+    else:need(retention9 is None,'namespace-unrequested-retention')
+    expected_root=str(absolute(host['fsroot'])/bind_original.relative_to(mountpoint))
     def export(row):
         suffix='['+row['fsroot']+']'
         source=row['source']
@@ -154,16 +174,20 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
          and expected9[0]>0 and expected9[1]>0 and stat.S_ISDIR(expected9[5])
          and stat.S_IMODE(expected9[5])==0o700 and expected9[6]==1000,
          'namespace-original-root9')
+    if binding is not None:need(retention9[0]==expected9[0] and retention9[1]!=expected9[1] and expected9[7]==1000,'namespace-distinct-retention-fixture')
     need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
     need(rows['source']==rows['target'],'namespace-one-child-bind')
     row=rows['source']
-    need(row['target']==str(target) and row['fsroot']==expected_root
+    need(row['target']==str(bind_target) and row['fsroot']==expected_root
          and export(row)==export(host) and row['maj:min']==host['maj:min']
          and row['options']==host['options']
          and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
          'namespace-original-export-bind')
-    return dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
-                rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+    proof=dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
+               rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+    if binding is not None:
+        proof.update(version=2,kind='original-nfs-retention-bind-namespace-v2',binding=copy.deepcopy(binding),retention9=list(retention9))
+    return proof
 
 
 def mount(path):
@@ -194,8 +218,12 @@ def observe_namespace(plan):
     original=tuple(plan['root9']);actual=nine(os.lstat(root))
     rows={'source':mount(src),'target':mount(dst)}
     need(nfs_magic(src)==nfs_magic(dst)==0x6969,'namespace-actual-nfs-statfs')
-    # Current maintained Parent admits this exact host spelling in both namespaces.
-    proof=mount_namespace(plan['mount'],rows,str(root),str(root),original,actual)
+    binding=None;retention9=None
+    if rows['source']['target']!=str(root):
+        retention=canonical(rows['source']['target']);retention9=nine(os.lstat(retention))
+        binding=dict(host_root=str(retention),child_root=str(retention),root5=[retention9[i] for i in (0,1,5,6,7)])
+    proof=mount_namespace(plan['mount'],rows,str(root),str(root),original,actual,binding=binding,retention9=retention9)
+    if binding is not None:need(nine(os.lstat(retention))==retention9,'namespace-final-retention9')
     need(nine(os.lstat(root))==original,'namespace-final-original-root9')
     return proof
 
@@ -285,9 +313,10 @@ def run(plan_ref, source_ref, *, namespace=None):
     if namespace is None:
         need(mount(src) == plan['mount'] == mount(dst) and nfs_magic(src) == nfs_magic(dst) == 0x6969, 'same-nfs-export')
     else:
-        need(type(namespace) is dict and namespace==observe_namespace(plan),'namespace-original-local-rows')
+        need(type(namespace) is dict and type(namespace.get('version')) is int and namespace==observe_namespace(plan),'namespace-original-local-rows')
         need(encode(namespace_caller)==namespace_tape,'namespace-original-caller-tape')
-    original = tuple(files.items()) + tuple(roots.items()) + ((str(root), root9), (str(src), src9), (str(dst), dst9))
+    retention_original=() if namespace is None or namespace['version']==1 else ((namespace['binding']['child_root'],tuple(namespace['retention9'])),)
+    original = tuple(files.items()) + tuple(roots.items()) + retention_original + ((str(root), root9), (str(src), src9), (str(dst), dst9))
     raw_close(original, tuple(nodes.items()), ((str(root), ('source', 'target')), (str(src), ()), (str(dst), ())), ())
     fds = []
     try:
@@ -321,7 +350,7 @@ def run(plan_ref, source_ref, *, namespace=None):
     expected_names = {str(src): set(), str(dst): set()}; leaves = {}; records = []
 
     def close_current():
-        admitted = tuple(files.items()) + tuple(roots.items()) + tuple(parent_values.items()) + tuple(leaves.items())
+        admitted = tuple(files.items()) + tuple(roots.items()) + retention_original + tuple(parent_values.items()) + tuple(leaves.items())
         captured_nodes = tuple(nodes.items())
         captured_names = ((str(root), tuple(sorted({'source', 'target'} | control_names))),
                           *( (p, tuple(sorted(v))) for p, v in expected_names.items()))

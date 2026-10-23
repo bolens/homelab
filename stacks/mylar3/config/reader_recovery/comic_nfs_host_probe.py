@@ -34,7 +34,7 @@ def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
 
 
-def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
+def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, binding=None, retention9=None):
     """Join one original export to this exact owned RW subdirectory bind."""
     from pathlib import PurePosixPath
     keys={'source','target','fstype','fsroot','options','maj:min'}
@@ -51,7 +51,26 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
         absolute(row['target']);absolute(row['fsroot'])
     original=absolute(host_root);target=absolute(child_root);mountpoint=absolute(host['target'])
     need(original!=mountpoint and mountpoint in original.parents,'namespace-selected-host-subtree')
-    expected_root=str(absolute(host['fsroot'])/original.relative_to(mountpoint))
+    bind_original,bind_target=original,target
+    if binding is not None:
+        need(type(binding) is dict and set(binding)=={'host_root','child_root','root5'},'namespace-retention-binding-schema')
+        bind_original=absolute(binding['host_root']);bind_target=absolute(binding['child_root'])
+        need(original==target and bind_original==bind_target and bind_original.name=='R'
+             and re.fullmatch('archive-publication-[a-f0-9]{64}',bind_original.parent.name) is not None
+             and original.parent.parent==bind_original
+             and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',original.parent.name) is not None
+             and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',original.name) is not None
+             and mountpoint in bind_original.parents,'namespace-exact-retention-subtree')
+        root5=binding['root5']
+        need(type(root5) is list and len(root5)==5 and all(type(v) is int for v in root5)
+             and type(retention9) in (list,tuple) and len(retention9)==9
+             and all(type(v) is int for v in retention9)
+             and [retention9[i] for i in (0,1,5,6,7)]==root5
+             and root5[0]>0 and root5[1]>0 and stat.S_ISDIR(root5[2])
+             and stat.S_IMODE(root5[2])==0o700 and root5[3:]==[1000,1000],
+             'namespace-original-retention-identity')
+    else:need(retention9 is None,'namespace-unrequested-retention')
+    expected_root=str(absolute(host['fsroot'])/bind_original.relative_to(mountpoint))
     def export(row):
         suffix='['+row['fsroot']+']'
         source=row['source']
@@ -62,16 +81,20 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
          and expected9[0]>0 and expected9[1]>0 and stat.S_ISDIR(expected9[5])
          and stat.S_IMODE(expected9[5])==0o700 and expected9[6]==1000,
          'namespace-original-root9')
+    if binding is not None:need(retention9[0]==expected9[0] and retention9[1]!=expected9[1] and expected9[7]==1000,'namespace-distinct-retention-fixture')
     need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
     need(rows['source']==rows['target'],'namespace-one-child-bind')
     row=rows['source']
-    need(row['target']==str(target) and row['fsroot']==expected_root
+    need(row['target']==str(bind_target) and row['fsroot']==expected_root
          and export(row)==export(host) and row['maj:min']==host['maj:min']
          and row['options']==host['options']
          and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
          'namespace-original-export-bind')
-    return dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
-                rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+    proof=dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
+               rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+    if binding is not None:
+        proof.update(version=2,kind='original-nfs-retention-bind-namespace-v2',binding=copy.deepcopy(binding),retention9=list(retention9))
+    return proof
 
 
 def ticks(pid):
@@ -83,7 +106,7 @@ def fd5(stream):
 class ProbeProcess:
     """Command/profile boundary. Constructor inputs are owning-host originals."""
     def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None,namespace=None,owner=None):
-        need(type(spec) is dict and set(spec) == {'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256'}, 'probe-spec-schema')
+        need(type(spec) is dict and set(spec) in ({'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256'}, {'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256','binding'}), 'probe-spec-schema')
         need(re.fullmatch(r'sha256:[a-f0-9]{64}', spec['image']) is not None, 'probe-image')
         for key in ('input_sha256', 'probe_sha256'):
             need(type(spec[key]) is str and re.fullmatch('[a-f0-9]{64}', spec[key]) is not None, 'probe-source-digest')
@@ -103,7 +126,12 @@ class ProbeProcess:
              and mounts[5][1:] == [spec['input'], False]
              and all(r[2] is False for r in mounts[6:]), 'probe-finite-mount-contract')
         need(type(gated) is bool and (not gated or callable(launcher)),'probe-gated-original-launcher')
-        need(namespace is None or type(namespace) is dict and set(namespace)=={'host','host_root','child_root','root9'},'probe-namespace-original-input')
+        need(namespace is None or type(namespace) is dict and set(namespace) in ({'host','host_root','child_root','root9'},{'host','host_root','child_root','root9','binding'}),'probe-namespace-original-input')
+        if 'binding' in spec:
+            need(type(spec['binding']) is dict and set(spec['binding'])=={'host_root','child_root','root5'},'probe-retention-binding-schema')
+            need(owner is not None and namespace is not None and namespace.get('binding')==spec['binding']
+                 and mounts[0]==[spec['binding']['host_root'],spec['binding']['child_root'],True], 'probe-retention-original-owner-binding')
+        else:need(namespace is None or 'binding' not in namespace,'probe-unrequested-retention-binding')
         self.namespace_original=copy.deepcopy(namespace);self.namespace_tape=encode(namespace);self.namespace_proof=None
         self.gated,self.launcher=gated,launcher
         self.process=None;self.pipe_original=None;self.pid_original=None;self.process_start=None;self.running_epoch=None;self.execution_sent=False;self.kernel_output=None
@@ -128,6 +156,7 @@ class ProbeProcess:
             guard=g.get('none_network_profile_contract')
             need(callable(guard)and guard.__globals__ is g,'probe-source-profile-contract')
             contract=(guard,guard.__code__,guard())
+            if 'binding' in spec:need(owner.mapping.nfs_probe_binding(namespace['host_root'])==spec['binding'],'probe-retention-original-parent-geometry')
             _PARENT_PROFILES[self]=(owner,g,owner.core,owner.engine,helpers,contract)
 
     def original_close(self):
@@ -255,9 +284,11 @@ class ProbeProcess:
         expected=dict(kind='original-nfs-probe-gate',state='prepared',token=self.spec['input_sha256'],source_sha256=self.spec['probe_sha256'],native_grant=False,publication_authority=False)
         need(encode(self.namespace_original)==self.namespace_tape,'probe-namespace-original-tape')
         if self.namespace_original is not None:
-            need(type(proof) is dict and set(proof)=={'version','kind','host','rows','host_root','child_root','root9'},'probe-actual-namespace-required')
+            keys={'version','kind','host','rows','host_root','child_root','root9'}
+            if 'binding' in self.namespace_original:keys|={'binding','retention9'}
+            need(type(proof) is dict and set(proof)==keys and type(proof['version']) is int,'probe-actual-namespace-required')
             n=self.namespace_original
-            actual=mount_namespace(n['host'],proof['rows'],n['host_root'],n['child_root'],n['root9'],proof['root9'])
+            actual=mount_namespace(n['host'],proof['rows'],n['host_root'],n['child_root'],n['root9'],proof['root9'],binding=n.get('binding'),retention9=proof.get('retention9'))
             need(proof==actual,'probe-original-namespace-proof');expected['namespace']=actual
         else:need(proof is None,'probe-unrequested-namespace')
         return expected
@@ -330,8 +361,12 @@ class HostProbe:
             plan=json.loads(raw)
         finally:os.close(fd)
         self.close()
-        need(plan['root']==spec['mounts'][0][1] and spec['mounts'][0][0]==spec['mounts'][0][1],'probe-current-canonical-fixture-bind')
-        namespace=dict(host=plan['mount'],host_root=spec['mounts'][0][0],child_root=spec['mounts'][0][1],root9=plan['root9'])
+        need(spec['mounts'][0][0]==spec['mounts'][0][1],'probe-current-canonical-fixture-bind')
+        namespace=dict(host=plan['mount'],host_root=plan['root'],child_root=plan['root'],root9=plan['root9'])
+        if 'binding' in spec:
+            need(spec['binding']==mapping.nfs_probe_binding(plan['root']),'probe-original-retention-binding')
+            namespace['binding']=copy.deepcopy(spec['binding'])
+        else:need(plan['root']==spec['mounts'][0][1],'probe-current-canonical-fixture-bind')
         self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive,namespace=namespace,owner=self.owner)
         self.close()
 
