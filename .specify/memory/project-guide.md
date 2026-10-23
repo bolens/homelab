@@ -85,6 +85,12 @@ or preserved through cleanup. This bounded test contract supplies no current
 import, ACK, NFS, factory or worker-start authority and does not relax those
 operations' own preservation requirements.
 
+Precreate private mode0600 operation logs under umask077, then assert umask022
+before disposable births that require exact mode0711 searchability. Preserve
+failed parents unchanged and use a fresh generation. Bind generation names by
+explicit literals or AST fields; do not replace single-letter fragments across
+identifiers. Compare non-binding code before executing generated helpers.
+
 For disposable multi-service recovery fixtures, preserve the failed creator's
 original journal and namespace before diagnosing a Docker allocation failure.
 Exhausted default address pools are a host prerequisite, not archive or import
