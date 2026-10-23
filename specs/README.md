@@ -38,3 +38,5 @@ Installation validation alone does not establish feature completion.
 - [ErsatzTV library channels](027-ersatztv-live-channels/spec.md): prospective [plan](027-ersatztv-live-channels/plan.md), [tasks](027-ersatztv-live-channels/tasks.md).
 
 - [Independent Kavita provider services](028-kavita-independent-services/spec.md): [plan](028-kavita-independent-services/plan.md), [tasks](028-kavita-independent-services/tasks.md), [validation](028-kavita-independent-services/validation.md). Genuine provider-account verification remains open.
+
+- [Librarr integrations](029-librarr-integrations/spec.md): [plan](029-librarr-integrations/plan.md), [research](029-librarr-integrations/research.md), [tasks](029-librarr-integrations/tasks.md).

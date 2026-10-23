@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "gutenberg": {
+    "url": "https://gutendex.com/books"
+  },
+  "openlibrary": {
+    "search_url": "https://openlibrary.org/search.json",
+    "cover_url": "https://covers.openlibrary.org"
+  },
+  "librivox": {
+    "url": "https://librivox.org/api/feed/audiobooks"
+  },
+  "standardebooks": {
+    "url": "https://standardebooks.org"
+  }
+}

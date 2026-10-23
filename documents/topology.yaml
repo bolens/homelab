@@ -32,6 +32,7 @@ app_categories:
       - bazarr
       - explo
       - flaresolverr
+      - librarr
       - lidarr
       - metube
       - mylar3
@@ -46,7 +47,7 @@ app_categories:
       - sonarr
       - soulseek
       - whisparr
-    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek)"
+    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, Librarr, MeTube, Mylar3, Soulseek)"
 
   - id: apps_ai
     name: "AI & LLM"

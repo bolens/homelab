@@ -985,3 +985,20 @@ The observer's explicit disposable-bootstrap branch supports the separately
 reviewed searchable-common geometry while keeping library/retention leaves and
 reader state private. Its production route and read-only library mounts remain
 unchanged; see the [disposable originals contract](effective_scope/README.md#explicit-disposable-reader-originals).
+
+## Optional Librarr manga
+
+[Librarr](../librarr/README.md#optional-reader-setup) can supply a separate manga
+library without writing to Mylar's comics or the normalizer's managed collection.
+Set `LIBRARR_MEDIA_PATH` to the identical media root and explicitly include
+`-f docker-compose.librarr.yml` alongside the base and all existing selected
+overrides. Its existing `librarr/manga` directory is mounted read-only at
+`/data/librarr-manga`, with automatic host-path creation disabled. Verify that
+path on the intended mount before deployment. Preparation leaves it inactive;
+existing ingress and library mounts are unchanged.
+
+Create a separate, non-overlapping library at `/data/librarr-manga`. If scan
+notifications are wanted, select Librarr's reader-network override and configure
+`KOMGA_URL=http://komga:25600`, private credentials and this library's exact ID.
+Leave `KOMGA_LIBRARY_PATH` unset in Librarr to avoid redundant file copying.
+Back up Komga state before the live library change and verify existing progress.

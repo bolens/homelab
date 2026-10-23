@@ -23,12 +23,16 @@ test('catalog search and category filters work', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('apps/');
+  const total = await page.locator('.app-card').count();
   await page.getByLabel('Search applications').fill('photo and video backup');
   await expect(page.getByRole('link', { name: 'Immich' })).toBeVisible();
   await expect(page.getByRole('status')).not.toHaveText(/Showing all/);
   await page.getByLabel('Search applications').fill('');
   await page.getByLabel('Category').selectOption({ label: 'Media' });
-  await expect(page.getByRole('status')).toHaveText(/Showing \d+ of 217 applications/);
+  const visible = await page.locator('.app-card:visible').count();
+  expect(visible).toBeGreaterThan(0);
+  expect(visible).toBeLessThan(total);
+  await expect(page.getByRole('status')).toHaveText(`Showing ${visible} of ${total} applications.`);
   expect(errors).toEqual([]);
 });
 

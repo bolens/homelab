@@ -1,0 +1,71 @@
+name: librarr
+default_port: 5050
+databases:
+- sqlite
+health:
+  endpoint: /health
+  internal_only: false
+monitoring:
+  prometheus: true
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources:
+- media-automation
+- torrents
+- ingress-admin
+type: web_app
+category: media
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: librarr.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://github.com/JeremiahM37/librarr
+  docs: https://github.com/JeremiahM37/librarr#readme
+  repo: https://github.com/JeremiahM37/librarr
+backup:
+  priority: medium
+  schedule_hint: weekly
+volumes:
+- name: LIBRARR_CONFIG_PATH
+  role: app_data
+  critical: true
+- name: LIBRARR_MEDIA_PATH
+  role: media
+  critical: true
+- name: sources.json
+  role: config
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: media
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: Pinned Linux amd64 release. Optional reader APIs require docker-compose.readers.yml.
+    Direct downloads are not a Bookshelf download client.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

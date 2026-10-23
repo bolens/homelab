@@ -82,3 +82,15 @@ qbittorrent.yourdomain.com {
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory
 existence alone does not verify the remote mount; check its source and access.
+
+## Librarr
+
+[Librarr](../librarr/README.md) can use `http://gluetun:8080` on the shared
+`torrents` network; qBittorrent shares Gluetun's network namespace. Configure
+credentials in Librarr and use the same host media root for
+`QBITTORRENT_MEDIA_PATH` and `LIBRARR_MEDIA_PATH`, mounted at `/data` in both.
+Librarr uses its own `librarr-ebooks`, `librarr-audiobooks` and `librarr-manga`
+categories under `/data/downloads/torrents/librarr/`. Its copy imports and disabled
+automatic removal preserve seeding. Existing Bookshelf categories remain separate.
+This routes torrent-client traffic through the VPN; Librarr direct downloads use
+Librarr's ordinary egress.

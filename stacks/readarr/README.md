@@ -102,3 +102,16 @@ readarr.home, readarr.local {
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory
 existence alone does not verify the remote mount; check its source and access.
+
+## Librarr companion
+
+[Librarr](../librarr/README.md) provides a separate direct-download acquisition
+path. With the same host media root, this stack can see its organized ebook
+output at `/data/librarr/ebooks`. Use Bookshelf's Manual Import for reviewed files
+and retain the source copy. Bookshelf's existing indexers and download clients
+remain the monitored-book automation path.
+
+Do not add Librarr's mixed Torznab feed as a Z-Library indexer: the inspected
+Librarr v1.4.1 feed does not translate authenticated direct ebook downloads into
+Bookshelf's torrent/Usenet download-client workflow. File visibility does not
+establish an automatic successful import or fulfillment.

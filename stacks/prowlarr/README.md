@@ -50,3 +50,11 @@ prowlarr.home, prowlarr.local {
 }
 ```
 
+
+## Librarr
+
+[Librarr](../librarr/README.md) can query this stack at
+`http://prowlarr:9696` on `media-automation`. Configure that URL and the Prowlarr
+API key privately in Librarr. Enable the relevant book/audiobook/manga categories.
+Keep the connection one-way: adding Librarr back as a Prowlarr indexer creates a
+search loop. Direct ebook downloads remain in Librarr.

@@ -94,6 +94,9 @@ Media libraries and downloads are bind-mounted from one host tree (default
 | `/mnt/unraid/media/adult` | `/data/adult` | Whisparr |
 | `/mnt/unraid/media/music` | `/data/music` | Lidarr |
 | `/mnt/unraid/media/books` | `/data/books` | Readarr |
+| `/path/to/media/librarr/ebooks` | `/data/librarr/ebooks` (Librarr), `/data/librarr-books` (optional Kavita) | Librarr and Kavita |
+| `/path/to/media/librarr/manga` | `/data/librarr/manga` (Librarr), `/data/librarr-manga` (optional readers) | Librarr, Kavita and Komga |
+| `/path/to/media/audiobooks/Librarr` | `/data/audiobooks/Librarr` (Librarr), `/audiobooks/Librarr` (Audiobookshelf) | Librarr and Audiobookshelf |
 | `/mnt/unraid/media/comics` | `/data/comics` | Mylar3 |
 | `/mnt/unraid/media/downloads/usenet` | `/data/downloads/usenet` | *arr apps (NZBGet reports `/downloads`) |
 | `/mnt/unraid/media/downloads/torrents` | `/data/downloads/torrents` | qBittorrent and *arr apps |
@@ -102,6 +105,12 @@ Mounting the tree once is important: Usenet imports can use an atomic rename,
 and active torrents can be hardlinked into a library without consuming space
 twice. For NZBGet, add a remote path mapping in each *arr app from remote
 `/downloads/` to local `/data/downloads/usenet/`.
+
+[Librarr](../stacks/librarr/README.md) requires an explicit existing media root.
+Its dedicated ebook and manga outputs stay outside Calibre and Mylar libraries.
+Optional readers mount those outputs read-only; torrent downloads use distinct
+categories under `/data/downloads/torrents/librarr`. Reader API connectivity is
+opt-in and does not route direct downloads through Gluetun.
 
 The same rule applies to manual/secondary importers:
 

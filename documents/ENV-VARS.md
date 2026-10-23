@@ -157,6 +157,7 @@ Quick reference, find a stack:
 | kometa | KOMETA_CONFIG_PATH, KOMETA_DATA_PATH required; batch runner. |
 | komga | SERVER_PORT=25600; optional JAVA_TOOL_OPTIONS for large libraries. |
 | lanraragi | LRR_UID/GID optional; content at /home/koyomi/lanraragi/content. |
+| librarr | AUTH_USERNAME/PASSWORD, API_KEY, TORZNAB_API_KEY, LIBRARR_CONFIG_PATH and LIBRARR_MEDIA_PATH required; optional provider and reader credentials. |
 | librechat | MONGO_INITDB_*, REDIS_PASSWORD, DOMAIN_*, JWT_SECRET required. |
 | lidarr | TZ, PUID, PGID; LIDARR_MEDIA_PATH → /data. |
 | linkding | TZ optional; optional LD_DISABLE_BACKGROUND_TASKS. |
