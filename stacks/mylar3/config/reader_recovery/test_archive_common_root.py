@@ -156,6 +156,22 @@ class ProbeRetentionBinding(unittest.TestCase):
         (self.retention/'unrelated').write_bytes(b'original')
         self.assertEqual(mapping.nfs_probe_binding(str(self.fixture)),before)
         self.assertEqual(before,dict(host_root=str(self.retention),child_root=str(self.retention),root5=[self.geometry['retention']['signature9'][i] for i in (0,1,5,6,7)]))
+    def test_retention_binding_observes_one_original_root_set(self):
+        mapping,row=self.mapping();original=mapping.nfs_roots;calls=[]
+        def roots():
+            calls.append(True)
+            return original()
+        mapping.nfs_roots=roots
+        mapping.nfs_probe_binding(str(self.fixture))
+        self.assertEqual(len(calls),1)
+    def test_retention_swap_during_root_observation_refuses(self):
+        mapping,row=self.mapping();original=mapping.nfs_roots
+        def changed():
+            roots=original()
+            self.retention.rename(self.root/'retained');self.retention.mkdir(mode=0o700)
+            return roots
+        mapping.nfs_roots=changed
+        with self.assertRaises(p.Held):mapping.nfs_probe_binding(str(self.fixture))
     def test_missing_registry_and_foreign_geometry_refuse(self):
         mapping,row=self.mapping();owner=mapping.owner;p._ARCHIVE_COMMON_ROOTS.pop(owner)
         with self.assertRaises(p.Held):mapping.nfs_probe_binding(str(self.fixture))

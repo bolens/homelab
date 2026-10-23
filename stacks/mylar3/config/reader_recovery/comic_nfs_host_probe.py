@@ -146,7 +146,9 @@ class ProbeProcess:
         self.started = False
         self.terminal = False
         self.full_created=self.full_running=self.full_terminal=None
-        _FULL_PROFILES[self]=(None,None,None)
+        builder=ProbeProcess._command
+        self.command_builder=(builder,builder.__code__)
+        _FULL_PROFILES[self]=(None,None,None,self.command_builder)
         if owner is not None:
             g=owner.left.__func__.__globals__
             need(type(owner)is g.get('LifecycleParent')and owner.left.__func__ is g['LifecycleParent'].left and g.get('_CORES',{}).get(owner)==owner.core and type(owner.engine)is g.get('ScopedDocker')
@@ -161,7 +163,10 @@ class ProbeProcess:
 
     def original_close(self):
         self.close()
-        need(_FULL_PROFILES.get(self)==(self.full_created,self.full_running,self.full_terminal),'probe-full-profile-seal')
+        need(_FULL_PROFILES.get(self)==(self.full_created,self.full_running,self.full_terminal,self.command_builder),'probe-full-profile-seal')
+        builder,code=self.command_builder
+        need(ProbeProcess._command is builder and builder.__code__ is code
+             and getattr(self._command,'__func__',None) is builder,'probe-original-command-builder')
         parent=_PARENT_PROFILES.get(self)
         if parent is not None:
             owner,g,core,engine,helpers,contract=parent
@@ -174,8 +179,8 @@ class ProbeProcess:
         need(encode(dict(spec=self.spec, docker=self.docker, name=self.name)) == self.original, 'probe-original-spec')
         need(self.cid_original is None or self.cid == self.cid_original, 'probe-original-born-CID')
 
-    def command(self):
-        self.original_close()
+    def _command(self):
+        """Construct argv without callbacks; callers own the boundary checks."""
         args = list(self.docker) + ['create', '--pull', 'never', '--name', self.name,
                 '--label', 'com.homelab.nfs.probe=' + self.name, '--user', '1000:1000',
                 '--read-only', '--network', 'none', '--cap-drop', 'ALL', '--security-opt',
@@ -187,6 +192,11 @@ class ProbeProcess:
                  '--input-sha256', self.spec['input_sha256'], '--source-sha256',
                  self.spec['probe_sha256'], '--kernel', self.spec['kernel']]
         if self.gated:args+=['--defer-execute']
+        return args
+
+    def command(self):
+        self.original_close()
+        args = self.command_builder[0](self)
         self.original_close()
         return args
 
@@ -200,11 +210,16 @@ class ProbeProcess:
         return result
 
     def profile(self, row, terminal=False, running=False):
+        self.original_close()
+        builder,code=self.command_builder
+        command = builder(self)
+        need(ProbeProcess._command is builder and builder.__code__ is code
+             and getattr(self._command,'__func__',None) is builder,'probe-original-command-builder')
         need(type(row) is dict and row.get('Id') == self.cid and row.get('Image') == self.spec['image'], 'probe-original-CID-image')
         c, h, s = row['Config'], row['HostConfig'], row['State']
         need(c['User'] == '1000:1000' and c['Labels'].get('com.homelab.nfs.probe') == self.name
              and c.get('Entrypoint') == ['/lsiopy/bin/python3']
-             and c.get('Cmd') == self.command()[self.command().index(self.spec['image']) + 1:], 'probe-original-command-label')
+             and c.get('Cmd') == command[command.index(self.spec['image']) + 1:], 'probe-original-command-label')
         need(h['ReadonlyRootfs'] is True and h['Privileged'] is False and h['NetworkMode'] == 'none'
              and h['PidMode'] == '' and not h.get('CapAdd') and h['CapDrop'] == ['ALL']
              and h['SecurityOpt'] == ['no-new-privileges'] and h['PidsLimit'] == 64
@@ -233,7 +248,7 @@ class ProbeProcess:
             else:need(full==(self.full_running if running else self.full_created),'probe-original-full-profile-exact')
         self.original_close()
         if candidate is not None:
-            self.full_created,self.full_running,self.full_terminal=candidate;_FULL_PROFILES[self]=candidate
+            self.full_created,self.full_running,self.full_terminal=candidate;_FULL_PROFILES[self]=(*candidate,self.command_builder)
             self.original_close()
 
     def inspect(self, terminal=False, running=False):
