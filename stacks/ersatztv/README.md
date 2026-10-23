@@ -143,9 +143,10 @@ actual programme titles instead of grouping the guide into channel-name blocks.
 
 The example lineup keeps favorites first, followed by movie genres, family/studio
 collections, directors, franchises, seasonal programming, television collections,
-networks and cartoons. Its current custom range is 100–208, leaving 209–299 for
-future additions before multiviews at 300+. Preserve source IDs and original
-non-library numbers when changing these output positions.
+networks and cartoons. Its custom positions are 100–199, 203–209 and 213–214.
+The gaps preserve disabled IPTV mapping identities. Future additions can use
+available positions below multiviews at 300+, avoiding retained IPTV numbers.
+Preserve source IDs and original non-library numbers when changing positions.
 
 ### Channel artwork
 
