@@ -68,6 +68,27 @@ class ProbeBoundary(unittest.TestCase):
         self.row['State'].update(Status='exited', ExitCode=0)
         return subprocess.CompletedProcess(argv, 0, b'actual projected child ACK', b'')
 
+    def test_created_profile_survives_host_reply_json_roundtrip(self):
+        import comic_negative_nfs_active_parent as child
+        from unittest.mock import patch
+        wire=json.loads(json.dumps(self.process.create()))
+        with patch.object(child,'IMAGE',self.image):
+            self.assertEqual(child.profile(wire['profile'],wire['name'],wire['mounts']),self.cid)
+
+    def test_wire_profile_still_refuses_changed_mounts(self):
+        import comic_negative_nfs_active_parent as child
+        from unittest.mock import patch
+        wire=json.loads(json.dumps(self.process.create()))
+        changes=[(0,'Source','/foreign'),(0,'Destination','/foreign'),(0,'RW',False),
+                 (0,'Type','volume'),(1,'RW',True)]
+        for index,key,value in changes:
+            row=copy.deepcopy(wire['profile']);row['Mounts'][index][key]=value
+            with self.subTest(index=index,key=key),patch.object(child,'IMAGE',self.image),self.assertRaisesRegex(child.Held,'child-mounts'):
+                child.profile(row,wire['name'],wire['mounts'])
+        row=copy.deepcopy(wire['profile']);row['Mounts'].pop()
+        with patch.object(child,'IMAGE',self.image),self.assertRaisesRegex(child.Held,'child-mounts'):
+            child.profile(row,wire['name'],wire['mounts'])
+
     def test_exact_owned_birth_start_terminal_and_inherited_label(self):
         prepared=self.process.prepare()
         self.assertEqual(self.calls, [])

@@ -1208,7 +1208,7 @@ _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
 NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '73ee799c47d05bdb359ff1869aa893fb06fa510d7d84dba8743deeb91ebe1ff5', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
-NFS_ACTIVE_SOURCE_SHA='3641cf78d3faa6eaa72ece09a08092ce3b64f9575cf16b421b56632b54c300af'
+NFS_ACTIVE_SOURCE_SHA='44690793cb051e2628908dacd5fdc35835dd62f93fa03f047c8a19cd3b87bd77'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):

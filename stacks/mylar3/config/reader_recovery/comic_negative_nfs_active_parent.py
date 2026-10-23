@@ -811,7 +811,7 @@ def profile(row, name, mounts):
         len(row["Mounts"]) == len(mounts)
         and all(m["Type"] == "bind" for m in row["Mounts"])
         and sorted((m["Source"], m["Destination"], m["RW"]) for m in row["Mounts"])
-        == sorted(mounts),
+        == sorted(tuple(m) for m in mounts),
         "child-mounts",
     )
     check(re.fullmatch("[a-f0-9]{64}", row["Id"]), "child-id")

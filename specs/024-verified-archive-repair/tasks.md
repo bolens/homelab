@@ -21,21 +21,20 @@ rollback with feature 023 T026/T029 and the isolated portion of T027.
    as subsequent operational milestones. The current disposable-fixture scope
    does not authorize production T016–T018 or permanent worker activation.
 
-PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit and
-removed one duplicate session guard after all hosted checks passed. A fresh
-isolated run then reached probe creation but held at the dialogue deadline
-during birth registration, before reader stop. Its original native/reader
-epochs and inactive worker remain unchanged. Independent post-hold comparisons
-preserve both archives, reader records/progress and six page hashes. The next
-correction removes repeated command construction and root observation, and
-delegates registered common-root custody to its existing complete geometry
-checker. A separate actual Root/NFS benchmark of 24 identical private controls
-reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
-controls, geometry and source bytes. This measures metadata closure, not the
-connected recovery path. Final source additionally checks the exact ancestor
-key set before any Root path access; its regression verifies that consistently
-forged ledgers cannot trigger a foreign metadata read. Terminal acceptance
-remains unproved. This stays within T012, with no new task or acceptance gate.
+PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit.
+PR [#513](https://github.com/bolens/homelab/pull/513) delivered the repeated
+validation correction after local and hosted checks passed. Its actual Root/NFS
+benchmark reduced 24 common-root checks from 2.744 seconds to 0.185 seconds.
+Final source also rejects foreign ancestor keys before Root metadata reads.
+
+The fresh isolated AH run passed the previous deadline boundary, then held at
+the child mount comparison about 41 seconds after helper start, before reader
+stop. Native/reader epochs and the inactive worker remain unchanged. Independent
+post-hold comparison preserves both archives, reader records/progress and six
+page hashes. The next correction normalizes expected mount rows after the host
+reply's JSON round trip, preserving exact path, access mode, type and count
+checks. Terminal acceptance remains unproved. This stays within T012, with no
+new task or acceptance gate.
 Preserve all earlier attempts and
 originals without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
