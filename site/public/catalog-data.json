@@ -540,6 +540,12 @@
     "url": "apps/lanraragi/"
   },
   {
+    "name": "Librarr",
+    "category": "Media",
+    "summary": "Book, audiobook and manga acquisition with direct downloads, Prowlarr search, and optional qBittorrent downloads. Existing library managers remain independent.",
+    "url": "apps/librarr/"
+  },
+  {
     "name": "LibreChat Stack",
     "category": "AI",
     "summary": "Self-hosted chat interface for multiple AI providers, agents, MCP tools, code execution, search, and image generation.",

@@ -197,3 +197,22 @@ upstream license notices. See [`independent/NOTICE`](independent/NOTICE).
 Clearing independent account credentials holds pending synchronization events until reconnection. A private, authenticated capability snapshot in the existing Kavita configuration volume preserves creation eligibility across restart during a gateway outage. It is bound to the gateway origin and shared key and never authorizes delivery. Include it in normal configuration backups.
 
 Provider metadata cache is limited to 1024 entries/32 MiB. New progress writes reserve protected receipt capacity before a provider mutation. Confirmed progress, ambiguous outcomes and old unclassified receipts retain retry protection. Reconciled-operation receipts can expire after seven days, with a maximum of 1024 recent entries. Combined receipt/reservation capacity is 100000. Full protected capacity holds new writes for operator review. Do not delete protected receipts as routine cleanup. The main SQLite database has a 512 MiB page budget, with separate WAL checkpointing. Continue monitoring filesystem free space.
+
+## Optional Librarr libraries
+
+[Librarr](../librarr/README.md#optional-reader-setup) can supply separate ebook
+and manga libraries. Set `LIBRARR_MEDIA_PATH` to Librarr's identical media root
+and explicitly add `-f docker-compose.librarr.yml` after the base Compose file
+(and alongside any existing selected overrides). It mounts existing
+`librarr/ebooks` at `/data/librarr-books` and `librarr/manga` at
+`/data/librarr-manga`, both read-only and with automatic host-path creation
+disabled. Verify these directories on the intended mounted filesystem first.
+Preparation leaves this override inactive; no ingress change is needed.
+
+Create separate Book and Manga libraries at those roots. Preserve the current
+Calibre export, Mylar and manga libraries; do not use overlapping roots or import
+the same book through both Calibre and Librarr. To request scans from Librarr,
+select its reader-network override and configure a private Kavita login and the
+exact new ebook/manga library IDs. Leave Librarr's Kavita copy destinations unset
+because these mounts already expose the organized files. Back up reader state
+and verify existing progress before a live library change.

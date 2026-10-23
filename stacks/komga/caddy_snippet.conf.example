@@ -40,3 +40,4 @@ komga.example.com {
 # PDF normalization is local to the optional worker; no additional ingress.
 # Optional readable-notification image uses the same service and ingress.
 # Native-owned conversion and combined publication require no worker ingress.
+# Optional Librarr media mounts reuse this ingress; no additional route.

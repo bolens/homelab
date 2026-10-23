@@ -55,7 +55,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Optional independent-provider images are experimental; genuine provider acceptance and full Kavita+ parity remain unverified. Recovery snapshots and protected receipts belong in existing volume backups.'
+  notes: 'Optional independent-provider images are experimental; genuine provider acceptance and full Kavita+ parity remain unverified. Recovery snapshots and protected receipts belong in existing volume backups. Optional docker-compose.librarr.yml adds separate read-only Librarr library roots.'
 runtime_security:
   privileged_services: []
   host_network_services: []

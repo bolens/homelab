@@ -132,3 +132,14 @@ DOCKER_MODS=linuxserver/mods:universal-calibre
 ```
 
 Then in Calibre-Web Admin → Basic Configuration → External Binaries, set the path to Calibre E-book converter to `/usr/bin/` (directory) or `/usr/bin/ebook-convert` as per LinuxServer docs.
+
+## Librarr acquisition
+
+[Librarr](../librarr/README.md) writes organized ebooks to a dedicated
+`librarr/ebooks` subtree outside this stack's managed Calibre library. Use
+Calibre-Web's enabled upload flow for selected files, or rehearse supported
+`calibredb add` under the backup and preservation workflow above. Librarr's
+`CALIBRE_LIBRARY_PATH` implementation only copies files; it does not register
+books in `metadata.db`. Leave it unset for the managed library. Once registered,
+the existing Calibre-to-Kavita export can publish those books normally. Avoid
+adding the same books to Kavita through both its Librarr and Calibre libraries.

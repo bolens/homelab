@@ -65,3 +65,15 @@ In Portainer: Stacks → Add stack → paste the compose and optionally set `TZ`
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory
 existence alone does not verify the remote mount; check its source and access.
+
+## Librarr acquisition
+
+[Librarr](../librarr/README.md) can organize audiobooks into
+`/data/audiobooks/Librarr` in its media mount. If
+`AUDIOBOOKSHELF_AUDIOBOOKS_PATH` points to the same host `audiobooks` directory,
+those files appear at `/audiobooks/Librarr` here, with the existing read-only
+mount unchanged. Use the existing audiobook library to avoid overlapping roots.
+For automatic scan requests, select Librarr's reader-network override and set
+`ABS_URL=http://audiobookshelf:80`, a private API token, and the exact audiobook
+library ID. Verify a specific new file appears; container health alone does not
+prove the shared storage and scan configuration.
