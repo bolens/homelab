@@ -89,3 +89,19 @@ The operator can prepare, validate, back up and recover the stack using its docu
 - Reuse the existing tunnel, identity restrictions, reverse proxy and Plex connection.
 - Start with bounded genre-based stations, without installing a recurring channel-invention job.
 - Runtime addresses, credentials, account identifiers and private evidence remain outside tracked examples.
+
+
+### Library-only network collections
+
+Network-themed stations play available library media, with native Plex network
+metadata and reviewed title fallbacks that catch future episodes and series.
+Creator/studio stations retain directing/production boundaries and exact library
+scope. Personal channel restrictions and all original station IDs remain intact.
+The organized custom output range precedes the reserved multiview range.
+
+A temporary library-only presentation must disable or hide every non-Ersatz
+output without deleting its channels, stream links, profiles, sources, logos or
+retained Plex mappings. Preserve an exact private restoration manifest and pause
+quarantine mutation while the channels are retained for later work. Backups and
+library-guide monitoring continue. Validate the actual visible Plex lineup and
+complete programme identities after import, not only application row counts.

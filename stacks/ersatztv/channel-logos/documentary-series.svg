@@ -2,7 +2,7 @@
   <title id="documentary-series-title">Documentary Series</title>
   <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
   <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#8ae0a2" stroke-width="5" />
-  <g transform="translate(0 0.50)">
+  <g transform="translate(8 38.4) scale(.8)"><g transform="translate(0 0.50)">
     <g stroke-linejoin="round" stroke-linecap="round">
       <rect x="68" y="69" width="214" height="231" rx="18" fill="#315e54" stroke="#8ae0a2" stroke-width="6" />
       <path d="M90 91h170v185H90Z" fill="#b9d8a5" />
@@ -32,6 +32,6 @@
       </g>
     </g>
   </g>
-  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="40" font-weight="800" text-anchor="middle" fill="#8ae0a2">DOCUMENTARY</text>
-  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8ae0a2">SERIES</text>
+  </g><text x="500" y="166" font-family="DejaVu Sans, sans-serif" font-size="51" font-weight="800" text-anchor="middle" fill="#8ae0a2">DOCUMENTARY</text>
+  <text x="500" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#8ae0a2">SERIES</text>
 </svg>

@@ -301,3 +301,20 @@ map and dotted trail. The complete icon is vertically centered, with a three-lin
 wordmark checked at 768 × 384 and 240 × 120. It sits beside Unexplained Files in
 the television group, ahead of cartoons. Existing channel identities stay stable
 when the cartoon output positions move down one slot.
+
+
+The network/creator pass adds editable custom marks for Don Bluth, A24, Stargate,
+James Cameron, Scorsese, FX, Comedy Central, HBO/Max, Showtime, AMC, NBC, Apple TV,
+Prime Video and Netflix. These use custom geometry and typographic interpretations
+of familiar brand motifs within the existing 2:1 channel frame. The NBC fan uses
+six distinct feather colors. The network references are the official
+[FX catalog](https://www.fxnetworks.com/shows/all),
+[Comedy Central catalog](https://www.cc.com/series/all-content),
+[A24 catalog](https://a24films.com/films), and each service's public branding.
+No external SVG or executable content is embedded.
+
+The small-label pass enlarges Transformers, Illumination and documentary titles
+by giving text more horizontal room. Nature & Wildlife uses a multicolor wetland
+scene with an egret, trees, water and a leaf. Editable originals own the design;
+PNG exports remain 768 × 384. Review 256 × 128 and smaller guide thumbnails before
+installing, and verify the image bytes returned through both applications.

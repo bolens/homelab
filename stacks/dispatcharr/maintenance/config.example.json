@@ -8,6 +8,7 @@
   "plex_root": "/path/to/plex-config/Library/Application Support/Plex Media Server",
   "configuration_files": ["/path/to/private/maintenance.json"],
   "protected_profiles": ["Plex Free TV"],
+  "quarantine_enabled": true,
   "quarantine_days": 14,
   "minimum_failed_days": 3,
   "backup_generations": 7,

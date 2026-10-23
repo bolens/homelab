@@ -199,6 +199,22 @@ configuring IPTV Checker. Adding a plugin does not supply streams or schedules.
 
 ## Optional host maintenance
 
+To retain IPTV channels while temporarily publishing only library channels, save
+an exact private snapshot of channel visibility, profile membership, source state
+and Plex mappings. Set `hidden_from_output` on non-library channels, disable their
+profile memberships and pause their source accounts. Keep their rows, stream
+links, artwork and original numbers. Update Plex with the complete preserved
+mapping plus the intended enabled set, then verify the actual visible lineup.
+
+Set the host maintenance JSON option `quarantine_enabled` to `false` during this
+pause. It defaults to `true`. A paused check leaves quarantine history untouched
+and performs no quarantine, restoration or deletion action. Backups, health and
+the ErsatzTV correctness observer continue. Save the restoration snapshot outside
+Git and include it in `configuration_files`. Before re-enabling quarantine,
+review its retained failure history and validate the channels again. Restoring
+IPTV visibility and re-enabling deletion policy are separate operator choices.
+
+
 `maintenance/` contains opt-in host jobs for a Dispatcharr/Plex installation.
 They use the existing Docker CLI and native database tools, not a Docker socket
 mounted into an application container. They require the operator's explicit

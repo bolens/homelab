@@ -112,6 +112,41 @@ Changing Dispatcharr output numbers also requires refreshing the tuner channel
 list and updating Plex's complete guide mapping; ErsatzTV source numbers can stay
 unchanged.
 
+### Library-powered network and creator collections
+
+The [portable collection presets](channel-logos/channel-presets.json) describe
+network, studio, director and franchise filters. They contain no deployment IDs.
+Resolve the intended Movies and TV library IDs locally, and fence the complete
+query with the exact `library_id`, media `type` and quarantine exclusion.
+Map `shows` to `show_title`, `network` to `show_network`, movie `tag` to
+`tag_full`, and `title_and_year` to `title_and_year_search`. `show_tag` is the
+matching episode field for ordinary Plex show labels. A network genre condition
+applies to its network branch; a whole-pool show-genre exclusion stays outside
+the union. The NBC Comedy preset excludes animation/anime because Plex's `NBC`
+network tag can also identify a Japanese broadcaster.
+
+These channels play the owner's library. They are not live feeds from the named
+networks. FX/FXX, Comedy Central, HBO/Max, Showtime, AMC, NBC comedy, Apple TV,
+Prime Video and Netflix use native Plex network tags plus reviewed series-title
+fallbacks. Network tags catch future series; title fallbacks catch future episodes
+when network metadata is missing. Do not infer a broadcast network from a generic
+production studio such as Sony Pictures Television or Universal Television.
+Keep future imports eligible through verified metadata or intentional Plex labels.
+
+Don Bluth, James Cameron and Martin Scorsese use director metadata, with reviewed
+film aliases where needed. A24 uses studio metadata, a reviewed catalog and an
+optional `ETV A24` Plex label because a distributor may be absent from the studio
+field. Stargate Command TV selects only episodes of the three named Stargate
+series. Episode stations rotate show groups with chronological episodes and
+multipart-story preservation. Movie stations shuffle complete films. Verify
+actual programme titles instead of grouping the guide into channel-name blocks.
+
+The example lineup keeps favorites first, followed by movie genres, family/studio
+collections, directors, franchises, seasonal programming, television collections,
+networks and cartoons. Its current custom range is 100–208, leaving 209–299 for
+future additions before multiviews at 300+. Preserve source IDs and original
+non-library numbers when changing these output positions.
+
 ### Channel artwork
 
 See [logo source notes](channel-logos/README.md) for the reference marks and
@@ -193,10 +228,10 @@ Do not use an `Expedition*` wildcard, which also admits unrelated series. The
 schedule shuffles show groups, keeps episodes chronological within each group
 and preserves multipart stories. Use actual episode titles in the guide.
 
-Keep Family Toon Theater animation-only. A separate Family Movie Matinee can
-combine the reviewed family-animation pool with G/PG and suitable television-rated
-family movies, including live-action films. Require the selected Movies library
-and the global quarantine guard on every branch.
+Keep Family Toon Theater animation-only. Family Movie Matinee selects live-action
+G/PG and suitable television-rated family films. Exclude animation except for
+explicitly reviewed live-action/animation hybrids. Require the selected Movies
+library and the global quarantine guard on every branch.
 Air Bud and Buddies films belong in family programming and fitting seasonal
 channels, not Sports Cinema. Apply the franchise exclusion outside the complete
 sports union, even when a film has a valid Sport genre. Use token-aware terms

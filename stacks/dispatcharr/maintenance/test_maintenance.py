@@ -58,6 +58,27 @@ class QuarantineTests(unittest.TestCase):
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_quarantine_pause_preserves_history_and_never_calls_mutating_adapter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = object.__new__(Maintenance)
+            runner.state = Path(directory)
+            runner.config = {"quarantine_enabled": False}
+            history = runner.state / "quarantine.json"
+            history.write_text('{"history":{"fixture":{"first_failed":1}}}')
+            before = history.read_bytes()
+            with patch.object(runner, "django") as adapter:
+                result = runner.quarantine({"channels": [CHANNEL], "results": DEAD})
+            adapter.assert_not_called()
+            self.assertEqual(result, {"paused": True})
+            self.assertEqual(history.read_bytes(), before)
+            self.assertEqual({p.name for p in runner.state.iterdir()}, {"quarantine.json"})
+
+    def test_quarantine_pause_requires_a_json_boolean(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for value in ["false", 0, None]:
+                with self.subTest(value=value), self.assertRaisesRegex(ValueError, "boolean"):
+                    Maintenance({"state_directory": directory, "quarantine_enabled": value})
+
     def test_first_check_baselines_existing_retention_without_put(self):
         with tempfile.TemporaryDirectory() as directory:
             runner = object.__new__(Maintenance)

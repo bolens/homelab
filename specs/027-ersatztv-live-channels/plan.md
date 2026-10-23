@@ -47,3 +47,20 @@ Use a rolling seven-day horizon and remove daily reset times; append through the
 native scheduler and prove every prior future programme is unchanged. Preserve
 all station identities, media, mappings, recording rules and runtime deployment
 settings. Run transition/concurrency probes without stopping user sessions.
+
+
+### Network and library-only rollout
+
+Capture definitions and complete row/mapping baselines, then verify a fresh
+application-consistent backup through isolated restores. Evaluate proposed
+filters against a stable copy of the native index and exercise the native SQL
+change on a disposable database. Preserve source station identities and apply
+only reviewed output-number, grouping, curation and artwork changes. Build only
+new or deliberately changed playouts. Use native show-group rotation for series.
+
+Retain IPTV records with hidden output and disabled memberships/source polling.
+Store their exact prior flags and mappings privately under normal backup
+coverage. Add a boolean host-maintenance quarantine pause with regression proof
+that it neither calls the mutation adapter nor rewrites history. Submit the
+complete Plex mapping with the intended custom-only enabled set, compare every
+retained binding, and prove actual guide, logo, playback and persistence behavior.

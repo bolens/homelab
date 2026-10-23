@@ -21,8 +21,7 @@
     </linearGradient>
   </defs>
   <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
-  <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffd967" stroke-width="5" />
-  <g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 11.0)">
+  <g transform="translate(8 38.4) scale(.8)"><g stroke-linejoin="round" stroke-linecap="round" transform="translate(0 11.0)">
     <g>
       <g stroke-linecap="round">
         <path d="M98 207q-36 7-35 38m194-34q33-3 34-35" fill="none" stroke="#f4cc38" stroke-width="14" />
@@ -62,8 +61,9 @@
       </g>
     </g>
   </g>
+  </g><rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#ffd967" stroke-width="5" />
   <g fill="#ffd967" font-family="DejaVu Sans, sans-serif" text-anchor="middle" font-weight="800" transform="translate(0 15.5)">
-    <text x="535" y="150" font-size="46">ILLUMINATION</text>
-    <text x="535" y="238" font-size="57">ANIMATION</text>
+    <text x="500" y="150" font-size="54">ILLUMINATION</text>
+    <text x="500" y="238" font-size="68">ANIMATION</text>
   </g>
 </svg>

@@ -1449,3 +1449,23 @@ sessions expire. Eleven exporter/bridge regression tests, twenty override tests,
 `make validate-changed` and `make ci-local` pass. The separate self-review corrects
 raw-byte source-guard handling; publication scans find no secrets. This acceptance
 supersedes the earlier T081 pending-status note above.
+
+
+## Network collections and library-only lineup — 2026-10-23
+
+- [ ] T083 Capture current native/Dispatcharr/Plex definitions, rows and images;
+  take an application-consistent backup and prove isolated restoration before
+  changing state. Preserve strict personal stations, mappings and recording rules.
+- [ ] T084 Add supported studio/director/franchise and network-themed stations
+  with future-ready filters, distinct logos and organized output numbering.
+  Verify literal queries against a stable copy of the native search index.
+- [ ] T085 Separate live-action Family Movie Matinee from Family Toon Theater,
+  tighten Fantasy curation, and simplify equivalent filters with membership proof.
+  Improve the identified small-title and wildlife logos at guide size.
+- [ ] T086 Hide and disable non-Ersatz channels without deleting their records,
+  links, sources, profiles, artwork, mappings or rules. Retain a private exact
+  restoration manifest; verify every visible tuner and Plex channel is custom.
+- [ ] T087 Verify native/Dispatcharr/Plex programme fields, all intended content,
+  playback, restrictions and preservation; verify final backups and clean only
+  operation-created copies. Deliver reviewed public assets/docs through CI,
+  merge, mirror and documentation deployment.
