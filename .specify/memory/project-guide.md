@@ -107,6 +107,10 @@ When adding an owning engine method, update the privileged batch's exact
 code-object admission and exercise the actual dispatcher with bounded local
 pipes. A substituted Driver alone cannot prove the saved-ID transport accepts
 the new caller. Preserve all source-global, owner, engine and argument joins.
+Enforce subprocess output limits while draining both pipes. A size check after
+complete capture does not bound memory. Retain both owned pipes before fallible
+selector setup, and attempt termination, reaping and closure independently while
+preserving the primary failure.
 
 Before creating a disposable NFS-backed container, verify source-directory
 traversal from the Docker daemon's identity as well as the fixture owner. A

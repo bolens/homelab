@@ -302,15 +302,6 @@ class CreatorTests(unittest.TestCase):
             # Each iteration is a distinct local modeled owner/nonce, not a retry.
             self.document['nonce']=hashlib.sha256(self.document['nonce'].encode()).hexdigest()
 
-    def test_fixed_route_command_and_output_bounds(self):
-        driver=c.Driver();reply=type('Reply',(),dict(stdout=b'[]',stderr=b''))()
-        with patch.object(c.subprocess,'run',return_value=reply)as call:
-            self.assertEqual(driver.routes(900),b'[]')
-        self.assertEqual(call.call_args.args[0],['/usr/bin/ip','-json','-4','route','show','table','all'])
-        self.assertEqual(call.call_args.kwargs,dict(capture_output=True,check=True,timeout=30))
-        reply.stdout=b'x'*(4*1024**2+1)
-        with patch.object(c.subprocess,'run',return_value=reply),self.assertRaises(c.p.Held):driver.routes(900)
-
     def test_v3_fresh_searchable_geometry_under_private_umask(self):
         self.searchable_request();owner,_=self.creator()
         before=os.umask(0o077)
@@ -795,6 +786,79 @@ urllib.request.build_opener=lambda *args:(_ for _ in ()).throw(RuntimeError('TRA
             owner.engine.call('catalog-seed',1,['exec','fixture'])
         self.assertEqual(caught.exception.creator_diagnostic_failure,'OSError');self.assertEqual(caught.exception.creator_engine_failure['returncode'],2)
         self.assertTrue((owner.journal/'engine-failure.private.json').exists());self.assertTrue(owner.engine.poisoned);self.assertEqual(len(calls),1)
+
+
+class RouteTransportTests(unittest.TestCase):
+    """Real owned local pipes; only the fixed ip executable is substituted."""
+    def route(self, program, seconds=900):
+        original_spawn = subprocess.Popen; original_read = os.read
+        self.calls = []; self.reads = {}; self.child = None
+        def spawn(args, **options):
+            self.calls.append((args, options))
+            self.child = original_spawn([sys.executable, '-I', '-B', '-c', program], **options)
+            self.streams = (self.child.stdout.fileno(), self.child.stderr.fileno())
+            return self.child
+        def read(fd, size):
+            raw = original_read(fd, size)
+            if self.child is not None and fd in self.streams:
+                self.reads[fd] = self.reads.get(fd, 0) + len(raw)
+            return raw
+        with patch.object(c.subprocess, 'Popen', side_effect=spawn), patch.object(c.os, 'read', side_effect=read):
+            return c.Driver().routes(seconds)
+
+    def closed(self):
+        self.assertIsNotNone(self.child.poll())
+        self.assertTrue(self.child.stdout.closed)
+        self.assertTrue(self.child.stderr.closed)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_fixed_route_command_uses_owned_pipes(self):
+        self.assertEqual(self.route('import sys;sys.stdout.write("[]")'), b'[]')
+        args, options = self.calls[0]
+        self.assertEqual(args, ['/usr/bin/ip', '-json', '-4', 'route', 'show', 'table', 'all'])
+        self.assertEqual(options, dict(stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, env={'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8'}))
+        self.closed()
+
+    def test_stdout_limit_is_enforced_during_read(self):
+        with self.assertRaisesRegex(c.p.Held, 'creator-route-output'):
+            self.route('import os\nfor _ in range(128):os.write(1,b"x"*65536)')
+        self.assertLessEqual(self.reads.get(self.streams[0], 0), 4 * 1024**2 + 1)
+        self.closed()
+
+    def test_stderr_refuses_at_first_byte_without_unbounded_capture(self):
+        with self.assertRaisesRegex(c.p.Held, 'creator-route-output'):
+            self.route('import os\nfor _ in range(128):os.write(2,b"x"*65536)')
+        self.assertLessEqual(self.reads.get(self.streams[1], 0), 1)
+        self.closed()
+
+    def test_partial_setup_failure_closes_both_pipes_and_preserves_primary(self):
+        cases = [(c.selectors, 'DefaultSelector'), (c.os, 'set_blocking'),
+                 (c.selectors.DefaultSelector, 'register')]
+        for target, name in cases:
+            with self.subTest(setup=name), patch.object(target, name, side_effect=RuntimeError('route-setup-primary')):
+                with self.assertRaisesRegex(RuntimeError, '^route-setup-primary$'):
+                    self.route('import time;time.sleep(60)')
+            self.closed()
+        original_wait = subprocess.Popen.wait
+        try:
+            with patch.object(c.selectors, 'DefaultSelector', side_effect=RuntimeError('route-setup-primary')):
+                with patch.object(subprocess.Popen, 'wait', side_effect=ValueError('secondary-cleanup')):
+                    with self.assertRaisesRegex(RuntimeError, '^route-setup-primary$') as caught:
+                        self.route('import time;time.sleep(60)')
+            self.assertEqual(caught.exception.creator_route_cleanup_failure, 'ValueError')
+            self.assertTrue(self.child.stdout.closed)
+            self.assertTrue(self.child.stderr.closed)
+        finally:
+            original_wait(self.child, timeout=1)
+        self.closed()
+
+    def test_deadline_and_nonzero_exit_reap_only_owned_process(self):
+        for program, code in [('import time;time.sleep(60)', 'creator-route-deadline'),
+                              ('raise SystemExit(2)', 'creator-route-command')]:
+            with self.subTest(code=code), self.assertRaisesRegex(c.p.Held, code):
+                self.route(program, seconds=1)
+            self.closed()
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

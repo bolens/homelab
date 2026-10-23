@@ -121,10 +121,60 @@ class Driver:
         process.kill()
 
     def routes(self, seconds):
-        result = subprocess.run(['/usr/bin/ip', '-json', '-4', 'route', 'show', 'table', 'all'],
-                                capture_output=True, check=True, timeout=min(seconds, 30))
-        need(len(result.stdout) <= 4 * 1024**2 and not result.stderr, 'creator-route-output')
-        return result.stdout
+        need(type(seconds) is int and seconds >= 1, 'creator-route-deadline')
+        deadline = time.monotonic() + min(seconds, 30)
+        process = None; streams = []; output = bytearray(); primary = None
+        try:
+            process = subprocess.Popen(['/usr/bin/ip', '-json', '-4', 'route', 'show', 'table', 'all'],
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env={'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8'})
+            streams = [process.stdout, process.stderr]
+            with selectors.DefaultSelector() as poll:
+                for stream in streams:
+                    os.set_blocking(stream.fileno(), False)
+                    poll.register(stream, selectors.EVENT_READ)
+                while poll.get_map():
+                    left = deadline - time.monotonic(); need(left > 0, 'creator-route-deadline')
+                    for key, _ in poll.select(min(0.2, left)):
+                        stream = key.fileobj
+                        size = min(65536, 4 * 1024**2 + 1 - len(output)) if stream is process.stdout else 1
+                        block = os.read(stream.fileno(), size)
+                        if not block:
+                            poll.unregister(stream)
+                        elif stream is process.stdout:
+                            output.extend(block); need(len(output) <= 4 * 1024**2, 'creator-route-output')
+                        else:
+                            raise p.Held('creator-route-output')
+            left = deadline - time.monotonic(); need(left > 0, 'creator-route-deadline')
+            need(process.wait(timeout=left) == 0, 'creator-route-command')
+        except BaseException as error:
+            primary = error
+        finally:
+            if process is not None:
+                try:
+                    if process.poll() is None:
+                        process.kill()
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+                    else:
+                        primary.creator_route_cleanup_failure = type(error).__name__
+                try:
+                    process.wait(timeout=1)
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+                    else:
+                        primary.creator_route_cleanup_failure = type(error).__name__
+            for stream in streams:
+                try:
+                    stream.close()
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+        if primary is not None:
+            raise primary
+        return bytes(output)
 
     def docker(self, args, seconds, data=None):
         need(type(args)is list and type(seconds)is int and 1<=seconds<=30 and (data is None or type(data)is bytes and len(data)<=8*1024**2),'bounded-engine-request')

@@ -174,6 +174,9 @@ Creator request v4 preserves v3 searchable geometry and adds exactly `network`:
 The subnet must use canonical IPv4 network spelling with no host bits. The owning
 actor checks every current IPv4 host routing table and every Docker network's
 IPAM before the sole create intent, using the host's `/usr/bin/ip` from iproute2.
+That fixed command has a 30-second deadline and enforces its 4 MiB stdout limit
+while reading. Any stderr refuses immediately. Failure terminates/reaps only
+that owned client and closes both pipes, including partially completed setup.
 Any non-default route or Docker-subnet overlap,
 malformed/bounded reply failure or uncertain outcome refuses. Default host routes
 are excluded from overlap comparison; narrower routes and local addresses count.
