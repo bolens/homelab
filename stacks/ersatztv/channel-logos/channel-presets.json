@@ -1,0 +1,343 @@
+{
+  "schema": 1,
+  "description": "Portable library-powered collections inspired by networks and creators. These are personal-library channels, not live network feeds. Resolve library IDs locally. Native network tags catch future series; explicit show lists cover missing metadata and catch future episodes. Creator/studio metadata and intentional Plex labels support future movies.",
+  "channels": [
+    {
+      "name": "Don Bluth Animation",
+      "asset": "don-bluth-animation",
+      "section": "Animation studios",
+      "kind": "movie",
+      "match": {
+        "director": [
+          "Don Bluth"
+        ],
+        "title_and_year": [
+          "The Secret of NIMH 1982",
+          "An American Tail 1986",
+          "The Land Before Time 1988",
+          "All Dogs Go to Heaven 1989",
+          "Rock-A-Doodle 1991",
+          "Thumbelina 1994",
+          "A Troll in Central Park 1994",
+          "The Pebble and the Penguin 1995",
+          "Anastasia 1997",
+          "Bartok the Magnificent 1999",
+          "Titan A.E. 2000"
+        ]
+      }
+    },
+    {
+      "name": "A24 Cinema",
+      "asset": "a24-cinema",
+      "section": "Movie studios",
+      "kind": "movie",
+      "match": {
+        "studio": [
+          "A24",
+          "A24 Films"
+        ],
+        "tag": [
+          "ETV A24"
+        ],
+        "title_and_year": [
+          "Ex Machina 2014",
+          "Ex Machina 2015",
+          "The Witch 2015",
+          "The Witch 2016",
+          "Hereditary 2018",
+          "Midsommar 2019",
+          "The Lighthouse 2019",
+          "Everything Everywhere All at Once 2022",
+          "Talk to Me 2023",
+          "The Green Knight 2021",
+          "Past Lives 2023",
+          "Uncut Gems 2019",
+          "Men 2022",
+          "The Legend of Ochi 2025",
+          "Moonlight 2016",
+          "Lady Bird 2017",
+          "Room 2015",
+          "Pearl 2022",
+          "X 2022",
+          "MaXXXine 2024",
+          "The Whale 2022",
+          "Aftersun 2022",
+          "The Florida Project 2017",
+          "Good Time 2017",
+          "Green Room 2015",
+          "Under the Skin 2013",
+          "Minari 2020",
+          "Eighth Grade 2018",
+          "The Killing of a Sacred Deer 2017",
+          "Saint Maud 2019",
+          "Beau Is Afraid 2023",
+          "The Iron Claw 2023",
+          "Civil War 2024",
+          "Love Lies Bleeding 2024",
+          "Dream Scenario 2023",
+          "Heretic 2024"
+        ]
+      }
+    },
+    {
+      "name": "James Cameron Cinema",
+      "asset": "james-cameron-cinema",
+      "section": "Directors",
+      "kind": "movie",
+      "match": {
+        "director": [
+          "James Cameron"
+        ]
+      }
+    },
+    {
+      "name": "Scorsese Cinema",
+      "asset": "scorsese-cinema",
+      "section": "Directors",
+      "kind": "movie",
+      "match": {
+        "director": [
+          "Martin Scorsese"
+        ]
+      }
+    },
+    {
+      "name": "Stargate Command TV",
+      "asset": "stargate-command-tv",
+      "section": "Television",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Stargate SG-1",
+          "Stargate Atlantis",
+          "Stargate Universe"
+        ]
+      }
+    },
+    {
+      "name": "FX Favorites",
+      "asset": "fx-favorites",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "A Murder at the End of the World",
+          "American Crime Story",
+          "American Horror Story",
+          "Archer (2009)",
+          "DAVE",
+          "Devs",
+          "Fargo",
+          "It's Always Sunny in Philadelphia",
+          "Mayans M.C.",
+          "Snowfall",
+          "Sons of Anarchy",
+          "The Americans (2013)",
+          "The Bear",
+          "The Drop: A Snowfall Saga",
+          "The League",
+          "Under the Banner of Heaven",
+          "What We Do in the Shadows"
+        ],
+        "network": [
+          "FX",
+          "FXX"
+        ],
+        "show_tag": [
+          "ETV Network FX"
+        ]
+      }
+    },
+    {
+      "name": "Comedy Central Rewind",
+      "asset": "comedy-central-rewind",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "South Park",
+          "Workaholics",
+          "Brickleberry",
+          "Futurama"
+        ],
+        "network": [
+          "Comedy Central"
+        ],
+        "show_tag": [
+          "ETV Network Comedy Central"
+        ]
+      }
+    },
+    {
+      "name": "HBO & Max Showcase",
+      "asset": "hbo-max-showcase",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Boardwalk Empire",
+          "Chernobyl",
+          "Dune: Prophecy",
+          "Lanterns",
+          "Last Week Tonight with John Oliver",
+          "Scavengers Reign",
+          "Silicon Valley",
+          "The Plot Against America",
+          "The Righteous Gemstones",
+          "Westworld"
+        ],
+        "network": [
+          "HBO",
+          "Max",
+          "HBO Max"
+        ],
+        "show_tag": [
+          "ETV Network HBO Max"
+        ]
+      }
+    },
+    {
+      "name": "Showtime Showcase",
+      "asset": "showtime-showcase",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Dexter",
+          "Dexter: New Blood",
+          "Dexter: Original Sin",
+          "Dexter: Resurrection",
+          "Shameless",
+          "Twin Peaks",
+          "Weeds"
+        ],
+        "network": [
+          "Showtime",
+          "Paramount+ with Showtime"
+        ],
+        "show_tag": [
+          "ETV Network Showtime"
+        ]
+      }
+    },
+    {
+      "name": "AMC Crime Stories",
+      "asset": "amc-crime-stories",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Breaking Bad",
+          "Better Call Saul"
+        ],
+        "network": [
+          "AMC"
+        ],
+        "show_tag": [
+          "ETV Network AMC"
+        ]
+      },
+      "network_genre": "crime"
+    },
+    {
+      "name": "NBC Comedy Classics",
+      "asset": "nbc-comedy-classics",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Community",
+          "Parks and Recreation",
+          "Superstore",
+          "The Office (US)"
+        ],
+        "network": [
+          "NBC"
+        ],
+        "show_tag": [
+          "ETV Network NBC Comedy"
+        ]
+      },
+      "network_genre": "comedy",
+      "exclude_show_genres": [
+        "Animation",
+        "Anime"
+      ]
+    },
+    {
+      "name": "Apple TV+ Originals",
+      "asset": "apple-tv-originals",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "For All Mankind",
+          "Severance",
+          "Silo",
+          "Slow Horses",
+          "Ted Lasso",
+          "Widow's Bay"
+        ],
+        "network": [
+          "Apple TV",
+          "Apple TV+"
+        ],
+        "show_tag": [
+          "ETV Network Apple TV"
+        ]
+      }
+    },
+    {
+      "name": "Prime Video Originals",
+      "asset": "prime-video-originals",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "Hunters",
+          "Night Sky",
+          "Patriot",
+          "Secret Level",
+          "The Boys",
+          "The Expanse",
+          "The Lord of the Rings: The Rings of Power",
+          "The Man in the High Castle"
+        ],
+        "network": [
+          "Prime Video"
+        ],
+        "show_tag": [
+          "ETV Network Prime Video"
+        ]
+      }
+    },
+    {
+      "name": "Netflix Originals",
+      "asset": "netflix-originals",
+      "section": "Network collections",
+      "kind": "episode",
+      "match": {
+        "shows": [
+          "BoJack Horseman",
+          "Castlevania",
+          "Castlevania: Nocturne",
+          "Disenchantment",
+          "MINDHUNTER",
+          "Monster (2022)",
+          "Ozark",
+          "Santa Clarita Diet",
+          "Squid Game",
+          "The Haunting",
+          "Tomb Raider: The Legend of Lara Croft",
+          "Wednesday"
+        ],
+        "network": [
+          "Netflix"
+        ],
+        "show_tag": [
+          "ETV Network Netflix"
+        ]
+      }
+    }
+  ]
+}

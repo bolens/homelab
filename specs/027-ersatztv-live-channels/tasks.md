@@ -1449,3 +1449,63 @@ sessions expire. Eleven exporter/bridge regression tests, twenty override tests,
 `make validate-changed` and `make ci-local` pass. The separate self-review corrects
 raw-byte source-guard handling; publication scans find no secrets. This acceptance
 supersedes the earlier T081 pending-status note above.
+
+
+## Network collections and library-only lineup — 2026-10-23
+
+- [x] T083 Capture current native/Dispatcharr/Plex definitions, rows and images;
+  take an application-consistent backup and prove isolated restoration before
+  changing state. Preserve strict personal stations, mappings and recording rules.
+- [x] T084 Add supported studio/director/franchise and network-themed stations
+  with future-ready filters, distinct logos and organized output numbering.
+  Verify literal queries against a stable copy of the native search index.
+- [x] T085 Separate live-action Family Movie Matinee from Family Toon Theater,
+  tighten Fantasy curation, and simplify equivalent filters with membership proof.
+  Improve the identified small-title and wildlife logos at guide size.
+- [x] T086 Hide and disable non-Ersatz channels without deleting their records,
+  links, sources, profiles, artwork or rules. Retain mappings in a private exact
+  restoration manifest; verify every visible tuner and Plex channel is custom.
+- [x] T087 Verify native/Dispatcharr/Plex programme fields, all intended content,
+  playback, restrictions and preservation; verify final backups and clean only
+  operation-created copies. Deliver reviewed public assets/docs through CI,
+  merge, mirror and documentation deployment.
+
+
+Acceptance — 2026-10-23:
+
+- Fourteen new stations bring the enabled custom lineup to 109. Nine network
+  collections cover FX/FXX, Comedy Central, HBO/Max, Showtime, AMC, NBC comedy,
+  Apple TV+, Prime Video and Netflix. Don Bluth, A24, James Cameron, Scorsese and
+  Stargate provide the other five additions. Native network/director metadata,
+  reviewed aliases and intentional Plex labels keep future imports eligible.
+- A stable native search-index copy proves 45 shortened filters retain identical
+  membership. Two curation updates separate 203 live-action family films from
+  animation and remove three reviewed Fantasy exclusions. The corresponding
+  Plex exclusion labels preserve all prior labels, files and watch state.
+- Nineteen SVG/PNG pairs are installed and their public image bytes match.
+  Clare remains first, Morning and Bedtime Cartoons follow, and the remaining
+  stations follow the grouped manifest. Custom positions skip retained IPTV
+  identities; source channel IDs and numbers remain unchanged.
+- All 2,222 non-Ersatz channels remain in Dispatcharr with their stream links,
+  profiles, logos, rules and original numbers. Their output and memberships are
+  disabled, external source polling is paused, and quarantine mutation is paused
+  without rewriting its history. Both tuner outputs and Plex publish only the
+  109 custom stations. Plex drops mappings absent from the tuner; all 407 prior
+  IPTV bindings remain exact in the private restoration manifest under normal
+  backup coverage. The operator authorized these mapping changes.
+- Native, Dispatcharr and actual Plex programme fields match across 167.3 hours
+  for all 109 stations. The observer reports no missing channels, differences,
+  gaps, overlaps or recipe drift. Strict personal restrictions remain healthy;
+  62 season-zero and three episode-zero airings retain correct identities.
+  Video and audio decode through Dispatcharr for Clare, FX and Stargate.
+- Original source-media IDs, recording rules and persistent rows are preserved.
+  Application images and container identities remain unchanged. Pre-update,
+  numbering-adjustment and final backups pass isolated restore verification.
+  Test sessions expire and container staging is removed. Normal retained
+  backups and the IPTV restoration manifest are kept.
+- Thirty-four maintenance tests, `make validate-changed` and `make ci-local`
+  pass. The separate self-review fixes the dormant mapping-number collision,
+  documents Plex's absent-channel pruning, and corrects stale artwork counts.
+  Publication scans find no secrets. Delivery verifies the reviewed head,
+  required CI, merge, mirror and Pages before removing the operation's remaining
+  temporary copies and managed worktree.

@@ -2,7 +2,7 @@
   <title id="documentaries-title">Documentary Movies</title>
   <rect x="8" y="8" width="752" height="368" rx="52" fill="#111c2d" />
   <rect x="24" y="24" width="720" height="336" rx="38" fill="none" stroke="#9adfa1" stroke-width="5" />
-  <g transform="translate(0 -1.00)">
+  <g transform="translate(8 38.4) scale(.8)"><g transform="translate(0 -1.00)">
     <g stroke-linejoin="round" stroke-linecap="round">
       <circle cx="151" cy="159" r="102" fill="#397c7b" stroke="#b0e8b5" stroke-width="5" />
       <path d="M79 91q72-58 145 14-73-29-139 15Z" fill="#65a499" />
@@ -31,6 +31,6 @@
       <path d="M227 296v10m-10 0h21m-10 0-20 23m20-23 26 23" stroke="#a1d9a7" stroke-width="6" />
     </g>
   </g>
-  <text x="535" y="166" font-family="DejaVu Sans, sans-serif" font-size="40" font-weight="800" text-anchor="middle" fill="#9adfa1">DOCUMENTARY</text>
-  <text x="535" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#9adfa1">MOVIES</text>
+  </g><text x="500" y="166" font-family="DejaVu Sans, sans-serif" font-size="51" font-weight="800" text-anchor="middle" fill="#9adfa1">DOCUMENTARY</text>
+  <text x="500" y="254" font-family="DejaVu Sans, sans-serif" font-size="70" font-weight="800" text-anchor="middle" fill="#9adfa1">MOVIES</text>
 </svg>

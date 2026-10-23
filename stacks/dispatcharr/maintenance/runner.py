@@ -47,6 +47,8 @@ def require_mount(path, expected):
 class Maintenance:
     def __init__(self, config):
         self.config = config
+        if not isinstance(config.get("quarantine_enabled", True), bool):
+            raise ValueError("quarantine_enabled must be a JSON boolean")
         self.state = Path(config["state_directory"])
         self.state.mkdir(mode=0o700, parents=False, exist_ok=True)
         self.container = config.get("container", "dispatcharr")
@@ -115,6 +117,8 @@ class Maintenance:
         atomic_json(path, state)
 
     def quarantine(self, snapshot):
+        if self.config.get("quarantine_enabled", True) is False:
+            return {"paused": True}
         path = self.state / "quarantine.json"
         state = json.loads(path.read_text()) if path.exists() else {"history": {}}
         if "pending_generation" in state:
