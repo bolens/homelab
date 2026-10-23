@@ -84,7 +84,7 @@ class Transport:
 
 def owning(identity):
     driver = b.driver_type(c)(identity)
-    owner = SimpleNamespace(document={'images': {'native': {'id': 'sha256:'+'a'*64}}},
+    owner = SimpleNamespace(document={'version': 1, 'images': {'native': {'id': 'sha256:'+'a'*64}}},
                             metadata={'native': []}, check=lambda: None,
                             note=lambda *args: None, seconds=lambda: 2, journal=None, serial=0)
     owner.engine = c.PurposeEngine(owner, driver)

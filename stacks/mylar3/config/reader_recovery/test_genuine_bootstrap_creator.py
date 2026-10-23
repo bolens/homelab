@@ -47,12 +47,17 @@ class DriverDouble:
     """Finite response boundary; never presented as an installed engine."""
     def __init__(self):
         self.owner=None;self.calls=[];self.rows={};self.network='4'*64;self.fail=None;self.ready=False;self.password=None;self.claimed=False;self.wrong_probe=False;self.status_failures=0
+        self.route_rows=[dict(dst='default')];self.existing_subnets=[];self.ipam_drift=False
     def mount(self,path,seconds):return copy.deepcopy(self.owner.document['nfs_mount'])
+    def routes(self,seconds):return c.p.encode(self.route_rows)
     def docker(self,args,seconds,data=None):
         self.calls.append(copy.deepcopy(args));o=self.owner
         if self.fail==args[0] or self.fail==' '.join(args[:2]):raise c.p.Held('injected-lost-response')
         if args[:2]==['image','inspect']:return c.p.encode(next(v for v in o.metadata.values()if v[0]['Id']==args[2]))
         if args[:2]==['network','create']:return self.network.encode()
+        if args[:2]==['network','ls']:return ('8'*64+'\n').encode()
+        if args[:2]==['network','inspect'] and args[2:]==['8'*64]:
+            return c.p.encode([dict(Id='8'*64,IPAM=dict(Config=[dict(Subnet=v)for v in self.existing_subnets]))])
         if args[0]=='create':
             role=args[args.index('--name')+1].rsplit('-',1)[-1];cid={'native':'1','reader':'2','worker':'3'}[role]*64
             self.rows[cid]=dict(Id=cid,Name='/'+o.name(role),Image=o.document['images'][role]['id'],Path='/actual-default',Args=[],
@@ -69,7 +74,10 @@ class DriverDouble:
             row['NetworkSettings']['Networks']={'private':dict(NetworkID=self.network,Aliases=[o.reader_host]if role=='reader'else [],EndpointID='original')}
             return args[1].encode()
         if args[:2]==['network','inspect']:
-            return c.p.encode([dict(Id=self.network,Internal=True,Driver='bridge',Labels={c.b.LABEL:o.nonce,c.b.PURPOSE:'genuine-archive-fixture'},Containers={cid:dict(EndpointID=row['NetworkSettings']['Networks']['private']['EndpointID'])for cid,row in self.rows.items()if row['State']['Running']})])
+            profile=dict(Id=self.network,Internal=True,Driver='bridge',Labels={c.b.LABEL:o.nonce,c.b.PURPOSE:'genuine-archive-fixture'},Containers={cid:dict(EndpointID=row['NetworkSettings']['Networks']['private']['EndpointID'])for cid,row in self.rows.items()if row['State']['Running']})
+            if o.document['version']==4:
+                subnet=c.explicit_subnet(o.document['network']);profile.update(EnableIPv6=False,IPAM=dict(Driver='default',Config=[dict(Subnet=str(subnet),Gateway=str(subnet.network_address+(2 if self.ipam_drift else 1)))]))
+            return c.p.encode([profile])
         if args[0]=='restart':
             self.ready=True;row=self.rows[args[-1]];row['State'].update(Pid=456,StartedAt='restarted');return args[-1].encode()
         if args[0]=='exec' and args[-2:]==['sha256sum',c.JAR]:return (c.JAR_SHA+'  '+c.JAR+'\n').encode()
@@ -187,6 +195,121 @@ class CreatorTests(unittest.TestCase):
         self.document['sources']['reader_queue']=ref(HERE/'genuine_reader_quiescence.py')
         Path(self.document['nfs_parent']['path']).chmod(0o711)
         self.document['nfs_parent']=c.Creator.directory_ref(Path(self.document['nfs_parent']['path']))
+
+    def explicit_network_request(self):
+        self.searchable_request();self.document['version']=4
+        self.document['network']=dict(version=1,kind='explicit-disposable-ipv4',subnet='10.99.0.0/28')
+
+    def test_v4_explicit_internal_network_reaches_actual_bootstrap_boundary(self):
+        self.explicit_network_request();owner,driver=self.creator();seen=[]
+        def boundary(session,**options):
+            self.assertIs(type(session),c.b.Bootstrap);session.queue_originals()
+            self.assertEqual(session.geometry[1]['version'],2);seen.append(options)
+            c.p.close_common_root(session.geometry);return dict(boundary_double=True)
+        with patch.object(c.b.Bootstrap,'execute',boundary):result=owner.execute()
+        creates=[a for a in driver.calls if a[:2]==['network','create']]
+        self.assertEqual(len(creates),1);self.assertEqual(creates[0][:7],['network','create','--internal','--driver','bridge','--subnet','10.99.0.0/28'])
+        self.assertEqual(len(seen),1);self.assertFalse(result['installed_factories_verified'])
+        self.assertFalse(result['publication_acceptance'])
+        self.assertTrue((owner.journal/'network-preflight.json').is_file())
+
+    def test_v4_subnet_schema_and_canonical_rfc1918_range(self):
+        self.explicit_network_request()
+        for value in ('10.99.0.1/28','10.99.0.0/24','8.8.8.0/28','127.0.0.0/28','169.254.0.0/28','100.64.0.0/28','2001:db8::/28','bad'):
+            with self.subTest(value=value),self.assertRaises(c.p.Held):
+                c.explicit_subnet(dict(self.document['network'],subnet=value))
+        for value in (dict(self.document['network'],version=True),dict(self.document['network'],extra=True),{},None):
+            with self.assertRaises(c.p.Held):c.explicit_subnet(value)
+        for value in ('10.99.0.0/28','172.16.0.0/28','192.168.0.0/28'):
+            self.assertEqual(str(c.explicit_subnet(dict(self.document['network'],subnet=value))),value)
+
+    def test_legacy_versions_refuse_network_extension(self):
+        self.explicit_network_request()
+        for version in (1,2,3):
+            self.document['version']=version
+            with self.assertRaisesRegex(c.p.Held,'creator-schema'):self.creator()
+
+    def test_v3_network_args_remain_automatic_without_new_census(self):
+        self.searchable_request();owner,driver=self.creator();owner.directories();owner.engine.create_network()
+        self.assertEqual(driver.calls,[['network','create','--internal','--driver','bridge',*owner.labels(),owner.name('network')]])
+
+    def test_v4_host_overlap_refuses_before_any_docker_call(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories()
+        driver.route_rows=[dict(dst='10.0.0.0/8',table=123)]
+        with self.assertRaisesRegex(c.p.Held,'creator-network-host-overlap'):owner.engine.create_network()
+        self.assertEqual(driver.calls,[]);self.assertIsNone(owner.engine.network)
+
+    def test_v4_docker_overlap_refuses_before_network_create(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories();driver.existing_subnets=['10.99.0.0/24']
+        with self.assertRaisesRegex(c.p.Held,'creator-network-docker-overlap'):owner.engine.create_network()
+        self.assertFalse(any(a[:2]==['network','create']for a in driver.calls))
+
+    def test_v4_ipv6_existing_network_does_not_overlap_ipv4(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories();driver.existing_subnets=['fd00::/64']
+        owner.engine.create_network();self.assertEqual(owner.engine.network,driver.network)
+
+    def test_v4_malformed_routes_refuse_without_create(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories()
+        for rows in ([],{},[{}],[dict(dst='bad')],[dict(dst='::/0')]):
+            driver.route_rows=rows
+            with self.assertRaises(c.p.Held):owner.engine.create_network()
+        self.assertEqual(driver.calls,[])
+
+    def test_v4_malformed_network_census_refuses_without_create(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories()
+        with patch.object(driver,'docker',return_value=b'not-an-id'),self.assertRaisesRegex(c.p.Held,'creator-network-census'):
+            owner.engine.create_network()
+        self.assertIsNone(owner.engine.network)
+
+    def test_v4_created_ipam_drift_retains_network_without_containers(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories();driver.ipam_drift=True
+        with self.assertRaisesRegex(c.p.Held,'creator-original-network-ipam'):owner.engine.create_network()
+        self.assertEqual(owner.engine.network,driver.network);self.assertEqual(owner.engine.ids,{})
+        before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'network-create-once'):owner.engine.create_network()
+        self.assertEqual(len(driver.calls),before)
+
+    def test_v4_lost_network_create_is_never_replayed(self):
+        self.explicit_network_request();owner,driver=self.creator();owner.directories();driver.fail='network create'
+        with self.assertRaises(c.p.Held):owner.engine.create_network()
+        before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'creator-unknown-outcome-held'):owner.engine.create_network()
+        self.assertEqual(len(driver.calls),before);self.assertTrue(owner.engine.poisoned)
+
+    def test_v4_late_ipam_drift_refuses_bootstrap_plan(self):
+        self.explicit_network_request();owner,driver=self.creator();original=driver.docker
+        def changed(args,seconds,data=None):
+            if args==['network','inspect',driver.network] and owner.engine.started=={'native','reader'}:
+                driver.ipam_drift=True
+            return original(args,seconds,data)
+        with patch.object(driver,'docker',changed),self.assertRaisesRegex(c.p.Held,'creator-original-network-ipam'):
+            owner.prepare()
+        self.assertFalse(owner.engine.connected);self.assertFalse((owner.journal/'bootstrap-plan.json').exists())
+
+    def test_v4_malformed_network_profiles_refuse_without_create(self):
+        self.explicit_network_request()
+        for index,profiles in enumerate(([dict(Id='8'*64)],[],[dict(Id='8'*64,IPAM=dict(Config=[dict(Subnet='bad')]))])):
+            state=Path(self.local.name)/str(index);state.mkdir(mode=0o700)
+            remote=Path(self.remote.name)/str(index);remote.mkdir(mode=0o711);remote.chmod(0o711)
+            self.document['state_parent']=c.Creator.directory_ref(state)
+            self.document['nfs_parent']=c.Creator.directory_ref(remote)
+            owner,driver=self.creator();owner.directories();original=driver.docker
+            def changed(args,seconds,data=None):
+                if args[:2]==['network','inspect']:return c.p.encode(profiles)
+                return original(args,seconds,data)
+            with patch.object(driver,'docker',changed),self.assertRaises(c.p.Held):owner.engine.create_network()
+            self.assertFalse(any(a[:2]==['network','create']for a in driver.calls))
+            # Each iteration is a distinct local modeled owner/nonce, not a retry.
+            self.document['nonce']=hashlib.sha256(self.document['nonce'].encode()).hexdigest()
+
+    def test_fixed_route_command_and_output_bounds(self):
+        driver=c.Driver();reply=type('Reply',(),dict(stdout=b'[]',stderr=b''))()
+        with patch.object(c.subprocess,'run',return_value=reply)as call:
+            self.assertEqual(driver.routes(900),b'[]')
+        self.assertEqual(call.call_args.args[0],['/usr/bin/ip','-json','-4','route','show','table','all'])
+        self.assertEqual(call.call_args.kwargs,dict(capture_output=True,check=True,timeout=30))
+        reply.stdout=b'x'*(4*1024**2+1)
+        with patch.object(c.subprocess,'run',return_value=reply),self.assertRaises(c.p.Held):driver.routes(900)
 
     def test_v3_fresh_searchable_geometry_under_private_umask(self):
         self.searchable_request();owner,_=self.creator()

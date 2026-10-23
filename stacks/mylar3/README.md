@@ -1554,6 +1554,13 @@ terminal acceptance remain unfinished. See the
 [owning protocol](../../specs/024-verified-archive-repair/contracts/archive-repair.md#prospective-nfs-renamelink-purpose)
 and [source checkpoint](config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md).
 
+Disposable Creator request v4 supports an explicitly selected RFC1918 IPv4 `/28`
+when Docker's automatic address pools are exhausted. It checks current host routes
+and Docker networks for overlap and verifies the created internal bridge's exact
+IPAM before role creation and Bootstrap planning. This is an opt-in private fixture
+request, with no permanent stack setting or ingress change. Refused generations
+and their resources remain preserved; no automatic retry or network cleanup runs.
+
 The image also installs the canonical negative-retirement reader cohort through
 `patch_publication_reader_cohort.py`. Build checks verify exact module bytes and
 shared SDK identities, while mechanical tests use separate temporary fixtures.

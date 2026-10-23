@@ -96,6 +96,14 @@ fixture cleanup follows its exclusive-resource contract and still verifies exact
 identity, references and absence. Keep the original network profile and use a
 fresh creator generation afterward.
 
+Removing an unused manually addressed network does not free an automatic pool.
+When no removable automatic allocation remains, use the reviewed explicit Creator
+v4 subnet request rather than changing daemon-wide pools or deleting retained
+fixtures. Check all host IPv4 routing tables and the complete Docker IPAM census,
+retain the before/created profile joins and keep the internal-only role contract.
+Conflict or unknown outcomes require a fresh generation; an explicit subnet does
+not supply NFS, application, terminal or cleanup acceptance.
+
 Before creating a disposable NFS-backed container, verify source-directory
 traversal from the Docker daemon's identity as well as the fixture owner. A
 root-squashed NFS export can admit the user while refusing the daemon at private

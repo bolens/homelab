@@ -25,13 +25,13 @@
       "sha256": "5973203039d782168b97be1bc05e36cfa5b2fde9bdb6412eea0ab1da01714731"
     },
     "GENUINE-ARCHIVE-SCENARIO.md": {
-      "sha256": "49a865df221408cf321c90961a79e3841d66820724f502fe622d6691b7a8cc0b"
+      "sha256": "2299e2fa7c3b9660118f6654b6cdcfce343950283b2bf4f0aec05ae2377a9b46"
     },
     "INSTALLER-SOURCE-LOCATORS.json": {
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "04aa3441cd72e00ecba63e6e56a8e4f094647a1185f13475baaec482547e5b77"
+      "sha256": "92c7cc65ec41fda4904fdb07b6535c6295f673695088436ac05429c06b562ad7"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -505,7 +505,7 @@
       "sha256": "40f6e3b4fb453bfc1e9b8a9b50f2eb320672077f7abe42208d265ae8311f201c"
     },
     "genuine_bootstrap_creator.py": {
-      "sha256": "3047fe4b6cf496730fab93ba1af61b15500e07c1fb9291518e89cbfd0fa060b9"
+      "sha256": "fe63e7f9a41d034b81eed77a0975588692c1678e98ed51f3560a56890107fdfe"
     },
     "genuine_bootstrap_http.py": {
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
@@ -640,10 +640,10 @@
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
     },
     "test_genuine_bootstrap_batch.py": {
-      "sha256": "b625e7f7f47f994fee0a0558b5486a54bf4f288aadfbe4f05ea2f2ba0e5fa90a"
+      "sha256": "907aab85e51ce01f060f23c7444edf59de1ae62e3251e1fa511b2c62779b14d0"
     },
     "test_genuine_bootstrap_creator.py": {
-      "sha256": "9a8fd8844965326cc5d4294f28030fef26d09dddbdd041794ce02bde6f353762"
+      "sha256": "9efc3fa15a0221c27866ea5733a52fa1532e199bca61ba6441fa991613d5aefc"
     },
     "test_genuine_current_roles.py": {
       "sha256": "a4b79cb22507c295cba9b8b4b701b6bd111f84113c748ccaf9a763bdb10011b8"

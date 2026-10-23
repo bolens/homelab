@@ -169,6 +169,25 @@ Creator v1/v2, geometry v1 and the root-only bootstrap route remain unchanged.
 A separate disposable bind probe can establish only its tested traversal; the
 complete fresh Creator and configured lifecycle still need actual evidence.
 
+Creator request v4 preserves v3 searchable geometry and adds exactly `network`:
+`{"version":1,"kind":"explicit-disposable-ipv4","subnet":"<approved RFC1918 /28>"}`.
+The subnet must use canonical IPv4 network spelling with no host bits. The owning
+actor checks every current IPv4 host routing table and every Docker network's
+IPAM before the sole create intent, using the host's `/usr/bin/ip` from iproute2.
+Any non-default route or Docker-subnet overlap,
+malformed/bounded reply failure or uncertain outcome refuses. Default host routes
+are excluded from overlap comparison; narrower routes and local addresses count.
+The created bridge remains internal, nonce-labelled and limited to the two original
+native/reader members; the worker remains on `none`. Exact subnet, first usable
+gateway, default IPAM and disabled IPv6 are checked before any role creation and
+again before Bootstrap plan production. There is no automatic subnet selection,
+fallback, reuse or deletion. The actor's exclusive-resource contract also requires
+coordinating concurrent network/route changes while preparing the fixture.
+Legacy Creator v1–v3 retain automatic allocation. See Docker's
+[network-create reference](https://docs.docker.com/reference/cli/docker/network/create/).
+Source tests prove this request/intent contract, not actual network or recovery
+acceptance; use a fresh generation after a held attempt.
+
 Exact plan13 dispatch now consumes the original current-role plan/source references
 and the creator's actual canonical library path. It checks finite nonce-labelled
 profiles, images, epochs, mounts, private network and common-root custody. Legacy
