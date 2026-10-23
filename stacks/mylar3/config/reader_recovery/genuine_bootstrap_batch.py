@@ -137,7 +137,7 @@ class Identity:
 def driver_type(c):
     """Bind authority to actual owning call/code objects, not request argv."""
     admitted = {getattr(c.PurposeEngine, name).__code__ for name in
-                ('image', 'create_network', 'create', 'inspect', 'copy', 'start', 'enroll', 'run')}
+                ('image', 'network_preflight', 'create_network', 'create', 'inspect', 'copy', 'start', 'enroll', 'run')}
     admitted.update((c.Creator.prepare.__code__, c.Creator.virgin_process.__code__))
     original_docker = c.Driver.docker.__code__
     original_call = c.PurposeEngine.call.__code__

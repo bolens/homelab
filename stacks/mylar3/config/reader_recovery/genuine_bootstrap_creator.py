@@ -16,6 +16,7 @@ import configparser
 import copy
 import hashlib
 import io
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -71,6 +72,21 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def explicit_subnet(value):
+    need(type(value) is dict and set(value) == {'version', 'kind', 'subnet'}
+         and type(value['version']) is int and value['version'] == 1
+         and value['kind'] == 'explicit-disposable-ipv4'
+         and type(value['subnet']) is str, 'creator-network-schema')
+    try:
+        subnet = ipaddress.ip_network(value['subnet'], strict=True)
+    except ValueError:
+        raise p.Held('creator-network-subnet') from None
+    private = tuple(map(ipaddress.ip_network, ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')))
+    need(subnet.version == 4 and subnet.prefixlen == 28 and str(subnet) == value['subnet']
+         and any(subnet.subnet_of(pool) for pool in private), 'creator-network-subnet')
+    return subnet
+
+
 def config_sections(raw, names):
     """Read only owning literal section names; never import Config/read providers."""
     tree = ast.parse(raw, feature_version=(3, 10))
@@ -103,6 +119,62 @@ class Driver:
     def _kill_process(self, process):
         """Transport owns only the exact Popen client; daemon outcome stays unknown."""
         process.kill()
+
+    def routes(self, seconds):
+        need(type(seconds) is int and seconds >= 1, 'creator-route-deadline')
+        deadline = time.monotonic() + min(seconds, 30)
+        process = None; streams = []; output = bytearray(); primary = None
+        try:
+            process = subprocess.Popen(['/usr/bin/ip', '-json', '-4', 'route', 'show', 'table', 'all'],
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env={'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8'})
+            streams = [process.stdout, process.stderr]
+            with selectors.DefaultSelector() as poll:
+                for stream in streams:
+                    os.set_blocking(stream.fileno(), False)
+                    poll.register(stream, selectors.EVENT_READ)
+                while poll.get_map():
+                    left = deadline - time.monotonic(); need(left > 0, 'creator-route-deadline')
+                    for key, _ in poll.select(min(0.2, left)):
+                        stream = key.fileobj
+                        size = min(65536, 4 * 1024**2 + 1 - len(output)) if stream is process.stdout else 1
+                        block = os.read(stream.fileno(), size)
+                        if not block:
+                            poll.unregister(stream)
+                        elif stream is process.stdout:
+                            output.extend(block); need(len(output) <= 4 * 1024**2, 'creator-route-output')
+                        else:
+                            raise p.Held('creator-route-output')
+            left = deadline - time.monotonic(); need(left > 0, 'creator-route-deadline')
+            need(process.wait(timeout=left) == 0, 'creator-route-command')
+        except BaseException as error:
+            primary = error
+        finally:
+            if process is not None:
+                try:
+                    if process.poll() is None:
+                        process.kill()
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+                    else:
+                        primary.creator_route_cleanup_failure = type(error).__name__
+                try:
+                    process.wait(timeout=1)
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+                    else:
+                        primary.creator_route_cleanup_failure = type(error).__name__
+            for stream in streams:
+                try:
+                    stream.close()
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+        if primary is not None:
+            raise primary
+        return bytes(output)
 
     def docker(self, args, seconds, data=None):
         need(type(args)is list and type(seconds)is int and 1<=seconds<=30 and (data is None or type(data)is bytes and len(data)<=8*1024**2),'bounded-engine-request')
@@ -236,10 +308,71 @@ class PurposeEngine:
 
     def create_network(self):
         need(self.network is None and not self.ids, 'network-create-once')
-        args = ['network', 'create', '--internal', '--driver', 'bridge', *self.owner.labels(), self.owner.name('network')]
+        args = ['network', 'create', '--internal', '--driver', 'bridge']
+        if self.owner.document['version'] == 4:
+            self.network_preflight()
+            args += ['--subnet', self.owner.document['network']['subnet']]
+        args += [*self.owner.labels(), self.owner.name('network')]
         raw = self.call('network-create', 1, args).decode().strip()
         need(p.digest(raw), 'original-created-network-id'); self.network = raw
         b.put(self.owner.journal/'original-network.json',dict(id=raw,nonce=self.owner.nonce))
+        if self.owner.document['version'] == 4:
+            rows = p.decode(self.call('network-created-profile', 1, ['network', 'inspect', raw], readonly=True))
+            need(type(rows) is list and len(rows) == 1 and rows[0].get('Id') == raw
+                 and rows[0].get('Internal') is True and rows[0].get('Driver') == 'bridge'
+                 and rows[0].get('Labels') == {b.LABEL:self.owner.nonce, b.PURPOSE:'genuine-archive-fixture'}
+                 and rows[0].get('Containers') == {}, 'creator-new-network-profile')
+            self.network_ipam(rows[0])
+
+    def network_ipam(self, profile):
+        if self.owner.document['version'] != 4:
+            return
+        subnet = explicit_subnet(self.owner.document['network'])
+        need(profile.get('IPAM', {}).get('Driver') == 'default'
+             and profile['IPAM'].get('Config') == [{'Subnet':str(subnet), 'Gateway':str(subnet.network_address + 1)}]
+             and profile.get('EnableIPv6') is False, 'creator-original-network-ipam')
+
+    def network_preflight(self):
+        subnet = explicit_subnet(self.owner.document['network'])
+        routes_raw = self.driver.routes(self.owner.seconds())
+        need(type(routes_raw) is bytes and len(routes_raw) <= 4 * 1024**2, 'creator-route-output')
+        routes = p.decode(routes_raw)
+        need(type(routes) is list and 0 < len(routes) <= 65536, 'creator-route-census')
+        for route in routes:
+            need(type(route) is dict and type(route.get('dst')) is str, 'creator-route-row')
+            if route['dst'] == 'default':
+                continue
+            try:
+                destination = ipaddress.ip_network(route['dst'], strict=False)
+            except ValueError:
+                raise p.Held('creator-route-destination') from None
+            need(destination.version == 4 and not subnet.overlaps(destination), 'creator-network-host-overlap')
+        raw = self.call('network-census', 1, ['network', 'ls', '--quiet', '--no-trunc'], readonly=True)
+        need(type(raw) is bytes and len(raw) <= 65536, 'creator-network-census')
+        ids = raw.decode().splitlines()
+        need(0 < len(ids) <= 256 and len(set(ids)) == len(ids)
+             and all(p.digest(value) for value in ids), 'creator-network-census')
+        profiles_raw = self.call('network-profiles', 1, ['network', 'inspect', *ids], readonly=True)
+        need(type(profiles_raw) is bytes and len(profiles_raw) <= 4 * 1024**2, 'creator-network-profile-bound')
+        profiles = p.decode(profiles_raw)
+        need(type(profiles) is list and len(profiles) == len(ids)
+             and all(type(row) is dict and type(row.get('Id')) is str and p.digest(row['Id']) for row in profiles)
+             and {row.get('Id') for row in profiles} == set(ids), 'creator-network-profile-census')
+        for profile in profiles:
+            ipam = profile.get('IPAM')
+            need(type(ipam) is dict and 'Config' in ipam and (ipam['Config'] is None or type(ipam['Config']) is list),
+                 'creator-network-ipam-census')
+            for config in ipam.get('Config') or []:
+                need(type(config) is dict and type(config.get('Subnet')) is str, 'creator-network-ipam-row')
+                try:
+                    existing = ipaddress.ip_network(config['Subnet'], strict=True)
+                except ValueError:
+                    raise p.Held('creator-network-ipam-subnet') from None
+                need(existing.version != 4 or not subnet.overlaps(existing), 'creator-network-docker-overlap')
+        self.owner.check()
+        b.put(self.owner.journal/'network-preflight.json', dict(subnet=str(subnet),
+              routes_sha256=digest(routes_raw), networks_sha256=digest(profiles_raw),
+              network_ids=ids, automatic_replay=False))
 
     def create(self, role):
         need(self.network is not None and role not in self.ids and not self.started, 'three-role-create-before-start')
@@ -327,7 +460,7 @@ class PurposeEngine:
         if args[0] == 'restart':
             need(args == ['restart', '--timeout', '30', self.ids['native']] and data is None, 'only-original-native-restart')
             return self.call('connected-restart', 1, args)
-        if self.owner.document['version'] in (2,3) and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
+        if self.owner.document['version'] in (2,3,4) and args==['exec','--user','1000:1000',self.ids['reader'],'sha256sum',JAR]:
             need(data is None,'queue-reader-jar-no-input')
             return self.call('queue-reader-original-jar',2,args,readonly=True)
         need(args[0] == 'exec' and args[:5] == ['exec', '--interactive', '--user', '1000:1000', self.ids['native']]
@@ -356,7 +489,7 @@ class PurposeEngine:
             need(value.get('nonce') == self.owner.nonce and value.get('cid') == self.ids['native'] and value.get('root') == self.owner.child_data
                  and value.get('library') == str(self.owner.library) and value.get('sdk') == self.owner.sdk and value.get('action') in ('seed','observe'), 'fixed-catalog-scope')
             name, maximum = 'catalog-' + value['action'], 1 if value['action'] == 'seed' else 64
-        elif self.owner.document['version'] in (2,3) and program==sources['reader_queue'].decode():
+        elif self.owner.document['version'] in (2,3,4) and program==sources['reader_queue'].decode():
             from genuine_reader_quiescence import request as queue_request
             need(args[10:]==['--disposable-reader-queue-v1',self.owner.nonce,self.ids['native']],'fixed-queue-invocation')
             value=p.decode(data);queue_request(value)
@@ -371,20 +504,22 @@ class PurposeEngine:
 class Creator:
     def __init__(self, document, *, driver=None):
         need(os.geteuid() == os.getegid() == 1000, 'creator-actual-uid1000-required')
-        need(type(document) is dict and set(document) == {'version','kind','nonce','observed','seconds','state_parent','nfs_parent','nfs_mount','images','native_sdk','data_contract','sources'}, 'creator-schema')
-        need(type(document['version']) is int and document['version'] in (1,2,3) and document['kind'] == 'approved-disposable-three-role-creator'
+        need(type(document) is dict and set(document) == {'version','kind','nonce','observed','seconds','state_parent','nfs_parent','nfs_mount','images','native_sdk','data_contract','sources'} | ({'network'} if document.get('version') == 4 else set()), 'creator-schema')
+        need(type(document['version']) is int and document['version'] in (1,2,3,4) and document['kind'] == 'approved-disposable-three-role-creator'
              and p.digest(document['nonce']) and type(document['observed']) is int and 0 <= time.time()-document['observed'] <= 120
              and type(document['seconds']) is int and 30 <= document['seconds'] <= 900, 'creator-original-deadline')
+        if document['version'] == 4:
+            explicit_subnet(document['network'])
         self.document = copy.deepcopy(document); self.nonce = document['nonce']; self.end = time.monotonic()+document['seconds']
         self.raw = {}
         source_names=dict(SOURCES)
-        if document['version'] in (2,3):source_names['reader_queue']='genuine_reader_quiescence.py'
+        if document['version'] in (2,3,4):source_names['reader_queue']='genuine_reader_quiescence.py'
         need(set(document['sources']) == set(source_names), 'creator-source-closure')
         for name, filename in source_names.items():
             ref = document['sources'][name]; need(Path(ref['path']) == HERE/filename, 'creator-source-path')
             self.raw[name] = p.read(ref, private=False)
-        self.state_parent = b.directory(document['state_parent']); self.nfs_parent = (b.searchable_directory if document['version']==3 else b.directory)(document['nfs_parent'])
-        if document['version']==3:need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
+        self.state_parent = b.directory(document['state_parent']); self.nfs_parent = (b.searchable_directory if document['version'] in (3,4) else b.directory)(document['nfs_parent'])
+        if document['version'] in (3,4):need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
         need(self.state_parent != self.nfs_parent and self.state_parent not in self.nfs_parent.parents and self.nfs_parent not in self.state_parent.parents, 'disjoint-creator-parents')
         self.root = self.state_parent/('archive-bootstrap-'+self.nonce); self.common = self.nfs_parent/('archive-publication-'+self.nonce)
         self.library = self.common/'L'; self.retention = self.common/'R'; self.reader_host = 'reader-'+self.nonce[:16]
@@ -451,13 +586,13 @@ class Creator:
             if role=='reader':need(self.reader_host in (next(iter(networks.values())).get('Aliases')or []), 'created-reader-alias')
 
     def directories(self):
-        self.check(); b.directory(self.document['state_parent']); (b.searchable_directory if self.document['version']==3 else b.directory)(self.document['nfs_parent'])
-        if self.document['version']==3:need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
+        self.check(); b.directory(self.document['state_parent']); (b.searchable_directory if self.document['version'] in (3,4) else b.directory)(self.document['nfs_parent'])
+        if self.document['version'] in (3,4):need(not os.listdir(self.nfs_parent),'creator-empty-searchable-parent')
         need(self.engine.mount(self.nfs_parent,self.seconds())==self.document['nfs_mount'],'nfs-parent-mount-changed')
         self.root.mkdir(mode=0o700)
         self.journal=self.root/'creator';self.journal.mkdir(mode=0o700)
         self.common.mkdir(mode=0o700)
-        if self.document['version']==3:
+        if self.document['version'] in (3,4):
             # Only this just-created directory is changed, never an existing path.
             fd=os.open(self.common,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
             try:
@@ -469,7 +604,7 @@ class Creator:
         current=self.root/'native'
         for part in Path(self.contract['relative']).parts:
             current/=part;current.mkdir(mode=0o700)
-        self.geometry = p.admit_common_root(dict(version=2 if self.document['version']==3 else 1,kind='searchable-common-root-nfs' if self.document['version']==3 else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),[dict(host=str(self.common),child=str(self.common),write=True)],str(self.library),str(self.retention),[str(self.root)])
+        self.geometry = p.admit_common_root(dict(version=2 if self.document['version'] in (3,4) else 1,kind='searchable-common-root-nfs' if self.document['version'] in (3,4) else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),[dict(host=str(self.common),child=str(self.common),write=True)],str(self.library),str(self.retention),[str(self.root)])
 
     @staticmethod
     def directory_ref(path):return dict(path=str(path),signature9=p.nine(os.lstat(path)))
@@ -539,12 +674,13 @@ class Creator:
             roles[role]=dict(id=row['Id'],image=row['Image'],profile=p.static(row),epoch={k:v for k,v in row['State'].items()if k!='Health'})
         net=p.decode(self.engine.call('network-capture',1,['network','inspect',self.engine.network],readonly=True));need(type(net)is list and len(net)==1,'original-network-capture')
         need(net[0].get('Internal')is True and net[0].get('Driver')=='bridge' and set(net[0].get('Containers',{}))=={self.engine.ids[k]for k in ('native','reader')},'only-two-original-network-members')
+        self.engine.network_ipam(net[0])
         self.check()
         ini=self.data/'config.ini';raw=ini.read_bytes();z=ini.lstat()
         need(stat.S_ISREG(z.st_mode)and z.st_uid==1000 and stat.S_IMODE(z.st_mode)==0o600 and z.st_nlink==1,'actual-virgin-config')
         need(not any(os.path.lexists(self.data/n)for n in ('mylar.db','workflow.sqlite','media-writer','publication-fresh-v1.json')),'actual-native-still-virgin')
         plan=dict(version=1,kind='approved-disposable-application-bootstrap',nonce=self.nonce,observed=int(time.time()),seconds=int(self.end-time.monotonic()),
-                  state_root=self.directory_ref(self.root),geometry=dict(version=2 if self.document['version']==3 else 1,kind='searchable-common-root-nfs' if self.document['version']==3 else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),
+                  state_root=self.directory_ref(self.root),geometry=dict(version=2 if self.document['version'] in (3,4) else 1,kind='searchable-common-root-nfs' if self.document['version'] in (3,4) else 'private-common-root-nfs',common_root=self.directory_ref(self.common),library=self.directory_ref(self.library),retention=self.directory_ref(self.retention)),
                   roles=roles,images={k:v['id']for k,v in self.document['images'].items()},network=dict(id=self.engine.network,profile=net[0]),
                   native_sdk=self.document['native_sdk'],native_ini=dict(path=str(ini),sha256=digest(raw),signature9=p.nine(z)),helper=self.document['sources']['http'],
                   native_probe=self.document['sources']['probe'],scope_source=self.document['sources']['scope'],nfs_mount=self.document['nfs_mount'],reader_credentials=credentials,reader_host=self.reader_host,reader_port=25600)

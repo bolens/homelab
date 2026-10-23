@@ -81,6 +81,26 @@ The owning source contract documents stat-visible names and the absence of
 non-owner enumeration/write rights. Component tests and a separate disposable
 bind probe do not establish full Creator, NFS lifecycle, import or ACK acceptance.
 
+## Disposable network allocation prerequisite
+
+An exhausted Docker automatic address pool must not trigger deletion or adoption
+of retained fixtures. Creator request v4 extends v3 with one explicit `network`
+contract: version1, kind `explicit-disposable-ipv4`, and an operator-selected
+canonical RFC1918 IPv4 `/28` subnet. Legacy v1–v3 allocation remains unchanged.
+Before the sole network-create intent, read bounded current IPv4 routes from all
+host tables and every current Docker network profile. Refuse malformed replies,
+overlap with any non-default host route or Docker subnet, and unknown outcomes.
+Create only the original nonce-labelled internal bridge with the exact subnet;
+verify its returned identity and IPAM before creating containers. Recheck IPAM
+when producing the Bootstrap plan. No automatic fallback, retry, existing-network
+adoption, cleanup, published port or permanent Compose change is introduced.
+
+Acceptance requires positive explicit allocation plus conflicting host/Docker
+routes, malformed inputs, changed IPAM, lost replies and legacy behavior controls.
+Host controls substitute the engine and do not prove actual network, NFS or
+connected recovery acceptance. A fresh checked source cohort and new fixture
+generation are required after delivery; preserve all refused attempts.
+
 ## Owning host reads and causal disposable repair fixture
 
 The configured host path must explicitly bind its read-only owning-UID adapter

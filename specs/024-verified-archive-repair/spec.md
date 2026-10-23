@@ -83,6 +83,14 @@ The automation can adopt a supported repaired copy through its existing coordina
 - **FR-015**: Verify matching application and worker behavior before rollout and keep unfinished writer holds until their owning library acceptance succeeds.
 - **FR-016**: For the dedicated prospective NFS purpose, select a source-bound no-clobber link/unlink protocol before dispatch, using a single narrowly admitted private common-root bind containing only scanned library and disjoint private retention. Require actual same-mount identity, original common-root custody, stopped reader, inactive worker and exclusive cooperating Writer with no independent actor writing the selected names. Preserve originals and durable finite phase evidence on uncertainty; never fall back from failed exchange, retry an unknown mutation or infer stronger post-CAS unlink guarantees. See the [owning protocol contract](contracts/archive-repair.md#prospective-nfs-renamelink-purpose).
 
+- **FR-017**: The disposable readiness prerequisite accepts an explicit Creator v4 network
+request when automatic Docker pools are unavailable. It requires one canonical
+RFC1918 IPv4 `/28`, bounded current route and Docker-network overlap checks,
+and exact nonce-labelled internal-bridge/IPAM verification before container
+creation and Bootstrap plan production. Legacy requests retain their original
+allocation behavior. A conflict or unknown reply preserves the attempt without
+retry, adoption, cleanup or publication acceptance.
+
 ### Key Entities
 
 - **Repair diagnosis**: Bounded classification of an unchanged source, supported defect or retained refusal, with no publication permission.

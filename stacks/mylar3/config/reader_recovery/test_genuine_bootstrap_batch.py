@@ -84,7 +84,7 @@ class Transport:
 
 def owning(identity):
     driver = b.driver_type(c)(identity)
-    owner = SimpleNamespace(document={'images': {'native': {'id': 'sha256:'+'a'*64}}},
+    owner = SimpleNamespace(document={'version': 1, 'images': {'native': {'id': 'sha256:'+'a'*64}}},
                             metadata={'native': []}, check=lambda: None,
                             note=lambda *args: None, seconds=lambda: 2, journal=None, serial=0)
     owner.engine = c.PurposeEngine(owner, driver)
@@ -290,11 +290,17 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(len(transport.calls), 1)
 
     def test_genuine_creator_prepare_and_connected_dispatch_use_same_batch(self):
+        self.prepare_and_connected_dispatch(explicit=False)
+
+    def test_explicit_network_preflight_uses_owning_batch_dispatch(self):
+        self.prepare_and_connected_dispatch(explicit=True)
+
+    def prepare_and_connected_dispatch(self, *, explicit):
         from test_genuine_bootstrap_creator import CreatorTests
         fixture = CreatorTests(methodName='runTest')
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
-        fixture.searchable_request()
+        fixture.explicit_network_request() if explicit else fixture.searchable_request()
         owner, effects = fixture.creator()
         class FullTransport(Transport):
             def spawn_docker(self, args, data):
@@ -311,8 +317,12 @@ class BatchTests(unittest.TestCase):
         driver = b.driver_type(c)(transport)
         driver.owner = owner
         driver.mount = effects.mount
+        driver.routes = effects.routes
         owner.engine.driver = driver
         plan = owner.prepare()
+        if explicit:
+            self.assertEqual([args for args, _ in transport.calls if args[:2] == ['network', 'ls']],
+                             [['network', 'ls', '--quiet', '--no-trunc']])
         self.assertEqual(set(plan['roles']), {'native', 'reader', 'worker'})
         self.assertEqual(owner.engine.started, {'native', 'reader'})
         args, value = fixture.queue_call(owner)
