@@ -24,6 +24,14 @@ Name the stack and read all of its files. Plan Compose, environment examples, st
 metadata, preparation, ingress, and README changes as one contract. Document mounts,
 ownership, ports, networks, privileges, dependencies, and readiness.
 
+Keep the active task list focused on remaining outcomes. Mark delivered
+implementation tasks complete separately from operational acceptance; link
+historical failures instead of carrying them as current instructions. When
+features share an acceptance operation, name one owning execution order and
+reference the same original evidence from all applicable tasks. Do not repeat
+accepted runs, unchanged image checks or reviews solely to obtain another task
+receipt. Add corrective implementation only for a demonstrated unmet contract.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

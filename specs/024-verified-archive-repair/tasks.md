@@ -4,28 +4,34 @@
 
 ## Current remaining work
 
-**Updated 2026-10-22.** 13 of 18 tasks are complete; 5 retain their full acceptance gates. T011/T013 repair adoption/history and T014 contract review are complete. Ordinary Mylar's current image data preservation is accepted; Komga stays running and the permanent worker stays inactive. Preparation and fixture proof remain separate from connected execution and live repair acceptance.
+**Updated 2026-10-23.** 17 of 22 tasks are complete. The four corrective
+implementation tasks T019–T022 are delivered; they are not additional runtime
+acceptance gates. T012/T015 share one forward run and one distinct-fixture
+rollback with feature 023 T026/T029 and the isolated portion of T027.
 
-- **Producer integration:** the maintained active-input assembler and exact host-engine intent producer are implemented and independently reviewed; the historical source verification passes 1,306 controls across 73 suites under Python 3.10, with zero skips. The configured birth/session producers and forwarding entry already exist. Current-role capture, effective-scope production, SourceCohort and checked plan13 composition already exist. The engine intentionally refuses unbound create/start calls; do not widen that guard to make a fixture pass. The effective-scope observer's independently reviewed bootstrap join now derives the exact disposable reader mounts from originals, preserving production mount checks; source/compile and configured observation checks pass; fresh observations remain required for each owning attempt. Feature 023 T026/T029 and this feature's T012/T015 depend on the genuine producer/caller integration.
-- **Existing source and runtime milestones:** creator/bootstrap, native catalog/processing observation, original-session reader task observation and plan13 role/library mapping are implemented. Published native/worker component proofs remain accepted for their recorded generations, and the ninth isolated bootstrap completes genuine queue imports, reader scan/progress and restart. These do not complete the connected installed factories, NFS or archive-terminal acceptance required by T012/T015. See [published component evidence](../023-verified-publication-corrections/evidence-history.md#published449-image-verification--2026-10-20) and [the current bootstrap record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
-- **T012/T015 connected acceptance:** finish genuine installed reader continuity, original Parent/Birth/provider custody, NFS preservation and archive prepare-to-execute-to-terminal production with factual native/worker consumption. Existing link/unlink protocol, phase receipts, reversal and checkpointed-WAL controls remain preserved. See [protocol evidence](evidence-history.md#prospective-nfs-publication-protocol--2026-10-20) and [WAL correction](evidence-history.md#checkpointed-reader-wal--2026-10-16).
-- **T016/T017 live recovery:** retain verified backup/restore evidence and all four selected histories. Complete fresh configured repair, archive/owner/catalog/reader comparisons and restart acceptance. No selected import or ACK is accepted. Reader observations require fresh owning admission; their references expire after 120 seconds.
-- **T018 and cleanup:** complete shared current-library acceptance before repaired-archive or bulk processing resumes. Preserve unresolved originals and the independently verified current backup. See [shared accepted preservation](../023-verified-publication-corrections/evidence-history.md#native405-data-preservation-accepted--2026-10-20) and the dependencies below.
+1. Resolve the demonstrated prewrite scope-expiry latency without changing the
+   120-second guard, then use a fresh disposable forward attempt. Independently
+   compare archive bytes/members, native records and reader references/progress.
+2. After accepted forward proof, complete the prepared separate rollback fixture
+   and compare its actual causal original plus the complete native preimage.
+3. Record the original terminal, worker-consumption, NFS/restore and reader-resume
+   evidence once, referencing it from every task it satisfies. Leave unmet
+   criteria open; do not repeat an accepted run for another task ID.
+4. Keep production rollout/repair, selected-pack ACK, whole-library and bulk work
+   as subsequent operational milestones. The current disposable-fixture scope
+   does not authorize production T016–T018 or permanent worker activation.
 
-PR #482 delivered the assembler correction with passing local and hosted checks.
-A fresh batch passes the causal SourceFixture, source closure, owned-container
-absence, current-role/protocol observations, active assembly and intent construction.
-It enters the owning producer once, then fails without an accepted terminal return.
-The primary refusal is `configured-overlay-exact-approved-edits`: the packet mapped
-the operation to its host path instead of the installer-owned `/_operation`. The
-source correction adds an early mapping check and fixes the separate actor/finalizer
-descriptor double-close. All 1,406 controls across 75 suites and 14 outer controls
-pass locally. A fresh H installation and independent verification of all 27 outputs
-also pass without lifecycle changes. PR #485 delivered these corrections with all
-required hosted checks passing. The corrected new packet and connected execution
-remain required under feature 023 T026. Preserve the consumed generation and all
-failed histories; no automatic replay, import ACK or bulk acceptance is granted.
-See [the current owning boundary](../023-verified-publication-corrections/evidence-history.md#owning-producer-entry-after-assembler-delivery--2026-10-22).
+PR [#511](https://github.com/bolens/homelab/pull/511) is merged after all hosted
+checks passed, including the complete custom-image workflow. The final source
+passes 1,559 checks across 75 suites with zero skips, 233 focused checks, 14
+owning-runner controls and repository CI. The fresh forward fixture, checked
+installation, armed packet and independent baselines are verified. Its owning
+run holds before reader stop when the scope reaches 137 seconds at prewrite
+validation. Independent post-hold comparisons preserve both archives, reader
+records/progress and six page hashes. Terminal acceptance remains open.
+Preserve all earlier attempts and
+originals without replay. Historical refusals remain in [evidence
+history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
 
 ## Phase 1: Setup
 
@@ -64,11 +70,11 @@ Goal: adopt the exact repaired bytes through current correction/native/reader po
 Independent test: one isolated owned repair completes with matching reader/native state; rejected owners, mixed phases and lost responses cannot publish or replay.
 
 - [x] T011 [US3] Implement the dedicated same-payload native repair capability in `publication_archive_owned.py`, `publication_native.py` and `publication_api.py`; prove fresh complete owner/census/catalog/source/stage/custody checks without widening nested lineage, ordinary `require` or generic import.
-- [ ] T019 [US3] Before the next T012 attempt, implement and independently review the finite owning metadata vector described in `plan.md` and `CONTRACT-nfs-factual.md`. Preserve both closure passes, constructor-sealed dispatch/dependencies, original geometry/source custody, no-follow owner reads, Root restoration/poison and all existing freshness/lifetime guards. Verify conflicting facts, late callback/code/source/actor mutations, failure cleanup and independent fresh reads; measure actual Root/NFS staging, pass local/hosted delivery and install a new checked generation. U remains held without replay; performance evidence alone cannot close T012/T015.
-- [ ] T020 [US3] Before retrying configured recovery in a fresh generation, implement and independently review the exact original-operation host/child namespace distinction in `plan.md`. Retain Root host custody, authenticated original plan/source, exact helper projection/profile joins, physical child and other-host checks, and final closure. Verify private Root/UID1000 traversal, foreign/aliased mounts and late mutations, then pass local/hosted delivery and create a new checked installation. Preserve V and all earlier attempts without replay; configured forward and distinct rollback remain required.
+- [x] T019 [US3] Deliver the finite owning metadata vector and batched geometry reads described in `plan.md` and `CONTRACT-nfs-factual.md`, preserving both closure passes, sealed dispatch, original custody and failure handling. Independent hostile-callback review, source controls and actual Root/NFS benchmarks pass; PR #507 delivers this implementation. Connected acceptance belongs to T012/T015.
+- [x] T020 [US3] Deliver the exact original-operation host/child namespace distinction in `plan.md`, retaining authenticated plans, Root host custody, physical child checks and final closure. Private-geometry, alias and late-mutation controls and independent review pass; PR #509 delivers the implementation. Connected acceptance belongs to T012/T015.
 
-- [ ] T021 [US3] Before another configured attempt, implement and independently review the owner-principal mount observer in `plan.md`. Run only the existing admitted findmnt child as fixed UID1000/GID1000 without supplementary groups; preserve Parent Root custody, exact engine intents, Writer-window restrictions, failure and deadline handling, and physical NFS/source closure. Verify identity isolation and refusals, unchanged Docker commands and actual retained-directory observations, then pass local/hosted delivery and create fresh checked inputs. Preserve X without replay; connected forward and distinct rollback remain required.
-- [ ] T022 [US3] Before another configured attempt, implement and independently review the original retention-root probe binding in `plan.md` and `CONTRACT-nfs-mount-namespace.md`. Restrict the alternative bind to genuine original plan13 retention geometry, retain the nested fixture identities and exact prepared/before-mutation namespace proof, and preserve legacy direct-fixture behavior. Verify hostile ancestors, aliases, row/proof substitution and late closure changes; pass complete source-pin, local and hosted delivery gates and create fresh checked inputs. Preserve the unconsumed packets and diagnostic originals. Connected forward and distinct rollback remain required.
+- [x] T021 [US3] Deliver the owner-principal mount observer in `plan.md`, lowering only the admitted findmnt child to fixed UID1000/GID1000 without supplementary groups. Identity isolation, unchanged Docker dispatch, failure/deadline controls, actual retained-directory observation and independent review pass; PR #510 delivers the implementation. Connected acceptance belongs to T012/T015.
+- [x] T022 [US3] Deliver the original retention-root probe binding in `plan.md` and `CONTRACT-nfs-mount-namespace.md`, restricted to genuine original plan13 geometry with unchanged nested fixture identity and prepared/prewrite closure. Hostile-path, proof-substitution, legacy and late-change controls, complete pins, independent review and local/hosted delivery pass in PR #511. Fresh checked inputs and disposable bootstrap are verified. Forward and distinct rollback belong to T012/T015.
 
 - [ ] T012 [US3] Complete the isolated connected repair through `stacks/mylar3/config/reader_recovery/genuine_active_inputs.py` (`assemble`) and `genuine_plan13_producer.py` (`Producer.execute`), using the checked installation and current original cohort. Require actual installed Parent/Birth/stopped-reader/completed-preparation factories, same-mount NFS forward and explicit rollback phase evidence, independent archive/member/compressed-byte/page/metadata preservation, exact affected reader references and zero unrelated native/reader changes. Retain unknown outcomes without replay. Coordinate the feature 023 T026 owning-integration milestone and T029 runtime proof; local controls or an assembled plan alone do not complete this task.
 - [x] T013 [US3] Integrate durable preparation/dispatch/acceptance/rollback history and native/worker recovery consumption in owning workflow/import modules; lost acknowledgements retain evidence, imports/cleanup wait for actual terminal acceptance, and no remote call runs under Writer.
@@ -86,78 +92,33 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 
 ## Dependencies and execution
 
-T001 → T002–T003 → US1 T004–T007 → US2 T008–T010 → US3 T011–T013 → T014–T015 reviewed source/image delivery → T016 verified live rollout → T017 scoped repair/import → T018 final acceptance/retention. US1 is independently deliverable; it does not complete US2/US3 or release features 022/023. IDs follow execution order. No production task is complete from earlier private experiments.
+Implementation T001–T011, T013–T014 and T019–T022 is complete. Matching checked
+source/install delivery precedes the shared T012/T015 runtime pair. Accepted
+connected readiness and delivery precede T016 backup/rollout, T017 selected live
+repair/import and T018 current-library acceptance. Feature 022 owns its later
+combined pass and post-bulk idempotence. Historical diagnostics or private
+experiments grant no operational completion.
 
 ## Next execution and completion evidence
 
-The assembler and role-aware control corrections are delivered through PR #487.
-PR #488 is delivered with passing hosted checks and 1,412 local controls. The
-checked J installation/export verifies all 27 outputs. Its genuine owning run passes the
-repaired output projection and creates the NFS child, then refuses the original
-running-child profile check during the role-namespace handshake, before reader
-stop. Preserve that consumed attempt. Inspect the exact child state and original
-startup evidence before any correction or distinct run; the combined predicate
-alone does not prove an early child exit. Feature 023 evidence history owns the
-retained details. PR [#489](https://github.com/bolens/homelab/pull/489) delivered the lifecycle
-correction as `7130a7fd510d5104bdddac384163f41f538ab425`, with passing local and
-hosted checks, native-image publication and matching merge-tree verification.
-A fresh checked K installation verifies all 27 outputs. Its causal selected-image
-SourceFixture passes all 1,460 controls across 75 suites and verifies removal of
-its own helper. The subsequent genuine Parent attempt stops at NFS child create
-because an earlier retained helper occupies the name derived from that original
-Bootstrap nonce. Diagnosis verifies that this refusal precedes reader stop.
-Preserve the attempt and retained helper. A fresh Creator/Bootstrap/catalog/reader
-generation completes its own native processing and reader verification. M then
-passes 49 preparation controls, causal SourceFixture and active-input assembly.
-It enters the genuine Parent but holds during NFS namespace bootstrap when its
-original helper exits before the reply. Read-only diagnosis confirms reader and
-native running epochs and the worker still Created. Preserve M and its helper
-while delivering the reproduced named-FIFO identity and diagnostic correction.
-A new checked generation must prove connected forward/rollback acceptance, and these results do not complete
-the five open tasks. See [the source and fixture delivery record](../023-verified-publication-corrections/evidence-history.md#lifecycle-delivery-and-fresh-fixture-generation--2026-10-22).
+Use the existing installed producer/Parent path once per fresh attempt. Static
+source binding and SourceCohort precede fresh role/scope observations; the owning
+120-second admission limit stays unchanged. Leave the probe parent absent for
+its owning Parent to create. The Parent owns Writer, stopped-reader custody,
+verified backup/restore, archive transition, factual terminal consumption and
+permitted resume. A wrapper or test count supplies none of those facts.
 
-1. **Finish static binding before freshness.** Preserve the original installation
-   INNER/output27 and compatible selected-image/native180/SDK/worker evidence.
-   Bind the actual used host module URIs/full9, scoped geometry, existing Writer
-   protocol, query/protection inputs and reviewed finite operation request. Use the
-   existing causal SourceFixture supplier for the exact effective-parent/readiness
-   source pairs; do not relabel a prior cohort when those pairs change. SourceFixture
-   and static staging precede the effective observer and `genuine_current_roles.run`;
-   their original role/process/scope facts must still be within the owning 120-second
-   window when consumed. Leave the private NFS probe parent absent, with only its
-   existing retention grandparent bound. The owning Parent creates that node;
-   precreating it makes the active-input assembler refuse before Parent entry.
-2. **Enter the existing connected path once.** `genuine_active_inputs.assemble`
-   writes input originals only. Feed those originals to
-   `genuine_plan13_producer.Producer.execute(activate=True)`, which rederives the
-   checked installation and calls `comic_reader_lifecycle_parent.run_operation`.
-   The owning Parent alone acquires/retains Writer, stops the isolated reader,
-   verifies backup/restore, produces Birth/custody, runs `archive-one` and checks
-   independent terminal vectors before its permitted reader resume. Retain the
-   original preparation/execution/ACK/terminal/phase receipts and full preservation
-   comparisons. No external wrapper or elapsed test count can supply these facts.
-3. **Prove rollback on a distinct fixture.** After accepted forward proof, use
-   a fresh genuine fixture/bootstrap/catalog/reader generation, fresh observations
-   and its own stopped backup/restore. Set the owning version-3 archive request’s
-   `terminal` to `rollback`; retain actual install/reverse/clear journals, original
-   terminal/ACK conversation and independent native preimage/reader preservation.
-   Do not change or replay the consumed forward request.
-4. **Close milestones without a task cycle.** Feature 023 T022 checked installation
-   and T026 owning integration are source/installation prerequisites, not a demand
-   to finish all of T026 before entering shared runtime proof. One reviewed isolated
-   batch may jointly close the configured portions of 023 T026/T029 and 024
-   T012/T015 only when all their independent factory, selected-image, NFS,
-   preservation and factual-consumption criteria pass. A partial batch leaves each
-   unmet task unchecked; archive terminal/Parent completion still grants no live
-   import ACK or general release.
-5. **Then perform scoped live acceptance.** T016 validates applicable existing
-   backup/restore evidence before creating anything new or rolling an image.
-   T017 consumes a genuine retained malformed original; the causal malformed
-   fixture transition is isolated-test-only. Require a fresh ordinary import ACK
-   for the exact current event before reconciling retained history. T018 closes
-   restart/current-library and later post-bulk retention gates. Unknown/partial
-   operations preserve their evidence and are not retried automatically; actual
-   rollback is invoked only through its supported owned route, never as a reset.
+Forward and explicit `terminal=rollback` use distinct fixtures, requests,
+baselines and original receipts. Rollback restores the causal malformed source,
+not the forward fixture's repaired genesis. Verify each original terminal chain
+and independently compare archives, complete native changes and affected reader
+state. Preserve unknown outcomes; diagnose before any fresh correction.
+
+One accepted pair supplies the shared isolated criteria of 023 T026/T029/T027
+and 024 T012/T015. Source/install milestones are prerequisites to that pair, not
+circular dependencies on whole-task completion. T015 still requires matching
+source/image delivery. No isolated result creates a live import ACK or grants
+production, whole-library, bulk or cleanup acceptance.
 
 ## Parallel opportunities
 
