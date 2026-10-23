@@ -158,7 +158,7 @@ reordering output numbers, then compare station UUIDs, programmes and recording
 rules separately from those changed positions.
 
 `channel-logos/` contains editable SVG originals and 768 × 384 PNG exports for
-95 stations, including personalized nighttime and morning cartoons, Halloween
+109 stations, including personalized nighttime and morning cartoons, Halloween
 and holiday movies,
 television genres, movie decades, studio and franchise films, sports movies,
 network-themed cartoons, fighting movies, classic cinema, nature documentaries,

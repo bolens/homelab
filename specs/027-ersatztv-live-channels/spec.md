@@ -100,8 +100,10 @@ scope. Personal channel restrictions and all original station IDs remain intact.
 The organized custom output range precedes the reserved multiview range.
 
 A temporary library-only presentation must disable or hide every non-Ersatz
-output without deleting its channels, stream links, profiles, sources, logos or
-retained Plex mappings. Preserve an exact private restoration manifest and pause
+output without deleting its channels, stream links, profiles, sources or logos.
+Plex may discard bindings absent from the tuner output. Keep those exact IPTV
+bindings in the backed-up restoration manifest while verifying the complete
+current custom map. Pause
 quarantine mutation while the channels are retained for later work. Backups and
 library-guide monitoring continue. Validate the actual visible Plex lineup and
 complete programme identities after import, not only application row counts.

@@ -62,5 +62,7 @@ Retain IPTV records with hidden output and disabled memberships/source polling.
 Store their exact prior flags and mappings privately under normal backup
 coverage. Add a boolean host-maintenance quarantine pause with regression proof
 that it neither calls the mutation adapter nor rewrites history. Submit the
-complete Plex mapping with the intended custom-only enabled set, compare every
-retained binding, and prove actual guide, logo, playback and persistence behavior.
+complete Plex mapping with the intended custom-only enabled set. If Plex drops
+bindings absent from the tuner, compare the remaining custom bindings exactly
+and verify every prior IPTV binding in the backed-up restoration manifest. Prove
+actual guide, logo, playback and persistence behavior.

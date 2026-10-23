@@ -205,6 +205,10 @@ and Plex mappings. Set `hidden_from_output` on non-library channels, disable the
 profile memberships and pause their source accounts. Keep their rows, stream
 links, artwork and original numbers. Update Plex with the complete preserved
 mapping plus the intended enabled set, then verify the actual visible lineup.
+Plex can discard bindings absent from the current tuner output. Compare the
+remaining custom bindings exactly and retain every removed IPTV binding in the
+backed-up restoration snapshot. Restore those bindings alongside the current
+custom map when IPTV returns.
 
 Set the host maintenance JSON option `quarantine_enabled` to `false` during this
 pause. It defaults to `true`. A paused check leaves quarantine history untouched

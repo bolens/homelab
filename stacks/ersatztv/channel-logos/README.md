@@ -119,9 +119,10 @@ and Bedtime Cartoons. Movie Night then leads into movie genres, decades, studios
 and animation films, franchises,
 seasonal programming, television and cartoons. Portlandia sits beside Sitcom
 Shuffle; Teenage Mutant Ninja Turtles sits beside Transformers TV and Anime
-Action. Custom stations occupy 100–194, 195–199 remain reserved, and multiviews
-occupy 300–309 after the existing local-news groups. The following news block
-occupies 310–330, preserving its original order.
+Action. The 109 custom stations occupy 100–199, 203–209 and 213–214. Gaps
+avoid retained IPTV numbers. Multiviews remain at 300–309 and the next news
+block at 310–330, with both hidden during library-only viewing. Keep unused
+positions below 300 available for future custom stations.
 
 Use playful names where the subject remains clear: Comedy Reels, Reel Romance,
 Silver Screen Classics, Prime Crime TV and Fright Night TV. Decade names use all
