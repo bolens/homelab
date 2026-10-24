@@ -56,4 +56,43 @@ class Expired(unittest.TestCase):
    result=original(path);Path(self.lease.helper['path']).write_bytes(b'# changed retained original\n');return result
   with patch.object(h,'namespace',side_effect=namespace):
    with self.assertRaises((h.Held,projection.Held,parent.Held)):self.lease.original()
+class LeaseReplyClosure(unittest.TestCase):
+ """Actual lease/Tree originals; dialogue and pulse result are projected."""
+ def setUp(self):
+  from types import SimpleNamespace
+  from unittest.mock import Mock
+  import comic_nfs_lease_session as session
+  Expired.setUp(self);self.lease.owner.left=lambda:1;self.lease.admitted_empty=None
+  self.addCleanup(parent._CHILD_TREES.pop,self.lease.owner,None)
+  self.session=session;self.pulse=Mock(return_value=dict(held=True));self.lease.pulse=self.pulse
+  self.dialogue=SimpleNamespace(close=Mock(),nonce='a'*64,sequence=0)
+  self.replies=object.__new__(session.HostLeaseReplies);self.replies.dialogue=self.dialogue;self.replies.lease=self.lease
+  self.replies.absent=self.replies.absence_tape=('/owned/child','/owned');self.replies.done=False
+  self.frame=dict(type='nfs-lease',nonce=self.dialogue.nonce,sequence=1,payload=dict(operation='pulse',absent=[],empty=None))
+ def test_reply_closes_originals_before_verb_and_after_encoding(self):
+  from unittest.mock import patch
+  with patch.object(self.lease,'original',wraps=self.lease.original) as original:
+   raw=self.replies.accept(self.frame)
+  self.assertEqual(original.call_count,2);self.assertEqual(self.dialogue.close.call_count,3)
+  self.assertEqual(self.dialogue.sequence,1);self.assertEqual(self.session.json.loads(raw)['sequence'],1);self.pulse.assert_called_once_with()
+ def test_encoding_source_drift_refuses_before_returning_ack(self):
+  from unittest.mock import patch
+  original=self.session.encode
+  def encode(value):
+   Path(self.lease.helper['path']).write_bytes(b'# changed while encoding reply\n');return original(value)
+  with patch.object(self.session,'encode',side_effect=encode):
+   with self.assertRaises((h.Held,projection.Held,parent.Held)):self.replies.accept(self.frame)
+  self.assertEqual(self.dialogue.sequence,1);self.pulse.assert_called_once_with()
+ def test_final_dialogue_pair_drift_refuses_before_returning_ack(self):
+  calls=[]
+  def close():
+   calls.append(True)
+   if len(calls)==3:self.lease.tree.pairs=()
+  self.dialogue.close=close
+  with self.assertRaises((h.Held,projection.Held,parent.Held)):self.replies.accept(self.frame)
+  self.assertEqual(self.dialogue.sequence,1);self.pulse.assert_called_once_with()
+ def test_replayed_sequence_refuses_before_second_verb(self):
+  self.replies.accept(self.frame)
+  with self.assertRaisesRegex(self.session.Held,'original-frame'):self.replies.accept(self.frame)
+  self.pulse.assert_called_once_with();self.assertEqual(self.dialogue.sequence,1)
 if __name__=='__main__':unittest.main()

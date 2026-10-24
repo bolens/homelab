@@ -66,7 +66,7 @@ class HostLeaseReplies:
                 need(self.lease is not None,'lease-session-uninitialized');result=self.lease.check()
             else:
                 need(self.lease is not None,'lease-session-uninitialized');result=self.lease.pulse()
-        d.close();self.lease.original();d.sequence=frame['sequence']
+        d.close();d.sequence=frame['sequence']
         raw=encode(dict(type='nfs-host',nonce=d.nonce,sequence=d.sequence,payload=result))+b'\n'
         d.close();self.lease.original()
         if verb=='release':

@@ -685,7 +685,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "527650b05806cb517f4d7376fe577c59f53f92b119f9a365c0fca9b9386bd09c"
+    "sha256": "c908bf7b54f2f96d3facb406bcf2e607425cabb25616c13033676586873b394a"
   },
   {
     "path": "run_standalone_controls.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "6a3255e51a59777c623a059230bee9e03aee6aa1fee11ec1cc30cc8557a51baa"
+    "sha256": "69d76935c07316b734a44643dc0893de57db098c88612282f6ceda6ead3d98eb"
   },
   {
     "path": "story_arc_search.py",
@@ -1377,7 +1377,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "2c0de42381d104e3f91072c0145ba5ff9d253c271caffb8f1cac39c23d30247e"
+    "sha256": "56432bf1c9e9e9fd310a5669c4694ecbe2ee98638f98b5db4f97869e981dec77"
   },
   {
     "path": "test_publication_reader_softdelete.py",
