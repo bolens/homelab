@@ -21,6 +21,14 @@ Unavailable sources, credentials, absent mounts, ambiguous editions, duplicate q
 
 ## Requirements
 
+Scope extension (2026-10-23): downloads initiated inside Librarr must also send
+NZBs to the existing NZBGet service. Implement an internal SABnzbd API facade
+for the pinned native client: version, addurl, queue and history. Keep other
+download clients and categories unchanged; no black-hole directory is required.
+Use a dedicated Librarr category beneath the existing Usenet completed root,
+map its reported storage path to Librarr's media mount, and expose completion
+only after successful post-processing. Direct-download URLs are not NZBs.
+
 - FR-001: Search only monitored missing ebooks and recheck ownership and existing queues before each submission.
 - FR-002: Prefer readable EPUB editions and skip ambiguous title/author matches, audio, comic, and unsupported formats.
 - FR-003: Send Librarr torrent acquisitions to the existing rTorrent daemon visible in Flood.

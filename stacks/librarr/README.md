@@ -66,7 +66,7 @@ not configure it to reorganize another application's collection.
 | Audiobookshelf | Existing audiobook mount, plus optional scan API | `AUDIOBOOK_DIR=/data/audiobooks/Librarr` appears under `/audiobooks/Librarr` when its configured root is the same media tree. Set `ABS_URL`, token and the existing audiobook library ID. |
 | Bookshelf / Readarr | Reviewed manual import | Its existing `/data` mount sees `/data/librarr/ebooks`. Select a known book and use Manual Import after review; keep the original copy. This is not automatic monitored-book fulfillment. |
 | Calibre-Web | Reviewed upload/import | Download an organized EPUB from Librarr and use Calibre-Web's enabled upload flow, or use supported `calibredb add` after verified backup and rehearsal. Raw copies do not register in `metadata.db`. |
-| NZBGet | Unsupported by Librarr v1.4.1 | Keep it configured in Bookshelf. Librarr's native Usenet client is SABnzbd, which this repository does not provide. |
+| NZBGet | Optional SABnzbd API adapter | Select `docker-compose.nzbget.yml` and configure the dedicated category/path mapping below. The native Librarr Download button sends NZBs to the existing NZBGet. |
 
 Librarr assigns `librarr-ebooks`, `librarr-audiobooks` and `librarr-manga` torrent
 categories. Their save paths are `/data/downloads/torrents/librarr/{ebooks,audiobooks,manga}`.
@@ -218,3 +218,56 @@ queues. An intent receipt is written before submission, and uncertain submission
 require review instead of automatic retry. The helper does not schedule itself or
 claim that accepted downloads have finished or been imported. Copy-import completed
 files through Bookshelf and verify their book IDs separately.
+
+## NZBGet downloads from Librarr
+
+Librarr v1.4.1 speaks SABnzbd's API. The optional `docker-compose.nzbget.yml`
+provides only its required version, addurl, queue and history operations and
+forwards them to NZBGet's JSON-RPC API. No black-hole directory is needed.
+The adapter has no host port or ingress route and joins only `media-automation`.
+It requires an independent random `SABNZBD_API_KEY` and private NZBGet credentials.
+A restricted NZBGet account can submit and poll; an add-only account cannot poll.
+Existing downloader clients and their categories remain independent.
+
+Verify NZBGet's actual `DestDir`, `AppendCategoryDir`, and category settings first.
+With `DestDir=/downloads/completed` and `AppendCategoryDir=yes`, the unconfigured
+category `librarr` writes under `/downloads/completed/librarr`. If category settings
+already exist, verify their destination or choose a new dedicated category.
+The default mapping assumes NZBGet binds the same host media root's
+`downloads/usenet` directory at `/downloads`, while Librarr sees the media root at
+`/data`. Thus files reside at `downloads/usenet/completed/librarr/<release>` on
+that host media filesystem. Set `NZBGET_COMPLETED_ROOT` and `LIBRARR_NZB_ROOT`
+together for other layouts; mapping does not create mounts or move files.
+NZBGet's temporary/intermediate download directory remains its existing one.
+
+Generate the adapter key separately, enter credentials privately, and select the
+additional override alongside every previously selected override. For Flood plus
+NZBGet, for example:
+
+```bash
+docker compose --env-file stack.env -f docker-compose.yml -f docker-compose.flood.yml -f docker-compose.nzbget.yml up -d
+```
+
+UI-saved settings take precedence. Set Librarr's SABnzbd URL to
+`http://librarr-nzbget-adapter:8080`, its API key to the adapter key and its category
+to the configured `NZBGET_CATEGORY`. Run the SABnzbd connection test. Select a known
+NZB result and verify its returned ID appears in NZBGet and Librarr Downloads.
+Direct ebook links remain direct downloads; torrents still use the configured
+torrent client. The adapter does not convert one protocol into another.
+
+Only jobs with the dedicated category and adapter duplicate-key prefix are
+reported. Completion requires an ordinary successful NZB history status, no failed
+script/move stage, and a destination below the configured dedicated root. Manual
+success overrides and warnings are not automatically imported. Imports retain the
+source with Librarr's copy mode. Deletion and arbitrary API modes are rejected;
+manage cancellation in NZBGet itself. A network error after submission can leave
+an accepted job: inspect NZBGet before retrying. Native duplicate protection is
+preserved. This does not automatically register completed files in Bookshelf;
+use its supported reviewed copy-import flow above.
+
+Before changing live Librarr settings, back up and verify its complete state as
+above. Adding the adapter requires no NZBGet restart or image update when its
+existing category/path behavior already matches. If that behavior needs changing,
+first back up its configuration and queue state, verify an isolated restore, and
+coordinate the shared downloader's lifecycle with its other clients. Preserve all
+previously selected overrides when recreating Librarr or rolling back.

@@ -14,3 +14,11 @@ users and signing secret before recreation. Native Bookshelf Usenet discovery ma
 be submitted through release/push using the original publish date and existing
 NZBGet client; preserve its blocklist and cutoff decisions. Private trackers remain
 operator configured. Live inventory and acquisition receipts remain outside Git.
+
+NZB extension: use an authenticated, internal-only SABnzbd facade on the existing
+media-automation network. Forward addurl to NZBGet append with a dedicated
+category and duplicate key; preserve duplicate protection. Return only that
+category and adapter-marked jobs. Translate queue/history fields and map the
+existing NZBGet completed directory into Librarr's /data mount. Reject deletion,
+unknown modes, unsafe paths and unsuccessful post-processing. Prefer existing
+NZBGet storage/category behavior to avoid restarting the shared downloader.

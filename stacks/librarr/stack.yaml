@@ -69,7 +69,8 @@ lifecycle:
   notes: 'Pinned Linux amd64 release. Optional reader APIs require docker-compose.readers.yml.
     Direct downloads are not a Bookshelf download client. Flood is opt-in: verify
     its mounted download paths, persistent accounts and socket volume before selecting
-    docker-compose.flood.yml.'
+    docker-compose.flood.yml. Optional docker-compose.nzbget.yml translates the native
+    SABnzbd client to NZBGet; verify category and completed-path mapping.'
 runtime_security:
   privileged_services: []
   host_network_services: []

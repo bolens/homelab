@@ -7,3 +7,6 @@
 - [x] T005 Verify private backups and deploy. Flood login survives recreation, original images/torrent set persist, native Librarr connection/list decoding passes for single and multi-file controlled fixtures. Fixtures removed.
 - [x] T006 Initial missing-ebook search completed with private receipts. Preserve native rejection decisions and quarantine an adaptation mismatch before import. No incorrect edition was registered. Private tracker remains operator configured.
 - [ ] T007 Manual follow-up after operator configures a private tracker: verify an actual matching transfer, copy-import, source retention and Bookshelf file records. No transfer is claimed from connection or fixture proof alone.
+- [x] T008 Implement the native SABnzbd facade to NZBGet, including scoped status, completion path and failure tests. Ten adapter tests pass.
+- [x] T009 Update all optional integration contracts and run focused and repository checks. Twelve isolated Compose/preparation checks, adapter suites and make validate pass. Native live verification remains pending privileged access.
+- [ ] T010 Back up and verify affected Librarr state, deploy the private facade, and prove native connection/submission without claiming a real ebook import from fixture evidence.
