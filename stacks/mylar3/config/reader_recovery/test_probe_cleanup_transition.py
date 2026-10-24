@@ -76,7 +76,9 @@ class RetentionCleanup(Cleanup):
   (root/'L').mkdir(mode=0o700);(root/'R').mkdir(mode=0o700)
   return root/'R'/('.comic-nfs-private-'+'b'*32)/('.comic-nfs-probe-'+'c'*32)
  def setUp(self):
-  super().setUp();o=self.owner;root=self.fixture.parent.parent.parent
+  super().setUp();self.bind_retention()
+ def bind_retention(self):
+  o=self.owner;root=self.fixture.parent.parent.parent
   geometry=dict(version=2,kind='searchable-common-root-nfs',**{role:dict(path=str(path),signature9=p.nine(path.stat())) for role,path in (('common_root',root),('library',root/'L'),('retention',root/'R'))})
   self.common=p.admit_common_root(geometry,[dict(host=str(root),child=str(root),write=True)],str(root/'L'),str(root/'R'),[])
   self.addCleanup(p.close_common_root,self.common);self.addCleanup(p._ARCHIVE_COMMON_ROOTS.pop,o,None)
@@ -145,4 +147,125 @@ class RetentionCleanup(Cleanup):
    with self.assertRaises(p.Held):self.release()
   self.assertIs(p._NFS_REMOTE_WINDOWS[self.owner.engine],replacement)
   self.assertNotIn(self.owner,p._NFS_PROBE_REMOVED)
+class IntegratedProbe(unittest.TestCase):
+ """Actual Parent/session/common-root checks; constructors and handlers projected."""
+ fixture_path=RetentionCleanup.fixture_path
+ reseal=RetentionCleanup.reseal
+ clean_processes=Cleanup.clean_processes
+ def setUp(self):
+  import types,uuid
+  Cleanup.setUp(self);RetentionCleanup.bind_retention(self);o=self.owner
+  source=Path(__file__).with_name('comic_nfs_parent_session.py');private=self.base/'session.py';private.write_bytes(source.read_bytes());private.chmod(0o600)
+  name='probe_custody_session_'+uuid.uuid4().hex;module=types.ModuleType(name);module.__file__=str(private)
+  exec(compile(private.read_bytes(),str(private),'exec'),module.__dict__);sys.modules[name]=module;self.addCleanup(sys.modules.pop,name,None)
+  scope=self.base/'scope.json';scope.write_bytes(p.encode(dict(forbidden_roots=[self.common[1]['library']['path']])));scope.chmod(0o600)
+  ref=dict(path=str(scope),sha256=hashlib.sha256(scope.read_bytes()).hexdigest(),signature9=p.nine(scope.stat()));self.scope=scope
+  session_ref=dict(path=str(private),sha256=hashlib.sha256(private.read_bytes()).hexdigest(),signature9=p.nine(private.stat()))
+  active=dict(active_scope={k:ref[k] for k in ('path','sha256')},parent_admission=dict(path=str(self.fixture.parent)))
+  refs={'comic_nfs_parent_session.py':session_ref};raws={'comic_nfs_parent_session.py':private.read_bytes()}
+  p._NFS_SOURCE_CONTEXTS[o]=(refs,raws,p.encode(active),p.encode({}),'/fixture')
+  p._NFS_EFFECTIVE_ABSENCES[o]=p.encode([]);self.addCleanup(p._NFS_EFFECTIVE_ABSENCES.pop,o,None)
+  p._NFS_SOURCE_SEALS[o]=p.encode(dict(refs=refs,raw_sha={k:hashlib.sha256(v).hexdigest() for k,v in raws.items()},active=active,probe={},output='/fixture',effective_absences=[]));self.addCleanup(p._NFS_SOURCE_SEALS.pop,o,None)
+  p._NFS_DATA_ROOTS[o]=(self.common[1]['library']['path'],str(self.fixture.parent.parent));del self.mapping.nfs_roots;self.addCleanup(p._NFS_DATA_ROOTS.pop,o,None)
+  for item in (ref,session_ref):
+   o.files[item['path']]=tuple(item['signature9']);o.nodes.update(p.parents(Path(item['path'])))
+  o.op=self.base/'operation';o.op.mkdir(mode=0o700);o.plan['operation']=str(o.op)
+  self.lefts=[];original=p.LifecycleParent.left
+  def left():self.lefts.append(True);return original(o)
+  o.left=left
+  o.core=p.encode(dict(plan=o.plan,files=o.files,nodes=o.nodes,source=o.source_ref,input=o.plan_ref,engine=id(o.engine),thread=o.thread,deadline=o.deadline));p._CORES[o]=o.core;p._GENERATED[o]=p.encode(o.generated);self.addCleanup(p._GENERATED.pop,o,None)
+  session=object.__new__(module.RetainedChild);session.owner=o;session.g=p.__dict__;session.cid=self.cid;session.original_pid=self.outer.pid;session.state='ready'
+  engine=SimpleNamespace(owner=o,cid=self.cid,nonce=o.plan['nonce'])
+  session.engine_replies=engine;session.lease_replies=SimpleNamespace(dialogue=engine,lease=self.lease,done=False);session.probe_replies=SimpleNamespace(dialogue=engine,probe=self.probe)
+  session.packet_ref=self.ref;o.generated[self.ref['path']]=self.ref;p._GENERATED[o]=p.encode(o.generated)
+  session.output='/fixture';session.created_static=b'constructor projection';session.lease_class=object;session.abort_method=object;session.abort_code=None
+  method=p.LifecycleParent.nfs_host_modules;session.host_modules_guard=(method,method.__code__,method.__defaults__)
+  session.seal=(o,session.g,self.cid,engine,session.lease_replies,session.probe_replies,(self.ref['path'],self.ref['sha256'],tuple(self.ref['signature9'])),session.output,session.host_modules_guard)
+  module._SESSION_SEALS[session]=(*session.seal,session.created_static,session.lease_class,session.abort_method,session.abort_code)
+  p._NFS_LIVE_SESSIONS[o]=session;self.session=session
+  entry=('comic_nfs_parent_session.py',module,name,((module.RetainedChild,'close',module.RetainedChild.close,module.RetainedChild.close.__code__),))
+  p._NFS_HOST_MODULES[o]={'comic_nfs_parent_session.py':module};p._NFS_HOST_MODULE_SEALS[o]=(tuple(p._NFS_HOST_MODULES[o].items()),(entry,))
+  child,host,nodes,directories,_,cid,pid,nonce,spec=self.row;self.row=(child,host,nodes,directories,session,cid,pid,nonce,spec);p._NFS_PROBE_ROWS[o]=self.row;self.reseal()
+ def test_initial_and_final_actual_parent_closures(self):
+  self.assertEqual(self.mapping.check_nfs_probe(self.ref),self.specification);self.assertEqual(len(self.lefts),2)
+ def test_host_boundary_has_three_actual_parent_closures(self):
+  import comic_nfs_host_probe as host
+  probe=object.__new__(host.HostProbe);probe.dialogue=SimpleNamespace(close=self.owner.left);probe.owner=self.owner;probe.admitted=self.ref;probe.spec_tape=host.encode(self.specification)
+  probe.close();self.assertEqual(len(self.lefts),3)
+ def test_instance_session_checker_replacement_refuses(self):
+  self.session.close=lambda:None
+  with self.assertRaisesRegex(p.Held,'original-session-checker'):self.mapping.check_nfs_probe(self.ref)
+ def test_final_source_callback_input_drift_refuses(self):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[]
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:self.control.write_bytes(b'late admitted input drift')
+   return result
+  with patch.object(p,'dialogue_close',side_effect=close),self.assertRaises(p.Held):self.mapping.check_nfs_probe(self.ref)
+ def test_late_scope_drift_refuses(self):
+  from unittest.mock import patch
+  original=p.nfs_lstat;changed=[]
+  def stat(path):
+   result=original(path)
+   if str(path)==str(self.control) and not changed:self.scope.write_bytes(b'late scope drift');changed.append(True)
+   return result
+  with patch.object(p,'nfs_lstat',side_effect=stat),self.assertRaises(p.Held):self.mapping.check_nfs_probe(self.ref)
+ def test_final_callback_context_replacement_refuses(self):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[]
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:p._NFS_SOURCE_CONTEXTS[self.owner]=tuple(list(p._NFS_SOURCE_CONTEXTS[self.owner]))
+   return result
+  with patch.object(p,'dialogue_close',side_effect=close),self.assertRaisesRegex(p.Held,'original-context'):self.mapping.check_nfs_probe(self.ref)
+ def test_final_source_callback_scope_drift_refuses(self):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[]
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:self.scope.write_bytes(b'final source callback scope drift')
+   return result
+  with patch.object(p,'dialogue_close',side_effect=close),self.assertRaises(p.Held):self.mapping.check_nfs_probe(self.ref)
+ def test_final_callback_cannot_adopt_different_physical_phase(self):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[]
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:self.probe.process.started=False
+   return result
+  with patch.object(p,'dialogue_close',side_effect=close),self.assertRaisesRegex(p.Held,'original-physical-phase'):self.mapping.check_nfs_probe(self.ref)
+ def test_final_callback_cannot_clear_original_source_refs(self):
+  self.context_mutation(lambda context:context[0].clear())
+ def test_final_callback_cannot_replace_original_raw_source(self):
+  self.context_mutation(lambda context:context[1].__setitem__('comic_nfs_parent_session.py',b'foreign raw bytes'))
+ def test_final_callback_cannot_replace_equal_valued_ref_dictionary(self):
+  def replace(context):self.owner_context=(dict(context[0]),*context[1:]);p._NFS_SOURCE_CONTEXTS[self.owner]=self.owner_context
+  self.context_mutation(replace)
+ def test_final_callback_cannot_reseal_changed_context(self):
+  def reseal(context):
+   context[0].clear();p._NFS_SOURCE_SEALS[self.owner]=p.encode(dict(refs={},raw_sha={},active={},probe={},output='/fixture',effective_absences=[]))
+  self.context_mutation(reseal)
+ def context_mutation(self,mutate):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[]
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:mutate(p._NFS_SOURCE_CONTEXTS[self.owner])
+   return result
+  with patch.object(p,'dialogue_close',side_effect=close),self.assertRaisesRegex(p.Held,'original-context'):self.mapping.check_nfs_probe(self.ref)
+ def test_final_callback_retention_fd_substitution_refuses(self):
+  from unittest.mock import patch
+  original=p.dialogue_close;calls=[];fd=self.common[2][1];saved=os.dup(fd)
+  def close(*args):
+   result=original(*args);calls.append(True)
+   if len(calls)==2:
+    other=os.open(self.base,os.O_RDONLY|os.O_DIRECTORY)
+    try:os.dup2(other,fd)
+    finally:os.close(other)
+   return result
+  try:
+   with patch.object(p,'dialogue_close',side_effect=close),self.assertRaises(p.Held):self.mapping.check_nfs_probe(self.ref)
+  finally:os.dup2(saved,fd);os.close(saved)
+
 if __name__=='__main__':unittest.main()
