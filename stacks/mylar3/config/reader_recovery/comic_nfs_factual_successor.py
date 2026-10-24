@@ -117,7 +117,7 @@ class RetainedObservation:
             need(type(path) is str and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp),'nfs-retained-original-file-vector')
             host=host_map(path);expected=tuple(stamp)
             need(tuple(g['nine'](_host_stat(owner, host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
-        nodes=dict(owner.nodes)
+        nodes={str(path):tuple(stamp) for path,stamp in owner.nodes.items()}
         for path,stamp in (*tree.nodes,*tree.directories):
             need(path not in nodes or nodes[path]==tuple(stamp),'nfs-retained-host-node-conflict');nodes[path]=tuple(stamp)
         names=[]
