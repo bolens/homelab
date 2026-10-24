@@ -151,7 +151,12 @@ def nfs_child_geometry(facts,source,retention):
     original=facts['mount'];host_target=Path(original['target']);export=Path(original['fsroot'])
     host_source=original['source'];suffix='['+original['fsroot']+']'
     if host_source.endswith(suffix):host_source=host_source[:-len(suffix)]
-    o.check(left==right and 'rw' in left['options'].split(',') and left['target']==str(root) and left['fstype']=='nfs4' and left['device']==original['maj:min'] and left['source']==host_source and root.is_relative_to(host_target) and Path(left['root'])==export/root.relative_to(host_target),'repair-nfs-same-actual-mount-and-export')
+    o.check(root.is_relative_to(host_target),'repair-nfs-original-host-subtree')
+    subtree=root.relative_to(host_target)
+    same_export=(left['source']==host_source and Path(left['root'])==export/subtree)
+    source_suffix=(original['fsroot']==left['root']=='/' and str(subtree)!='.'
+                   and left['source']==host_source.rstrip('/')+'/'+str(subtree))
+    o.check(left==right and 'rw' in left['options'].split(',') and left['target']==str(root) and left['fstype']=='nfs4' and left['device']==original['maj:min'] and (same_export or source_suffix),'repair-nfs-same-actual-mount-and-export')
     o.check(not any(Path(row['target'])!=root and Path(row['target']).is_relative_to(root) for row in rows),'repair-nfs-nested-child-mount')
     device=os.lstat(source).st_dev;o.check(device==facts['device'] and device==os.lstat(retention).st_dev and str(os.major(device))+':'+str(os.minor(device))==left['device'],'repair-nfs-original-device')
     o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-final-common-root9')

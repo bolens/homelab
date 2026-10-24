@@ -178,8 +178,11 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
     need(rows['source']==rows['target'],'namespace-one-child-bind')
     row=rows['source']
-    need(row['target']==str(bind_target) and row['fsroot']==expected_root
-         and export(row)==export(host) and row['maj:min']==host['maj:min']
+    same_export=(row['fsroot']==expected_root and export(row)==export(host))
+    source_suffix=(host['fsroot']==row['fsroot']=='/'
+                   and row['source']==export(host).rstrip('/')+'/'+str(bind_original.relative_to(mountpoint)))
+    need(row['target']==str(bind_target) and (same_export or source_suffix)
+         and row['maj:min']==host['maj:min']
          and row['options']==host['options']
          and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
          'namespace-original-export-bind')

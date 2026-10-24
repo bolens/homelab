@@ -15,9 +15,10 @@ One accepted pair can satisfy the connected portions of T026/T029, isolated
 T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 
 Reviewed source, selected-image component checks and checked installations are
-available. PR #511 delivers the last reproduced NFS probe correction with all
-hosted checks passing; its final recovery suite passes 1,559 checks/75 suites
-without skips. These are completed delivery milestones, not accepted runtime
+available. PR #513 delivered the repeated-validation correction. PR #515
+tracks the demonstrated mount, source-path and NFS namespace corrections; its
+changed native adoption module needs matching image/SDK proof before another
+connected attempt. Source delivery alone does not establish accepted runtime
 terminals. Ordinary native preservation, T030 cache guard, T031 identity recovery
 and T032 control-state adoption retain their recorded acceptance.
 

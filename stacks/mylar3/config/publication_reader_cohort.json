@@ -149,7 +149,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "0304108423c7e015cd9a14315d0a6cb5eba0af29a831ed8a35a9dc0dd74a44c8"
+      "tracked_source_sha256": "0ca9961bd0c391cfe2add113c0bf61b20b926bddb8b21b59db8ef56d795ffd09"
     },
     "publication_archive_derivative": {
       "owning_adapters": [

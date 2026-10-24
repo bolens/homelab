@@ -99,6 +99,12 @@ The one-use typed selection joins original owner/operation/configured paths,
 actual mountinfo, retained source/stage identities and stopped-reader custody.
 A ready receipt never sets `actual_library_platform_verified` or grants mutation.
 
+The export join accepts either the existing export-plus-fsroot form or the
+source-suffix form with both roots `/` and the exact authenticated host-relative
+bind subtree appended to the original export. Actual target, device, access,
+same-mount identity and nested-mount refusals remain required. A changed native
+adoption module requires matching installed image/SDK proof.
+
 Under stopped reader, inactive worker and exclusive original Writer, each
 install/reverse records intent then completion for retain-displaced hardlink,
 source unlink, no-clobber publication hardlink, stage unlink, original-retention

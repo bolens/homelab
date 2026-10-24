@@ -1539,7 +1539,10 @@ Common G and library L remain outside its writable mounts. Legacy probes retain
 their fixture-only bind. The two checked probe source copies use child-tree
 virtual destinations so protected host ancestry cannot block UID1000 reads.
 Physical sources remain readonly with their original hash and identity checks.
-Connected forward and rollback acceptance remain open.
+The probe and native adoption also recognize the exact NFS source-suffix
+namespace representation while retaining device, identity, access and mount
+checks. The changed native module requires matching image/SDK proof. Connected
+forward and rollback acceptance remain open.
 
 Control-tree checks avoid repeated metadata reads for identical original paths
 within each closure pass. Conflicting facts and changes after callbacks still
