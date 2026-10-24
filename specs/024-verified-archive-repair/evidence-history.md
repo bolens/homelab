@@ -405,3 +405,26 @@ Independent review passes. The added regression explicitly models foreign UID 10
 The next hosted run passes the earlier ownership cases but exposes one further fixture mismatch: a directory-relative `stat` resolves against a retained descriptor, while the ownership model incorrectly resolves the name against the current directory. The fixture now resolves relative names through their actual `dir_fd` before applying its existing two-file projection. Production source remains unchanged.
 
 A strengthened model presents hosted UID 1001 across real directory, leaf and descriptor metadata and reproduces the exact complete-main failure before the fix. The corrected model reaches the original injected pre-output failure and verifies both descriptor groups close. All 40 controls pass on Python 3.10 and the host, with zero skips; strict foreign-owner and wrong-hash refusals remain. Current-head hosted CI remains required.
+
+
+## Exited canary with pending attach output — 2026-10-24
+
+AO uses the published #515 native image and a matching checked installation. Its
+NFS canary completes all five hardlink transitions and exits zero with an
+8,707-byte response. The host refuses `probe-original-inner-exit-unknown` before
+reader stop at its pre-read client-exit check. The original attach client's exit
+status and pipe capacity were not retained. AO and its original helpers remain
+preserved without replay. Both archives retain their
+full identities, bytes and ZIP members; both reader records/progress and six page
+hashes are unchanged. Native process/config observations retain their originals,
+and the permanent worker remains Created.
+
+A real-process regression forces the inner process to exit while the original
+attach client blocks forwarding a response through its 4,096-byte stdout pipe.
+The previous observer reproduces the same refusal. The correction admits draining
+only after authorized execution, with the original client incarnation and FIFO
+descriptors. Zero final exit, original-inner disappearance and postrelease terminal
+profile validation remain mandatory. Foreign client ticks, changed stdout pipes,
+pre-execution disappearance and nonzero exits still refuse. This transport proof
+supplies no configured recovery acceptance. Fresh forward and distinct rollback
+execution remain required for T012/T015 and feature 023 T026/T029.
