@@ -1061,16 +1061,38 @@ class Paths:
         return dict(path=str(host),signature9=list(expected))
 
     def check_nfs_empty(self,value):
-        need(self.owner is not None,'nfs-empty-owning-parent');owner=self.owner;owner.left()
+        need(self.owner is not None,'nfs-empty-owning-parent');owner=self.owner
         row=_NFS_EMPTY_ROWS.get(owner);need(row is not None,'nfs-empty-original-unbound')
         child,host,stamp,nodes,session,cid,pid,nonce=row
         need(value==dict(path=host,signature9=list(stamp)) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-empty-original-session-ref')
-        session.close();need(not nfs_names(host),'nfs-empty-original-empty')
+        modules=_NFS_HOST_MODULES.get(owner);seal=_NFS_HOST_MODULE_SEALS.get(owner)
+        need(type(modules) is dict and type(seal) is tuple and len(seal)==2,'nfs-empty-original-host-seal')
+        module=modules.get('comic_nfs_parent_session.py')
+        entries=[entry for entry in seal[1] if entry[0]=='comic_nfs_parent_session.py' and entry[1] is module]
+        need(len(entries)==1 and type(session) is getattr(module,'RetainedChild',None),'nfs-empty-original-session-type')
+        entry=entries[0];methods=[item for item in entry[3] if item[0] is type(session) and item[1]=='close']
+        need(len(methods)==1,'nfs-empty-original-session-checker');kind,_,method,code=methods[0]
+        def binding():
+            bound=session.close
+            need(self.owner is owner and _NFS_EMPTY_ROWS.get(owner) is row
+                 and _NFS_LIVE_SESSIONS.get(owner) is session
+                 and _NFS_HOST_MODULES.get(owner) is modules and _NFS_HOST_MODULE_SEALS.get(owner) is seal
+                 and tuple(modules.items())==seal[0] and any(value is entry for value in seal[1])
+                 and modules.get('comic_nfs_parent_session.py') is module and module.RetainedChild is kind
+                 and type(session) is kind and kind.close is method
+                 and getattr(bound,'__self__',None) is session and getattr(bound,'__func__',None) is method
+                 and method.__globals__ is module.__dict__ and method.__code__ is code
+                 and method.__defaults__ is None and method.__kwdefaults__ is None
+                 and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),
+                 'nfs-empty-original-session-checker')
+        binding();method(session);binding()
+        need(not nfs_names(host),'nfs-empty-original-empty')
         for path,expected in nodes:
             z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(expected):raise Held('nfs-empty-original5')
         z=nfs_lstat(host)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('nfs-empty-original9')
+        binding()
         return dict(path=host,signature9=list(stamp))
 
     def nfs_probe_binding(self, fixture):
@@ -1310,7 +1332,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'b82b85736a2029e0f928d2de2b2e3367b9154494040031ef9317591954c4fbf4', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '25d479d74dd343caa34e3481ea59b42bf42cb2e952cb5fa87c4ba66dbee551bb', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
 NFS_ACTIVE_SOURCE_SHA='4aef95d73839e5a70309e69f27c7bb91da0bb40583beab09eb2baf828f2f4ff6'
 
 
