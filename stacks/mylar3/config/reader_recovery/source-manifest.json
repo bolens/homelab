@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "4336f79d6cdab744dc21020bb68e3ad352f712f03b973b4e3c0ce81bebe4c75d"
+      "sha256": "afea1171fde97ac7e559f9ec1cb2213f006a3e8dfd13aba4ef867eded0faecae"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "cf8d5cdc944da7bb9ff6fdfd92e4c6625e92ca910b1f1d91e295c9215601776f"
+      "sha256": "0878c73450b1a740e28d82eb59412fed838aa11bb9992cf668ac5f8e889fc891"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "b182e5b7b2ba690e783a083d66f8adbd502a33647b0701decbc5ad2ce8b5a68d"
+      "sha256": "ba58406c50f29d03db3bd3be48bef95c9c639c95bd31fe68c3aff6d95feeac24"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "51c06b1518f432c47fda13c7e7e516a7163b9e66384eeafd9bd14f0beec6d5e3"
+      "sha256": "28e1b1c78d79312bf393a11d4ac54f030fbda1796d624472f52ad93f05a89502"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -736,7 +736,7 @@
       "sha256": "84decaf43c90c8a1f0adb95b8451ec7ede71fbf52b77c0ac7052c60ff7f85ee3"
     },
     "test_probe_cleanup_transition.py": {
-      "sha256": "c36620d9671a46243ae6248bcdbe487aca724462f8d6fd51623dd8db448bfbbb"
+      "sha256": "2c91e4e8a810b1cc0d25ee522b36d046c1f3bac47a77609cdad17c5e78be0fb3"
     },
     "test_probe_lease_order.py": {
       "sha256": "5a4fdf70bc2bbb642488ec3c5c0a3a44209d77a5367f11b7ca520ceda525730c"

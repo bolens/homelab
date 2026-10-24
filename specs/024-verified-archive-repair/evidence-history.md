@@ -428,3 +428,23 @@ profile validation remain mandatory. Foreign client ticks, changed stdout pipes,
 pre-execution disappearance and nonzero exits still refuse. This transport proof
 supplies no configured recovery acceptance. Fresh forward and distinct rollback
 execution remain required for T012/T015 and feature 023 T026/T029.
+
+
+## Retained-root probe cleanup — 2026-10-24
+
+AQ passes the corrected output drain and physically releases its NFS writer.
+The Parent then refuses `nfs-probe-cleanup-exact-owned-absence`: its cleanup
+predicate still expects a direct fixture bind, while searchable geometry binds
+the retained `R` directory. This happens before reader stop. Both archives, reader
+records/progress and six page hashes retain their baselines. All 24 independently
+observed native tables are unchanged. AQ remains preserved without replay.
+
+The correction keeps the legacy direct bind and checks searchable cleanup against
+the original common-root row, retained descriptors, sealed binding and exact two
+mounts. It rechecks custody after absence callbacks. Cleanup still requires the
+successful original kernel, physical release and exact fixture/private-parent
+absence. The retained root is never a cleanup target. Sixteen component checks
+include actual descriptors, expired operational deadlines, binding drift, reused
+retention descriptors and late registry replacement. These component checks supply
+no configured recovery acceptance. Fresh forward and distinct rollback remain
+required.
