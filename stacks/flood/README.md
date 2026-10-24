@@ -31,3 +31,33 @@ Verify an isolated restore before removing only the proven stale
 running state, restart count, session records, and Flood connectivity. Preserve
 all torrent session files and downloads. Never remove a lock held by a running
 instance.
+
+## Persistent accounts
+
+Flood must run with `--rundir=/data`. Its default runtime directory is under the
+container user's home. Mounting `/data` without selecting it leaves accounts and
+the session-signing secret in the disposable container layer. Before recreating
+an older deployment, stop Flood and back up both `/data` and the actual runtime
+directory. Verify isolated copies, then migrate the complete runtime into the
+persistent volume with ownership matching UID/GID 1001. Preserve user hashes,
+`flood.secret`, per-user settings, and connection configuration. Do not overwrite
+a nonempty destination without reviewing both copies. Verify the same account
+before and after recreation.
+
+## Librarr downloads
+
+Verify the intended remote mount before creating dedicated empty directories
+`downloads/librarr/{ebooks,audiobooks,manga}`. Give the applications shared group
+write access. Set `FLOOD_LIBRARR_DOWNLOADS_PATH` to that existing download root and
+`LIBRARR_MEDIA_GID` to its group. Select `docker-compose.librarr.yml` alongside all
+existing overrides. It adds a narrow bind to Flood and rTorrent at
+`/data/downloads/librarr` and extends Flood's allowed paths. Existing `/downloads`
+and torrent state remain in their original volumes. Do not rerun the recursive
+initialization service. Deploy only `rtorrent` and `flood` with `--no-deps` after
+verified backups. Keep the original compatible images.
+
+Librarr's optional [Flood adapter](../librarr/README.md#flood--rtorrent) uses the
+existing rTorrent Unix socket. No socket TCP port or public adapter route is added.
+The adapter submits and reads only its configured categories and paths. It refuses
+torrent removal. Bookshelf also supports a native Flood download client; use its
+own dedicated tag if enabling it.
