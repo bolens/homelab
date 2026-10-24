@@ -81,6 +81,14 @@ Before clearing a physically released window, the Parent separately closes the r
 
 Configured phase order is prelease lease preparation, exact probe birth and real wait-gated Popen/prepared ACK; source-owned acquire; local held execution/inventory/cleanup; actual helper physical release; independent postrelease terminal/source/profile/library checks against sealed originals. The Parent registers only the actual source-bound HostProbe and CID, rejects replay before launch, and requires consumed prepared ACK before blocking/acquisition. Descriptor facts carry false rights; no serialized canary or arbitrary child argv is admitted. Default legacy route remains operational HOLD, and actual configured NFS/Parent acceptance remains a separate gate.
 
+After authorized execution, the original inner process may exit while its attach
+client is still forwarding a response larger than the held stdout pipe. The host
+drains only that original client and its original FIFOs before requiring zero
+client exit and disappearance of the original inner incarnation. A foreign client
+start tick, changed FIFO, pre-execution disappearance or nonzero exit refuses.
+Postrelease terminal-profile checks remain required; draining supplies no terminal
+or publication acceptance.
+
 The retained probe mapping preserves its original admitted fixture directory vectors through execution. Source-owned cleanup may remove exactly that fixture and its parent before physical release. Only the original registered kernel output (exact probe/input/kernel hashes and immutable original directory identity), successful original release ACK, physical process/pipe closure and exact original owned absence permit the separately retained removal transition. Postrelease mapping then requires those exact paths absent and retains original input/source/ancestor/output/protected checks. No arbitrary missing path, aborted/unknown release or refreshed baseline is admitted.
 
 ## Original library-query network context

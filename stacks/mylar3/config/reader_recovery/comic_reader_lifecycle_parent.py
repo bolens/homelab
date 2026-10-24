@@ -1208,7 +1208,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '39219f132f81c301f14310ba46aae677c30ee6fbb76fc59c0b9790705f388751', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
 NFS_ACTIVE_SOURCE_SHA='1da0e329e0e00ccbeb38f4d813984ca3ab991ac1d32c3023bdfcfc695c07a02d'
 
 
@@ -2505,9 +2505,29 @@ class LifecycleParent:
         need(kernel['kernel_sha256']==cohort['sources']['hardlink_kernel']['sha256'],
              'nfs-probe-cleanup-original-kernel-source')
         fixture=directories[0][0];parent=str(Path(fixture).parent)
+        retained=None
+        if 'binding' in spec:
+            retained=_ARCHIVE_COMMON_ROOTS.get(self)
+            need(retained is not None and self.plan.get('version')==13
+                 and retained[1]==self.plan.get('publication_geometry'),
+                 'nfs-probe-cleanup-original-retention-row')
+            geometry=retained[1];geometry_tape=encode(geometry)
+            need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs',
+                 'nfs-probe-cleanup-searchable-retention')
+            retention=absolute(geometry['retention']['path']);root=absolute(fixture)
+            stamp=geometry['retention']['signature9']
+            binding=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
+            need(encode(spec['binding'])==encode(binding)
+                 and encode(spec['mounts'][:2])==encode([[str(retention),str(retention),True],[str(retention),'/config',False]])
+                 and root.parent.parent==retention and retention.name=='R'
+                 and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+                 and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
+                 and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None,
+                 'nfs-probe-cleanup-exact-retention-binding')
+            check_common_root(retained)
+        else:need(spec['mounts'][0][0]==fixture,'nfs-probe-cleanup-exact-owned-absence')
         need(len(directories)==3 and tuple(path for path,_ in directories)==(fixture,str(Path(fixture)/'source'),str(Path(fixture)/'target'))
-             and tuple(session.lease_replies.absent)==tuple(session.lease_replies.absence_tape)==(fixture,parent)
-             and spec['mounts'][0][0]==fixture,
+             and tuple(session.lease_replies.absent)==tuple(session.lease_replies.absence_tape)==(fixture,parent),
              'nfs-probe-cleanup-exact-owned-absence')
         # The kernel reports final full9; compare immutable initial identity5,
         # never refresh initial directory metadata after owned mutations.
@@ -2518,6 +2538,13 @@ class LifecycleParent:
                  'nfs-probe-cleanup-original-directory-identity')
         for path in (fixture,parent):
             if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-required')
+        if retained is not None:
+            check_common_root(retained)
+            need(_ARCHIVE_COMMON_ROOTS.get(self) is retained
+                 and encode(retained[1])==geometry_tape==encode(self.plan.get('publication_geometry'))
+                 and encode(spec['binding'])==encode(binding)
+                 and encode(spec['mounts'][:2])==encode([[str(retention),str(retention),True],[str(retention),'/config',False]]),
+                 'nfs-probe-cleanup-final-retention-custody')
         return (row,session,probe,launch,lease,hashlib.sha256(process.kernel_output).hexdigest(),(fixture,parent))
 
     def end_nfs_writer_window(self,lease):
@@ -2559,6 +2586,10 @@ class LifecycleParent:
              'nfs-writer-window-original-physical-code')
         need(record[10](lease)=='RELEASED_PHYSICAL' and record[12](lease) is True,
              'nfs-writer-window-physical-release-required')
+        retained=_ARCHIVE_COMMON_ROOTS.get(self)
+        retained_tape=encode(retained[1]) if retained is not None else None
+        probe_row=_NFS_PROBE_ROWS.get(self)
+        probe_spec_tape=encode(probe_row[8]) if probe_row is not None else None
         cleanup=self.nfs_probe_cleanup_transition(lease,record)
         # Source/control/ancestor closure after the last local physical callback.
         files=dict(self.files);nodes=dict(self.nodes)
@@ -2603,7 +2634,17 @@ class LifecycleParent:
                 raise Held('nfs-writer-window-original-probe-FD')
         if _NFS_REMOTE_WINDOWS.get(self.engine) is not record:
             raise Held('nfs-writer-window-original-block-final')
-        if cleanup is not None:_NFS_PROBE_REMOVED[self]=cleanup
+        if cleanup is not None:
+            if 'binding' in cleanup[0][8]:
+                need(retained is not None,'nfs-probe-cleanup-final-original-retention')
+                check_common_root(retained)
+                need(_ARCHIVE_COMMON_ROOTS.get(self) is retained
+                     and encode(retained[1])==retained_tape==encode(self.plan.get('publication_geometry'))
+                     and _NFS_PROBE_ROWS.get(self) is probe_row is cleanup[0]
+                     and encode(probe_row[8])==probe_spec_tape
+                     and _NFS_REMOTE_WINDOWS.get(self.engine) is record,
+                     'nfs-probe-cleanup-final-original-retention')
+            _NFS_PROBE_REMOVED[self]=cleanup
         del _NFS_REMOTE_WINDOWS[self.engine]
 
     def nfs_library_query_reply(self,frame):
