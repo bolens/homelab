@@ -10,7 +10,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1582 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1588 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route
@@ -151,6 +151,15 @@ its original process and delegates fixed source-owned engine, host Writer, and
 probe operations over the registered original pipes. Namespace and host reader
 epoch replies bind exact captured roles/source and actual process metadata.
 The host owns exact probe name/spec/CID and separate prepare/create/start.
+The child compares mount rows as tuples after JSON transport, retaining exact
+source, destination, access mode, bind type and mount count checks.
+The nested probe mounts its two checked source copies at their child-tree
+virtual paths, outside protected host ancestry. Physical sources and their
+readonly access remain unchanged. Protected data keeps its original mapping.
+Probe and native adoption joins also accept the observed NFS source-suffix
+encoding only with both roots `/` and the exact authenticated host subtree.
+Device, access, identity and namespace checks remain required. This native SDK
+change needs matching image proof before a fresh checked installation.
 Profile validation constructs argv once between its existing boundary checks;
 the original builder function and code remain bound in the process seal.
 Retention binding observes the original NFS root set once instead of invoking

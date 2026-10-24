@@ -9,9 +9,9 @@ implementation tasks T019–T022 are delivered; they are not additional runtime
 acceptance gates. T012/T015 share one forward run and one distinct-fixture
 rollback with feature 023 T026/T029 and the isolated portion of T027.
 
-1. Resolve the demonstrated nested probe-validation latency without changing the
-   120-second guard, then use a fresh disposable forward attempt. Independently
-   compare archive bytes/members, native records and reader references/progress.
+1. Verify the NFS source-suffix correction in a matching native image/SDK, then
+   use a fresh disposable forward attempt with the unchanged 120-second guard.
+   Independently compare archives, native records and reader references/progress.
 2. After accepted forward proof, complete the prepared separate rollback fixture
    and compare its actual causal original plus the complete native preimage.
 3. Record the original terminal, worker-consumption, NFS/restore and reader-resume
@@ -21,23 +21,31 @@ rollback with feature 023 T026/T029 and the isolated portion of T027.
    as subsequent operational milestones. The current disposable-fixture scope
    does not authorize production T016–T018 or permanent worker activation.
 
-PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit and
-removed one duplicate session guard after all hosted checks passed. A fresh
-isolated run then reached probe creation but held at the dialogue deadline
-during birth registration, before reader stop. Its original native/reader
-epochs and inactive worker remain unchanged. Independent post-hold comparisons
-preserve both archives, reader records/progress and six page hashes. The next
-correction removes repeated command construction and root observation, and
-delegates registered common-root custody to its existing complete geometry
-checker. A separate actual Root/NFS benchmark of 24 identical private controls
-reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
-controls, geometry and source bytes. This measures metadata closure, not the
-connected recovery path. Final source additionally checks the exact ancestor
-key set before any Root path access; its regression verifies that consistently
-forged ledgers cannot trigger a foreign metadata read. Terminal acceptance
-remains unproved. This stays within T012, with no new task or acceptance gate.
-Preserve all earlier attempts and
-originals without replay. Historical refusals remain in [evidence
+PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit.
+PR [#513](https://github.com/bolens/homelab/pull/513) delivered the repeated
+validation correction after local and hosted checks passed. Its actual Root/NFS
+benchmark reduced 24 common-root checks from 2.744 seconds to 0.185 seconds.
+Final source also rejects foreign ancestor keys before Root metadata reads.
+
+AH passed the previous deadline boundary, then held at the child mount
+comparison before reader stop. The correction normalizes expected mount rows
+after JSON transport. AJ held at current-role readiness before Producer entry.
+Its rejected probe reply was not retained, so the exact cause is unproved.
+AL passed current roles and the mount comparison, then its nested probe could
+not read source paths beneath protected host ancestry. AM exercised the child
+Tree source fix, then held before Writer/reader stop at the NFS namespace join.
+Actual findmnt and raw mountinfo encode the exact subtree in source with root
+`/`. The correction supports that exact representation in both probe validators
+and native adoption. Native adoption belongs to SDK102, so matching image proof
+and a fresh installation must precede another connected run. Both archives,
+reader records/progress and six page hashes remain unchanged after each hold.
+Terminal acceptance remains unproved.
+
+These corrections stay within T012, with no new task or acceptance gate.
+Authorized disposable tests may precede merge using reviewed frozen source and
+its matching checked installation. Hosted CI still gates merge; final delivery
+and original runtime evidence must join before T012/T015 completion. Preserve
+all earlier attempts without replay. Historical refusals remain in [evidence
 history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
 
 ## Phase 1: Setup

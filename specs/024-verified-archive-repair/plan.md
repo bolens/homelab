@@ -162,6 +162,14 @@ Features 022/023 complete current-library acceptance still gates general writer 
 
 ## Prospective NFS purpose implementation
 
+The observed source-suffix NFS namespace is an explicit alternative to the
+existing export-plus-fsroot representation. Both host and child fsroots must be
+`/`; the child source must equal the original host export plus the exact relative
+host bind subtree. Apply this relation to both probe validators and native
+adoption's mountinfo join, preserving all target, identity, device, access,
+same-mount and nested-mount checks. Require matching installed image/SDK evidence
+for the changed native adoption module before another connected attempt.
+
 The current source implements plan13/action-v3 `rename-link-v1` using actual
 common-root/mountinfo joins and separately sealed original NFS facts over the
 existing pipe before Writer. Each of six link/unlink transitions has intent/done

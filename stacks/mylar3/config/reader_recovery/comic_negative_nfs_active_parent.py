@@ -30,7 +30,7 @@ WORKER = None
 PROBE = None
 PROBE_SHA = None
 HARDLINK_KERNEL = None
-HARDLINK_KERNEL_SHA='a217c0b59a49b10ef49308446b7a1801c7b3b4ae7b47807a563faeb07bf5e7ae'
+HARDLINK_KERNEL_SHA='0571a5926358d9b83efc04e02e956b7514721f61b5e04fb2665daa553732c144'
 READY = None
 READY_SHA = None
 PARITY = None
@@ -811,7 +811,7 @@ def profile(row, name, mounts):
         len(row["Mounts"]) == len(mounts)
         and all(m["Type"] == "bind" for m in row["Mounts"])
         and sorted((m["Source"], m["Destination"], m["RW"]) for m in row["Mounts"])
-        == sorted(mounts),
+        == sorted(tuple(m) for m in mounts),
         "child-mounts",
     )
     check(re.fullmatch("[a-f0-9]{64}", row["Id"]), "child-id")

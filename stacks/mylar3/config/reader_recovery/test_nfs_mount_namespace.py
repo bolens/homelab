@@ -18,6 +18,24 @@ class Bridge(unittest.TestCase):
  def test_plain_source_formatter_preserves_export(self):
   for r in self.rows.values():r['source']='server:/export'
   self.call()
+ def test_source_suffix_encoding_preserves_exact_host_subtree(self):
+  self.host['fsroot']='/'
+  for row in self.rows.values():row.update(source='server:/export/fixture',fsroot='/')
+  proof=self.call();self.assertEqual(proof['rows'],self.rows)
+  self.assertEqual(k.mount_namespace(self.host,self.rows,'/host/fixture','/child/fixture',self.root9,self.root9),proof)
+ def test_source_suffix_encoding_rejects_export_subtree_and_security_drift(self):
+  self.host['fsroot']='/'
+  for row in self.rows.values():row.update(source='server:/export/fixture',fsroot='/')
+  original=copy.deepcopy(self.rows)
+  for key,value in (('source','foreign:/export/fixture'),('source','server:/export2/fixture'),('source','server:/export'),('source','server:/export/other'),('source','server:/export/fixture/extra'),('fsroot','/fixture'),('target','/other'),('options','ro,nosuid,nodev,relatime,vers=4.2'),('maj:min','1:999')):
+   with self.subTest(key=key,value=value):
+    self.rows=copy.deepcopy(original)
+    for row in self.rows.values():row[key]=value
+    for module in (h,k):
+     with self.assertRaises(module.Held):module.mount_namespace(self.host,self.rows,'/host/fixture','/child/fixture',self.root9,self.root9)
+  self.rows=original;self.host['fsroot']='/export'
+  for module in (h,k):
+   with self.assertRaises(module.Held):module.mount_namespace(self.host,self.rows,'/host/fixture','/child/fixture',self.root9,self.root9)
  def test_each_child_field_and_security_drift_refuse(self):
   values=dict(source='foreign:/export',target='/foreign',fstype='ext4',fsroot='/export/foreign',options='rw,relatime',**{'maj:min':'1:999'})
   for key,value in values.items():
@@ -64,6 +82,13 @@ class RetentionBridge(unittest.TestCase):
  def test_retention_proof_keeps_distinct_original_fixture_and_retention(self):
   proof=self.call();self.assertEqual(proof['version'],2);self.assertEqual(proof['root9'],self.root9)
   self.assertEqual(proof['binding'],self.binding);self.assertEqual(proof['retention9'],self.retention9)
+ def test_source_suffix_uses_retention_bind_root_not_nested_fixture(self):
+  self.host['fsroot']='/'
+  source=self.host['source']+'/'+str(Path(self.retention).relative_to(self.host['target']))
+  for row in self.rows.values():row.update(source=source,fsroot='/')
+  proof=self.call();self.assertEqual(proof['binding'],self.binding)
+  for row in self.rows.values():row['source']=source+'/'+str(Path(self.fixture).relative_to(self.retention))
+  with self.assertRaises(h.Held):self.call()
  def test_retention_requires_exact_dedicated_ancestor(self):
   for name in ('/host','/host/archive-publication-'+'a'*64,'/host/archive-publication-'+'a'*64+'/L',self.retention+'/.comic-nfs-private-'+'b'*32):
    with self.subTest(name=name):

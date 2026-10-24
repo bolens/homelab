@@ -32,6 +32,12 @@ reference the same original evidence from all applicable tasks. Do not repeat
 accepted runs, unchanged image checks or reviews solely to obtain another task
 receipt. Add corrective implementation only for a demonstrated unmet contract.
 
+Reviewed, frozen source and its matching checked installation may be exercised
+in an explicitly authorized disposable integration test before merge. Hosted CI
+still gates merge, and final source, delivery and runtime evidence must join
+before acceptance is complete. Reuse an unchanged immutable installation across
+distinct fixtures when its contract permits. Preserve each attempt separately.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

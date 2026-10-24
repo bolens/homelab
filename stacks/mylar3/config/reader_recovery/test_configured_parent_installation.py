@@ -222,7 +222,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'faa2c2f013c2ef449bee714dca3df5c0ad73c0b4d4c169bb048e49069f0574b0')
+        self.assertEqual(base['base_cohort_sha256'],'d5a1f1f8a04d05cba98f6b1284415c5f2c2b4e664d54e8ff2765ad5ff947c2eb')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         action=fixes/'reader_recovery/comic_retained_standalone_action.py'
