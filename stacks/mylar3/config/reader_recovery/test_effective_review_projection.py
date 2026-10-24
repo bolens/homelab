@@ -225,4 +225,173 @@ class CohortReferencePolicyTests(unittest.TestCase):
   with self.assertRaisesRegex(p.Held,'unmapped-child'):value.host('/foreign-child/output')
   self.assertEqual(value.host(str(Path(virtual)/'probe')),str(physical/'probe'))
 
+class VectorProjectionTests(unittest.TestCase):
+ """Actual Parent.left/Tree/Inputs.outer; constructor and application facts projected."""
+ setUp=CohortReferencePolicyTests.setUp
+ projector=CohortReferencePolicyTests.projector
+ outer_mapping=CohortReferencePolicyTests.outer_mapping
+ def configured(self):
+  import test_nfs_stopped_handoff as stopped
+  before,outer,physical,virtual=self.outer_mapping();owner=self.owner
+  scope=p.decode(Path(self.scope['path']).read_bytes());scope['sources']={str(i):self.pair(self.public) for i in range(7)}
+  path=Path(self.scope['path']);path.write_bytes(p.encode(scope));self.scope.update(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(p.nine(path.stat())));owner.files[str(path)]=tuple(self.scope['signature9'])
+  before['active_scope']=self.pair(self.scope);before['probe_plan']['scope']=self.pair(self.scope)
+  path=Path(outer['path']);path.write_bytes(p.encode(before));outer.update(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(p.nine(path.stat())));owner.files[str(path)]=tuple(outer['signature9'])
+  sample=stopped.fixture_owner();owner.thread=sample.thread;owner.deadline=sample.deadline;owner.engine=sample.engine;owner.nodes={}
+  owner.source_ref=sample.source_ref;owner.plan_ref=self.fact;owner.plan['operation']=str(owner.op);owner.plan['nfs']['active_input']=outer
+  del owner.left
+  p._CONFIGURED_OVERLAYS[owner]=p._CONFIGURED_OVERLAY_SEALS[owner]=();p._CONFIGURED_IMAGE_LABELS[owner]=p._CONFIGURED_IMAGE_SEALS[owner]=()
+  p._NFS_EFFECTIVE_ABSENCES[owner]=p.encode([])
+  p._NFS_SOURCE_CONTEXTS[owner]=({}, {},p.encode(before),p.encode({}),before['operation_output'])
+  p._NFS_SOURCE_SEALS[owner]=p.encode(dict(refs={},raw_sha={},active=before,probe={},output=before['operation_output'],effective_absences=[]))
+  phase=self.tree.phase('nfs');p._NFS_OUTPUT_PAIRS[owner]=(before['operation_output'],str(physical),virtual,tuple(p.five(phase.stat())))
+  emit=owner.emit
+  def sealed_emit(name,document):
+   result=emit(name,document);p._GENERATED[owner]=p.encode(owner.generated);return result
+  owner.emit=sealed_emit;stopped.seal_fixture_owner(owner)
+  for registry in (p._CORES,p._GENERATED,p._CONFIGURED_OVERLAYS,p._CONFIGURED_OVERLAY_SEALS,p._CONFIGURED_IMAGE_LABELS,p._CONFIGURED_IMAGE_SEALS,p._NFS_EFFECTIVE_ABSENCES,p._NFS_SOURCE_SEALS):self.addCleanup(registry.pop,owner,None)
+  owner.left();return before,outer
+ def host_projection(self):
+  import sys,types
+  before,outer=self.configured();owner=self.owner
+  source=self.put('private-inputs.py',Path(inputs.__file__).read_bytes());owner.files[source['path']]=tuple(source['signature9'])
+  module=types.ModuleType('_vector_private_inputs');module.__file__=source['path'];exec(compile(Path(source['path']).read_bytes(),source['path'],'exec'),module.__dict__)
+  sys.modules[module.__name__]=module;self.addCleanup(sys.modules.pop,module.__name__,None)
+  refs={'comic_nfs_child_input_projection.py':source};raws={next(iter(refs)):Path(source['path']).read_bytes()}
+  p._NFS_SOURCE_CONTEXTS[owner]=(refs,raws,p.encode(before),p.encode({}),before['operation_output'])
+  p._NFS_SOURCE_SEALS[owner]=p.encode(dict(refs=refs,raw_sha={k:hashlib.sha256(v).hexdigest() for k,v in raws.items()},active=before,probe={},output=before['operation_output'],effective_absences=[]))
+  functions=tuple((module.Inputs,name,value,value.__code__) for name,value in module.Inputs.__dict__.items() if hasattr(value,'__code__'))
+  modules={next(iter(refs)):module};entry=(next(iter(refs)),module,module.__name__,functions)
+  p._NFS_HOST_MODULES[owner]=modules;p._NFS_HOST_MODULE_SEALS[owner]=(tuple(modules.items()),(entry,))
+  for registry in (p._NFS_HOST_MODULES,p._NFS_HOST_MODULE_SEALS):self.addCleanup(registry.pop,owner,None)
+  import test_nfs_stopped_handoff as stopped
+  stopped.seal_fixture_owner(owner);return module
+ def test_actual_prepare_uses_original_private_projection_module(self):
+  self.host_projection();result=self.owner.prepare_nfs_inputs();original=self.tree.original(result)
+  value=p.decode(p.read(original));self.assertEqual(value['kind'],'reviewed-nfs-active-input');self.owner.left();self.tree.check()
+ def test_prepare_rejects_projector_instance_replacement(self):
+  self.host_projection();self.owner.nfs_child_refs=lambda values:values
+  with self.assertRaisesRegex(p.Held,'original-projector'):self.owner.prepare_nfs_inputs()
+ def test_prepare_rejects_projection_module_code_change_during_copy(self):
+  module=self.host_projection();method=module.Inputs.refs;code=method.__code__;reader=self.tree.read_original;calls=[]
+  def changed(ref,**kwargs):
+   result=reader(ref,**kwargs);calls.append(True)
+   if len(calls)==2:method.__code__=(lambda self,values,project:values).__code__
+   return result
+  self.tree.read_original=changed;identity=list(self.tree.identity);identity[5]=id(changed);self.tree.identity=tuple(identity);self.tree._seal()
+  try:
+   with self.assertRaisesRegex(p.Held,'host-original-callable'):self.owner.prepare_nfs_inputs()
+  finally:method.__code__=code
+ def test_prepare_rejects_projection_code_change_during_final_emit(self):
+  module=self.host_projection();method=module.Inputs.refs;code=method.__code__;emit=self.owner.emit;fired=[]
+  def changed(name,document):
+   result=emit(name,document)
+   if name=='nfs-active-input.json':method.__code__=(lambda self,values,project:values).__code__;fired.append(True)
+   return result
+  self.owner.emit=changed
+  try:
+   with self.assertRaisesRegex(p.Held,'host-original-callable'):self.owner.prepare_nfs_inputs()
+  finally:method.__code__=code
+  self.assertTrue(fired)
+ def test_outer_three_batches_preserve_original_facts_and_bytes(self):
+  before,outer=self.configured();originals={path:Path(path).read_bytes() for path in self.owner.files};widths=[]
+  def project(refs):widths.append(len(refs));return self.owner.nfs_child_refs(refs)
+  value=self.projector();result=value.document_projected(value.outer(self.pair(outer),_project=project))
+  self.assertEqual(widths,[18,7,7]);self.assertEqual(result['parent_admission'],before['parent_admission'])
+  scope=value.document_projected(result['active_scope']);original_scope=p.decode(originals[self.scope['path']]);self.assertEqual(scope['forbidden_roots'],original_scope['forbidden_roots'])
+  self.assertEqual({path:Path(path).read_bytes() for path in originals},originals);self.owner.left();self.tree.check()
+ def test_batch_two_parent_closures_without_per_file_parent_calls(self):
+  self.configured();calls=[];real=p.none_network_profile_contract
+  # The original guard runs once per actual Parent.left; no Parent method replacement.
+  def count():calls.append(True);return real()
+  method=p.LifecycleParent.left;defaults=method.__defaults__
+  try:
+   method.__defaults__=(count,count.__code__)
+   # Batch captured the original defaults at definition, so changing them refuses.
+   with self.assertRaisesRegex(p.Held,'original-binding'):self.owner.nfs_child_refs([self.public]*7)
+  finally:method.__defaults__=defaults
+  self.assertEqual(calls,[])
+  # Count actual closure entry with a trace hook without replacing guarded code.
+  import sys
+  def trace(frame,event,arg):
+   if event=='call' and frame.f_code is method.__code__:calls.append(True)
+  old=sys.getprofile();sys.setprofile(trace)
+  try:self.owner.nfs_child_refs([self.public]*7)
+  finally:sys.setprofile(old)
+  self.assertEqual(len(calls),2)
+ def test_conflicting_duplicates_refuse_before_parent_or_copy(self):
+  self.configured();bad=dict(self.public,sha256='0'*64)
+  with patch.object(self.tree,'reserve_nfs_control',side_effect=AssertionError('must not copy')) as reserve:
+   with self.assertRaisesRegex(p.Held,'vector-conflict'):self.owner.nfs_child_refs([self.public,bad])
+  reserve.assert_not_called()
+ def test_foreign_declared_path_and_wrong_hash_refuse(self):
+  self.configured()
+  for ref in (dict(self.public,path=str(self.root/'foreign')),dict(self.public,sha256='0'*64)):
+   with self.subTest(ref=ref['sha256'][:4]),self.assertRaises((p.Held,c.Held)):self.owner.nfs_child_refs([ref])
+ def mutate_during_copy(self,change):
+  self.configured();read=self.tree.read_original;calls=[]
+  def callback(ref,**kwargs):
+   result=read(ref,**kwargs);calls.append(ref['path'])
+   if len(calls)==2:change()
+   return result
+  # Constructor-projected I/O callback is retained in the real Tree's identity.
+  self.tree.read_original=callback;identity=list(self.tree.identity);identity[5]=id(callback);self.tree.identity=tuple(identity);self.tree._seal()
+  with self.assertRaises((p.Held,c.Held)):self.owner.nfs_child_refs([self.public,self.fact,self.stdout])
+  self.assertGreaterEqual(len(calls),2)
+ def test_source_mutation_during_second_copy_refuses(self):
+  self.mutate_during_copy(lambda:Path(self.stdout['path']).write_bytes(b'changed'))
+ def test_registry_replacement_during_second_copy_refuses(self):
+  self.mutate_during_copy(lambda:p._NFS_SOURCE_CONTEXTS.__setitem__(self.owner,tuple(list(p._NFS_SOURCE_CONTEXTS[self.owner]))))
+ def test_original_tree_code_mutation_during_second_copy_refuses(self):
+  method=c.Tree.projected;code=method.__code__
+  try:self.mutate_during_copy(lambda:setattr(method,'__code__',(lambda self,ref:ref).__code__))
+  finally:method.__code__=code
+ def test_ledger_loss_during_second_copy_refuses(self):
+  self.mutate_during_copy(lambda:setattr(self.tree,'nfs_controls',()))
+ def test_final_parent_tree_callback_core_mutation_refuses(self):
+  self.configured();reader=c.owner_stat;lefts=[];fired=[]
+  import sys
+  def trace(frame,event,arg):
+   if event=='call' and frame.f_code is p.LifecycleParent.left.__code__:lefts.append(True)
+  def changed(actor,path):
+   result=reader(actor,path)
+   if len(lefts)>=2 and not fired:self.owner.files.clear();fired.append(True)
+   return result
+  old=sys.getprofile();sys.setprofile(trace)
+  try:
+   with patch.object(c,'owner_stat',changed),self.assertRaisesRegex(p.Held,'original-logical-state'):self.owner.nfs_child_refs([self.public])
+  finally:sys.setprofile(old)
+  self.assertTrue(fired);self.assertEqual(len(lefts),2)
+ def test_original_tree_scope_append_after_final_parent_refuses(self):
+  self.configured();extra=self.root/'foreign-scope';extra.mkdir(mode=0o700);returns=[]
+  import sys
+  def trace(frame,event,arg):
+   if event=='return' and frame.f_code is p.LifecycleParent.left.__code__:
+    returns.append(True)
+    if len(returns)==2:self.tree.scope(str(extra),'scratch')
+  old=sys.getprofile();sys.setprofile(trace)
+  try:
+   with self.assertRaisesRegex(p.Held,'retained-ledgers'):self.owner.nfs_child_refs([self.public])
+  finally:sys.setprofile(old)
+  self.assertEqual(len(returns),2);self.assertTrue(self.tree.scopes);self.tree.check()
+ def test_original_tree_unrequested_projection_after_final_parent_refuses(self):
+  self.configured();returns=[]
+  import sys
+  def trace(frame,event,arg):
+   if event=='return' and frame.f_code is p.LifecycleParent.left.__code__:
+    returns.append(True)
+    if len(returns)==2:self.tree.reserve_nfs_control(self.fact);self.tree.projected(self.fact)
+  old=sys.getprofile();sys.setprofile(trace)
+  try:
+   with self.assertRaisesRegex(p.Held,'requested-ledgers'):self.owner.nfs_child_refs([self.public])
+  finally:sys.setprofile(old)
+  self.assertEqual(len(returns),2);self.tree.check()
+ def test_foreign_initial_state_method_is_never_called(self):
+  self.configured()
+  with patch.object(self.tree,'_state',side_effect=AssertionError('foreign callback must not run')) as state:
+   with self.assertRaisesRegex(p.Held,'original-tree-code'):self.owner.nfs_child_refs([self.public])
+  state.assert_not_called()
+ def test_parent_core_mutation_during_second_copy_refuses(self):
+  self.mutate_during_copy(lambda:self.owner.files.clear())
+
 if __name__=='__main__':unittest.main()

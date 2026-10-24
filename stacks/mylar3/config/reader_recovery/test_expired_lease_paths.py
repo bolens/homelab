@@ -20,7 +20,7 @@ class Expired(unittest.TestCase):
   lease.tape=h.encode(dict(helper=lease.helper,projected=lease.projected,empty=lease.empty,empty9=lease.empty9,empty_nodes=lease.empty_nodes,writer_original=(lease.root5,lease.writer_files,lease.writer_nodes),root=str(lease.root),writer_sha=lease.writer_sha,image=lease.image,token=lease.token,name=lease.name,mounts=lease.mounts,command=lease.command,create=lease.create_args));self.lease=lease
  def test_actual_paths_expired_refuses_active_but_local_original_closure_succeeds(self):
   with self.assertRaisesRegex(ValueError,'actual-expired-Paths-owner'):self.lease.owner.mapping.child_host_ref(self.lease.helper)
-  with self.assertRaisesRegex(ValueError,'actual-expired-Paths-owner'):self.lease.owner.mapping.check_nfs_empty(self.lease.admitted_empty)
+  with self.assertRaisesRegex(parent.Held,'nfs-empty-original-unbound'):self.lease.owner.mapping.check_nfs_empty(self.lease.admitted_empty)
   self.lease.original(allow_expired=True)
  def test_expired_local_closure_still_refuses_original_empty_mode_drift(self):
   Path(self.lease.empty).chmod(0o750)
@@ -56,6 +56,120 @@ class Expired(unittest.TestCase):
    result=original(path);Path(self.lease.helper['path']).write_bytes(b'# changed retained original\n');return result
   with patch.object(h,'namespace',side_effect=namespace):
    with self.assertRaises((h.Held,projection.Held,parent.Held)):self.lease.original()
+class AdmittedEmpty(unittest.TestCase):
+ """Actual Paths/session/Parent/lease closure; session construction is projected."""
+ def setUp(self):
+  import test_nfs_stopped_handoff as stopped
+  Expired.setUp(self);self.original_owner=self.lease.owner
+  session,self.calls,_=stopped.SessionClose.session(self);owner=session.owner
+  import importlib.util
+  # Execute exact private-copy bytes under their actual origin, without changing
+  # an installed/public module's origin or weakening the private source policy.
+  path=Path(self.tmp.name)/'session.py';path.write_bytes(Path(stopped.S.__file__).read_bytes());path.chmod(0o600)
+  spec=importlib.util.spec_from_file_location('_admitted_session_fixture',path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+  sys.modules[module.__name__]=module;self.addCleanup(sys.modules.pop,module.__name__,None)
+  original=session;session=object.__new__(module.RetainedChild);session.__dict__.update(original.__dict__)
+  module._SESSION_SEALS[session]=stopped.S._SESSION_SEALS[original]
+  self.session=session;self.stopped=stopped
+  owner.mapping=parent.Paths([dict(host=str(Path(self.lease.empty).parent),child='/fixture',write=False)]);owner.mapping.owner=owner
+  parent._CHILD_TREES[owner]=self.lease.tree
+  parent._CONFIGURED_OVERLAYS[owner]=parent._CONFIGURED_OVERLAY_SEALS[owner]=();parent._CONFIGURED_IMAGE_LABELS[owner]=parent._CONFIGURED_IMAGE_SEALS[owner]=()
+  ref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=parent.nine(path.stat()))
+  refs={'comic_nfs_parent_session.py':ref};raws={next(iter(refs)):parent.read(ref,private=False)}
+  parent._NFS_SOURCE_CONTEXTS[owner]=(refs,raws,parent.encode({}),parent.encode({}),'/fixture')
+  parent._NFS_SOURCE_SEALS[owner]=parent.encode(dict(refs=refs,raw_sha={k:hashlib.sha256(v).hexdigest() for k,v in raws.items()},active={},probe={},output='/fixture',effective_absences=[]))
+  method=module.RetainedChild.close
+  modules={'comic_nfs_parent_session.py':module};entry=('comic_nfs_parent_session.py',module,module.__name__,((module.RetainedChild,'close',method,method.__code__),))
+  parent._NFS_HOST_MODULES[owner]=modules;parent._NFS_HOST_MODULE_SEALS[owner]=(tuple(modules.items()),(entry,))
+  parent._NFS_LIVE_SESSIONS[owner]=session;session.original_pid=os.getpid()
+  self.row=('/_operation/empty',self.lease.empty,self.lease.empty9,tuple(parent.parents(Path(self.lease.empty)).items()),session,session.cid,session.original_pid,owner.plan['nonce'])
+  parent._NFS_EMPTY_ROWS[owner]=self.row
+  self.lease.owner=owner;self.lease.g=parent.__dict__
+  guard=parent.none_network_profile_contract;checker=parent.Paths.check_nfs_empty
+  h._PROFILE_CONTRACTS[self.lease]=(guard,guard.__code__,guard(),(owner.mapping,parent.Paths,checker,checker.__code__,checker.__defaults__))
+  for registry in (parent._NFS_EMPTY_ROWS,parent._NFS_LIVE_SESSIONS,parent._NFS_HOST_MODULES,parent._NFS_HOST_MODULE_SEALS,parent._NFS_SOURCE_CONTEXTS,parent._NFS_SOURCE_SEALS,parent._NFS_EFFECTIVE_ABSENCES,parent._CHILD_TREES,parent._CORES,parent._GENERATED):self.addCleanup(registry.pop,owner,None)
+  self.addCleanup(h._PROFILE_CONTRACTS.pop,self.lease,None)
+  self.addCleanup(parent._CHILD_TREES.pop,self.original_owner,None)
+ def test_original_uses_one_full_parent_closure_and_two_tree_closures(self):
+  from unittest.mock import patch,Mock
+  self.lease.empty_contract=Mock(side_effect=AssertionError('removed helper must not be called'))
+  with patch.object(self.lease.tree,'check',wraps=self.lease.tree.check) as check:self.lease.original()
+  self.lease.empty_contract.assert_not_called()
+  self.assertEqual(len(self.calls),1);self.assertEqual(check.call_count,3)
+ def test_expired_parent_still_refuses_admitted_empty(self):
+  from unittest.mock import patch
+  with patch.object(parent.time,'monotonic',return_value=self.lease.owner.deadline+1):
+   with self.assertRaisesRegex(parent.Held,'parent-lifetime'):self.lease.original()
+ def test_reply_uses_two_parent_closures_and_keeps_each_pulse(self):
+  from types import SimpleNamespace
+  from unittest.mock import Mock
+  import comic_nfs_lease_session as replies_module
+  channel=object.__new__(h.LeaseChannel);channel.process=object();channel.check=Mock();channel.pulse=Mock(return_value=dict(held=True))
+  lease=self.lease;lease.channel=channel;lease.process=channel.process;lease.cid=lease.cid_original='c'*64;lease.epoch=(os.getpid(),'projected-ACK');lease.runtime_pid=os.getpid();lease.runtime_ticks=h.ticks(os.getpid())
+  h._WINDOWS[lease]=('HELD',(lease.cid_original,lease.process,channel,lease.epoch,lease.runtime_pid,lease.runtime_ticks));self.addCleanup(h._WINDOWS.pop,lease,None)
+  dialogue=SimpleNamespace(close=Mock(),nonce='a'*64,sequence=0)
+  replies=object.__new__(replies_module.HostLeaseReplies);replies.dialogue=dialogue;replies.lease=lease;replies.absent=replies.absence_tape=('/owned/child','/owned');replies.done=False
+  frame=dict(type='nfs-lease',nonce=dialogue.nonce,sequence=1,payload=dict(operation='pulse',absent=[],empty=None))
+  raw=replies.accept(frame)
+  self.assertEqual(len(self.calls),2);self.assertEqual(dialogue.close.call_count,3)
+  self.assertEqual(replies_module.json.loads(raw)['sequence'],1);channel.pulse.assert_called_once_with();self.assertEqual(channel.check.call_count,2)
+ def test_missing_contract_refuses_without_falling_back(self):
+  h._PROFILE_CONTRACTS.pop(self.lease)
+  with self.assertRaisesRegex(h.Held,'original-empty-contract'):self.lease.original()
+  self.assertEqual(self.calls,[])
+ def test_mapping_instance_and_class_replacement_refuse_before_parent(self):
+  from unittest.mock import patch
+  mapping=self.lease.owner.mapping
+  for target in (mapping,parent.Paths):
+   with self.subTest(target=type(target).__name__),patch.object(target,'check_nfs_empty',lambda *a: self.lease.admitted_empty):
+    with self.assertRaisesRegex(h.Held,'original-empty-checker'):self.lease.original()
+  self.assertEqual(self.calls,[])
+ def test_mapping_code_and_defaults_replacement_refuse(self):
+  method=parent.Paths.check_nfs_empty;code=method.__code__;defaults=method.__defaults__
+  try:
+   method.__code__=(lambda self,value:value).__code__
+   with self.assertRaisesRegex(h.Held,'original-empty-checker'):self.lease.original()
+   method.__code__=code;method.__defaults__=(None,)
+   with self.assertRaisesRegex(h.Held,'original-empty-checker'):self.lease.original()
+  finally:method.__code__=code;method.__defaults__=defaults
+  self.assertEqual(self.calls,[])
+ def test_session_instance_and_code_replacement_refuse(self):
+  from unittest.mock import patch
+  for target in (self.session,type(self.session)):
+   with self.subTest(target=type(target).__name__),patch.object(target,'close',lambda *a:None):
+    with self.assertRaisesRegex(parent.Held,'original-session-checker'):self.lease.original()
+  method=type(self.session).close;code=method.__code__
+  try:
+   method.__code__=(lambda self:None).__code__
+   with self.assertRaisesRegex(parent.Held,'original-session-checker'):self.lease.original()
+  finally:method.__code__=code
+  self.assertEqual(self.calls,[])
+ def test_late_row_and_live_session_replacement_refuse(self):
+  from unittest.mock import patch
+  original=parent.nfs_names;owner=self.lease.owner
+  for registry,replacement in ((parent._NFS_EMPTY_ROWS,tuple(list(self.row))),(parent._NFS_LIVE_SESSIONS,object())):
+   def names(path):
+    result=original(path);registry[owner]=replacement;return result
+   with self.subTest(registry=id(registry)),patch.object(parent,'nfs_names',side_effect=names):
+    with self.assertRaisesRegex(parent.Held,'original-session-checker'):self.lease.original()
+   parent._NFS_EMPTY_ROWS[owner]=self.row;parent._NFS_LIVE_SESSIONS[owner]=self.session
+ def test_late_contract_replacement_refuses(self):
+  from unittest.mock import patch
+  original=parent.nfs_names;contract=h._PROFILE_CONTRACTS[self.lease]
+  def names(path):
+   result=original(path);h._PROFILE_CONTRACTS[self.lease]=tuple(list(contract));return result
+  with patch.object(parent,'nfs_names',side_effect=names):
+   with self.assertRaisesRegex(h.Held,'original-empty-contract'):self.lease.original()
+ def mutate_late(self,mutate):
+  from unittest.mock import patch
+  original=h.namespace
+  def namespace(path):
+   result=original(path);mutate();return result
+  with patch.object(h,'namespace',side_effect=namespace):
+   with self.assertRaises((h.Held,parent.Held,projection.Held)):self.lease.original()
+ def test_late_empty_mutation_refuses(self):self.mutate_late(lambda:Path(self.lease.empty).chmod(0o750))
+ def test_late_helper_mutation_refuses(self):self.mutate_late(lambda:Path(self.lease.helper['path']).write_bytes(b'changed'))
+ def test_late_pair_mutation_refuses(self):self.mutate_late(lambda:setattr(self.lease.tree,'pairs',()))
 class LeaseReplyClosure(unittest.TestCase):
  """Actual lease/Tree originals; dialogue and pulse result are projected."""
  def setUp(self):

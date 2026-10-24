@@ -1061,16 +1061,38 @@ class Paths:
         return dict(path=str(host),signature9=list(expected))
 
     def check_nfs_empty(self,value):
-        need(self.owner is not None,'nfs-empty-owning-parent');owner=self.owner;owner.left()
+        need(self.owner is not None,'nfs-empty-owning-parent');owner=self.owner
         row=_NFS_EMPTY_ROWS.get(owner);need(row is not None,'nfs-empty-original-unbound')
         child,host,stamp,nodes,session,cid,pid,nonce=row
         need(value==dict(path=host,signature9=list(stamp)) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-empty-original-session-ref')
-        session.close();need(not nfs_names(host),'nfs-empty-original-empty')
+        modules=_NFS_HOST_MODULES.get(owner);seal=_NFS_HOST_MODULE_SEALS.get(owner)
+        need(type(modules) is dict and type(seal) is tuple and len(seal)==2,'nfs-empty-original-host-seal')
+        module=modules.get('comic_nfs_parent_session.py')
+        entries=[entry for entry in seal[1] if entry[0]=='comic_nfs_parent_session.py' and entry[1] is module]
+        need(len(entries)==1 and type(session) is getattr(module,'RetainedChild',None),'nfs-empty-original-session-type')
+        entry=entries[0];methods=[item for item in entry[3] if item[0] is type(session) and item[1]=='close']
+        need(len(methods)==1,'nfs-empty-original-session-checker');kind,_,method,code=methods[0]
+        def binding():
+            bound=session.close
+            need(self.owner is owner and _NFS_EMPTY_ROWS.get(owner) is row
+                 and _NFS_LIVE_SESSIONS.get(owner) is session
+                 and _NFS_HOST_MODULES.get(owner) is modules and _NFS_HOST_MODULE_SEALS.get(owner) is seal
+                 and tuple(modules.items())==seal[0] and any(value is entry for value in seal[1])
+                 and modules.get('comic_nfs_parent_session.py') is module and module.RetainedChild is kind
+                 and type(session) is kind and kind.close is method
+                 and getattr(bound,'__self__',None) is session and getattr(bound,'__func__',None) is method
+                 and method.__globals__ is module.__dict__ and method.__code__ is code
+                 and method.__defaults__ is None and method.__kwdefaults__ is None
+                 and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),
+                 'nfs-empty-original-session-checker')
+        binding();method(session);binding()
+        need(not nfs_names(host),'nfs-empty-original-empty')
         for path,expected in nodes:
             z=nfs_lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(expected):raise Held('nfs-empty-original5')
         z=nfs_lstat(host)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('nfs-empty-original9')
+        binding()
         return dict(path=host,signature9=list(stamp))
 
     def nfs_probe_binding(self, fixture):
@@ -1310,7 +1332,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'b82b85736a2029e0f928d2de2b2e3367b9154494040031ef9317591954c4fbf4', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '25d479d74dd343caa34e3481ea59b42bf42cb2e952cb5fa87c4ba66dbee551bb', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
 NFS_ACTIVE_SOURCE_SHA='4aef95d73839e5a70309e69f27c7bb91da0bb40583beab09eb2baf828f2f4ff6'
 
 
@@ -2342,15 +2364,111 @@ class LifecycleParent:
         public=any(ref['path']==value['path'] and ref['sha256']==value['sha256'] for value in public_sources)
         tree=_CHILD_TREES[self];tree.reserve_nfs_control(ref,public=public);result=tree.projected(ref);self.left();return result
 
-    def prepare_nfs_inputs(self):
+    def nfs_child_refs(self,values,_left=left,_left_code=left.__code__,_left_defaults=left.__defaults__):
+        # A finite projection transaction, never a cache across calls.
+        need(type(values) in (list,tuple) and 1<=len(values)<=48,'nfs-input-vector-bound')
+        frozen=[];seen={}
+        for value in values:
+            need(type(value) is dict and set(value)=={'path','sha256','signature9'}
+                 and type(value['path']) is str and type(value['sha256']) is str
+                 and re.fullmatch('[a-f0-9]{64}',value['sha256']) is not None
+                 and type(value['signature9']) is list and len(value['signature9'])==9
+                 and all(type(v) is int for v in value['signature9']),'nfs-input-vector-ref')
+            row=(value['path'],value['sha256'],tuple(value['signature9']))
+            need(row[0] not in seen or seen[row[0]]==row,'nfs-input-vector-conflict')
+            seen[row[0]]=row;frozen.append(copy.deepcopy(value))
+        tape=encode(values);kind=LifecycleParent;owner=self
+        registries={name:globals()[name] for name in ('_CORES','_GENERATED','_CHILD_TREES','_NFS_SOURCE_CONTEXTS','_NFS_SOURCE_SEALS','_NFS_EFFECTIVE_ABSENCES')}
+        entries={name:table.get(self) for name,table in registries.items()}
+        context=entries['_NFS_SOURCE_CONTEXTS'];tree=entries['_CHILD_TREES']
+        need(type(context) is tuple and len(context)==5 and tree is not None,'nfs-input-vector-configured')
+        tree_kind=type(tree);methods=tuple((name,method,method.__code__,method.__defaults__,method.__kwdefaults__)
+            for name,method in tree_kind.__dict__.items() if hasattr(method,'__code__'))
+        tree_globals=tree_kind.check.__globals__;seals=tree_globals['_SEALS']
+        old_state=(tree.identity,tree.nodes,tree.directories,tree.pairs,tree.outputs,tree.scopes,tree.nfs_controls)
+        identity=(tree.root,tree.child_root,tree.original_operation,tree.identity)
+        refs_tape=encode(context[0]);raw_rows=tuple(context[1].items())
+        def binding():
+            need(type(owner) is kind and LifecycleParent is kind and kind.left is _left
+                 and getattr(owner.left,'__self__',None) is owner and getattr(owner.left,'__func__',None) is _left
+                 and _left.__code__ is _left_code and _left.__defaults__ is _left_defaults
+                 and all(globals().get(name) is table and table.get(owner) is entries[name] for name,table in registries.items())
+                 and tree_globals.get('_SEALS') is seals and type(tree) is tree_kind
+                 and (tree.root,tree.child_root,tree.original_operation,tree.identity)==identity,
+                 'nfs-input-vector-original-binding')
+            for name,method,code,defaults,kwdefaults in methods:
+                need(getattr(tree_kind,name,None) is method and getattr(getattr(tree,name,None),'__func__',None) is method
+                     and method.__code__ is code and method.__defaults__ is defaults and method.__kwdefaults__ is kwdefaults,
+                     'nfs-input-vector-original-tree-code')
+            need(encode(values)==tape,'nfs-input-vector-request-changed')
+            need(encode(dict(plan=owner.plan,files=owner.files,nodes=owner.nodes,
+                             source=owner.source_ref,input=owner.plan_ref,engine=id(owner.engine),
+                             thread=owner.thread,deadline=owner.deadline))==entries['_CORES']
+                 and encode(owner.generated)==entries['_GENERATED']
+                 and encode(context[0])==refs_tape and tuple(context[1].items())==raw_rows,
+                 'nfs-input-vector-original-logical-state')
+        binding();_left(self);binding()
+        refs,_,active,_,_=context;data=decode(active)
+        policy_refs=[dict(data[name],signature9=list(self.files[data[name]['path']]))
+                     for name in ('source_cohort','active_scope','effective_observer_review')]
+        policy_raws=[read(ref) for ref in policy_refs]
+        cohort,scope,review=map(decode,policy_raws)
+        need(type(review) is dict and set(review)=={'producer','parent_source','report','ack','runtime','acceptance','parent_ack'},'nfs-effective-seven-roles')
+        named=[*refs.values(),self.plan_ref,self.source_ref,self.plan['nfs']['active_parent'],self.plan['nfs']['active_input'],
+               *cohort['sources'].values(),*cohort['logs'].values(),cohort['parent'],cohort['receipt'],*scope['sources'].values(),
+               *[data[k] for k in ('active_scope','effective_observer_review','source_cohort','native_controls')],*review.values()]
+        paths={ref['path'] for ref in named}
+        public_sources=[*cohort['sources'].values(),cohort['parent'],review['producer'],review['parent_source']]
+        policies=[]
+        for ref in frozen:
+            need(ref['path'] in paths and tuple(ref['signature9'])==self.files.get(ref['path']),'nfs-only-declared-control-origin')
+            policies.append(any(ref['path']==v['path'] and ref['sha256']==v['sha256'] for v in public_sources))
+        result=[]
+        for ref,public in zip(frozen,policies):
+            binding();tree.reserve_nfs_control(ref,public=public);binding()
+            result.append(tree.projected(ref));binding()
+        for ref,raw in zip(policy_refs,policy_raws):need(read(ref)==raw,'nfs-input-vector-original-policy')
+        for ref,child in zip(frozen,result):
+            need(child==tree.projected(ref),'nfs-input-vector-exact-result')
+        tree.check();binding();_left(self);binding()
+        current=(tree.identity,tree.nodes,tree.directories,tree.pairs,tree.outputs,tree.scopes,tree.nfs_controls)
+        need(current[:2]==old_state[:2] and current[4:6]==old_state[4:6]
+             and all(current[i][:len(old_state[i])]==old_state[i] for i in (2,3,6)),
+             'nfs-input-vector-retained-ledgers')
+        requested={(ref['path'],ref['sha256'],tuple(ref['signature9'])):public for ref,public in zip(frozen,policies)}
+        expected_pairs={(ref['path'],ref['sha256'],tuple(ref['signature9'])):
+                        (str(tree.root/Path(child['path']).relative_to(tree.child_root)),child['sha256'],tuple(child['signature9']))
+                        for ref,child in zip(frozen,result)}
+        added_pairs=current[3][len(old_state[3]):]
+        pair_parents={str(Path(row[1][0]).parent) for row in added_pairs}
+        need(all(row[0] in expected_pairs and row[1]==expected_pairs[row[0]] for row in added_pairs)
+             and all(original in requested and requested[original] is public for original,public in current[6][len(old_state[6]):])
+             and all(path in pair_parents for path,_ in current[2][len(old_state[2]):])
+             and len({row[0] for row in current[3]})==len(current[3])
+             and len({row[0] for row in current[6]})==len(current[6]),'nfs-input-vector-requested-ledgers')
+        return result
+
+    def prepare_nfs_inputs(self,_project=nfs_child_refs,_project_code=nfs_child_refs.__code__,_project_defaults=nfs_child_refs.__defaults__,
+                           _modules=nfs_host_modules,_modules_code=nfs_host_modules.__code__,_modules_defaults=nfs_host_modules.__defaults__):
+        kind=LifecycleParent;owner=self
+        def binding():
+            need(type(owner) is kind and LifecycleParent is kind
+                 and kind.nfs_child_refs is _project and getattr(owner.nfs_child_refs,'__func__',None) is _project
+                 and _project.__code__ is _project_code and _project.__defaults__ is _project_defaults
+                 and kind.nfs_host_modules is _modules and getattr(owner.nfs_host_modules,'__func__',None) is _modules
+                 and _modules.__code__ is _modules_code and _modules.__defaults__ is _modules_defaults,
+                 'nfs-input-original-projector')
+        def project(values):
+            binding();result=_project(owner,values);_modules(owner);binding();return result
+        binding()
         self.left();need(self in _NFS_SOURCE_CONTEXTS and self in _CHILD_TREES,'nfs-owning-default-unconfigured')
-        modules=self.nfs_host_modules();producer=modules['comic_nfs_child_input_projection.py'].Inputs(self)
+        modules=_modules(self);binding();producer=modules['comic_nfs_child_input_projection.py'].Inputs(self)
         if self not in _NFS_OUTPUT_PAIRS:
             _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];original_output=decode(active)['operation_output'];tree=_CHILD_TREES[self];phase=tree.phase('nfs');physical=phase/'active-output';virtual=str(tree.child_root/'nfs'/'active-output')
             need(nfs_absent(physical),'nfs-active-output-exclusive');_NFS_OUTPUT_PAIRS[self]=(original_output,str(physical),virtual,tuple(five(nfs_lstat(phase))))
         original=self.plan['nfs']['active_input'];two=dict(path=original['path'],sha256=original['sha256'])
-        projected=producer.outer(two);original=producer.emitted[(projected['path'],projected['sha256'])]
-        result=self.nfs_child_ref(original);self.left();return result
+        projected=producer.outer(two,_project=project);original=producer.emitted[(projected['path'],projected['sha256'])]
+        result=self.nfs_child_ref(original);_modules(self);binding();return result
 
     def prepare_nfs_child_source(self):
         self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')

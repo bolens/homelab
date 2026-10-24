@@ -30,6 +30,19 @@ class Inputs:
         original=dict(value,signature9=list(owner.files[path]))
         child=owner.nfs_child_ref(original);owner.left()
         return dict(path=child['path'],sha256=child['sha256'])
+    def refs(self,values,project):
+        if project is None:return [self.ref(value) for value in values]
+        originals=[]
+        for value in values:
+            need(type(value) is dict and set(value)=={'path','sha256'}
+                 and value['path'] in self.owner.files,'nfs-input-original-file-unbound')
+            originals.append(dict(value,signature9=list(self.owner.files[value['path']])))
+        children=project(originals)
+        need(type(children) is list and len(children)==len(originals)
+             and all(type(child) is dict and set(child)=={'path','sha256','signature9'}
+                     and child['sha256']==original['sha256'] for child,original in zip(children,originals)),
+             'nfs-input-exact-projection-vector')
+        return [{k:child[k] for k in ('path','sha256')} for child in children]
     def document(self,value):
         need(type(value) is dict and set(value)=={'path','sha256'},'nfs-input-document-ref')
         path=value['path'];need(path in self.owner.files,'nfs-input-document-original-unbound')
@@ -69,17 +82,21 @@ class Inputs:
         owner.left();close()
         need(tree.original(child)==installed,'nfs-input-parent-final-projection')
         return dict(path=child['path'],sha256=child['sha256'])
-    def cohort(self,original):
+    def cohort(self,original,_project=None):
         value=self.document(original);before=copy.deepcopy(value)
         need(set(value)=={'version','kind','images','sources','writer_root','writer_sha256','native_map_count','selected_module_count','parent','receipt','logs','effective_jar_sha256','effective_commit'},'nfs-input-cohort-schema')
         roles={'probe','hardlink_kernel','scope_projection','lifecycle','readiness','readiness_input','parity','native_map','selected_sdk','writer','tests','effective_helper','effective_parent','core_parent','core_tests','writer_fixture'}
         need(set(value['sources'])==roles and set(value['logs'])=={'stdout','stderr'},'nfs-input-cohort-roles')
         # Paths-only receipt projection preserves every factual outcome and hash.
         receipt=self.document(value['receipt']);receipt_before=copy.deepcopy(receipt)
+        ordered=('stdout','stderr',*sorted(roles))
+        incoming=[value['logs'][key] if key in ('stdout','stderr') else value['sources'][key] for key in ordered]
         for role in ('stdout','stderr'):
             need(receipt[role]==value['logs'][role],'nfs-input-original-log-join')
-            value['logs'][role]=self.ref(value['logs'][role]);receipt[role]=dict(value['logs'][role])
-        for role in roles:value['sources'][role]=self.ref(value['sources'][role])
+        projected=self.refs(incoming,_project)
+        for role in ('stdout','stderr'):
+            value['logs'][role]=projected[ordered.index(role)];receipt[role]=dict(value['logs'][role])
+        for role in roles:value['sources'][role]=projected[ordered.index(role)]
         value['parent']=self.active_parent(value['parent'])
         value['writer_root']=self.child(value['writer_root'])
         value['receipt']=self.emit('nfs-cohort-receipt-input.json',receipt)
@@ -89,29 +106,29 @@ class Inputs:
         immutable={'version','kind','images','writer_sha256','native_map_count','selected_module_count','effective_jar_sha256','effective_commit'}
         need(all(value[k]==before[k] for k in immutable),'nfs-input-cohort-facts-unchanged')
         return self.emit('nfs-cohort-input.json',value)
-    def effective_review(self,original):
+    def effective_review(self,original,_project=None):
         value=self.document(original)
         roles=('producer','parent_source','report','ack','runtime','acceptance','parent_ack')
         need(type(value) is dict and set(value)==set(roles),'nfs-input-effective-seven-roles')
-        projected={role:self.ref(value[role]) for role in roles}
+        projected=dict(zip(roles,self.refs([value[role] for role in roles],_project)))
         # Only references change. Report/ACK/acceptance/runtime bytes and their
         # semantic hash joins remain the original producer's values.
         need(all(projected[role]['sha256']==value[role]['sha256'] for role in roles),'nfs-input-effective-original-hashes')
         return self.emit('nfs-effective-review-input.json',projected)
-    def outer(self,original):
+    def outer(self,original,_project=None):
         value=self.document(original);before=copy.deepcopy(value)
         need(set(value)=={'version','kind','active_scope','parent_admission','probe_plan','operation_output','native_controls','effective_observer_review','source_cohort'},'nfs-input-outer-schema')
-        value['source_cohort']=self.cohort(value['source_cohort'])
+        value['source_cohort']=self.cohort(value['source_cohort'],_project=_project)
         # Native receipt is the same projected cohort receipt, not a new grant.
         cohort=self.document_projected(value['source_cohort'])
         need(before['native_controls']==self.document(before['source_cohort'])['receipt'],'nfs-input-native-receipt-original-join')
         value['native_controls']=dict(cohort['receipt'])
         scope=self.document(value['active_scope']);need(type(scope['sources']) is dict,'nfs-input-scope-sources')
         scope_before=copy.deepcopy(scope)
-        for key,ref in tuple(scope['sources'].items()):scope['sources'][key]=self.ref(ref)
+        keys=tuple(scope['sources']);scope['sources']=dict(zip(keys,self.refs([scope['sources'][key] for key in keys],_project)))
         scope_expected=copy.deepcopy(scope_before);scope_expected['sources']=scope['sources']
         need(scope==scope_expected,'nfs-input-scope-facts-unchanged');value['active_scope']=self.emit('nfs-scope-input.json',scope)
-        value['effective_observer_review']=self.effective_review(value['effective_observer_review'])
+        value['effective_observer_review']=self.effective_review(value['effective_observer_review'],_project=_project)
         value['operation_output']=self.child(before['operation_output'])
         admission=value['parent_admission'];need(set(admission)=={'path','grandparent_signature','expected_device','mount_identity'},'nfs-input-parent-admission-schema')
         # Directory signatures/device/mount observation are actual originals;

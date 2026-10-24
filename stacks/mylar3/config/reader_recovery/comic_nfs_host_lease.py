@@ -182,7 +182,11 @@ class HostWriterLease:
              and type(owner.engine) is g.get('ScopedDocker'),'lease-owning-root-parent')
         need(owner.left.__func__ is g['LifecycleParent'].left,'lease-source-profile-helpers')
         guard=g.get('none_network_profile_contract');need(callable(guard)and guard.__globals__ is g,'lease-source-profile-contract')
-        contract=(guard,guard.__code__,guard())
+        mapping=owner.mapping;checker=g['Paths'].check_nfs_empty
+        empty_guard=(mapping,g['Paths'],checker,checker.__code__,checker.__defaults__)
+        need(type(mapping) is g['Paths'] and mapping.owner is owner
+             and getattr(mapping.check_nfs_empty,'__func__',None) is checker,'lease-original-empty-checker')
+        contract=(guard,guard.__code__,guard(),empty_guard)
         need(callable(getattr(owner,'begin_nfs_writer_window',None)) and callable(getattr(owner,'end_nfs_writer_window',None)),'lease-parent-window-unbound')
         need(helper_ref['sha256']==HELPER_SHA and helper_ref['path'] in owner.files
              and tuple(helper_ref['signature9'])==tuple(owner.files[helper_ref['path']]),'lease-retained-helper-original')
@@ -208,13 +212,31 @@ class HostWriterLease:
         self.tape=encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(root),writer_sha=sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args))
     def profile_contract(self):
         need(self in _PROFILE_CONTRACTS,'lease-source-profile-contract')
-        guard,code,token=_PROFILE_CONTRACTS[self]
+        guard,code,token,_=_PROFILE_CONTRACTS[self]
         need(self.g.get('none_network_profile_contract')is guard and guard.__code__ is code and guard.__globals__ is self.g and guard()is token,'lease-profile-contract-original')
     def original(self,*,allow_expired=False):
         need(type(allow_expired) is bool,'lease-original-deadline-mode');tape=self.tape
         if self in _PROFILE_CONTRACTS:self.profile_contract()
         if self in _FULL_PROFILES:need(_FULL_PROFILES[self]==(self.profile_original,self.profile_running,self.profile_terminal),'lease-full-profile-seal')
-        if not allow_expired:self.owner.left()
+        def empty_contract(contract):
+            need(_PROFILE_CONTRACTS.get(self) is contract,'lease-original-empty-contract')
+            mapping,kind,method,code,defaults=contract[3]
+            need(self.owner.mapping is mapping and self.g.get('Paths') is kind and type(mapping) is kind
+                 and mapping.owner is self.owner and kind.check_nfs_empty is method
+                 and getattr(mapping.check_nfs_empty,'__self__',None) is mapping
+                 and getattr(mapping.check_nfs_empty,'__func__',None) is method
+                 and method.__globals__ is self.g and method.__code__ is code
+                 and method.__defaults__ is defaults,'lease-original-empty-checker')
+            return mapping,method
+        contract=None
+        if not allow_expired:
+            if self.admitted_empty is None:self.owner.left()
+            else:
+                contract=_PROFILE_CONTRACTS.get(self);need(contract is not None,'lease-original-empty-contract')
+                mapping,method=empty_contract(contract)
+                # The original session checker supplies the full Parent closure.
+                need(method(mapping,self.admitted_empty)==dict(path=self.empty,signature9=list(self.empty9)),'lease-original-admitted-empty')
+                empty_contract(contract)
         else:need(threading.get_ident()==self.owner.thread and self.g.get('_CORES',{}).get(self.owner)==self.owner.core,'lease-expired-original-owner')
         self.g['read'](self.helper);self.tree.check()
         original=(self.helper['path'],self.helper['sha256'],tuple(self.helper['signature9']))
@@ -226,8 +248,6 @@ class HostWriterLease:
             for path,v in self.empty_nodes:
                 z=os.lstat(path)
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-expired-original-empty5')
-        else:
-            if self.admitted_empty is not None:need(self.owner.mapping.check_nfs_empty(self.admitted_empty)==dict(path=self.empty,signature9=list(self.empty9)),'lease-original-admitted-empty')
         need(nine(os.lstat(self.empty))==self.empty9 and not os.listdir(self.empty),'lease-projection-originals')
         need(self.tape==encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(self.root),writer_sha=self.writer_sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args)),'lease-host-original-spec')
         for p,v in self.writer_nodes:
@@ -246,6 +266,7 @@ class HostWriterLease:
              and len(pairs)==1 and pairs[0][1]==projected and self.tape==tape
              and tape==encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(self.root),writer_sha=self.writer_sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args)),
              'lease-final-retained-helper-pair')
+        if contract is not None:empty_contract(contract)
     def window_state(self):
         """Local original process/pipe/source proof; no engine or application call."""
         entry=_WINDOWS.get(self);need(entry is not None,'lease-original-window')
