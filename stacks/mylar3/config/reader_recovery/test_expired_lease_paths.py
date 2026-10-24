@@ -64,7 +64,10 @@ class LeaseReplyClosure(unittest.TestCase):
   import comic_nfs_lease_session as session
   Expired.setUp(self);self.lease.owner.left=lambda:1;self.lease.admitted_empty=None
   self.addCleanup(parent._CHILD_TREES.pop,self.lease.owner,None)
-  self.session=session;self.pulse=Mock(return_value=dict(held=True));self.lease.pulse=self.pulse
+  self.session=session;self.pulse=Mock(return_value=dict(held=True))
+  self.channel=object.__new__(h.LeaseChannel);self.channel.process=object();self.channel.check=Mock();self.channel.pulse=self.pulse
+  self.lease.channel=self.channel;self.lease.process=self.channel.process;self.lease.cid=self.lease.cid_original='c'*64;self.lease.epoch=(os.getpid(),'projected-channel-ACK');self.lease.runtime_pid=os.getpid();self.lease.runtime_ticks=h.ticks(os.getpid())
+  h._WINDOWS[self.lease]=('HELD',(self.lease.cid_original,self.lease.process,self.channel,self.lease.epoch,self.lease.runtime_pid,self.lease.runtime_ticks));self.addCleanup(h._WINDOWS.pop,self.lease,None)
   self.dialogue=SimpleNamespace(close=Mock(),nonce='a'*64,sequence=0)
   self.replies=object.__new__(session.HostLeaseReplies);self.replies.dialogue=self.dialogue;self.replies.lease=self.lease
   self.replies.absent=self.replies.absence_tape=('/owned/child','/owned');self.replies.done=False
@@ -95,4 +98,66 @@ class LeaseReplyClosure(unittest.TestCase):
   self.replies.accept(self.frame)
   with self.assertRaisesRegex(self.session.Held,'original-frame'):self.replies.accept(self.frame)
   self.pulse.assert_called_once_with();self.assertEqual(self.dialogue.sequence,1)
+ def test_owned_reply_uses_two_full_originals_and_real_inner_ticks(self):
+  from unittest.mock import patch
+  with patch.object(self.lease,'original',wraps=self.lease.original) as original,patch.object(h,'ticks',wraps=h.ticks) as ticks:
+   self.replies.accept(self.frame)
+  self.assertEqual(original.call_count,2);self.assertEqual(ticks.call_count,2);self.assertEqual(self.channel.check.call_count,2)
+ def test_public_pulse_keeps_its_full_original_bracket(self):
+  from unittest.mock import patch
+  with patch.object(self.lease,'original',wraps=self.lease.original) as original:
+   self.assertEqual(self.lease.pulse(),dict(held=True))
+  self.assertEqual(original.call_count,2);self.pulse.assert_called_once_with()
+ def test_foreign_window_refuses_before_heartbeat(self):
+  self.lease.cid='d'*64
+  with self.assertRaisesRegex(h.Held,'pulse-original-window-seal'):self.replies.accept(self.frame)
+  self.pulse.assert_not_called()
+ def test_foreign_pipe_refuses_before_heartbeat(self):
+  self.channel.check.side_effect=h.Held('projected-original-FD-refusal')
+  with self.assertRaisesRegex(h.Held,'original-FD-refusal'):self.replies.accept(self.frame)
+  self.pulse.assert_not_called()
+ def test_post_ACK_window_substitution_refuses(self):
+  def changed():self.lease.cid='d'*64;return dict(held=True)
+  self.pulse.side_effect=changed
+  with self.assertRaisesRegex(h.Held,'pulse-original-window-seal'):self.replies.accept(self.frame)
+  self.pulse.assert_called_once_with()
+ def test_post_ACK_inner_process_substitution_refuses(self):
+  from unittest.mock import patch
+  with patch.object(h,'ticks',side_effect=[self.lease.runtime_ticks,self.lease.runtime_ticks+1]):
+   with self.assertRaisesRegex(h.Held,'pulse-original-inner-process'):self.replies.accept(self.frame)
+ def test_explicit_foreign_primitive_override_refuses_before_heartbeat(self):
+  def foreign(lease):return dict(held=True)
+  with self.assertRaises(TypeError):
+   self.replies.accept(self.frame,foreign,foreign.__code__)
+  self.pulse.assert_not_called()
+ def test_final_encoding_primitive_replacement_refuses(self):
+  from unittest.mock import patch
+  original=self.session.encode
+  def foreign(lease):return dict(held=True)
+  def encode(value):
+   h.HostWriterLease._pulse_owned=foreign;return original(value)
+  with patch.object(h.HostWriterLease,'_pulse_owned',h.HostWriterLease._pulse_owned),patch.object(self.session,'encode',side_effect=encode):
+   with self.assertRaisesRegex(self.session.Held,'final-owned-pulse'):self.replies.accept(self.frame)
+ def test_instance_primitive_override_refuses_before_heartbeat(self):
+  self.lease._pulse_owned=lambda:dict(held=True)
+  with self.assertRaisesRegex(self.session.Held,'original-owned-pulse'):self.replies.accept(self.frame)
+  self.pulse.assert_not_called()
+ def test_child_source_exec_requires_no_host_module_import(self):
+  from unittest.mock import patch
+  import builtins
+  raw=Path(self.session.__file__).read_bytes();actual=builtins.__import__;imports=[]
+  def guarded(name,*args,**kwargs):
+   if name.startswith('comic_nfs_host_'):imports.append(name);raise ImportError('host imports forbidden in actual child source exec')
+   return actual(name,*args,**kwargs)
+  namespace=dict(__name__='owning_nfs_host_lease_interface',__file__=self.session.__file__)
+  with patch.object(builtins,'__import__',side_effect=guarded):exec(compile(raw,self.session.__file__,'exec'),namespace)
+  self.assertTrue(isinstance(namespace['ChildLeaseInterface'],type));self.assertEqual(imports,[])
+ def test_final_public_pulse_default_replacement_refuses(self):
+  from unittest.mock import patch
+  original=self.session.encode;defaults=h.HostWriterLease.pulse.__defaults__
+  def foreign(lease):return dict(held=True)
+  def encode(value):
+   h.HostWriterLease.pulse.__defaults__=(foreign,foreign.__code__);return original(value)
+  with patch.object(h.HostWriterLease.pulse,'__defaults__',defaults),patch.object(self.session,'encode',side_effect=encode):
+   with self.assertRaisesRegex(self.session.Held,'final-owned-pulse'):self.replies.accept(self.frame)
 if __name__=='__main__':unittest.main()

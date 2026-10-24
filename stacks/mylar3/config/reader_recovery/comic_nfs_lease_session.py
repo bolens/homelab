@@ -38,6 +38,9 @@ class HostLeaseReplies:
         need(len(self.absent)==2 and len(set(self.absent))==2 and Path(self.absent[0]).parent==Path(self.absent[1]),'lease-session-exact-owned-absence')
         self.absence_tape=self.absent;self.done=False
     def accept(self,frame):
+        from comic_nfs_host_lease import HostWriterLease
+        pulse_defaults=HostWriterLease.pulse.__defaults__
+        _pulse,_pulse_code=pulse_defaults
         d=self.dialogue;d.close()
         if self.lease is not None:self.lease.original()
         need(not self.done and self.absent==self.absence_tape and type(frame) is dict
@@ -57,7 +60,6 @@ class HostLeaseReplies:
             if verb=='initialize':
                 need(self.lease is None and self.helper_ref is not None,'lease-session-initialize-once')
                 admitted=d.owner.mapping.admit_nfs_empty(payload['empty'])
-                from comic_nfs_host_lease import HostWriterLease
                 self.lease=HostWriterLease(d.owner,self.helper_ref,admitted_empty=admitted)
                 result=self.lease.prepare()
             elif verb=='acquire':
@@ -65,7 +67,11 @@ class HostLeaseReplies:
             elif verb=='check':
                 need(self.lease is not None,'lease-session-uninitialized');result=self.lease.check()
             else:
-                need(self.lease is not None,'lease-session-uninitialized');result=self.lease.pulse()
+                need(type(self.lease) is HostWriterLease and HostWriterLease.pulse.__defaults__ is pulse_defaults
+                     and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+                     and '_pulse_owned' not in self.lease.__dict__,'lease-session-original-owned-pulse')
+                result=_pulse(self.lease)
+                need(_pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code,'lease-session-final-owned-pulse')
         d.close();d.sequence=frame['sequence']
         raw=encode(dict(type='nfs-host',nonce=d.nonce,sequence=d.sequence,payload=result))+b'\n'
         d.close();self.lease.original()
@@ -74,6 +80,10 @@ class HostLeaseReplies:
                 try:self.lease.channel.release_stat(p)
                 except FileNotFoundError:continue
                 raise Held('lease-session-final-absence')
+        if verb=='pulse':
+            need(HostWriterLease.pulse.__defaults__ is pulse_defaults
+                 and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+                 and '_pulse_owned' not in self.lease.__dict__,'lease-session-final-owned-pulse')
         return raw
 
 class ChildLeaseInterface:

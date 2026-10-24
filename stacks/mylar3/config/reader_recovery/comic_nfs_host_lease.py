@@ -336,8 +336,28 @@ class HostWriterLease:
         self.prepare();return self.acquire()
     def check(self):
         need(self.channel is not None,'lease-not-started');return self.local_running()
-    def pulse(self):
-        self.check();ack=self.channel.pulse();self.check();return ack
+    def _pulse_owned(self):
+        """Physical heartbeat inside an already bracketed original-source call."""
+        entry=_WINDOWS.get(self)
+        need(type(self) is HostWriterLease and entry is not None
+             and entry[0] in ('ACQUIRING','HELD','RELEASING'),'lease-pulse-owning-window')
+        seal=entry[1]
+        def local():
+            need(_WINDOWS.get(self) is entry and seal==(self.cid_original,self.process,self.channel,self.epoch,self.runtime_pid,self.runtime_ticks)
+                 and self.cid==self.cid_original and type(self.channel) is LeaseChannel
+                 and self.channel.process is self.process,'lease-pulse-original-window-seal')
+            self.channel.check()
+            need(ticks(self.runtime_pid)==self.runtime_ticks,'lease-pulse-original-inner-process')
+        local();ack=self.channel.pulse();local();return ack
+    def pulse(self,_pulse=_pulse_owned,_pulse_code=_pulse_owned.__code__):
+        need((_pulse,_pulse_code)==HostWriterLease.pulse.__defaults__
+             and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+             and '_pulse_owned' not in self.__dict__,'lease-original-owned-pulse')
+        self.check();ack=_pulse(self);self.check()
+        need((_pulse,_pulse_code)==HostWriterLease.pulse.__defaults__
+             and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+             and '_pulse_owned' not in self.__dict__,'lease-final-owned-pulse')
+        return ack
     def release_after_absence(self,paths,*,original_files=(),original_nodes=()):
         paths=tuple(str(Path(p)) for p in paths)
         self.check();seal=_WINDOWS[self][1];_WINDOWS[self]=('RELEASING',seal)

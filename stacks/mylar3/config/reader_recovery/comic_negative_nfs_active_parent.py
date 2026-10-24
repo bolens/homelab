@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA='ad128b38c1b6a9fa7a5b27e159b3587614c3f6676c1c283d9dbc4bae7d96cd05'
+HOST_LEASE_INTERFACE_SHA='0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba'
 
 IMAGE = None
 KOMGA = None
