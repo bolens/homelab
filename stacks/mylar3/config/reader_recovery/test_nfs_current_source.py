@@ -67,7 +67,7 @@ class LocalEnvironment(unittest.TestCase):
         c=patch.object(P,'fresh_native',side_effect=fresh);c.start();self.addCleanup(c.stop)
 
 class FullLifecycleControls(LocalEnvironment):
-    def fixture(self, failure=None, optional_fonts=False, use_core=False, return_factual=False, ready=False):
+    def fixture(self, failure=None, optional_fonts=False, use_core=False, return_factual=False, ready=False, protected_optional_parent=False):
         tmp = tempfile.TemporaryDirectory(prefix='active-nfs-whole-local-')
         self.addCleanup(tmp.cleanup)
         root = Path(tmp.name)
@@ -78,8 +78,8 @@ class FullLifecycleControls(LocalEnvironment):
         grandparent.mkdir(mode=0o700)
         parent = grandparent / ('.comic-nfs-private-' + 'd' * 32)
         output = root / 'operation'
-        fonts_parent = root / 'effective-config'
-        fonts_parent.mkdir(mode=0o700)
+        fonts_parent = libraries[0] if protected_optional_parent else root / 'effective-config'
+        if not protected_optional_parent:fonts_parent.mkdir(mode=0o700)
         events = []
         refs = {}
         for name, value in (
@@ -280,6 +280,64 @@ class FullLifecycleControls(LocalEnvironment):
             changed=copy.deepcopy(value);changed['census'][field]=replacement
             with self.subTest(field=field),self.assertRaises(P.Held):P.unlocked_publication(changed)
         with self.assertRaises(P.Held):P.unlocked_publication({'state':'held','reason':'writer-busy','census':None})
+
+    def optional_factual(self, **kwargs):
+        canary,rows,events=self.fixture(optional_fonts=True,use_core=True,return_factual=True,**kwargs)
+        parent=next(Path(p).parent for p in canary.absent if Path(p).name=='fonts')
+        return canary,parent,rows
+
+    def test_ready_absence_parent_keeps_identity_across_shutdown_metadata(self):
+        canary,parent,rows=self.optional_factual()
+        self.assertNotIn(str(parent),dict(canary.files))
+        original=dict(canary.nodes)[str(parent)]
+        self.assertEqual(original,(parent.stat().st_dev,parent.stat().st_ino,parent.stat().st_mode,parent.stat().st_uid,parent.stat().st_gid))
+        (parent/'shutdown-state').write_bytes(b'ordinary disposable shutdown state')
+        canary.close()
+        reader=next(r for r in rows if r['Name']=='/komga')
+        reader['State'].update(Status='exited',Running=False,Pid=0)
+        reader['NetworkSettings'].update(Ports={},SandboxID='',SandboxKey='')
+        reader['NetworkSettings']['Networks']['ingress-public'].update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+        self.assertEqual(canary.current(stopped=True),rows)
+        self.assertEqual(dict(canary.nodes)[str(parent)],original)
+
+    def test_ready_absence_parent_inode_replacement_refuses(self):
+        canary,parent,_=self.optional_factual();parent.rename(parent.with_name('retained-original'));parent.mkdir(mode=0o700)
+        with self.assertRaisesRegex(P.Held,'ancestor'):canary.close()
+
+    def test_ready_absence_parent_mode_and_owner_drift_refuse(self):
+        canary,parent,_=self.optional_factual();parent.chmod(0o750)
+        with self.assertRaisesRegex(P.Held,'ancestor'):canary.close()
+        parent.chmod(0o700);original=P.os.lstat
+        def foreign(path,*args,**kwargs):
+            value=original(path,*args,**kwargs)
+            if str(path)==str(parent):
+                fields=list(value);fields[4]+=1;return os.stat_result(fields)
+            return value
+        with patch.object(P.os,'lstat',side_effect=foreign),self.assertRaisesRegex(P.Held,'ancestor'):canary.close()
+
+    def test_ready_absence_and_control_file_drift_still_refuse(self):
+        canary,parent,_=self.optional_factual();fonts=parent/'fonts';fonts.mkdir(mode=0o700)
+        with self.assertRaisesRegex(P.Held,'owned-path-returned'):canary.close()
+        fonts.rmdir();control=next(Path(p)for p,_ in canary.files if Path(p).name=='active-acceptance.json')
+        control.write_bytes(control.read_bytes()+b' ')
+        with self.assertRaisesRegex(P.Held,'factual-file'):canary.close()
+
+    def test_pre_ready_absence_parent_full9_stays_mandatory(self):
+        original=P.ActiveNFSCanaryObservation;fired=[]
+        def late(*args,**kwargs):
+            canary=original(*args,**kwargs)
+            parent=next(Path(p).parent for p in canary.absent if Path(p).name=='fonts')
+            (parent/'late-directory-change').write_bytes(b'pre-ready drift');fired.append(True)
+            return canary
+        with patch.object(P,'ActiveNFSCanaryObservation',side_effect=late),self.assertRaises((P.Held,L.Held)):
+            self.fixture(optional_fonts=True,use_core=True,return_factual=True)
+        self.assertTrue(fired)
+
+    def test_absence_parent_also_protected_root_keeps_full9(self):
+        canary,parent,_=self.optional_factual(protected_optional_parent=True)
+        self.assertIn(str(parent),dict(canary.files))
+        (parent/'foreign-library-entry').write_bytes(b'foreign')
+        with self.assertRaisesRegex(P.Held,'factual-file'):canary.close()
 
     def test_late_optional_fonts_creation_holds_after_absence_check(self):
         original = L.os.listdir

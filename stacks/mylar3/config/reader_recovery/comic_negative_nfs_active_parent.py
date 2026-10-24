@@ -2521,8 +2521,16 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     terminal_ack=encode(terminal_result)+b'\n' if ack_fd is not None else None
     terminal_files = {p: f['signature'] for p, f in controls.items()} | rootstates | owned_directories | effective_absent_parents
     terminal_nodes = {Path(p): v for p,v in ancestors.items()}
+    for path, original in effective_absent_parents.items():
+        node=(original[0],original[1],original[5],original[6],original[7])
+        check(path not in terminal_nodes or tuple(terminal_nodes[path])==node,'terminal-absence-parent-original5')
+        terminal_nodes[path]=node
     terminal_names = {output: expected_output, output / 'lease-empty-config': set(), probe_output: probe_census}
     file_items = tuple((str(p),tuple(v)) for p,v in terminal_files.items())
+    # Absence parents remain original directories across ordinary reader stop.
+    # Keep the full9 pre-ready vector below, and every overlapping protected fact.
+    retained_file_items = tuple((str(p),tuple(v)) for p,v in terminal_files.items()
+                               if p not in effective_absent_parents or p in controls or p in rootstates or p in owned_directories)
     node_items = tuple((str(p),tuple(v)) for p,v in terminal_nodes.items())
     name_items = tuple((str(p),frozenset(v)) for p,v in terminal_names.items())
     missing_items = tuple(str(p) for p in (*effective_absent, fixture, canonical(parent['path'])))
@@ -2543,7 +2551,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         actual_mount=observe_mount(core['library_root']);actual_device=stamp(canonical(core['library_root']))[0]
         return current,observed,actual_mount,actual_device
     current_rows,current_native,current_mount,current_device=native_after_release()
-    factual=ActiveNFSCanaryObservation(_ACTIVE_KEY,file_items,node_items,name_items,missing_items,terminal_result,
+    factual=ActiveNFSCanaryObservation(_ACTIVE_KEY,retained_file_items,node_items,name_items,missing_items,terminal_result,
                                      current_rows,current_native,current_mount,current_device,native_after_release,
                                      roles['roles']['reader']['id'] if roles is not None else None)
     module.close_vector(terminal_files,terminal_nodes,terminal_names,absent=missing_items)

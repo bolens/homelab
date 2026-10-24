@@ -254,3 +254,10 @@ aliases, gateway, mounts and configuration. Host/none profiles remain exact.
 The reader keeps its original start epoch and must be exited with PID zero.
 The native and never-started worker profiles remain exact. The adapter retains
 the first accepted stopped row and compares later observations exactly.
+
+An optional-absence parent keeps its full9 checks through both pre-ready
+closures. The retained canary keeps that directory's original identity5 and the
+exact absent path, allowing ordinary reader shutdown to change directory size
+and timestamps. A path also classified as a control, protected root or owned
+output directory keeps its full9 obligation. No new baseline is adopted after
+readiness.
