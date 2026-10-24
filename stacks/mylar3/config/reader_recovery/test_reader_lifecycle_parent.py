@@ -528,6 +528,29 @@ class Tests(unittest.TestCase):
         for value in values.values(): value['State']['Health'] = dict(Status='unhealthy',FailingStreak=9,Log=[{'End':'later'}])
         self.assertEqual(p.LifecycleParent.continuous(self.parent),values)
 
+    def test_continuous_accepts_exact_owned_bridge_teardown(self):
+        fixture_spec=importlib.util.spec_from_file_location('bridge_fixture',ROOT/'test_nfs_current_roles.py')
+        fixtures=importlib.util.module_from_spec(fixture_spec);fixture_spec.loader.exec_module(fixtures)
+        bridge_profile,release_bridge=fixtures.bridge_profile,fixtures.release_bridge
+        values=self.continuous_fixture();x=self.parent
+        original=bridge_profile(p.static(values['reader']))
+        x.baselines['reader']=dict(original,State=copy.deepcopy(values['reader']['State']))
+        values['reader']=dict(release_bridge(original),State=copy.deepcopy(values['reader']['State']))
+        self.assertEqual(p.LifecycleParent.continuous(x),values)
+        values['reader']['NetworkSettings']['Networks']['fixture']['Gateway']='foreign'
+        with self.assertRaisesRegex(p.Held,'continuous-profile'):p.LifecycleParent.continuous(x)
+
+    def test_continuous_reader_original_start_epoch_still_required(self):
+        values=self.continuous_fixture();values['reader']['State']['StartedAt']='foreign'
+        with self.assertRaisesRegex(p.Held,'reader-original-started-at'):p.LifecycleParent.continuous(self.parent)
+
+    def test_reader_stop_profile_guard_refuses_dependency_replacement(self):
+        original=p.static(self.continuous_fixture()['reader'])
+        for target,name in ((p,'reader_stopped_static'),(p.json,'loads')):
+            with patch.object(target,name,lambda *a,**k:True):
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):
+                    p.checked_reader_stopped_static(original,original,original['Id'])
+
     def test_between_continuous_producer_health_only_allowed(self):
         x, inp, command, calls = self.child_fixture(health_change=True)
         self.assertEqual(x.child_phase('backup', inp, command)['phase'],'backup')

@@ -211,24 +211,23 @@ class HostWriterLease:
         guard,code,token=_PROFILE_CONTRACTS[self]
         need(self.g.get('none_network_profile_contract')is guard and guard.__code__ is code and guard.__globals__ is self.g and guard()is token,'lease-profile-contract-original')
     def original(self,*,allow_expired=False):
-        need(type(allow_expired) is bool,'lease-original-deadline-mode')
+        need(type(allow_expired) is bool,'lease-original-deadline-mode');tape=self.tape
         if self in _PROFILE_CONTRACTS:self.profile_contract()
         if self in _FULL_PROFILES:need(_FULL_PROFILES[self]==(self.profile_original,self.profile_running,self.profile_terminal),'lease-full-profile-seal')
         if not allow_expired:self.owner.left()
         else:need(threading.get_ident()==self.owner.thread and self.g.get('_CORES',{}).get(self.owner)==self.owner.core,'lease-expired-original-owner')
         self.g['read'](self.helper);self.tree.check()
+        original=(self.helper['path'],self.helper['sha256'],tuple(self.helper['signature9']))
+        projected=(self.projected['path'],self.projected['sha256'],tuple(self.projected['signature9']))
+        tree=self.tree;pairs=[row for row in tree.pairs if row[0]==original]
+        need(self.g.get('_CHILD_TREES',{}).get(self.owner) is tree and len(pairs)==1 and pairs[0][1]==projected,
+             'lease-original-retained-helper-pair')
         if allow_expired:
-            original=(self.helper['path'],self.helper['sha256'],tuple(self.helper['signature9']))
-            projected=(self.projected['path'],self.projected['sha256'],tuple(self.projected['signature9']))
-            pairs=[row for row in self.tree.pairs if row[0]==original]
-            need(len(pairs)==1 and pairs[0][1]==projected,'lease-expired-original-helper-pair')
-            self.tree.check()
             for path,v in self.empty_nodes:
                 z=os.lstat(path)
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-expired-original-empty5')
         else:
             if self.admitted_empty is not None:need(self.owner.mapping.check_nfs_empty(self.admitted_empty)==dict(path=self.empty,signature9=list(self.empty9)),'lease-original-admitted-empty')
-            need(self.owner.mapping.child_host_ref(self.helper)==self.projected,'lease-projection-originals')
         need(nine(os.lstat(self.empty))==self.empty9 and not os.listdir(self.empty),'lease-projection-originals')
         need(self.tape==encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(self.root),writer_sha=self.writer_sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args)),'lease-host-original-spec')
         for p,v in self.writer_nodes:
@@ -241,6 +240,12 @@ class HostWriterLease:
         z=os.lstat(self.empty)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=self.empty9:raise Held('lease-host-final-empty9')
         if self in _PROFILE_CONTRACTS:self.profile_contract()
+        tree.check()
+        pairs=[row for row in tree.pairs if row[0]==original]
+        need(self.tree is tree and self.g.get('_CHILD_TREES',{}).get(self.owner) is tree
+             and len(pairs)==1 and pairs[0][1]==projected and self.tape==tape
+             and tape==encode(dict(helper=self.helper,projected=self.projected,empty=self.empty,empty9=self.empty9,empty_nodes=self.empty_nodes,writer_original=(self.root5,self.writer_files,self.writer_nodes),root=str(self.root),writer_sha=self.writer_sha,image=self.image,token=self.token,name=self.name,mounts=self.mounts,command=self.command,create=self.create_args)),
+             'lease-final-retained-helper-pair')
     def window_state(self):
         """Local original process/pipe/source proof; no engine or application call."""
         entry=_WINDOWS.get(self);need(entry is not None,'lease-original-window')
@@ -331,8 +336,28 @@ class HostWriterLease:
         self.prepare();return self.acquire()
     def check(self):
         need(self.channel is not None,'lease-not-started');return self.local_running()
-    def pulse(self):
-        self.check();ack=self.channel.pulse();self.check();return ack
+    def _pulse_owned(self):
+        """Physical heartbeat inside an already bracketed original-source call."""
+        entry=_WINDOWS.get(self)
+        need(type(self) is HostWriterLease and entry is not None
+             and entry[0] in ('ACQUIRING','HELD','RELEASING'),'lease-pulse-owning-window')
+        seal=entry[1]
+        def local():
+            need(_WINDOWS.get(self) is entry and seal==(self.cid_original,self.process,self.channel,self.epoch,self.runtime_pid,self.runtime_ticks)
+                 and self.cid==self.cid_original and type(self.channel) is LeaseChannel
+                 and self.channel.process is self.process,'lease-pulse-original-window-seal')
+            self.channel.check()
+            need(ticks(self.runtime_pid)==self.runtime_ticks,'lease-pulse-original-inner-process')
+        local();ack=self.channel.pulse();local();return ack
+    def pulse(self,_pulse=_pulse_owned,_pulse_code=_pulse_owned.__code__):
+        need((_pulse,_pulse_code)==HostWriterLease.pulse.__defaults__
+             and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+             and '_pulse_owned' not in self.__dict__,'lease-original-owned-pulse')
+        self.check();ack=_pulse(self);self.check()
+        need((_pulse,_pulse_code)==HostWriterLease.pulse.__defaults__
+             and _pulse is HostWriterLease._pulse_owned and _pulse.__code__ is _pulse_code
+             and '_pulse_owned' not in self.__dict__,'lease-final-owned-pulse')
+        return ack
     def release_after_absence(self,paths,*,original_files=(),original_nodes=()):
         paths=tuple(str(Path(p)) for p in paths)
         self.check();seal=_WINDOWS[self][1];_WINDOWS[self]=('RELEASING',seal)

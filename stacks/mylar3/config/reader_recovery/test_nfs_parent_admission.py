@@ -103,4 +103,37 @@ class Admission(unittest.TestCase):
         self.assertIn([str(bootstrap),str(bootstrap),False],spec['mounts'])
         tree.check()
 
+    def packet_fixture(self,seconds,remaining):
+        # Actual packet method and seal, with file projection/emit represented by refs.
+        m=self.m;owner=self.owner;owner.plan={'nonce':'a'*64,'nfs':{'active_parent':{'path':'active'}}}
+        owner.baselines={key:dict(Id=str(n)*64,Image='sha256:'+str(n)*64,Name=key,Path='/init',Args=[],Config={},HostConfig={},Mounts=[],NetworkSettings={},State={'StartedAt':'original'}) for n,key in enumerate(('held_native','held_worker','reader'),1)}
+        owner.plan_ref={'path':'plan'};owner.source_ref={'path':'source'}
+        owner.prepare_nfs_inputs=lambda:{'path':'input'}
+        owner.prepare_nfs_child_source=lambda:({'path':'child'},{'path':'projected-child'})
+        owner.nfs_child_ref=lambda value:value
+        m._NFS_SOURCE_CONTEXTS[owner]=({'comic_nfs_lease_session.py':{'path':'interface'}},None,None,None,None)
+        emitted=[];budget=[800]
+        owner.left=lambda:budget[0]
+        def emit(name,value):
+            emitted.append((name,value))
+            if name=='nfs-roles-bootstrap-input.json':budget[0]=remaining
+            return {'path':name}
+        owner.emit=emit
+        result=m.LifecycleParent.prepare_nfs_packet(owner,seconds)
+        self.assertEqual(m._NFS_PACKET_ROWS[owner][:2],result)
+        self.assertEqual(m.encode(m._NFS_PACKET_ROWS[owner]),m._NFS_PACKET_SEALS[owner])
+        return emitted[-1][1]
+    def test_retained_packet_exceeds_old_transport_limit_under_original_budget(self):
+        packet=self.packet_fixture(800,700)
+        self.assertEqual(packet['seconds'],700)
+        self.assertEqual(packet['kind'],'owning-nfs-retained-host-lease-child-v2')
+    def test_retained_packet_derives_remaining_lifetime_after_role_emission(self):
+        self.assertEqual(self.packet_fixture(800,87)['seconds'],87)
+    def test_retained_packet_invalid_or_exhausted_budget_refuses(self):
+        for seconds in (True,0,901):
+            with self.assertRaisesRegex(self.m.Held,'finite-seconds'):
+                self.m.LifecycleParent.prepare_nfs_packet(self.owner,seconds)
+        with self.assertRaisesRegex(self.m.Held,'remaining-lifetime'):
+            self.packet_fixture(800,0)
+
 if __name__=='__main__':unittest.main()

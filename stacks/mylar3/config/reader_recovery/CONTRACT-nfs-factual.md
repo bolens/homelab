@@ -81,6 +81,14 @@ Before clearing a physically released window, the Parent separately closes the r
 
 Configured phase order is prelease lease preparation, exact probe birth and real wait-gated Popen/prepared ACK; source-owned acquire; local held execution/inventory/cleanup; actual helper physical release; independent postrelease terminal/source/profile/library checks against sealed originals. The Parent registers only the actual source-bound HostProbe and CID, rejects replay before launch, and requires consumed prepared ACK before blocking/acquisition. Descriptor facts carry false rights; no serialized canary or arbitrary child argv is admitted. Default legacy route remains operational HOLD, and actual configured NFS/Parent acceptance remains a separate gate.
 
+After authorized execution, the original inner process may exit while its attach
+client is still forwarding a response larger than the held stdout pipe. The host
+drains only that original client and its original FIFOs before requiring zero
+client exit and disappearance of the original inner incarnation. A foreign client
+start tick, changed FIFO, pre-execution disappearance or nonzero exit refuses.
+Postrelease terminal-profile checks remain required; draining supplies no terminal
+or publication acceptance.
+
 The retained probe mapping preserves its original admitted fixture directory vectors through execution. Source-owned cleanup may remove exactly that fixture and its parent before physical release. Only the original registered kernel output (exact probe/input/kernel hashes and immutable original directory identity), successful original release ACK, physical process/pipe closure and exact original owned absence permit the separately retained removal transition. Postrelease mapping then requires those exact paths absent and retains original input/source/ancestor/output/protected checks. No arbitrary missing path, aborted/unknown release or refreshed baseline is admitted.
 
 ## Original library-query network context
@@ -231,3 +239,34 @@ descriptors naming one path. Conflicting path expectations refuse before I/O.
 The constructor seals the actual handle and ancestor dictionaries. Final closure
 revalidates primitive ledger rows before conversion or equality, so substituted
 iterables or equality callbacks cannot validate the original ledger.
+
+The configured retained transport receives at most 900 seconds, derived again
+from the owning Parent's remaining lifetime after packet preparation. Its
+registered dialogue and pump retain the original absolute Parent deadline. This
+transport lifetime does not extend the 120-second captured-scope freshness or
+the separate 120-second kernel probe limit.
+
+The original child may exit immediately after sending its final release frame.
+Only the source-owned release transition, sealed to the original pump, kernel
+epoch and command sequence, permits that original inner PID to disappear while
+the Parent drains the reply. An extant PID must retain its original start tick;
+other read errors refuse. The Parent still requires the exact sequenced
+`nfs-done`, original client exit zero and final source/pipe custody before a
+stopped handoff. EOF, a nonzero exit or an unsealed release state cannot grant
+completion. Active requests still require the original live kernel epoch.
+
+After the owning reader stop, all three role validators derive the same exact
+profile from the original running reader. For one unpublished IPv4 bridge only,
+Docker clears EndpointID, IPAddress, IPPrefixLen, MacAddress, Ports, SandboxID
+and SandboxKey. Every other static field remains exact, including network ID,
+aliases, gateway, mounts and configuration. Host/none profiles remain exact.
+The reader keeps its original start epoch and must be exited with PID zero.
+The native and never-started worker profiles remain exact. The adapter retains
+the first accepted stopped row and compares later observations exactly.
+
+An optional-absence parent keeps its full9 checks through both pre-ready
+closures. The retained canary keeps that directory's original identity5 and the
+exact absent path, allowing ordinary reader shutdown to change directory size
+and timestamps. A path also classified as a control, protected root or owned
+output directory keeps its full9 obligation. No new baseline is adopted after
+readiness.

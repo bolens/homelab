@@ -117,7 +117,7 @@ class RetainedObservation:
             need(type(path) is str and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp),'nfs-retained-original-file-vector')
             host=host_map(path);expected=tuple(stamp)
             need(tuple(g['nine'](_host_stat(owner, host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
-        nodes=dict(owner.nodes)
+        nodes={str(path):tuple(stamp) for path,stamp in owner.nodes.items()}
         for path,stamp in (*tree.nodes,*tree.directories):
             need(path not in nodes or nodes[path]==tuple(stamp),'nfs-retained-host-node-conflict');nodes[path]=tuple(stamp)
         names=[]
@@ -234,7 +234,7 @@ def run_active_retained(owner):
     """Registered child/source/pipe route; base direct factory remains strict."""
     g,module=preflight(owner);original=copy.deepcopy(owner.baselines)
     for row in original.values():need(g['same_runtime'](owner.inspect(row['Id']),row),'nfs-retained-original-prelaunch-runtime')
-    packet,source=owner.prepare_nfs_packet(min(120,int(owner.left())))
+    packet,source=owner.prepare_nfs_packet(min(900,int(owner.left())))
     session=owner.open_nfs_child(packet,source);facts=session.ready()
     canary=RetainedObservation(owner,session,facts)
     rows={row['Name']:row for row in canary.current(stopped=False)}

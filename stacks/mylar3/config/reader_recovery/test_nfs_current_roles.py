@@ -1,4 +1,5 @@
 """Pure captured-role boundary + real private control files; no Docker/NFS grant."""
+import ast
 import copy
 import hashlib
 import importlib.util
@@ -15,6 +16,19 @@ def row(n,name,status):
  return dict(Id=str(n)*64,Name='/'+name,Image=image(n),Path='ordinary-entry',Args=['ordinary'],Config={'Env':['PUBLIC_FIXTURE=1']},HostConfig={'NetworkMode':'none'},Mounts=[],NetworkSettings={},State=state)
 def ref(path,raw):
  path.write_bytes(raw);path.chmod(0o600);return dict(path=str(path),sha256=hashlib.sha256(raw).hexdigest(),signature9=m.stamp(path))
+
+def bridge_profile(profile):
+ value=copy.deepcopy(profile)
+ value['Config']['ExposedPorts']={'25600/tcp':{}}
+ value['HostConfig'].update(NetworkMode='a'*64,PortBindings={},PublishAllPorts=False)
+ value['NetworkSettings']=dict(Ports={'25600/tcp':None},SandboxID='b'*64,SandboxKey='/var/run/docker/netns/'+'b'*12,Networks={'fixture':dict(NetworkID='a'*64,EndpointID='c'*64,IPAddress='10.251.242.98',IPPrefixLen=28,MacAddress='02:42:0a:fb:f2:62',Gateway='10.251.242.97',Aliases=['reader'])})
+ return value
+
+def release_bridge(profile):
+ value=copy.deepcopy(profile);settings=value['NetworkSettings']
+ settings.update(Ports={},SandboxID='',SandboxKey='')
+ settings['Networks']['fixture'].update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+ return value
 
 class Controls(unittest.TestCase):
  def setUp(self):
@@ -75,8 +89,71 @@ class Controls(unittest.TestCase):
   with self.assertRaisesRegex(m.Held,'bound-bytes'):m.current_roles(None)
   self.payload['kind']='saved-authority'
   with self.assertRaisesRegex(m.Held,'role-kind'):self.capture()
+ def test_scope_freshness_remains_120_seconds(self):
+  with patch.object(m.time,'time',return_value=1000):
+   m.fresh_scope({'observed':880})
+   for observed in (879,1001,True):
+    with self.assertRaisesRegex(m.Held,'scope-expired'):m.fresh_scope({'observed':observed})
  def test_nfs4_gate_unchanged(self):
   # Actual owning mount validator remains NFS-specific; no local fstype projection.
   for fstype in ('tmpfs','btrfs','ext4'):
    with self.assertRaises(m.Held):m.mount_identity({'filesystems':[dict(source='public-fixture',target=str(self.root),fstype=fstype,fsroot='/',options='rw',**{'maj:min':'0:1'})]})
+
+ def test_bridge_stop_derives_only_seven_teardown_fields(self):
+  original=bridge_profile(self.roles['reader']['profile']);current=release_bridge(original)
+  self.assertTrue(m.reader_stopped_static(original,current,original['Id']))
+  self.assertFalse(m.reader_stopped_static(original,original,original['Id']))
+  for name in ('EndpointID','IPAddress','IPPrefixLen','MacAddress'):
+   changed=copy.deepcopy(current);changed['NetworkSettings']['Networks']['fixture'][name]=original['NetworkSettings']['Networks']['fixture'][name]
+   self.assertFalse(m.reader_stopped_static(original,changed,original['Id']),name)
+  for name in ('Ports','SandboxID','SandboxKey'):
+   changed=copy.deepcopy(current);changed['NetworkSettings'][name]=original['NetworkSettings'][name]
+   self.assertFalse(m.reader_stopped_static(original,changed,original['Id']),name)
+ def test_bridge_stop_refuses_unrelated_static_and_network_drift(self):
+  original=bridge_profile(self.roles['reader']['profile']);current=release_bridge(original)
+  for key in m.ROLE_STATIC:
+   changed=copy.deepcopy(current);changed[key]=None
+   self.assertFalse(m.reader_stopped_static(original,changed,original['Id']),key)
+  for key in ('NetworkID','Gateway','Aliases'):
+   changed=copy.deepcopy(current);changed['NetworkSettings']['Networks']['fixture'][key]='foreign'
+   self.assertFalse(m.reader_stopped_static(original,changed,original['Id']),key)
+  changed=copy.deepcopy(current);changed['NetworkSettings']['Networks']['extra']={}
+  self.assertFalse(m.reader_stopped_static(original,changed,original['Id']))
+ def test_bridge_stop_refuses_published_ports_and_malformed_originals(self):
+  original=bridge_profile(self.roles['reader']['profile'])
+  for section,key,value in [('HostConfig','PortBindings',{'25600/tcp':[{'HostPort':'25600'}]}),('HostConfig','PublishAllPorts',True),('NetworkSettings','SandboxID',None),('Config','ExposedPorts',{})]:
+   changed=copy.deepcopy(original);changed[section][key]=value
+   self.assertFalse(m.reader_stopped_static(changed,release_bridge(changed),changed['Id']))
+  malformed=copy.deepcopy(original);malformed['Config']=None
+  self.assertFalse(m.reader_stopped_static(malformed,release_bridge(malformed),malformed['Id']))
+  for key,value in [('IPPrefixLen',True),('IPAddress','999.1.1.1'),('EndpointID',None),('MacAddress',None)]:
+   changed=copy.deepcopy(original);changed['NetworkSettings']['Networks']['fixture'][key]=value
+   self.assertFalse(m.reader_stopped_static(changed,release_bridge(changed),changed['Id']))
+ def test_bridge_stop_role_selection_preserves_other_epochs(self):
+  self.rows[2]=dict(bridge_profile(self.roles['reader']['profile']),State=self.rows[2]['State'])
+  self.roles['reader']['profile']={k:copy.deepcopy(self.rows[2][k]) for k in m.ROLE_STATIC}
+  roles={'roles':self.roles};rows=copy.deepcopy(self.rows)
+  rows[2]=dict(release_bridge(roles['roles']['reader']['profile']),State=copy.deepcopy(rows[2]['State']))
+  rows[2]['State'].update(Status='exited',Running=False,Pid=0)
+  self.assertEqual(m.select_roles(rows,roles,stopped=True)['reader']['Id'],rows[2]['Id'])
+  for role in (0,1):
+   changed=copy.deepcopy(rows);changed[role]['Config']['Env'].append('foreign')
+   with self.assertRaises(m.Held):m.select_roles(changed,roles,stopped=True)
+  rows[2]['State']['StartedAt']='foreign'
+  with self.assertRaises(m.Held):m.select_roles(rows,roles,stopped=True)
+ def test_parent_and_child_stop_projection_ast_parity(self):
+  def body(path):return next(ast.dump(n,include_attributes=False) for n in ast.parse(path.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name=='reader_stopped_static')
+  self.assertEqual(body(ROOT/'comic_reader_lifecycle_parent.py'),body(ROOT/'comic_negative_nfs_active_parent.py'))
+ def test_active_canary_bridge_stop_and_later_static_drift(self):
+  rows=copy.deepcopy(self.rows);rows[2]=dict(bridge_profile(self.roles['reader']['profile']),State=rows[2]['State'])
+  current=copy.deepcopy(rows);current[2]=dict(release_bridge({k:rows[2][k] for k in m.ROLE_STATIC}),State=current[2]['State'])
+  current[2]['State'].update(Status='exited',Running=False,Pid=0)
+  # Actual sealed canary, with only the external runtime observer projected.
+  canary=m.ActiveNFSCanaryObservation(m._ACTIVE_KEY,[],[],[],[],{},rows,{}, {},1,lambda:(current,{}, {},1),reader_id=rows[2]['Id'])
+  self.assertEqual(canary.current(stopped=True),current)
+  current[0]['Path']='foreign'
+  with self.assertRaisesRegex(m.Held,'static-drift'):canary.current(stopped=True)
+  current[0]['Path']=rows[0]['Path'];current[2]['State']['StartedAt']='foreign'
+  with self.assertRaisesRegex(m.Held,'not-stopped'):canary.current(stopped=True)
+
 if __name__=='__main__':unittest.main(verbosity=2)

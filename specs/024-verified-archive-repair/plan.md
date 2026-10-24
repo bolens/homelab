@@ -14,14 +14,13 @@ rollback, then separately scoped operational acceptance. Do not add another
 plan, fixture generation or review layer unless a concrete uncovered failure
 requires it.
 
-The current held forward run reaches prewrite with a 137-second-old scope.
-Correct only the duplicated Parent guard in the retained NFS session: the
-original module checker already executes the full Parent guard. Retain that
-checker’s function/code/defaults in the existing session seal and verify its
-binding before and after direct invocation. Preserve all transport checks,
-4096-byte writes, independent observations and the 120-second freshness limit.
-Measure the resulting connected run; a reduced call count alone is not runtime
-acceptance.
+Current execution is the shared isolated pair in `tasks.md`. NFS readiness and
+reader stop are intermediate milestones. The stopped-reader handoff must retain
+the original configured profile through its expected lifecycle transition, and
+the finite retained protocol must cover that handoff without confusing session
+lifetime with the separate 120-second admission-freshness requirement. Preserve
+physical Writer checks, original process/FD custody and unknown-outcome holds.
+Do not create another task, wrapper or review layer for each uncovered seam.
 
 ## Technical Context
 
@@ -230,8 +229,12 @@ adoption, cleanup, published port or permanent Compose change is introduced.
 Acceptance requires positive explicit allocation plus conflicting host/Docker
 routes, malformed inputs, changed IPAM, lost replies and legacy behavior controls.
 Host controls substitute the engine and do not prove actual network, NFS or
-connected recovery acceptance. A fresh checked source cohort and new fixture
-generation are required after delivery; preserve all refused attempts.
+connected recovery acceptance. Each attempt requires a fresh recovery packet,
+operation and current role/scope bindings. An untouched original fixture may be
+reused only when its original Creator sources, images, geometry, data and process
+epochs still satisfy the exact joins. Changed installed controls require fresh
+checked outputs. A consumed or held fixture must not be replayed or adopted as
+fresh; preserve every refused attempt.
 
 ## Owning host reads and causal disposable repair fixture
 

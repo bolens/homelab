@@ -405,3 +405,92 @@ Independent review passes. The added regression explicitly models foreign UID 10
 The next hosted run passes the earlier ownership cases but exposes one further fixture mismatch: a directory-relative `stat` resolves against a retained descriptor, while the ownership model incorrectly resolves the name against the current directory. The fixture now resolves relative names through their actual `dir_fd` before applying its existing two-file projection. Production source remains unchanged.
 
 A strengthened model presents hosted UID 1001 across real directory, leaf and descriptor metadata and reproduces the exact complete-main failure before the fix. The corrected model reaches the original injected pre-output failure and verifies both descriptor groups close. All 40 controls pass on Python 3.10 and the host, with zero skips; strict foreign-owner and wrong-hash refusals remain. Current-head hosted CI remains required.
+
+
+## Exited canary with pending attach output — 2026-10-24
+
+AO uses the published #515 native image and a matching checked installation. Its
+NFS canary completes all five hardlink transitions and exits zero with an
+8,707-byte response. The host refuses `probe-original-inner-exit-unknown` before
+reader stop at its pre-read client-exit check. The original attach client's exit
+status and pipe capacity were not retained. AO and its original helpers remain
+preserved without replay. Both archives retain their
+full identities, bytes and ZIP members; both reader records/progress and six page
+hashes are unchanged. Native process/config observations retain their originals,
+and the permanent worker remains Created.
+
+A real-process regression forces the inner process to exit while the original
+attach client blocks forwarding a response through its 4,096-byte stdout pipe.
+The previous observer reproduces the same refusal. The correction admits draining
+only after authorized execution, with the original client incarnation and FIFO
+descriptors. Zero final exit, original-inner disappearance and postrelease terminal
+profile validation remain mandatory. Foreign client ticks, changed stdout pipes,
+pre-execution disappearance and nonzero exits still refuse. This transport proof
+supplies no configured recovery acceptance. Fresh forward and distinct rollback
+execution remain required for T012/T015 and feature 023 T026/T029.
+
+
+## Retained-root probe cleanup — 2026-10-24
+
+AQ passes the corrected output drain and physically releases its NFS writer.
+The Parent then refuses `nfs-probe-cleanup-exact-owned-absence`: its cleanup
+predicate still expects a direct fixture bind, while searchable geometry binds
+the retained `R` directory. This happens before reader stop. Both archives, reader
+records/progress and six page hashes retain their baselines. All 24 independently
+observed native tables are unchanged. AQ remains preserved without replay.
+
+The correction keeps the legacy direct bind and checks searchable cleanup against
+the original common-root row, retained descriptors, sealed binding and exact two
+mounts. It rechecks custody after absence callbacks. Cleanup still requires the
+successful original kernel, physical release and exact fixture/private-parent
+absence. The retained root is never a cleanup target. Sixteen component checks
+include actual descriptors, expired operational deadlines, binding drift, reused
+retention descriptors and late registry replacement. These component checks supply
+no configured recovery acceptance. Fresh forward and distinct rollback remain
+required.
+
+
+## Owning lease-reply absence observation — 2026-10-24
+
+AS passes the retained-root cleanup correction, then holds before reader stop
+when the final host lease reply checks a removed private NFS path with Root's
+`os.lstat`. The original trace records `PermissionError`. The existing owning
+release observer checks the same exact paths through the retained UID1000
+geometry. The final reply now uses that observer. No target, permission or
+absence requirement changes.
+
+The existing real Writer/helper/FIFO regression now exercises the host reply
+boundary with an explicit credential model. It reproduces the original refusal
+and passes with the corrected observer. All 18 host-lease controls pass. Session
+construction remains projected, so this supplies no configured NFS acceptance.
+AS remains preserved without replay. Independent comparisons find unchanged
+archive identities/bytes/members, reader records/progress, six page hashes and all
+24 native tables. The separate AT fixture has not entered recovery.
+
+## Superseded execution notes — 2026-10-23
+
+These notes describe earlier holds and corrections, not the current execution
+queue or permission to repeat them. Current work is owned by `tasks.md`.
+
+The current held forward run reaches prewrite with a 137-second-old scope.
+Correct only the duplicated Parent guard in the retained NFS session: the
+original module checker already executes the full Parent guard. Retain that
+checker’s function/code/defaults in the existing session seal and verify its
+binding before and after direct invocation. Preserve all transport checks,
+4096-byte writes, independent observations and the 120-second freshness limit.
+Measure the resulting connected run; a reduced call count alone is not runtime
+acceptance.
+
+AH passed the previous deadline boundary, then held at the child mount
+comparison before reader stop. The correction normalizes expected mount rows
+after JSON transport. AJ held at current-role readiness before Producer entry.
+Its rejected probe reply was not retained, so the exact cause is unproved.
+AL passed current roles and the mount comparison, then its nested probe could
+not read source paths beneath protected host ancestry. AM exercised the child
+Tree source fix, then held before Writer/reader stop at the NFS namespace join.
+Actual findmnt and raw mountinfo encode the exact subtree in source with root
+`/`. The correction supports that exact representation in both probe validators
+and native adoption. Native adoption belongs to SDK102, so matching image proof
+and a fresh installation must precede another connected run. Both archives,
+reader records/progress and six page hashes remain unchanged after each hold.
+Terminal acceptance remains unproved.

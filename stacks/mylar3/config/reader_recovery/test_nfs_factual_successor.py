@@ -54,6 +54,8 @@ class Controls(unittest.TestCase):
                     outer.stops.append(args)
                     if getattr(outer,'lost_ack',False):raise P.Held('explicit-stop-ACK-lost')
                     r=next(r for r in outer.rows if r['Name']=='/komga');r['State'].update(Status='exited',Running=False,Pid=0,FinishedAt='stopped')
+                    r['NetworkSettings'].update(Ports={},SandboxID='',SandboxKey='')
+                    r['NetworkSettings']['Networks']['ingress-public'].update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
                     return ('c'*64).encode()
                 raise AssertionError(args)
         x.engine=Engine();x.core=P.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,engine=id(x.engine),thread=x.thread,deadline=x.deadline))

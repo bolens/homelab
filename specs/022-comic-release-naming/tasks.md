@@ -9,7 +9,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-23.** 21 of 24 tasks are complete. T019/T023 require configured
+**Updated 2026-10-24.** 21 of 24 tasks are complete. T019/T023 require configured
 recovery and current-library acceptance before the combined naming/metadata
 passes; T024 proves final idempotence, preservation and cleanup afterward.
 Preserve dotted fields and the hyphen before the verified release group.
@@ -136,25 +136,10 @@ cover import, dotted release rename and preserved metadata, including existing
 `ComicInfo.xml` position. They do not complete the configured combined pass.
 See [the shared pipeline proof](../023-verified-publication-corrections/evidence-history.md#published-ordinary-pipeline-proof-and-pending-data-acceptance--2026-10-18).
 
-The accepted PR #462 native capture and matching 27-output supplier remain
-preserved. Current source verification and the successful ninth isolated
-bootstrap are recorded in [the shared bootstrap
-checkpoint](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
-SourceCohort and connected acceptance remain open.
-
-Detailed dated checks, failed generations and historical delivery exceptions
-remain in [evidence history](evidence-history.md). Current required CI and the
-remaining operational dependencies above remain authoritative. Reading-progress
-work remains deferred as requested; original recovery evidence stays retained.
-
-The ninth isolated batch completes both genuine Mylar queue imports, reader
-scan/progress and restart; its worker stays stopped. PR #471 is merged after
-passing hosted CI. This is bootstrap execution proof, with original data and
-receipts retained; connected factories, NFS, publication, retained live-DDL and
-fresh ACK acceptance remain open. See [the current bootstrap
-record](../023-verified-publication-corrections/evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21).
-
-The shared isolated-child lifecycle correction passes its complete source/local
-checks. Hosted delivery, fresh installation/cohort and connected acceptance are
-next; naming and bulk markers still require their own configured/library proof.
-See [the shared correction evidence](../023-verified-publication-corrections/evidence-history.md#typed-isolated-child-lifecycle-correction--2026-10-22).
+Earlier image, bootstrap and lifecycle deliveries retain their recorded scope
+in [shared evidence history](../023-verified-publication-corrections/evidence-history.md).
+They need no separate naming fixture or repeated source-delivery gate. The
+current connected pair is owned by [feature 024](../024-verified-archive-repair/tasks.md#current-remaining-work).
+T019/T023 still require the remaining configured/library pass and T024 its final
+idempotence and cleanup proof. Detailed failed attempts remain historical;
+reading-progress work stays deferred and original recovery evidence retained.

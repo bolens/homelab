@@ -168,16 +168,54 @@ def encode(value):
                       ensure_ascii=False, allow_nan=False).encode()
 
 
+def reader_stopped_static(original, current, cid):
+    """Derive one exact reader profile after its unpublished bridge is released."""
+    keys={'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings'}
+    if (type(original) is not dict or type(current) is not dict
+            or set(original)!=keys or set(current)!=keys
+            or type(cid) is not str or re.fullmatch('[a-f0-9]{64}',cid) is None
+            or original['Id']!=cid or current['Id']!=cid):return False
+    try:
+        def packed(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
+        old=original['NetworkSettings'];new=current['NetworkSettings']
+        if type(old) is not dict or type(new) is not dict:return False
+        networks=old.get('Networks',{})
+        if type(networks) is not dict:return False
+        if not networks or set(networks)<= {'host','none'}:return packed(original)==packed(current)
+        if len(networks)!=1:return False
+        name,network=next(iter(networks.items()));host=original['HostConfig']
+        if (type(network) is not dict or type(host) is not dict or type(original['Config']) is not dict
+                or re.fullmatch('[a-f0-9]{64}',network.get('NetworkID','')) is None
+                or host.get('NetworkMode') not in (name,network['NetworkID'])
+                or host.get('PortBindings') or host.get('PublishAllPorts') is not False
+                or type(old.get('Ports')) is not dict or any(value is not None for value in old['Ports'].values())
+                or set(old['Ports'])!=set(original['Config'].get('ExposedPorts',{}))
+                or re.fullmatch('[a-f0-9]{64}',old.get('SandboxID','')) is None
+                or old.get('SandboxKey')!='/var/run/docker/netns/'+old['SandboxID'][:12]
+                or re.fullmatch('[a-f0-9]{64}',network.get('EndpointID','')) is None
+                or type(network.get('IPPrefixLen')) is not int or not 1<=network['IPPrefixLen']<=32
+                or type(network.get('IPAddress')) is not str
+                or re.fullmatch(r'[0-9]{1,3}(?:\.[0-9]{1,3}){3}',network['IPAddress']) is None
+                or any(int(part)>255 for part in network['IPAddress'].split('.'))
+                or re.fullmatch(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}',network.get('MacAddress','')) is None):return False
+        expected=json.loads(packed(original));released=expected['NetworkSettings']
+        released['SandboxID']='';released['SandboxKey']='';released['Ports']={}
+        endpoint=released['Networks'][name]
+        endpoint.update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+        return packed(expected)==packed(current)
+    except (KeyError,TypeError,ValueError,OverflowError,RecursionError):return False
+
+
 def _make_none_network_profile_contract():
     # Import-time source ownership, shared by Parent and its admitted host helpers.
     source_globals = globals(); refusal = Held
     rows = tuple((name, source_globals[name], source_globals[name].__code__, source_globals[name].__globals__)
-                 for name in ('_none_network_profile_bytes', 'none_network_started_static', 'none_network_exited_static'))
+                 for name in ('_none_network_profile_bytes', 'none_network_started_static', 'none_network_exited_static', 'reader_stopped_static'))
     modules = tuple((name, source_globals[name]) for name in ('json', 'copy', 're'))
     dependencies = tuple((module, name, getattr(module, name), getattr(getattr(module, name), '__code__', None))
-                         for module, name in ((json, 'dumps'), (copy, 'deepcopy'), (re, 'fullmatch')))
+                         for module, name in ((json, 'dumps'), (json, 'loads'), (copy, 'deepcopy'), (re, 'fullmatch')))
     prefix = NONE_NETWORK_SANDBOX_PARENT
-    started, exited = rows[1][1], rows[2][1]
+    started, exited, reader_stopped = rows[1][1], rows[2][1], rows[3][1]
     public = (); token = object()
     def guard():
         if (globals() is not source_globals or type(source_globals.get('NONE_NETWORK_SANDBOX_PARENT')) is not str
@@ -209,13 +247,21 @@ def _make_none_network_profile_contract():
         finally:
             if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
             guard()
+    def checked_reader_stopped(original, current, cid):
+        if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+        guard()
+        try:return reader_stopped(original, current, cid)
+        finally:
+            if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+            guard()
     public = tuple((name, function, function.__code__) for name, function in (
         ('none_network_profile_contract', guard),
         ('checked_none_network_started_static', checked_started),
-        ('checked_none_network_exited_static', checked_exited)))
-    return guard, checked_started, checked_exited
+        ('checked_none_network_exited_static', checked_exited),
+        ('checked_reader_stopped_static', checked_reader_stopped)))
+    return guard, checked_started, checked_exited, checked_reader_stopped
 
-none_network_profile_contract, checked_none_network_started_static, checked_none_network_exited_static = _make_none_network_profile_contract()
+none_network_profile_contract, checked_none_network_started_static, checked_none_network_exited_static, checked_reader_stopped_static = _make_none_network_profile_contract()
 del _make_none_network_profile_contract
 
 
@@ -1208,8 +1254,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '0b0e0b360cc451188dc8c4246c82d85ef343319508ba6fbaa3345a129c7db742', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '39219f132f81c301f14310ba46aae677c30ee6fbb76fc59c0b9790705f388751', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b5113518a0e65a8de471050f0f7bd4c8b217411c35b5ff7921994ee68a3c769d', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
-NFS_ACTIVE_SOURCE_SHA='1da0e329e0e00ccbeb38f4d813984ca3ab991ac1d32c3023bdfcfc695c07a02d'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'b82b85736a2029e0f928d2de2b2e3367b9154494040031ef9317591954c4fbf4', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '86c16c58b84eda1b00a85fb072160a62a6223ab2137472e65f5b04d0f25ab188'}
+NFS_ACTIVE_SOURCE_SHA='4aef95d73839e5a70309e69f27c7bb91da0bb40583beab09eb2baf828f2f4ff6'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -2284,7 +2330,7 @@ class LifecycleParent:
         return value,child
 
     def prepare_nfs_packet(self,seconds):
-        self.left();need(type(seconds) is int and 1<=seconds<=min(120,int(self.left())),'nfs-packet-finite-seconds')
+        self.left();need(type(seconds) is int and 1<=seconds<=900,'nfs-packet-finite-seconds')
         need(self not in _NFS_PACKET_ROWS,'nfs-packet-no-replay')
         active_input=self.prepare_nfs_inputs();source,child_source=self.prepare_nfs_child_source()
         active_ref=self.nfs_child_ref(self.plan['nfs']['active_parent'])
@@ -2295,6 +2341,7 @@ class LifecycleParent:
         plan=self.nfs_child_ref(self.plan_ref);parent=self.nfs_child_ref(self.source_ref)
         roles=self.emit('nfs-roles-bootstrap-input.json',dict(version=1,kind='parent-original-current-three-role-bootstrap',plan=plan,source=parent,roles=original_roles,ancestors={}))
         roles_child=self.nfs_child_ref(roles)
+        remaining=int(self.left());need(remaining>=1,'nfs-packet-remaining-lifetime');seconds=min(seconds,remaining)
         packet=self.emit('nfs-packet-input.json',dict(version=1,kind='owning-nfs-retained-host-lease-child-v2',nonce=self.plan['nonce'],seconds=seconds,active_source=active_ref,active_input=active_input,roles=roles_child,lease_interface=interface))
         _NFS_PACKET_ROWS[self]=(copy.deepcopy(packet),copy.deepcopy(source),copy.deepcopy(roles_child))
         _NFS_PACKET_SEALS[self]=encode(_NFS_PACKET_ROWS[self])
@@ -2306,7 +2353,7 @@ class LifecycleParent:
         need(self in _NFS_PACKET_ROWS and encode(_NFS_PACKET_ROWS[self])==_NFS_PACKET_SEALS.get(self) and (packet_ref,child_ref)==_NFS_PACKET_ROWS[self][:2],'nfs-child-original-prepared-packet-and-source')
         need(self in _NFS_CHILD_SOURCE_ROWS and child_ref==_NFS_CHILD_SOURCE_ROWS[self][0],'nfs-child-original-configured-source')
         packet=decode(read(packet_ref));read(child_ref)
-        need(type(packet) is dict and set(packet)=={'version','kind','nonce','seconds','active_source','active_input','roles','lease_interface'} and type(packet['version']) is int and packet['version']==1 and packet['kind']=='owning-nfs-retained-host-lease-child-v2' and packet['nonce']==self.plan['nonce'] and type(packet['seconds']) is int and 1<=packet['seconds']<=int(self.left()),'nfs-child-finite-owned-packet')
+        need(type(packet) is dict and set(packet)=={'version','kind','nonce','seconds','active_source','active_input','roles','lease_interface'} and type(packet['version']) is int and packet['version']==1 and packet['kind']=='owning-nfs-retained-host-lease-child-v2' and packet['nonce']==self.plan['nonce'] and type(packet['seconds']) is int and 1<=packet['seconds']<=900,'nfs-child-finite-owned-packet')
         child=self.nfs_child_ref(child_ref);payload=self.nfs_child_ref(packet_ref)
         command=['-I','-B',child['path'],'--packet',payload['path'],'--packet-sha256',payload['sha256'],'--packet9',encode(list(payload['signature9'])).decode()]
         tree=_CHILD_TREES[self];mounts=[dict(r) for r in self.plan['mounts'] if Path(r['host'])!=self.op]
@@ -2505,9 +2552,29 @@ class LifecycleParent:
         need(kernel['kernel_sha256']==cohort['sources']['hardlink_kernel']['sha256'],
              'nfs-probe-cleanup-original-kernel-source')
         fixture=directories[0][0];parent=str(Path(fixture).parent)
+        retained=None
+        if 'binding' in spec:
+            retained=_ARCHIVE_COMMON_ROOTS.get(self)
+            need(retained is not None and self.plan.get('version')==13
+                 and retained[1]==self.plan.get('publication_geometry'),
+                 'nfs-probe-cleanup-original-retention-row')
+            geometry=retained[1];geometry_tape=encode(geometry)
+            need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs',
+                 'nfs-probe-cleanup-searchable-retention')
+            retention=absolute(geometry['retention']['path']);root=absolute(fixture)
+            stamp=geometry['retention']['signature9']
+            binding=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
+            need(encode(spec['binding'])==encode(binding)
+                 and encode(spec['mounts'][:2])==encode([[str(retention),str(retention),True],[str(retention),'/config',False]])
+                 and root.parent.parent==retention and retention.name=='R'
+                 and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+                 and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
+                 and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None,
+                 'nfs-probe-cleanup-exact-retention-binding')
+            check_common_root(retained)
+        else:need(spec['mounts'][0][0]==fixture,'nfs-probe-cleanup-exact-owned-absence')
         need(len(directories)==3 and tuple(path for path,_ in directories)==(fixture,str(Path(fixture)/'source'),str(Path(fixture)/'target'))
-             and tuple(session.lease_replies.absent)==tuple(session.lease_replies.absence_tape)==(fixture,parent)
-             and spec['mounts'][0][0]==fixture,
+             and tuple(session.lease_replies.absent)==tuple(session.lease_replies.absence_tape)==(fixture,parent),
              'nfs-probe-cleanup-exact-owned-absence')
         # The kernel reports final full9; compare immutable initial identity5,
         # never refresh initial directory metadata after owned mutations.
@@ -2518,6 +2585,13 @@ class LifecycleParent:
                  'nfs-probe-cleanup-original-directory-identity')
         for path in (fixture,parent):
             if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-required')
+        if retained is not None:
+            check_common_root(retained)
+            need(_ARCHIVE_COMMON_ROOTS.get(self) is retained
+                 and encode(retained[1])==geometry_tape==encode(self.plan.get('publication_geometry'))
+                 and encode(spec['binding'])==encode(binding)
+                 and encode(spec['mounts'][:2])==encode([[str(retention),str(retention),True],[str(retention),'/config',False]]),
+                 'nfs-probe-cleanup-final-retention-custody')
         return (row,session,probe,launch,lease,hashlib.sha256(process.kernel_output).hexdigest(),(fixture,parent))
 
     def end_nfs_writer_window(self,lease):
@@ -2559,6 +2633,10 @@ class LifecycleParent:
              'nfs-writer-window-original-physical-code')
         need(record[10](lease)=='RELEASED_PHYSICAL' and record[12](lease) is True,
              'nfs-writer-window-physical-release-required')
+        retained=_ARCHIVE_COMMON_ROOTS.get(self)
+        retained_tape=encode(retained[1]) if retained is not None else None
+        probe_row=_NFS_PROBE_ROWS.get(self)
+        probe_spec_tape=encode(probe_row[8]) if probe_row is not None else None
         cleanup=self.nfs_probe_cleanup_transition(lease,record)
         # Source/control/ancestor closure after the last local physical callback.
         files=dict(self.files);nodes=dict(self.nodes)
@@ -2603,7 +2681,17 @@ class LifecycleParent:
                 raise Held('nfs-writer-window-original-probe-FD')
         if _NFS_REMOTE_WINDOWS.get(self.engine) is not record:
             raise Held('nfs-writer-window-original-block-final')
-        if cleanup is not None:_NFS_PROBE_REMOVED[self]=cleanup
+        if cleanup is not None:
+            if 'binding' in cleanup[0][8]:
+                need(retained is not None,'nfs-probe-cleanup-final-original-retention')
+                check_common_root(retained)
+                need(_ARCHIVE_COMMON_ROOTS.get(self) is retained
+                     and encode(retained[1])==retained_tape==encode(self.plan.get('publication_geometry'))
+                     and _NFS_PROBE_ROWS.get(self) is probe_row is cleanup[0]
+                     and encode(probe_row[8])==probe_spec_tape
+                     and _NFS_REMOTE_WINDOWS.get(self.engine) is record,
+                     'nfs-probe-cleanup-final-original-retention')
+            _NFS_PROBE_REMOVED[self]=cleanup
         del _NFS_REMOTE_WINDOWS[self.engine]
 
     def nfs_library_query_reply(self,frame):
@@ -2801,12 +2889,15 @@ class LifecycleParent:
             read(value)
         values = {key: self.inspect(self.plan[key]['id'])
                   for key in ('reader', 'held_native', 'held_worker')}
+        stopped(values['reader'])
+        need(values['reader']['State']['StartedAt']==self.baselines['reader']['State']['StartedAt'],'reader-original-started-at')
         for key, value in values.items():
-            need(static(value) == static(self.baselines[key]), 'continuous-profile')
+            accepted=(checked_reader_stopped_static(static(self.baselines[key]),static(value),value['Id'])
+                      if key=='reader' else static(value)==static(self.baselines[key]))
+            need(accepted, 'continuous-profile')
         need(lifecycle_state(values['held_native']) == lifecycle_state(self.baselines['held_native'])
              and lifecycle_state(values['held_worker']) == lifecycle_state(self.baselines['held_worker']),
              'other-writer-incarnation')
-        stopped(values['reader'])
         if hasattr(self, 'stop_state'):
             need(lifecycle_state(values['reader']) == lifecycle_state({'State': self.stop_state}), 'reader-stop-incarnation')
         self.events()

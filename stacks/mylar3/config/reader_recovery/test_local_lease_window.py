@@ -6,9 +6,9 @@ import fcntl,os,subprocess,types,unittest
 import test_host_lease as t
 class Projection:pass
 class Window(t.RealLease):
- def window(self):
+ def window(self,actual=False):
   helper=Path(__file__).with_name('comic_negative_nfs_active_lifecycle.py');p=subprocess.Popen([sys.executable,'-I','-B',str(helper),'--lease-child','--writer-source',str(t.WRITER),'--writer-sha256',t.SHA,'--writer-root',str(self.root),'--token','a'*64,'--lease-seconds','5','--defer-acquire'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE);self.processes.append(p);c=t.m.LeaseChannel(p,'a'*64,self.root,t.SHA,10);c.receive('prepared')
-  lease=Projection();lease.channel=c;lease.process=p;lease.cid=lease.cid_original='c'*64;lease.epoch=(p.pid,'actual-helper-projection');lease.runtime_pid=p.pid;lease.runtime_ticks=t.m.ticks(p.pid);lease.token='a'*64;lease.original=lambda **kwargs:c.raw()
+  lease=object.__new__(t.m.HostWriterLease) if actual else Projection();lease.channel=c;lease.process=p;lease.cid=lease.cid_original='c'*64;lease.epoch=(p.pid,'actual-helper-projection');lease.runtime_pid=p.pid;lease.runtime_ticks=t.m.ticks(p.pid);lease.token='a'*64;lease.original=lambda **kwargs:c.raw()
   for name in ('window_state','physical_exit','local_running','acquire','check'):
    setattr(lease,name,types.MethodType(getattr(t.m.HostWriterLease,name),lease))
   seal=(lease.cid_original,p,c,lease.epoch,lease.runtime_pid,lease.runtime_ticks);t.m._WINDOWS[lease]=('PREPARED',seal)
@@ -47,4 +47,23 @@ class Window(t.RealLease):
   t.m._WINDOWS[lease]=('RELEASED_PHYSICAL',seal);lease.runtime_pid+=1
   with self.assertRaisesRegex(t.m.Held,'physical-original-window-seal'):lease.physical_exit()
   self.assertTrue(owner.blocked)
+ def test_owned_pulse_retains_real_helper_ACK_and_Writer_lock(self):
+  lease,owner=self.window(actual=True);lease.acquire()
+  self.assertEqual(lease._pulse_owned()['state'],'held')
+  with self.assertRaises(BlockingIOError):self.free()
+  self.assertEqual(owner.remote_calls,0);lease.channel.release(())
+ def test_owned_pulse_refuses_actual_replaced_FIFO_before_write(self):
+  lease,owner=self.window(actual=True);lease.acquire();r,w=os.pipe()
+  try:
+   os.dup2(r,lease.channel.fds[0][0])
+   with self.assertRaises(t.m.Held):lease._pulse_owned()
+   self.assertTrue(owner.blocked)
+  finally:os.close(r);os.close(w)
+ def test_owned_pulse_refuses_window_change_after_real_ACK(self):
+  lease,owner=self.window(actual=True);lease.acquire();receive=lease.channel.receive
+  def changed(state):
+   result=receive(state);lease.cid='d'*64;return result
+  lease.channel.receive=changed
+  with self.assertRaisesRegex(t.m.Held,'pulse-original-window-seal'):lease._pulse_owned()
+  self.assertTrue(owner.blocked);lease.channel.receive=receive;lease.channel.release(())
 if __name__=='__main__':unittest.main()

@@ -8,10 +8,11 @@ import importlib.util,hashlib,os,shutil,subprocess,tempfile,threading,unittest
 from types import SimpleNamespace
 spec=importlib.util.spec_from_file_location('cleanup_parent',Path(__file__).with_name('comic_reader_lifecycle_parent.py'));p=importlib.util.module_from_spec(spec);exec(compile(Path(spec.origin).read_bytes(),spec.origin,'exec'),p.__dict__)
 class Cleanup(unittest.TestCase):
+ def fixture_path(self):return self.base/'owned-parent'/'fixture'
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.base=Path(self.tmp.name)
-  self.fixture=self.base/'owned-parent'/'fixture';(self.fixture/'source').mkdir(parents=True);(self.fixture/'target').mkdir()
-  self.control=self.base/'probe-input.json';raw=b'{"actual":"retained input"}';self.control.write_bytes(raw);self.control.chmod(0o600)
+  self.fixture=self.fixture_path();(self.fixture/'source').mkdir(parents=True);(self.fixture/'target').mkdir()
+  self.control=self.base/'probe-input.json';raw=p.encode(dict(actual='retained input',root=str(self.fixture)));self.control.write_bytes(raw);self.control.chmod(0o600)
   self.owner=object.__new__(p.LifecycleParent);o=self.owner;o.engine=p.ScopedDocker();o.thread=threading.get_ident();o.deadline=p.time.monotonic()+30;o.plan={'nonce':'a'*64};o.source_ref={};o.plan_ref={};o.generated={};o.left=lambda:1
   o.files={};o.nodes={}
   cohort=self.base/'cohort.json';body=p.encode({'sources':{'hardlink_kernel':{'sha256':'d'*64}}});cohort.write_bytes(body);cohort.chmod(0o600);self.cohort=dict(path=str(cohort),sha256=hashlib.sha256(body).hexdigest());o.files[str(cohort)]=tuple(p.nine(cohort.stat()));o.nodes.update({k:tuple(v) for k,v in p.parents(cohort).items()})
@@ -69,4 +70,79 @@ class Cleanup(unittest.TestCase):
   with self.assertRaisesRegex(p.Held,'successful-release'):self.mapping.check_nfs_probe(self.ref)
   self.session.lease_replies.done=True;p._NFS_PROBE_ROWS[self.owner]=tuple(list(self.row))
   with self.assertRaisesRegex(p.Held,'successful-release'):self.mapping.check_nfs_probe(self.ref)
+class RetentionCleanup(Cleanup):
+ def fixture_path(self):
+  root=self.base/('archive-publication-'+'a'*64);root.mkdir(mode=0o711);root.chmod(0o711)
+  (root/'L').mkdir(mode=0o700);(root/'R').mkdir(mode=0o700)
+  return root/'R'/('.comic-nfs-private-'+'b'*32)/('.comic-nfs-probe-'+'c'*32)
+ def setUp(self):
+  super().setUp();o=self.owner;root=self.fixture.parent.parent.parent
+  geometry=dict(version=2,kind='searchable-common-root-nfs',**{role:dict(path=str(path),signature9=p.nine(path.stat())) for role,path in (('common_root',root),('library',root/'L'),('retention',root/'R'))})
+  self.common=p.admit_common_root(geometry,[dict(host=str(root),child=str(root),write=True)],str(root/'L'),str(root/'R'),[])
+  self.addCleanup(p.close_common_root,self.common);self.addCleanup(p._ARCHIVE_COMMON_ROOTS.pop,o,None)
+  p._ARCHIVE_COMMON_ROOTS[o]=self.common;o.plan.update(version=13,kind='reviewed-archive-one-lifecycle-protocol',publication_geometry=geometry)
+  o.mapping=self.mapping;self.mapping.nfs_roots=lambda:(str(root),)
+  stamp=geometry['retention']['signature9'];retention=str(root/'R')
+  self.specification.update(binding=dict(host_root=retention,child_root=retention,root5=[stamp[i] for i in (0,1,5,6,7)]),mounts=[[retention,retention,True],[retention,'/config',False]])
+  self.reseal();o.core=p.encode(dict(plan=o.plan,files=o.files,nodes=o.nodes,source=o.source_ref,input=o.plan_ref,engine=id(o.engine),thread=o.thread,deadline=o.deadline));p._CORES[o]=o.core
+  self.record=tuple(o.core if i==1 else value for i,value in enumerate(self.record));p._NFS_REMOTE_WINDOWS[o.engine]=self.record
+ def reseal(self):
+  child,host,nodes,directories,session,cid,pid,nonce,specification=self.row
+  p._NFS_PROBE_SEALS[self.owner]=p.encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=specification))
+ def test_physical_cleanup_does_not_reenter_expired_operational_deadline(self):
+  self.remove()
+  def expired():raise p.Held('operational-deadline-expired')
+  o=self.owner;o.deadline=p.time.monotonic()-1;o.left=expired
+  o.core=p.encode(dict(plan=o.plan,files=o.files,nodes=o.nodes,source=o.source_ref,input=o.plan_ref,engine=id(o.engine),thread=o.thread,deadline=o.deadline));p._CORES[o]=o.core
+  self.record=tuple(o.core if i==1 else value for i,value in enumerate(self.record));p._NFS_REMOTE_WINDOWS[o.engine]=self.record
+  self.release()
+  self.assertIn(self.owner,p._NFS_PROBE_REMOVED);p.check_common_root(self.common)
+ def test_retention_descriptor_and_mounts_remain_exact(self):
+  import copy
+  original=copy.deepcopy(self.specification);self.remove()
+  for mutate in (lambda s:s['binding']['root5'].__setitem__(1,-1),lambda s:s['binding'].__setitem__('child_root','/other'),lambda s:s['mounts'][0].__setitem__(2,False),lambda s:s['mounts'][1].__setitem__(1,'/other'),lambda s:s['mounts'][1].__setitem__(2,True)):
+   self.specification.clear();self.specification.update(copy.deepcopy(original));mutate(self.specification);self.reseal()
+   with self.assertRaises(p.Held):self.release()
+   self.assertNotIn(self.owner,p._NFS_PROBE_REMOVED)
+ def test_foreign_common_geometry_and_reused_retention_fd_refuse(self):
+  self.remove();row=p._ARCHIVE_COMMON_ROOTS[self.owner]
+  p._ARCHIVE_COMMON_ROOTS[self.owner]=(row[0],dict(row[1],version=1),row[2],row[3])
+  with self.assertRaises(p.Held):self.release()
+  p._ARCHIVE_COMMON_ROOTS[self.owner]=row
+  fd=row[2][1];other=os.open(self.base,os.O_RDONLY|os.O_DIRECTORY)
+  try:os.dup2(other,fd)
+  finally:os.close(other)
+  with self.assertRaises(p.Held):self.release()
+  # Restore the owned descriptor for fixture teardown only.
+  restored=os.open(row[1]['retention']['path'],os.O_RDONLY|os.O_DIRECTORY)
+  try:os.dup2(restored,fd)
+  finally:os.close(restored)
+ def test_late_common_row_replacement_during_absence_refuses(self):
+  from unittest import mock
+  self.remove();original=p.nfs_absent
+  def absent(path):
+   answer=original(path);p._ARCHIVE_COMMON_ROOTS[self.owner]=tuple(list(self.common));return answer
+  with mock.patch.object(p,'nfs_absent',side_effect=absent):
+   with self.assertRaises(p.Held):self.release()
+  self.assertNotIn(self.owner,p._NFS_PROBE_REMOVED)
+ def test_last_release_absence_callback_cannot_replace_retention_row(self):
+  from unittest import mock
+  self.remove();original=p.nfs_absent;calls=[]
+  def absent(path):
+   answer=original(path);calls.append(path)
+   if len(calls)==3:p._ARCHIVE_COMMON_ROOTS[self.owner]=tuple(list(self.common))
+   return answer
+  with mock.patch.object(p,'nfs_absent',side_effect=absent):
+   with self.assertRaises(p.Held):self.release()
+  self.assertGreaterEqual(len(calls),3);self.assertNotIn(self.owner,p._NFS_PROBE_REMOVED)
+ def test_final_retention_check_cannot_replace_original_remote_block(self):
+  from unittest import mock
+  self.remove();original=p.check_common_root;calls=[];replacement=tuple(list(self.record))
+  def check(row):
+   original(row);calls.append(row)
+   if len(calls)==3:p._NFS_REMOTE_WINDOWS[self.owner.engine]=replacement
+  with mock.patch.object(p,'check_common_root',side_effect=check):
+   with self.assertRaises(p.Held):self.release()
+  self.assertIs(p._NFS_REMOTE_WINDOWS[self.owner.engine],replacement)
+  self.assertNotIn(self.owner,p._NFS_PROBE_REMOVED)
 if __name__=='__main__':unittest.main()

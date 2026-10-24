@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA='5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17'
+HOST_LEASE_INTERFACE_SHA='0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba'
 
 IMAGE = None
 KOMGA = None
@@ -407,6 +407,44 @@ def current_roles(raw):
     return value
 
 
+def reader_stopped_static(original, current, cid):
+    """Derive one exact reader profile after its unpublished bridge is released."""
+    keys={'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings'}
+    if (type(original) is not dict or type(current) is not dict
+            or set(original)!=keys or set(current)!=keys
+            or type(cid) is not str or re.fullmatch('[a-f0-9]{64}',cid) is None
+            or original['Id']!=cid or current['Id']!=cid):return False
+    try:
+        def packed(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
+        old=original['NetworkSettings'];new=current['NetworkSettings']
+        if type(old) is not dict or type(new) is not dict:return False
+        networks=old.get('Networks',{})
+        if type(networks) is not dict:return False
+        if not networks or set(networks)<= {'host','none'}:return packed(original)==packed(current)
+        if len(networks)!=1:return False
+        name,network=next(iter(networks.items()));host=original['HostConfig']
+        if (type(network) is not dict or type(host) is not dict or type(original['Config']) is not dict
+                or re.fullmatch('[a-f0-9]{64}',network.get('NetworkID','')) is None
+                or host.get('NetworkMode') not in (name,network['NetworkID'])
+                or host.get('PortBindings') or host.get('PublishAllPorts') is not False
+                or type(old.get('Ports')) is not dict or any(value is not None for value in old['Ports'].values())
+                or set(old['Ports'])!=set(original['Config'].get('ExposedPorts',{}))
+                or re.fullmatch('[a-f0-9]{64}',old.get('SandboxID','')) is None
+                or old.get('SandboxKey')!='/var/run/docker/netns/'+old['SandboxID'][:12]
+                or re.fullmatch('[a-f0-9]{64}',network.get('EndpointID','')) is None
+                or type(network.get('IPPrefixLen')) is not int or not 1<=network['IPPrefixLen']<=32
+                or type(network.get('IPAddress')) is not str
+                or re.fullmatch(r'[0-9]{1,3}(?:\.[0-9]{1,3}){3}',network['IPAddress']) is None
+                or any(int(part)>255 for part in network['IPAddress'].split('.'))
+                or re.fullmatch(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}',network.get('MacAddress','')) is None):return False
+        expected=json.loads(packed(original));released=expected['NetworkSettings']
+        released['SandboxID']='';released['SandboxKey']='';released['Ports']={}
+        endpoint=released['Networks'][name]
+        endpoint.update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+        return packed(expected)==packed(current)
+    except (KeyError,TypeError,ValueError,OverflowError,RecursionError):return False
+
+
 def select_roles(rows,roles,*,include_reader=True,stopped=False):
     wanted=('native','worker','reader') if include_reader else ('native','worker')
     check(type(rows) is list and len(rows)==len(wanted),'current-role-row-count')
@@ -415,7 +453,9 @@ def select_roles(rows,roles,*,include_reader=True,stopped=False):
     out={}
     for role in wanted:
         expected=roles['roles'][role];row=byid[expected['id']]
-        check(encode({k:row[k] for k in ROLE_STATIC})==encode(expected['profile']),
+        stopped_reader=stopped and role=='reader' and row['State'].get('Status')=='exited'
+        check(reader_stopped_static(expected['profile'],{k:row[k] for k in ROLE_STATIC},row['Id'])
+              if stopped_reader else encode({k:row[k] for k in ROLE_STATIC})==encode(expected['profile']),
               'current-role-static-original')
         epoch={k:v for k,v in row['State'].items() if k!='Health'}
         if stopped and role=='reader' and epoch.get('Status')=='exited':
@@ -2091,8 +2131,10 @@ class ActiveNFSCanaryObservation:
         original={r['Id']:r for r in self.rows};current={r['Id']:r for r in rows}
         if set(original)!=set(current):raise Held('active-factual-runtime-set')
         for name in original:
-            keys=('Id','Image','Mounts','Config','HostConfig','NetworkSettings')
-            if any(current[name].get(k)!=original[name].get(k) for k in keys):raise Held('active-factual-static-drift')
+            keys=ROLE_STATIC
+            accepted=(reader_stopped_static({k:original[name][k] for k in keys},{k:current[name][k] for k in keys},name)
+                      if stopped and name==self.reader_id else all(current[name].get(k)==original[name].get(k) for k in keys))
+            if not accepted:raise Held('active-factual-static-drift')
         state=current[self.reader_id]['State'];old=original[self.reader_id]['State']
         if stopped:
             if not (state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0 and state['StartedAt']==old['StartedAt']
@@ -2479,8 +2521,16 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     terminal_ack=encode(terminal_result)+b'\n' if ack_fd is not None else None
     terminal_files = {p: f['signature'] for p, f in controls.items()} | rootstates | owned_directories | effective_absent_parents
     terminal_nodes = {Path(p): v for p,v in ancestors.items()}
+    for path, original in effective_absent_parents.items():
+        node=(original[0],original[1],original[5],original[6],original[7])
+        check(path not in terminal_nodes or tuple(terminal_nodes[path])==node,'terminal-absence-parent-original5')
+        terminal_nodes[path]=node
     terminal_names = {output: expected_output, output / 'lease-empty-config': set(), probe_output: probe_census}
     file_items = tuple((str(p),tuple(v)) for p,v in terminal_files.items())
+    # Absence parents remain original directories across ordinary reader stop.
+    # Keep the full9 pre-ready vector below, and every overlapping protected fact.
+    retained_file_items = tuple((str(p),tuple(v)) for p,v in terminal_files.items()
+                               if p not in effective_absent_parents or p in controls or p in rootstates or p in owned_directories)
     node_items = tuple((str(p),tuple(v)) for p,v in terminal_nodes.items())
     name_items = tuple((str(p),frozenset(v)) for p,v in terminal_names.items())
     missing_items = tuple(str(p) for p in (*effective_absent, fixture, canonical(parent['path'])))
@@ -2501,7 +2551,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         actual_mount=observe_mount(core['library_root']);actual_device=stamp(canonical(core['library_root']))[0]
         return current,observed,actual_mount,actual_device
     current_rows,current_native,current_mount,current_device=native_after_release()
-    factual=ActiveNFSCanaryObservation(_ACTIVE_KEY,file_items,node_items,name_items,missing_items,terminal_result,
+    factual=ActiveNFSCanaryObservation(_ACTIVE_KEY,retained_file_items,node_items,name_items,missing_items,terminal_result,
                                      current_rows,current_native,current_mount,current_device,native_after_release,
                                      roles['roles']['reader']['id'] if roles is not None else None)
     module.close_vector(terminal_files,terminal_nodes,terminal_names,absent=missing_items)

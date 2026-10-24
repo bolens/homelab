@@ -290,7 +290,14 @@ class ProbeProcess:
         try:inner=ticks(self.running_epoch[0])
         except FileNotFoundError:inner=None
         if client!=self.process_start or inner!=self.running_epoch[2]:
-            need(self.execution_sent and self.process.poll()==0 and inner!=self.running_epoch[2],'probe-original-inner-exit-unknown')
+            status=self.process.poll()
+            # The inner can exit while its original attach client is blocked
+            # forwarding a frame larger than this held stdout FIFO. Drain that
+            # same client before requiring its zero exit in execute_local().
+            original_draining=client==self.process_start and status in (None,0)
+            original_reaped=client is None and status==0
+            need(self.execution_sent and inner!=self.running_epoch[2]
+                 and (original_draining or original_reaped),'probe-original-inner-exit-unknown')
         need(_PROCESS_SEALS.get(self)==seal and seal==(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch),'probe-final-original-process-seal')
     def line(self,seconds=30):
         self.local();deadline=time.monotonic()+seconds;raw=bytearray()
