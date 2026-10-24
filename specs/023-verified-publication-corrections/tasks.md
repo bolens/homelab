@@ -8,19 +8,20 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-23.** Eight tasks retain integration or operational criteria.
+**Updated 2026-10-24.** Eight tasks retain integration or operational criteria.
 The immediate work is the shared isolated forward and
 separate rollback described in [feature 024's current work](../024-verified-archive-repair/tasks.md#current-remaining-work).
 One accepted pair can satisfy the connected portions of T026/T029, isolated
 T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 
-Reviewed source, selected-image component checks and checked installations are
-available. PR #513 delivered the repeated-validation correction. PR #515
-tracks the demonstrated mount, source-path and NFS namespace corrections; its
-changed native adoption module needs matching image/SDK proof before another
-connected attempt. Source delivery alone does not establish accepted runtime
-terminals. Ordinary native preservation, T030 cache guard, T031 identity recovery
-and T032 control-state adoption retain their recorded acceptance.
+The matching native image, source capture, required SDK and DATA precondition/source proof from
+PR #515 are verified. Reuse them while their exact image/source inputs remain
+unchanged. Changed host controls require fresh checked installation outputs;
+unchanged installations may serve distinct fixtures. Source delivery alone
+cannot establish accepted runtime terminals. The current shared work finishes
+the stopped-reader handoff and owning terminal path. Ordinary native
+preservation, T030 cache guard, T031 identity recovery and T032 control-state
+adoption retain their recorded acceptance.
 
 T028 retained-pack recovery and T033 recurring packs have their own live ACK
 criteria; neither needs a duplicate archive run. Production reconciliation,
@@ -94,7 +95,7 @@ Ordinary Mylar stays available while this implementation proceeds.
 
 ## Phase 7: Owning negative-retirement prerequisites
 
-These tasks preserve earlier implementation and rollout history and retain their IDs in dependency order. T020–T025 and the retained-delivery source review in T028 precede T026; current combined runtime acceptance in T029 follows T026 and precedes the held-image rollout portion of T017. T027 executes after that rollout and before T017 reconciliation and T018–T019 acceptance/cleanup. Implementation completion requires the owning integration tests and selected-image proof described by each task. T022 requires portable owning tests and checked installation. T026 additionally requires connected owning factories, and feature 024 T012/T015 depend on that proof. T029 requires genuine installed discovery, import and archive producer/consumer execution; source parity alone does not complete these gates. Fresh configured Parent/NFS and aggregate execution remain under T027 and T017–T019, with feature 024 live acceptance under T016–T018.
+These tasks preserve earlier implementation and rollout history and retain their IDs in dependency order. T020–T025 and the retained-delivery source review in T028 precede T026; the T026 source/install milestone precedes the shared T026/T029 isolated pair and feature 024 T012/T015 proof, which precede the held-image rollout milestone of T017. T027 executes after that rollout and before T017 reconciliation and T018–T019 acceptance/cleanup. Implementation completion requires the owning integration tests and selected-image proof described by each task. T022 requires portable owning tests and checked installation. T026 additionally requires connected owning factories, and feature 024 T012/T015 depend on that proof. T029 requires genuine installed discovery, import and archive producer/consumer execution; source parity alone does not complete these gates. Fresh configured Parent/NFS and aggregate execution remain under T027 and T017–T019, with feature 024 live acceptance under T016–T018.
 
 - [x] T020 [US3] Define the finite aggregate retirement contract in `contracts/publication-corrections.md`, `plan.md` and `data-model.md`; bind all five native preparations, exact affected reader rows, current census/catalog and continuous existing Writer/owning stopped-reader lifetime. Install fail-closed ordinary admission for `negative-retirement-v1.pending` across native, worker and archive preparation purposes.
 - [x] T021 [US3] Implement `stacks/mylar3/config/publication_negative_batch.py` with one immutable aggregate intent and exact shared-parent projections for all five sources through source nlink1, exact staged aliases nlink2 and retained target nlink1. Preserve original bytes/attributes and every unrelated namespace/claim/ancestor fact; forbid arbitrary baseline refresh.
@@ -123,7 +124,7 @@ These tasks preserve earlier implementation and rollout history and retain their
 
 ## Dependencies and execution
 
-T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T020–T025 plus T028 reviewed recovery → T026 integration → T029 connected runtime acceptance → T017 held rollout → T027 fresh restore/NFS and aggregate terminal proof → finish T017 reconciliation → T018 → T019.
+T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T020–T025 plus T028 source review → T026 source/install milestone → shared T026/T029 and feature 024 T012/T015 isolated forward/rollback → T017 rollout milestone → T027 fresh restore/NFS and aggregate terminal proof → finish T017 reconciliation → T018 → T019.
 
 Ordinary post-reboot recovery follows T031 → the scoped native recovery portion of T017, independently of experimental Parent, NFS and bulk acceptance. Its consistent backup and selected-image checks remain mandatory. T033 restricted ongoing ordinary pack recovery follows the selected-path delivery and T032 control-state acceptance, with its own matching-image, backup and live ACK proof. T032 gates subsequent experimental worker activation separately; it does not hold ordinary native availability.
 
@@ -135,8 +136,8 @@ T017 retains the verified 12-scope outer backup and isolated restore with all 72
 
 | Task | Next bounded action and inputs | Evidence required to mark complete |
 | --- | --- | --- |
-| T026 | Use the current checked installation and matching source/image evidence in the shared isolated pair. Source delivery through PR #511 is complete. | Exact installed SDK/factory joins, accepted original terminal/consumption and final source/namespace closure; reuse unchanged image proof only for exact original inputs. |
-| T029 | Diagnose the held forward scope-expiry boundary without replay; remove demonstrated redundant latency before a fresh attempt. After accepted forward proof, use the prepared distinct rollback fixture with fresh roles/scope and its own backup/restore. | Original execute/terminal chain, actual NFS and causal archive transition, independent physical/native/reader comparisons and factual native/worker consumption. Installed ordinary import/lost-response/naming component proof remains required. |
+| T026 | Use the current checked installation and matching source/image evidence in the shared isolated pair. Reuse the verified PR #515 native proof; finish delivery of changed host controls without repeating unchanged image capture. | Exact installed SDK/factory joins, accepted original terminal/consumption and final source/namespace closure; reuse unchanged image proof only for exact original inputs. |
+| T029 | Resolve the held stopped-reader profile and retained-session boundaries without replay; keep the separate freshness guard and original runtime custody. After accepted forward proof, use the prepared distinct rollback fixture with fresh roles/scope and its own backup/restore. | Original execute/terminal chain, actual NFS and causal archive transition, independent physical/native/reader comparisons and factual native/worker consumption. Installed ordinary import/lost-response/naming component proof remains required. |
 | T017 | Coordinate writers and follow the owning rollout route. For registration/reconciliation use `scripts/prepare-publication-corrections.py`, native registration preparation/acceptance, a fresh retained-repeat plan, `commitRetainedRepeat` and passive `retainedRepeatStatus`. | Verified backup/restore, exact image/config/data baseline, accepted registration/token/status, wrong repeat outside the scanned library, correct owners/bytes/readers and database integrity unchanged. Complete only after T027 and the required retained paths succeed. |
 | T027 | Use the maintained NFS factual/reader-proof contracts with original operational geometry and mount/source refs. Retain custody through canary cleanup, Writer release, reader stop, backup/restore and independent terminal verification. | Actual readiness and owned cleanup; checked factual owner; stopped-reader and database-restore controls; terminal/reader resume proof and complete final physical coverage. Disposable Btrfs helper tests do not prove actual NFS or lease behavior. |
 | T028 | Bind reviewed configured source/pins for `publication_retained_api.py`, `publication_retained_finalize.py`, `reader_recovery/comic_retained_pack_parent.py` and worker `retained_pack_handoff.py`; portable defaults stay disabled. Verify fixed image anchors, UID1000 original refs, the same-live worker pipes, measured two-copy backup capacity and actual restore before one retained member action. Use authenticated finalize/status and the owning independent terminal/restart contracts. | Exact current capture/member/source/target/owner and catalog event, fresh ACK, terminal SQL/reader preservation and compatible restart. The parent prefix returns no completed custody/resume grant. Generic `--pack-capture` refuses `retained-accepted` members and cannot substitute for this route. Preserve all failed histories and uncertain replies; never manufacture historical ACK or retire a source before fresh acceptance. |
@@ -189,9 +190,12 @@ worker remains inactive. Component source tests do not complete these tasks.
 
 Clark PR #460 and the original generation preparation remain recorded in
 [evidence history](evidence-history.md#next-generation-preparation-and-clark-integration--2026-10-21).
-Host-only control changes do not refresh the original 27 installation outputs
-or require another image pull when the installed SDK remains unchanged. Fresh
-source and connected runtime acceptance still precede their owning operations.
+Changed installed Parent, lease or adapter bytes require fresh checked
+installation outputs. Unchanged native180/required102/worker42 evidence may be
+reused only for its exact original inputs; an unchanged immutable installation
+may serve distinct fixtures. Host-only changes do not require another image
+pull when image/SDK bytes are unchanged. Connected runtime acceptance still
+precedes the owning operations.
 
 The old PR #341 worktree documentation has been reconciled against current
 history. Its exact patch and verified Git bundle are preserved privately, and

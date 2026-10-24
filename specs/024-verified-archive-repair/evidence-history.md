@@ -466,3 +466,31 @@ construction remains projected, so this supplies no configured NFS acceptance.
 AS remains preserved without replay. Independent comparisons find unchanged
 archive identities/bytes/members, reader records/progress, six page hashes and all
 24 native tables. The separate AT fixture has not entered recovery.
+
+## Superseded execution notes — 2026-10-23
+
+These notes describe earlier holds and corrections, not the current execution
+queue or permission to repeat them. Current work is owned by `tasks.md`.
+
+The current held forward run reaches prewrite with a 137-second-old scope.
+Correct only the duplicated Parent guard in the retained NFS session: the
+original module checker already executes the full Parent guard. Retain that
+checker’s function/code/defaults in the existing session seal and verify its
+binding before and after direct invocation. Preserve all transport checks,
+4096-byte writes, independent observations and the 120-second freshness limit.
+Measure the resulting connected run; a reduced call count alone is not runtime
+acceptance.
+
+AH passed the previous deadline boundary, then held at the child mount
+comparison before reader stop. The correction normalizes expected mount rows
+after JSON transport. AJ held at current-role readiness before Producer entry.
+Its rejected probe reply was not retained, so the exact cause is unproved.
+AL passed current roles and the mount comparison, then its nested probe could
+not read source paths beneath protected host ancestry. AM exercised the child
+Tree source fix, then held before Writer/reader stop at the NFS namespace join.
+Actual findmnt and raw mountinfo encode the exact subtree in source with root
+`/`. The correction supports that exact representation in both probe validators
+and native adoption. Native adoption belongs to SDK102, so matching image proof
+and a fresh installation must precede another connected run. Both archives,
+reader records/progress and six page hashes remain unchanged after each hold.
+Terminal acceptance remains unproved.

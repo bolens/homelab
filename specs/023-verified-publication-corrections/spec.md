@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-04
 
-**Status**: Prospective specification; implementation and operational acceptance pending
+**Status**: Core implementation delivered; configured integration and live acceptance pending
 
 **Input**: User request: “verify all other comics now and fix the issues that caused things to get out of whack.” Privileged access is available under the scoped backup, independent restore and coordinated rollout requirements.
 
@@ -108,7 +108,7 @@ The operator can account for a repeated wrong archive while preserving the alrea
 
 ## Assumptions
 
-- This specification is prospective and separate from accepted release naming and pack-generation fixes.
+- Configured acceptance under this specification remains separate from accepted release naming and pack-generation fixes.
 - Existing authenticated operator admission, writer coordination, durable state and backup workflows remain authoritative. A one-time explicitly reviewed correction-state initialization precedes media admission; an initialized empty registry preserves ordinary behavior.
 - Correction records are private application state; public examples contain no live paths, credentials or machine-specific correction payloads.
 - Exact acquisition origin must be proven separately before release-specific failure reporting.
