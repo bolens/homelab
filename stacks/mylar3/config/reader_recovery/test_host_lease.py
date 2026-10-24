@@ -50,11 +50,25 @@ class RealLease(unittest.TestCase):
             actor=parent.GeometryOwnerReads(geometry);parent._OWNER_READS=actor
             try:
                 channel=self.launch(owner=owner);events.clear();real_write=parent.os.write
+                import comic_nfs_lease_session as session
+                from types import SimpleNamespace
+                owner.files={str(media):parent.nine(media.stat())};owner.nodes={str(common/'L'):parent.five((common/'L').stat())}
+                absent=(str(common/'R'/'private'/'probe'),str(common/'R'/'private'))
+                dialogue=SimpleNamespace(owner=owner,close=lambda:None,nonce='a'*64,sequence=0)
+                lease=SimpleNamespace(original=lambda:None,channel=channel,release_after_absence=lambda paths,**kw:channel.release(paths,kw['original_files'],kw['original_nodes']))
+                replies=object.__new__(session.HostLeaseReplies);replies.dialogue=dialogue;replies.lease=lease;replies.absent=replies.absence_tape=absent;replies.done=False
+                real_lstat=parent.os.lstat
+                def squashed(path,*args,**kwargs):
+                    if uid[0]==0 and str(path) in absent:raise PermissionError('projected NFS root squash')
+                    return real_lstat(path,*args,**kwargs)
                 def write(fd,data):
                     if b'"action":"release"' in data:self.assertEqual(uid[0],0)
                     return real_write(fd,data)
-                with mock.patch.object(parent.os,'write',side_effect=write):
-                    ack=channel.release([str(common/'R'/'absent')],[(str(media),parent.nine(media.stat()))],[(str(common/'L'),parent.five((common/'L').stat()))])
+                # Session/lease construction is projected; the helper, pipes,
+                # Writer, release and owning stat observer are real.
+                with mock.patch.object(parent.os,'write',side_effect=write),mock.patch.object(parent.os,'lstat',side_effect=squashed):
+                    raw=replies.accept(dict(type='nfs-lease',nonce=dialogue.nonce,sequence=1,payload=dict(operation='release',absent=list(absent),empty=None)))
+                ack=session.json.loads(raw)['payload']
                 self.assertEqual(ack['state'],'release-reviewed');self.assertTrue(channel.released)
                 self.assertIn(1000,events);self.assertEqual(uid[0],0)
             finally:parent.release_owner_reads(actor);parent._CORES.pop(owner,None)

@@ -71,7 +71,7 @@ class HostLeaseReplies:
         d.close();self.lease.original()
         if verb=='release':
             for p in self.absent:
-                try:os.lstat(p)
+                try:self.lease.channel.release_stat(p)
                 except FileNotFoundError:continue
                 raise Held('lease-session-final-absence')
         return raw

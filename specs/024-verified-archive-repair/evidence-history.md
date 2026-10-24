@@ -448,3 +448,21 @@ include actual descriptors, expired operational deadlines, binding drift, reused
 retention descriptors and late registry replacement. These component checks supply
 no configured recovery acceptance. Fresh forward and distinct rollback remain
 required.
+
+
+## Owning lease-reply absence observation — 2026-10-24
+
+AS passes the retained-root cleanup correction, then holds before reader stop
+when the final host lease reply checks a removed private NFS path with Root's
+`os.lstat`. The original trace records `PermissionError`. The existing owning
+release observer checks the same exact paths through the retained UID1000
+geometry. The final reply now uses that observer. No target, permission or
+absence requirement changes.
+
+The existing real Writer/helper/FIFO regression now exercises the host reply
+boundary with an explicit credential model. It reproduces the original refusal
+and passes with the corrected observer. All 18 host-lease controls pass. Session
+construction remains projected, so this supplies no configured NFS acceptance.
+AS remains preserved without replay. Independent comparisons find unchanged
+archive identities/bytes/members, reader records/progress, six page hashes and all
+24 native tables. The separate AT fixture has not entered recovery.
