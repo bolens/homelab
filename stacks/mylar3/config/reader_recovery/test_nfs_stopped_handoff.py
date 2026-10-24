@@ -500,6 +500,9 @@ class WorkerProfiles(unittest.TestCase):
    row['Config'].update(Entrypoint=['python3'],Cmd=['worker.py'],OpenStdin=True,Tty=False,Labels={'com.homelab.reader.worker-observer':'fixture'})
    row['HostConfig'].update(IpcMode='private',PidMode='',SecurityOpt=['no-new-privileges'],PidsLimit=32,Memory=768*1024**2,MemorySwap=768*1024**2,NanoCpus=500000000,RestartPolicy=dict(Name='no'))
   owner=object.__new__(p.LifecycleParent);self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);owner.op=Path(self.temp.name);owner.op_fact=tuple(p.five(owner.op.stat()));owner.generated={};owner.left=lambda:None
+  metadata=owner.op/'worker-image.json';metadata.write_bytes(p.encode([dict(Id=created['Image'],Config={'Labels':{}})]));metadata.chmod(0o600)
+  image_ref=dict(path=str(metadata),sha256=p.hashlib.sha256(metadata.read_bytes()).hexdigest(),signature9=p.nine(metadata.stat()))
+  image_patch=patch.object(p,'WORKER_OBSERVATION_IMAGE_ORIGINAL',image_ref);image_patch.start();self.addCleanup(image_patch.stop)
   intent=((),('worker.py',),(('/fixture','/_operation'),),'fixture',{},(),created['Image'],0);protocol=types.SimpleNamespace(step=0)
   check,state=scope['factory'](owner,cid,p.static(created),protocol,intent)
   return owner,check,state,protocol,created,started,exited

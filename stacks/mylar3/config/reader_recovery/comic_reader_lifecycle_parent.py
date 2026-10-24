@@ -206,16 +206,64 @@ def reader_stopped_static(original, current, cid):
     except (KeyError,TypeError,ValueError,OverflowError,RecursionError):return False
 
 
+def reader_resumed_static(original, current, cid):
+    """Admit a fresh endpoint on the same unpublished IPv4 bridge only."""
+    try:
+        old=original['NetworkSettings'];new=current['NetworkSettings']
+        networks=old.get('Networks',{})
+        if not networks or set(networks)<= {'host','none'}:
+            return reader_stopped_static(original,current,cid)
+        if len(networks)!=1:return False
+        name,endpoint=next(iter(networks.items()));resumed=new['Networks'][name]
+        released=copy.deepcopy(original);network=released['NetworkSettings']
+        network.update(SandboxID='',SandboxKey='',Ports={})
+        network['Networks'][name].update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+        if not (reader_stopped_static(original,released,cid)
+                and reader_stopped_static(current,released,cid)):return False
+        prefix=endpoint['IPPrefixLen']
+        if prefix!=resumed['IPPrefixLen'] or not 1<=prefix<=30:return False
+        def ipv4(value):
+            parts=value.split('.')
+            if len(parts)!=4 or any(not p.isdecimal() or str(int(p))!=p or not 0<=int(p)<=255 for p in parts):raise ValueError()
+            return sum(int(p)<<(24-8*i) for i,p in enumerate(parts))
+        before=ipv4(endpoint['IPAddress']);after=ipv4(resumed['IPAddress'])
+        mask=((1<<32)-1)^((1<<(32-prefix))-1);subnet=before&mask
+        gateway=ipv4(endpoint['Gateway'])
+        if after&mask!=subnet or gateway&mask!=subnet or after in (subnet,subnet|(~mask&0xffffffff),gateway):return False
+        if any(endpoint.get(k) for k in ('GlobalIPv6Address','GlobalIPv6PrefixLen','IPv6Gateway')):return False
+        configured=(endpoint.get('IPAMConfig') or {}).get('IPv4Address')
+        if configured and (endpoint['IPAddress']!=configured or resumed['IPAddress']!=configured):return False
+        mac=original['Config'].get('MacAddress')
+        if mac and (endpoint['MacAddress']!=mac or resumed['MacAddress']!=mac):return False
+        return all(value['MacAddress']!='00:00:00:00:00:00' and not int(value['MacAddress'][:2],16)&1 for value in (endpoint,resumed))
+    except (KeyError,TypeError,ValueError,AttributeError,OverflowError,RecursionError):return False
+
+
+def reader_resumed_profile(original, current, cid):
+    try:
+        keys=('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')
+        old={k:original[k] for k in keys};new={k:current[k] for k in keys};state=current['State']
+        names={'Status','Running','Paused','Restarting','OOMKilled','Dead','Pid','ExitCode','Error','StartedAt','FinishedAt'}
+        return (type(state) is dict and set(state) in (names,names|{'Health'})
+                and reader_resumed_static(old,new,cid) and state['Status']=='running'
+                and state['Running'] is True and type(state['Pid']) is int and state['Pid']>0
+                and all(state[k] is False for k in ('Paused','Restarting','Dead','OOMKilled'))
+                and state['Error']=='' and type(state['ExitCode']) is int and state['ExitCode']==0
+                and type(state['FinishedAt']) is str and type(state['StartedAt']) is str
+                and bool(state['StartedAt']) and state['StartedAt']!=original['State']['StartedAt'])
+    except (KeyError,TypeError,ValueError):return False
+
+
 def _make_none_network_profile_contract():
     # Import-time source ownership, shared by Parent and its admitted host helpers.
     source_globals = globals(); refusal = Held
     rows = tuple((name, source_globals[name], source_globals[name].__code__, source_globals[name].__globals__)
-                 for name in ('_none_network_profile_bytes', 'none_network_started_static', 'none_network_exited_static', 'reader_stopped_static'))
+                 for name in ('_none_network_profile_bytes', 'none_network_started_static', 'none_network_exited_static', 'reader_stopped_static', 'reader_resumed_static', 'reader_resumed_profile'))
     modules = tuple((name, source_globals[name]) for name in ('json', 'copy', 're'))
     dependencies = tuple((module, name, getattr(module, name), getattr(getattr(module, name), '__code__', None))
                          for module, name in ((json, 'dumps'), (json, 'loads'), (copy, 'deepcopy'), (re, 'fullmatch')))
     prefix = NONE_NETWORK_SANDBOX_PARENT
-    started, exited, reader_stopped = rows[1][1], rows[2][1], rows[3][1]
+    started, exited, reader_stopped, reader_resumed = rows[1][1], rows[2][1], rows[3][1], rows[5][1]
     public = (); token = object()
     def guard():
         if (globals() is not source_globals or type(source_globals.get('NONE_NETWORK_SANDBOX_PARENT')) is not str
@@ -254,14 +302,22 @@ def _make_none_network_profile_contract():
         finally:
             if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
             guard()
+    def checked_reader_resumed(original, current, cid):
+        if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+        guard()
+        try:return reader_resumed(original, current, cid)
+        finally:
+            if guard.__code__ is not guard_code:raise refusal('none-network-original-profile-contract')
+            guard()
     public = tuple((name, function, function.__code__) for name, function in (
         ('none_network_profile_contract', guard),
         ('checked_none_network_started_static', checked_started),
         ('checked_none_network_exited_static', checked_exited),
-        ('checked_reader_stopped_static', checked_reader_stopped)))
-    return guard, checked_started, checked_exited, checked_reader_stopped
+        ('checked_reader_stopped_static', checked_reader_stopped),
+        ('checked_reader_resumed_profile', checked_reader_resumed)))
+    return guard, checked_started, checked_exited, checked_reader_stopped, checked_reader_resumed
 
-none_network_profile_contract, checked_none_network_started_static, checked_none_network_exited_static, checked_reader_stopped_static = _make_none_network_profile_contract()
+none_network_profile_contract, checked_none_network_started_static, checked_none_network_exited_static, checked_reader_stopped_static, checked_reader_resumed_profile = _make_none_network_profile_contract()
 del _make_none_network_profile_contract
 
 
@@ -3385,12 +3441,31 @@ class LifecycleParent:
         host_roots = tuple(Path(host) for host, child, write in mounts)
         source_root = Path(self.source_ref['path']).parent
         paths = Paths([dict(host=host, child=child, write=write) for host, child, write in mounts])
+        tree = _CHILD_TREES.get(self)
+        paths.owner = self if tree is not None else None
+        mapping = self.mapping
+        if tree is not None:tree.check()
+        fields=('root','child_root','original_operation','identity','nodes','directories','pairs','outputs','scopes','nfs_controls')
+        identity = None if tree is None else tuple(getattr(tree,k) for k in fields)
+        tree_globals = None if tree is None else tree.check.__func__.__globals__
+        seals = None if tree is None else tree_globals['_SEALS']
+        seal = None if tree is None else seals.get(tree)
+        def guard():
+            need(_CHILD_TREES.get(self) is tree and self.mapping is mapping,
+                 'terminal-original-child-tree')
+            if tree is not None:
+                need(mapping.owner is self, 'terminal-original-mapping-owner')
+                need(tuple(getattr(tree,k) for k in fields)==identity and tree_globals.get('_SEALS') is seals and seals.get(tree) is seal,
+                     'terminal-original-tree-namespace')
         def mapped(value):
+            guard()
             path = absolute(str(value))
             if any(path == root or root in path.parents for root in (*host_roots, source_root)):
+                guard()
                 return str(path)
             host = paths.host(str(path))
             need(paths.child(host) == str(path), 'terminal-host-path-roundtrip')
+            guard()
             return host
         return mapped
 
@@ -3412,7 +3487,16 @@ class LifecycleParent:
 
     def worker_profile(self,row,cid,intent,state):
         args,command,mounts,name,ref,roots,image,_deadline=intent;h=row['HostConfig'];c=row['Config'];s=row['State']
-        need(row['Id']==cid and row['Image']==image and c['User']=='1000:1000' and c['Entrypoint']==['python3'] and c['Cmd']==list(command) and c['OpenStdin'] is True and c['Tty'] is False and c['Labels']=={'com.homelab.reader.worker-observer':name},'worker-exact-source-command-image')
+        metadata=decode(read(WORKER_OBSERVATION_IMAGE_ORIGINAL))
+        need(type(metadata) is list and len(metadata)==1 and metadata[0].get('Id')==image,
+             'worker-original-image-metadata')
+        config=metadata[0].get('Config');need(type(config) is dict,'worker-original-image-config')
+        labels=config.get('Labels');labels={} if labels is None else labels
+        label='com.homelab.reader.worker-observer'
+        need(type(labels) is dict and all(type(k) is str and type(v) is str for k,v in labels.items())
+             and label not in labels,'worker-original-image-labels')
+        labels=dict(labels);labels[label]=name
+        need(row['Id']==cid and row['Image']==image and c['User']=='1000:1000' and c['Entrypoint']==['python3'] and c['Cmd']==list(command) and c['OpenStdin'] is True and c['Tty'] is False and c['Labels']==labels,'worker-exact-source-command-image')
         need(h['ReadonlyRootfs'] is True and h['Privileged'] is False and h['NetworkMode']=='none' and h['IpcMode']=='private' and h['PidMode']=='' and h['CapDrop']==['ALL'] and not h.get('CapAdd') and h['SecurityOpt']==['no-new-privileges'] and h['PidsLimit']==32 and h['Memory']==768*1024**2 and h['MemorySwap']==768*1024**2 and h['NanoCpus']==500000000 and h.get('RestartPolicy',{}).get('Name') in ('','no') and all(not h.get(k) for k in ('Devices','DeviceRequests','Binds','Tmpfs','PortBindings')),'worker-exact-isolation')
         need(len(row['Mounts'])==len(mounts) and all(m['Type']=='bind' and m['RW'] is False for m in row['Mounts']) and sorted((m['Source'],m['Destination']) for m in row['Mounts'])==sorted(mounts),'worker-original-readonly-bind-profile')
         need(state in ('created','running','exited') and all(s.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')) and type(s['Pid']) is int and s['Status']==state and s['Running'] is (state=='running') and (s['Pid']>0 if state=='running' else s['Pid']==0) and (state!='exited' or s['ExitCode']==0),'worker-finite-lifecycle')
@@ -3754,7 +3838,7 @@ class LifecycleParent:
         check_common_root(geometry)
         _ARCHIVE_PUBLICATION_REQUESTS[self]=encode(result);return result
 
-    def execute_archive(self):
+    def execute_archive(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__):
         try:
             nfs=_NFS_ADAPTERS.get(self);need(nfs is not None,'archive-NFS-owner-required')
             need(callable(getattr(self.observer,'partition',None)),'archive-terminal-vector-implementation')
@@ -3845,17 +3929,16 @@ class LifecycleParent:
                 except FileNotFoundError:continue
                 raise Held('archive-resume-absence')
             resumed=self.engine.run(['start',self.plan['reader']['id']],seconds).decode().strip();need(resumed==self.plan['reader']['id'],'archive-resume-ACK-unknown')
-            current=self.inspect(resumed);need(static(current)==static(self.baselines['reader']) and current['State']['Running'] is True and current['State']['Paused'] is False and current['State']['Pid']>0,'archive-compatible-reader-resume')
+            current=self.inspect(resumed);need(_resume.__code__ is _resume_code and _resume(self.baselines['reader'],current,self.plan['reader']['id']) and _resume.__code__ is _resume_code,'archive-compatible-reader-resume')
             self.phase='complete'
             return self.emit('complete.json',dict(version=1,action='archive-one',outcome='parent-complete',reader_index_acceptance=False,ordinary_import_grant=False,publication_acceptance=False,automatic_replay=False))
         except BaseException:
             self.phase='uncertain';raise Held('archive-parent-uncertain-hold-no-replay-or-resume') from None
 
-    def execute(self):
+    def execute(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__):
         if self.plan.get('action')=='archive-one':return self.execute_archive()
         operation_path = str(self.op); operation_original = tuple(self.op_fact)
         try:
-            mapper = self.terminal_mapper()
             # Checked producer implementation availability is required BEFORE
             # any stop/execute; callable presence creates no runtime authority.
             need(all(callable(getattr(self.producer, name, None)) for name in
@@ -3902,6 +3985,7 @@ class LifecycleParent:
             # Fresh selected child/birth independently verifies factual state;
             # neither its six-field ACK nor its report grants resume.
             self.child_phase('verify-terminal', inp, command)
+            mapper = self.terminal_mapper()
             result, originals = self.observer.observe_mapped_with_originals(
                 terminal['manifest'], source_sha256=self.plan['observer']['sha256'], path_mapper=mapper)
             need(result['outcome'] == terminal['outcome']
@@ -3963,8 +4047,7 @@ class LifecycleParent:
             resumed = self.engine.run(['start', self.plan['reader']['id']], seconds).decode().strip()
             need(resumed == self.plan['reader']['id'], 'resume-ACK-unknown')
             current = self.inspect(resumed)
-            need(static(current) == static(self.baselines['reader']) and current['State']['Running'] is True
-                 and current['State']['Paused'] is False and current['State']['Pid'] > 0, 'compatible-resume')
+            need(_resume.__code__ is _resume_code and _resume(self.baselines['reader'],current,self.plan['reader']['id']) and _resume.__code__ is _resume_code, 'compatible-resume')
             self.phase = 'complete'
             return self.emit('complete.json', dict(version=2, nonce=self.plan['nonce'], outcome='parent-complete',
                                                    publication_acceptance=False, automatic_replay=False))

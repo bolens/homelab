@@ -46,6 +46,9 @@ class Tests(unittest.TestCase):
   self.terminal=fixture_ref(Path(self.terminal['path']),p.encode(terminal));self.refs['terminal_report']=self.terminal;self.message['terminal']['terminal_report']=self.terminal
   er=Path(self.refs['execution_report']['path']);execute=p.decode(er.read_bytes());execute['terminal_report']=self.terminal;self.refs['execution_report']=fixture_ref(er,p.encode(execute));self.message['terminal']['execution_report']=self.refs['execution_report']
   self.producer_row=copy.deepcopy(self.current);self.worker_row=None;self.worker_process=None;self.engine=p.ScopedDocker();x.engine=self.engine
+  self.image_labels={'org.opencontainers.image.source':'https://github.com/bolens/homelab','org.opencontainers.image.title':'Comic normalization and import recovery'}
+  image_ref=fixture_ref(self.root/'worker-image.json',p.encode([dict(Id=x.baselines['held_worker']['Image'],Config={'Labels':self.image_labels})]))
+  image_patch=patch.object(p,'WORKER_OBSERVATION_IMAGE_ORIGINAL',image_ref);image_patch.start();self.addCleanup(image_patch.stop)
   self.processes=[];self.both=[];self.fault=None;self.worker_final=False
   real=subprocess.Popen
   producer_script="import sys,json;message=json.loads(sys.argv[1]);print(json.dumps(message,sort_keys=True,separators=(',',':')),flush=True);reply=sys.stdin.buffer.readline();assert json.loads(reply)['type']=='terminal-release';print(json.dumps({'type':'ACK','ack':{'fixture':'synthetic-parent-facts-only'}},sort_keys=True,separators=(',',':')),flush=True)"
@@ -82,7 +85,7 @@ class Tests(unittest.TestCase):
   intent=p._WORKER_INTENTS[self.parent];args,cmd,mounts,name,ref,roots,image,_deadline=intent
   host=dict(ReadonlyRootfs=True,Privileged=False,NetworkMode='none',IpcMode='private',PidMode='',CapDrop=['ALL'],CapAdd=[],SecurityOpt=['no-new-privileges'],PidsLimit=32,Memory=768*1024**2,MemorySwap=768*1024**2,NanoCpus=500000000,RestartPolicy={'Name':'no'},Devices=[],DeviceRequests=[],Binds=[],Tmpfs={},PortBindings={})
   status=dict(Status=state,Running=state=='running',Pid=self.worker_process.pid if state=='running' else 0,StartedAt='original-worker-start' if state!='created' else '',FinishedAt='end' if state=='exited' else '',ExitCode=0,Error='',Paused=False,Restarting=False,Dead=False,OOMKilled=False)
-  return dict(Id='5'*64,Image=image,Name=name,Path='python3',Args=list(cmd),Config=dict(User='1000:1000',Entrypoint=['python3'],Cmd=list(cmd),OpenStdin=True,Tty=False,Labels={'com.homelab.reader.worker-observer':name}),HostConfig=host,Mounts=[dict(Type='bind',Source=a,Destination=b,RW=False) for a,b in mounts],NetworkSettings={},State=status)
+  return dict(Id='5'*64,Image=image,Name=name,Path='python3',Args=list(cmd),Config=dict(User='1000:1000',Entrypoint=['python3'],Cmd=list(cmd),OpenStdin=True,Tty=False,Labels=dict(self.image_labels,**{'com.homelab.reader.worker-observer':name})),HostConfig=host,Mounts=[dict(Type='bind',Source=a,Destination=b,RW=False) for a,b in mounts],NetworkSettings={},State=status)
  def run_nested(self):
   def handler(value,raw=None):
    if value is None:return None
@@ -160,5 +163,22 @@ class Tests(unittest.TestCase):
   self.fault=change
   with self.assertRaises(p.Held):self.run_nested()
   self.assertTrue(fired);self.assertFalse(self.worker_final)
+
+ def test_worker_image_inherited_labels_exact_not_container_labels(self):
+  self.unit5();self.run_nested()
+  original=self.worker_profile('created');intent=p._WORKER_INTENTS[self.parent]
+  self.parent.worker_profile(original,'5'*64,intent,'created')
+  for change in ('missing','changed','extra','observer'):
+   row=copy.deepcopy(original);labels=row['Config']['Labels']
+   if change=='missing':labels.pop('org.opencontainers.image.title')
+   elif change=='changed':labels['org.opencontainers.image.title']='foreign'
+   elif change=='extra':labels['com.docker.compose.project']='foreign'
+   else:labels['com.homelab.reader.worker-observer']='foreign'
+   with self.subTest(change=change),self.assertRaises(p.Held):self.parent.worker_profile(row,'5'*64,intent,'created')
+  for labels in ({'com.homelab.reader.worker-observer':'inherited-collision'},[],{'label':True}):
+   metadata=fixture_ref(self.root/'bad-worker-image.json',p.encode([dict(Id=intent[6],Config={'Labels':labels})]))
+   with self.subTest(labels=labels),patch.object(p,'WORKER_OBSERVATION_IMAGE_ORIGINAL',metadata),self.assertRaises(p.Held):self.parent.worker_profile(original,'5'*64,intent,'created')
+   Path(metadata['path']).unlink()
+
 
 if __name__=='__main__':unittest.main()

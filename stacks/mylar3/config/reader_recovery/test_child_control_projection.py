@@ -348,4 +348,48 @@ class Controls(unittest.TestCase):
         self.duplicate_original_facts();self.tree.check();self.source.chmod(0o640)
         with self.assertRaisesRegex(c.Held,'child-control-final9'):self.tree.check()
 
+    def terminal_consumer(self):
+        m,owner,out,ref=self.proof_consumer()
+        self.tree.output(ref,ref['path'],'factual_record')
+        owner.plan={'version':13,'kind':'reviewed-archive-one-lifecycle-protocol','mounts':[dict(host=str(self.op),child='/_operation',write=True)]}
+        owner.mapping=m.Paths(owner.plan['mounts']);owner.mapping.owner=owner;owner.source_ref=self.ref
+        return m,owner,out,ref,m.LifecycleParent.terminal_mapper(owner)
+    def test_terminal_partition_uses_actual_child_inode_and_history_join(self):
+        import comic_archive_terminal_vectors as v
+        m,owner,out,ref,mapper=self.terminal_consumer()
+        image='/app/mylar3/mylar/publication_api.py'
+        report=dict(kind='archive-one-independent-terminal-observation',outcome='observed-forward',reader_index_acceptance=False,ordinary_import_grant=False,publication_acceptance=False,mutation_authority=False,automatic_replay=False,original_vectors=dict(files=[[ref['path'],ref['signature9']],[image,[1,2,3,4,5,0o100644,1000,1000,1]]],nodes=[],claims=[],absent=[],censuses=[]))
+        vectors=v.partition(report,path_mapper=mapper,sdk_map={'publication_api.py':'a'*64},mounts=owner.plan['mounts'],image_sources={path:dict(path=path,sha256='b'*64,signature9=[1,2,3,4,5,0o100644,1000,1000,1]) for path in ('/app/mylar3/mylar/config.py','/app/mylar3/Mylar.py')})
+        self.assertEqual(vectors['files'],{str(out):tuple(ref['signature9'])});self.assertIn(image,vectors['child_image_files'])
+        view=m.LifecycleParent.child_control_from_proof(owner,ref,vectors['files'])
+        self.assertNotEqual(view['signature9'][:2],ref['signature9'][:2]);self.assertEqual(Path(view['path']).read_bytes(),out.read_bytes())
+    def test_terminal_maps_control_pair_and_private_scope(self):
+        self.tree.projected(self.ref);scratch=self.op/'scratch';scratch.mkdir(mode=0o700);self.tree.scope(scratch,'scratch')
+        m,owner,out,ref,mapper=self.terminal_consumer()
+        self.assertEqual(mapper(self.tree.child(self.source)),str(self.tree.root/self.source.name))
+        self.assertEqual(mapper(self.tree.child(scratch/'leaf')),str(scratch/'leaf'))
+        self.assertRaises(m.Held,mapper,'/foreign/file')
+    def test_terminal_mapper_refuses_replaced_tree_or_namespace(self):
+        m,owner,out,ref,mapper=self.terminal_consumer()
+        m._CHILD_TREES.pop(owner)
+        with self.assertRaisesRegex(m.Held,'terminal-original-child-tree'):mapper(ref['path'])
+        m._CHILD_TREES[owner]=self.tree;self.tree.child_root=Path('/foreign')
+        with self.assertRaisesRegex(m.Held,'terminal-original-tree-namespace'):mapper(ref['path'])
+
+    def test_terminal_mapper_freezes_namespace_ledgers_before_callbacks(self):
+        m,owner,out,ref,mapper=self.terminal_consumer()
+        for field,value in (('pairs',(('foreign',),)),('scopes',(('foreign',),)),('outputs',())):
+            original=getattr(self.tree,field);setattr(self.tree,field,value)
+            with self.subTest(field=field),self.assertRaisesRegex(m.Held,'terminal-original-tree-namespace'):mapper(ref['path'])
+            setattr(self.tree,field,original)
+        absolute=m.absolute
+        def late(value):
+            path=absolute(value);self.tree.pairs=(('foreign',),);return path
+        original_pairs=self.tree.pairs
+        with patch.object(m,'absolute',late),self.assertRaisesRegex(m.Held,'terminal-original-tree-namespace'):mapper(str(self.source))
+        self.tree.pairs=original_pairs
+        with patch.object(c,'_SEALS',dict(c._SEALS)),self.assertRaisesRegex(m.Held,'terminal-original-tree-namespace'):mapper(ref['path'])
+        original=c._SEALS[self.tree];c._SEALS[self.tree]=tuple(list(original))
+        with self.assertRaisesRegex(m.Held,'terminal-original-tree-namespace'):mapper(ref['path'])
+
 if __name__=='__main__':unittest.main()
