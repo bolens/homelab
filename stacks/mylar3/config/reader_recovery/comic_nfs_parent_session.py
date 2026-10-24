@@ -154,8 +154,15 @@ class RetainedChild:
         _SESSION_PUMPS[self]=self.pump
     def close(self):
         if self in _SESSION_PUMPS:need(self.pump is _SESSION_PUMPS[self],'nfs-session-original-pump')
-        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
-             and self.seal[-1] is self.host_modules_guard,'nfs-session-original-module-guard-seal')
+        base=(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
+        original=_SESSION_SEALS.get(self);epoch=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
+        release=original[len(base):] if type(original) is tuple else ()
+        releasing=(getattr(self,'state',None)=='releasing' and len(release)==1 and type(release[0]) is tuple
+                   and len(release[0])==3 and release[0][0] is self.pump
+                   and release[0][1] is epoch and type(release[0][2]) is int)
+        need(original==base or (releasing and original==(*base,*release)),
+             'nfs-session-original-release-seal')
+        need(self.seal[-1] is self.host_modules_guard,'nfs-session-original-module-guard-seal')
         method,code,defaults=self.host_modules_guard
         bound=self.owner.nfs_host_modules
         need(type(self.owner) is self.g.get('LifecycleParent')
@@ -167,11 +174,20 @@ class RetainedChild:
         # every transport guard; avoid a second identical Parent closure here.
         method(self.owner)
         self.g['read'](self.packet_ref);self.g['dialogue_close'](self.owner.engine,self.cid)
-        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code) and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output,self.host_modules_guard),'nfs-session-original-seal')
+        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code,*release) and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output,self.host_modules_guard),'nfs-session-original-seal')
         epoch=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
         if epoch is not None:
             need(len(epoch)==6 and epoch[0] is self and epoch[1]==self.cid,'nfs-session-original-local-epoch')
-            ticks=int(self.g['Path']('/proc/'+str(epoch[2])+'/stat').read_text().rsplit(')',1)[1].split()[19]);need(ticks==epoch[4],'nfs-session-original-local-starttick')
+            try:raw=self.g['Path']('/proc/'+str(epoch[2])+'/stat').read_text()
+            except FileNotFoundError:
+                # The original child may exit immediately after its release
+                # frame. Only the source-owned, sealed release request may
+                # drain that frame and reap the original client; it is not
+                # successful until both facts have been verified.
+                need(releasing and self.state=='releasing' and release[0][1] is epoch,
+                     'nfs-session-original-local-release-required')
+            else:
+                ticks=int(raw.rsplit(')',1)[1].split()[19]);need(ticks==epoch[4],'nfs-session-original-local-starttick')
         need(self.owner.generated.get(self.packet_ref['path'])==self.packet_ref,'nfs-session-original-packet-row')
         need(self.engine_replies.owner is self.owner and self.engine_replies.cid==self.cid and self.engine_replies.nonce==self.owner.plan['nonce'] and self.lease_replies.dialogue is self.engine_replies and self.probe_replies.dialogue is self.engine_replies,'nfs-session-original-binding')
         bound=self.owner.nfs_host_modules
@@ -179,7 +195,10 @@ class RetainedChild:
              and getattr(bound,'__self__',None) is self.owner and getattr(bound,'__func__',None) is method
              and method.__code__ is code and method.__defaults__ is defaults
              and self.host_modules_guard is self.seal[-1]
-             and _SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code),
+             and _SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code,*release)
+             and _SESSION_SEALS.get(self) is original
+             and (not release or (self.state=='releasing' and release[0][0] is self.pump
+                  and release[0][1] is epoch and self.g['_NFS_CHILD_EPOCHS'].get(self.owner) is epoch)),
              'nfs-session-module-checker-callback-drift')
     def until(self,kind):
         need(kind in ('nfs-ready','nfs-result','nfs-done') and self.state not in ('failed','finished'),'nfs-session-finite-state')
@@ -250,7 +269,20 @@ class RetainedChild:
     def request(self,operation,*,stopped):
         need(self.state=='ready' and operation in ('current','check','release') and type(stopped) is bool and type(self.last) is int,'nfs-session-own-command')
         self.close()
-        self.pump.write(dict(type='nfs-host',nonce=self.owner.plan['nonce'],sequence=self.last,payload=dict(operation=operation,stopped=stopped)))
-        result=self.until('nfs-done' if operation=='release' else 'nfs-result')
-        if operation=='release':self.pump.finish();self.state='finished'
-        return result
+        original=_SESSION_SEALS[self]
+        if operation=='release':
+            epoch=self.g['_NFS_CHILD_EPOCHS'].get(self.owner)
+            need(epoch is not None and epoch[0] is self and epoch[1]==self.cid,'nfs-session-original-release-epoch')
+            self.state='releasing'
+            _SESSION_SEALS[self]=(*original,(self.pump,epoch,self.last))
+        try:
+            self.pump.write(dict(type='nfs-host',nonce=self.owner.plan['nonce'],sequence=self.last,payload=dict(operation=operation,stopped=stopped)))
+            result=self.until('nfs-done' if operation=='release' else 'nfs-result')
+            if operation=='release':
+                self.pump.finish()
+                need(_SESSION_SEALS.get(self)==(*original,(self.pump,epoch,self.last-1)),
+                     'nfs-session-original-release-completed')
+                _SESSION_SEALS[self]=original;self.state='finished'
+            return result
+        except BaseException:
+            self.state='failed';raise

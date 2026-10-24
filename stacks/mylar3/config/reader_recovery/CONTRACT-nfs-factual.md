@@ -246,6 +246,15 @@ registered dialogue and pump retain the original absolute Parent deadline. This
 transport lifetime does not extend the 120-second captured-scope freshness or
 the separate 120-second kernel probe limit.
 
+The original child may exit immediately after sending its final release frame.
+Only the source-owned release transition, sealed to the original pump, kernel
+epoch and command sequence, permits that original inner PID to disappear while
+the Parent drains the reply. An extant PID must retain its original start tick;
+other read errors refuse. The Parent still requires the exact sequenced
+`nfs-done`, original client exit zero and final source/pipe custody before a
+stopped handoff. EOF, a nonzero exit or an unsealed release state cannot grant
+completion. Active requests still require the original live kernel epoch.
+
 After the owning reader stop, all three role validators derive the same exact
 profile from the original running reader. For one unpublished IPv4 bridge only,
 Docker clears EndpointID, IPAddress, IPPrefixLen, MacAddress, Ports, SandboxID
