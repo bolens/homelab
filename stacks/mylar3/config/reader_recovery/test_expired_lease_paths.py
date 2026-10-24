@@ -16,7 +16,7 @@ class Expired(unittest.TestCase):
   owner=Owner();owner.thread=threading.get_ident();owner.core=b'original-method-only-core';owner.mapping=parent.Paths([]) if False else parent.Paths([dict(host=str(base),child='/fixture',write=False)]);owner.mapping.owner=owner
   def expired():raise ValueError('actual-expired-Paths-owner')
   owner.left=expired;parent._CHILD_TREES[owner]=tree
-  lease=object.__new__(h.HostWriterLease);lease.owner=owner;lease.g={'read':parent.read,'_CORES':{owner:owner.core}};lease.tree=tree;lease.helper=ref;lease.projected=physical;lease.admitted_empty=dict(path=str(empty),signature9=list(h.nine(empty.lstat())));lease.empty=str(empty);lease.empty9=tuple(h.nine(empty.lstat()));lease.empty_nodes=tuple((str(q),h.five(q.lstat())) for q in empty.parents);lease.root=writer;lease.root5,lease.writer_files=h.namespace(writer);lease.writer_nodes=tuple((str(q),h.five(q.lstat())) for q in writer.parents);lease.writer_sha='c'*64;lease.image='source-method-projection';lease.token='a'*64;lease.name='fixture';lease.mounts=();lease.command=();lease.create_args=()
+  lease=object.__new__(h.HostWriterLease);lease.owner=owner;lease.g={'read':parent.read,'_CORES':{owner:owner.core},'_CHILD_TREES':parent._CHILD_TREES};lease.tree=tree;lease.helper=ref;lease.projected=physical;lease.admitted_empty=dict(path=str(empty),signature9=list(h.nine(empty.lstat())));lease.empty=str(empty);lease.empty9=tuple(h.nine(empty.lstat()));lease.empty_nodes=tuple((str(q),h.five(q.lstat())) for q in empty.parents);lease.root=writer;lease.root5,lease.writer_files=h.namespace(writer);lease.writer_nodes=tuple((str(q),h.five(q.lstat())) for q in writer.parents);lease.writer_sha='c'*64;lease.image='source-method-projection';lease.token='a'*64;lease.name='fixture';lease.mounts=();lease.command=();lease.create_args=()
   lease.tape=h.encode(dict(helper=lease.helper,projected=lease.projected,empty=lease.empty,empty9=lease.empty9,empty_nodes=lease.empty_nodes,writer_original=(lease.root5,lease.writer_files,lease.writer_nodes),root=str(lease.root),writer_sha=lease.writer_sha,image=lease.image,token=lease.token,name=lease.name,mounts=lease.mounts,command=lease.command,create=lease.create_args));self.lease=lease
  def test_actual_paths_expired_refuses_active_but_local_original_closure_succeeds(self):
   with self.assertRaisesRegex(ValueError,'actual-expired-Paths-owner'):self.lease.owner.mapping.child_host_ref(self.lease.helper)
@@ -25,4 +25,35 @@ class Expired(unittest.TestCase):
  def test_expired_local_closure_still_refuses_original_empty_mode_drift(self):
   Path(self.lease.empty).chmod(0o750)
   with self.assertRaisesRegex(h.Held,'lease-projection-originals'):self.lease.original(allow_expired=True)
+ def normal(self):
+  self.lease.owner.left=lambda:1;self.lease.admitted_empty=None
+  self.addCleanup(parent._CHILD_TREES.pop,self.lease.owner,None)
+ def test_retained_helper_closes_tree_twice_without_reprojection(self):
+  from unittest.mock import patch
+  self.normal();tree=self.lease.tree;calls=[];original=tree.check
+  def check():calls.append(True);return original()
+  with patch.object(tree,'check',side_effect=check),patch.object(self.lease.owner.mapping,'child_host_ref',side_effect=AssertionError('retained pair must not reenter projection')):
+   self.lease.original()
+  self.assertEqual(len(calls),2)
+ def test_late_registered_tree_replacement_refuses(self):
+  from unittest.mock import patch
+  self.normal();original=h.namespace
+  def namespace(path):
+   result=original(path);parent._CHILD_TREES[self.lease.owner]=object();return result
+  with patch.object(h,'namespace',side_effect=namespace):
+   with self.assertRaises((h.Held,projection.Held,parent.Held)):self.lease.original()
+ def test_late_retained_pair_substitution_refuses(self):
+  from unittest.mock import patch
+  self.normal();original=h.namespace
+  def namespace(path):
+   result=original(path);self.lease.tree.pairs=();return result
+  with patch.object(h,'namespace',side_effect=namespace):
+   with self.assertRaises((h.Held,projection.Held,parent.Held)):self.lease.original()
+ def test_late_original_source_mutation_refuses(self):
+  from unittest.mock import patch
+  self.normal();original=h.namespace
+  def namespace(path):
+   result=original(path);Path(self.lease.helper['path']).write_bytes(b'# changed retained original\n');return result
+  with patch.object(h,'namespace',side_effect=namespace):
+   with self.assertRaises((h.Held,projection.Held,parent.Held)):self.lease.original()
 if __name__=='__main__':unittest.main()
