@@ -109,6 +109,18 @@ class Boundary(unittest.TestCase):
                 with self.assertRaisesRegex(m.Held,'nfs-retained-host-node-conflict'):
                     self.retained_metadata_join(field)
 
+    def test_retained_route_requests_finite_remaining_parent_budget(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        class Captured(Exception):pass
+        for remaining,expected in ((800,800),(1500,900),(87,87)):
+            captured=[]
+            def prepare(seconds):captured.append(seconds);raise Captured()
+            owner=SimpleNamespace(baselines={},left=lambda:remaining,prepare_nfs_packet=prepare)
+            with patch.object(m,'preflight',return_value=({},None)):
+                with self.assertRaises(Captured):m.run_active_retained(owner)
+            self.assertEqual(captured,[expected])
+
     def test_retained_boundary_is_not_active_canary_type(self):
         self.assertNotEqual(m.RetainedObservation.__name__,'ActiveNFSCanaryObservation')
         self.assertFalse(hasattr(m,'ActiveNFSCanaryObservation'))

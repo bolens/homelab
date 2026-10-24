@@ -234,7 +234,7 @@ def run_active_retained(owner):
     """Registered child/source/pipe route; base direct factory remains strict."""
     g,module=preflight(owner);original=copy.deepcopy(owner.baselines)
     for row in original.values():need(g['same_runtime'](owner.inspect(row['Id']),row),'nfs-retained-original-prelaunch-runtime')
-    packet,source=owner.prepare_nfs_packet(min(120,int(owner.left())))
+    packet,source=owner.prepare_nfs_packet(min(900,int(owner.left())))
     session=owner.open_nfs_child(packet,source);facts=session.ready()
     canary=RetainedObservation(owner,session,facts)
     rows={row['Name']:row for row in canary.current(stopped=False)}

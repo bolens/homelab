@@ -239,3 +239,18 @@ descriptors naming one path. Conflicting path expectations refuse before I/O.
 The constructor seals the actual handle and ancestor dictionaries. Final closure
 revalidates primitive ledger rows before conversion or equality, so substituted
 iterables or equality callbacks cannot validate the original ledger.
+
+The configured retained transport receives at most 900 seconds, derived again
+from the owning Parent's remaining lifetime after packet preparation. Its
+registered dialogue and pump retain the original absolute Parent deadline. This
+transport lifetime does not extend the 120-second captured-scope freshness or
+the separate 120-second kernel probe limit.
+
+After the owning reader stop, all three role validators derive the same exact
+profile from the original running reader. For one unpublished IPv4 bridge only,
+Docker clears EndpointID, IPAddress, IPPrefixLen, MacAddress, Ports, SandboxID
+and SandboxKey. Every other static field remains exact, including network ID,
+aliases, gateway, mounts and configuration. Host/none profiles remain exact.
+The reader keeps its original start epoch and must be exited with PID zero.
+The native and never-started worker profiles remain exact. The adapter retains
+the first accepted stopped row and compares later observations exactly.

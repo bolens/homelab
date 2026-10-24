@@ -407,6 +407,44 @@ def current_roles(raw):
     return value
 
 
+def reader_stopped_static(original, current, cid):
+    """Derive one exact reader profile after its unpublished bridge is released."""
+    keys={'Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings'}
+    if (type(original) is not dict or type(current) is not dict
+            or set(original)!=keys or set(current)!=keys
+            or type(cid) is not str or re.fullmatch('[a-f0-9]{64}',cid) is None
+            or original['Id']!=cid or current['Id']!=cid):return False
+    try:
+        def packed(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
+        old=original['NetworkSettings'];new=current['NetworkSettings']
+        if type(old) is not dict or type(new) is not dict:return False
+        networks=old.get('Networks',{})
+        if type(networks) is not dict:return False
+        if not networks or set(networks)<= {'host','none'}:return packed(original)==packed(current)
+        if len(networks)!=1:return False
+        name,network=next(iter(networks.items()));host=original['HostConfig']
+        if (type(network) is not dict or type(host) is not dict or type(original['Config']) is not dict
+                or re.fullmatch('[a-f0-9]{64}',network.get('NetworkID','')) is None
+                or host.get('NetworkMode') not in (name,network['NetworkID'])
+                or host.get('PortBindings') or host.get('PublishAllPorts') is not False
+                or type(old.get('Ports')) is not dict or any(value is not None for value in old['Ports'].values())
+                or set(old['Ports'])!=set(original['Config'].get('ExposedPorts',{}))
+                or re.fullmatch('[a-f0-9]{64}',old.get('SandboxID','')) is None
+                or old.get('SandboxKey')!='/var/run/docker/netns/'+old['SandboxID'][:12]
+                or re.fullmatch('[a-f0-9]{64}',network.get('EndpointID','')) is None
+                or type(network.get('IPPrefixLen')) is not int or not 1<=network['IPPrefixLen']<=32
+                or type(network.get('IPAddress')) is not str
+                or re.fullmatch(r'[0-9]{1,3}(?:\.[0-9]{1,3}){3}',network['IPAddress']) is None
+                or any(int(part)>255 for part in network['IPAddress'].split('.'))
+                or re.fullmatch(r'(?:[0-9a-f]{2}:){5}[0-9a-f]{2}',network.get('MacAddress','')) is None):return False
+        expected=json.loads(packed(original));released=expected['NetworkSettings']
+        released['SandboxID']='';released['SandboxKey']='';released['Ports']={}
+        endpoint=released['Networks'][name]
+        endpoint.update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
+        return packed(expected)==packed(current)
+    except (KeyError,TypeError,ValueError,OverflowError,RecursionError):return False
+
+
 def select_roles(rows,roles,*,include_reader=True,stopped=False):
     wanted=('native','worker','reader') if include_reader else ('native','worker')
     check(type(rows) is list and len(rows)==len(wanted),'current-role-row-count')
@@ -415,7 +453,9 @@ def select_roles(rows,roles,*,include_reader=True,stopped=False):
     out={}
     for role in wanted:
         expected=roles['roles'][role];row=byid[expected['id']]
-        check(encode({k:row[k] for k in ROLE_STATIC})==encode(expected['profile']),
+        stopped_reader=stopped and role=='reader' and row['State'].get('Status')=='exited'
+        check(reader_stopped_static(expected['profile'],{k:row[k] for k in ROLE_STATIC},row['Id'])
+              if stopped_reader else encode({k:row[k] for k in ROLE_STATIC})==encode(expected['profile']),
               'current-role-static-original')
         epoch={k:v for k,v in row['State'].items() if k!='Health'}
         if stopped and role=='reader' and epoch.get('Status')=='exited':
@@ -2091,8 +2131,10 @@ class ActiveNFSCanaryObservation:
         original={r['Id']:r for r in self.rows};current={r['Id']:r for r in rows}
         if set(original)!=set(current):raise Held('active-factual-runtime-set')
         for name in original:
-            keys=('Id','Image','Mounts','Config','HostConfig','NetworkSettings')
-            if any(current[name].get(k)!=original[name].get(k) for k in keys):raise Held('active-factual-static-drift')
+            keys=ROLE_STATIC
+            accepted=(reader_stopped_static({k:original[name][k] for k in keys},{k:current[name][k] for k in keys},name)
+                      if stopped and name==self.reader_id else all(current[name].get(k)==original[name].get(k) for k in keys))
+            if not accepted:raise Held('active-factual-static-drift')
         state=current[self.reader_id]['State'];old=original[self.reader_id]['State']
         if stopped:
             if not (state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0 and state['StartedAt']==old['StartedAt']

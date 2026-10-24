@@ -124,7 +124,7 @@ class FullLifecycleControls(LocalEnvironment):
             return {'Status': 'running' if running else 'created', 'Running': running, 'Pid': pid,
                     'StartedAt': 'fixed','FinishedAt':'','ExitCode':0,'Error':'', 'Paused': False, 'Restarting': False, 'Dead': False, 'OOMKilled': False}
         reader = {'Name': '/komga', 'Id': 'c' * 64, 'Image': P.KOMGA, 'State': state(True, 3),
-                  'Config': {}, 'HostConfig': {}, 'NetworkSettings': {'Networks': {'ingress-public': {'NetworkID': 'synthetic-network', 'IPAddress': '192.0.2.1'}}},
+                  'Config': {'ExposedPorts':{'25600/tcp':{}}}, 'HostConfig': {'NetworkMode':'e'*64,'PortBindings':{},'PublishAllPorts':False}, 'NetworkSettings': {'Ports':{'25600/tcp':None},'SandboxID':'f'*64,'SandboxKey':'/var/run/docker/netns/'+'f'*12,'Networks': {'ingress-public': {'NetworkID': 'e'*64, 'IPAddress': '192.0.2.1','IPPrefixLen':24,'MacAddress':'02:42:c0:00:02:01','EndpointID':'d'*64,'Gateway':'192.0.2.254','Aliases':['komga']}}},
                   'Mounts': [{'Destination': '/data/comics', 'Source': '/srv/example/media/comics', 'Type': 'bind', 'RW': True},
                              {'Destination': '/data/manga', 'Source': '/srv/example/media/manga', 'Type': 'bind', 'RW': True}]}
         rows = [{'Name': '/mylar3', 'Id': 'a' * 64, 'Image': P.IMAGE, 'State': state(True, 1),
