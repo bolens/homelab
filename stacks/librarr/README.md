@@ -174,3 +174,47 @@ If a download finishes but a reader is empty, check the selected override, match
 host roots, UID/GID and dedicated library ID before changing credentials. For a
 Calibre-Web discrepancy, verify registration in `metadata.db`; adding loose files
 or rescanning Kavita does not register a Calibre book.
+
+## Flood / rTorrent
+
+The optional `docker-compose.flood.yml` runs a restricted Transmission RPC adapter
+for Librarr v1.4.1 against Flood's existing rTorrent socket. Select Flood's matching
+`docker-compose.librarr.yml` first, preserving original overrides, images, accounts
+and state. Both stacks must see the same dedicated download directories at
+`/data/downloads/librarr/{ebooks,audiobooks,manga}`. Set unique `BRIDGE_USER` and
+`BRIDGE_PASSWORD` values, the actual external rTorrent state volume name, and its
+UID/GID. Select this override alongside Librarr's base Compose definition.
+
+The adapter publishes no host port or ingress and joins only `torrents`. Its
+read-only state volume contains an administrative Unix socket, so protect adapter
+credentials. It requires Basic authentication and a session handshake, rejects
+arbitrary RPC and deletion, and lists only torrents whose Librarr category and
+exact dedicated save path match. Server enforcement protects unrelated torrents.
+This is a limited protocol adapter, not a full Transmission implementation.
+
+UI-saved settings override environment configuration. Verify the effective client,
+paths, copy imports and disabled automatic torrent removal before acquisition.
+The connection test must reach the original daemon. A submitted torrent must
+appear in Flood and reach the expected mounted directory before being counted as
+downloaded. Adapter boundary tests run with:
+
+```sh
+python3 -m unittest discover -s stacks/librarr/flood-adapter -v
+```
+
+For Bookshelf supplementation, inventory monitored missing ebooks, exclude owned
+and queued books, and select unambiguous title/author/format matches. Keep private
+acquisition receipts to make retries idempotent. Register completed files through
+Bookshelf's supported manual-import flow using copy mode. A file on the media
+mount alone does not fulfill a Bookshelf book. Skip uncertain editions and report
+pending, unavailable and imported items separately. Provider credentials remain
+operator supplied.
+
+The one-shot `bookshelf_supplement.py` helper defaults to review mode. Supply
+internal service URLs, an owner-only JSON keys file with `bookshelf_api_key` and
+`librarr_api_key`, and an owner-only receipt directory. `--limit` bounds each pass.
+Inspect candidate receipts before `--apply`; the apply pass rechecks ownership and
+queues. An intent receipt is written before submission, and uncertain submissions
+require review instead of automatic retry. The helper does not schedule itself or
+claim that accepted downloads have finished or been imported. Copy-import completed
+files through Bookshelf and verify their book IDs separately.

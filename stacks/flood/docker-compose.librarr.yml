@@ -1,0 +1,25 @@
+# Dedicated mounted downloads only; existing /downloads remains unchanged.
+services:
+  rtorrent:
+    group_add: ["${LIBRARR_MEDIA_GID:-1000}"]
+    volumes:
+      - type: bind
+        source: ${FLOOD_LIBRARR_DOWNLOADS_PATH:?Set FLOOD_LIBRARR_DOWNLOADS_PATH}
+        target: /data/downloads/librarr
+        bind:
+          create_host_path: false
+  flood:
+    group_add: ["${LIBRARR_MEDIA_GID:-1000}"]
+    command:
+      - --rundir=/data
+      - --rtsocket=/rtorrent_data/rtorrent.sock
+      - --allowedpath=/downloads
+      - --allowedpath=/data/downloads/librarr
+      - --host=0.0.0.0
+      - --port=3000
+    volumes:
+      - type: bind
+        source: ${FLOOD_LIBRARR_DOWNLOADS_PATH:?Set FLOOD_LIBRARR_DOWNLOADS_PATH}
+        target: /data/downloads/librarr
+        bind:
+          create_host_path: false

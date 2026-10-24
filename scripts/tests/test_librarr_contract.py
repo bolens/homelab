@@ -23,7 +23,7 @@ def fixture(root, stack):
     target.mkdir(parents=True)
     for name in ("docker-compose.yml", "stack.env.example", "prepare-stack.sh",
                  "caddy_snippet.conf.example", "sources.json.example",
-                 "docker-compose.readers.yml", "docker-compose.librarr.yml"):
+                 "docker-compose.readers.yml", "docker-compose.librarr.yml", "docker-compose.flood.yml"):
         source = ROOT / "stacks" / stack / name
         if source.exists():
             shutil.copy2(source, target / name)
@@ -138,6 +138,26 @@ class LibrarrComposeTests(unittest.TestCase):
                 result = self.render("librarr", remove=key)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(key, result.stderr)
+
+    def test_flood_adapter_is_private_and_uses_existing_readonly_socket(self):
+        model = self.model('librarr', 'docker-compose.flood.yml',
+                           extra='BRIDGE_USER=fixture\nBRIDGE_PASSWORD=fixture-password-not-a-secret\n')
+        bridge = model['services']['librarr-flood-adapter']
+        self.assertFalse(bridge.get('ports'))
+        self.assertEqual(set(bridge['networks']), {'torrents'})
+        self.assertTrue(bridge['read_only'])
+        self.assertTrue(all(m['read_only'] for m in bridge['volumes']))
+        app = model['services']['librarr']['environment']
+        self.assertEqual(app['TORRENT_CLIENT'], 'transmission')
+        self.assertEqual(app['QB_SAVE_PATH'], '/data/downloads/librarr/ebooks')
+        self.assertEqual(app['REMOVE_TORRENT_AFTER_IMPORT'], 'false')
+        self.assertTrue(model['volumes']['flood_rtorrent_socket']['external'])
+
+    def test_flood_accounts_use_persistent_runtime(self):
+        model = self.model('flood')['services']['flood']
+        self.assertIn('--rundir=/data', model['command'])
+        self.assertTrue(any(m['target'] == '/data' and m['type'] == 'volume'
+                            for m in model['volumes']))
 
     def test_default_exposure_and_payload_retention(self):
         model = self.model("librarr")

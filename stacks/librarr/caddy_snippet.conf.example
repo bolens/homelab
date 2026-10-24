@@ -1,3 +1,4 @@
+# The optional Flood adapter is internal-only; never proxy it here.
 # Librarr — split-horizon + public TLS: librarr.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 
 librarr.home, librarr.local {

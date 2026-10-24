@@ -76,6 +76,7 @@ services:
     # No --rtorrent flag: connect to external rTorrent via socket.
     # Socket path = rTorrent's basedir default: basedir/rtorrent.sock
     command:
+      - --rundir=/data
       - --rtsocket=/rtorrent_data/rtorrent.sock
       - --allowedpath=/downloads
       - --host=0.0.0.0
