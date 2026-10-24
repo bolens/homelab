@@ -30,6 +30,13 @@ def release_bridge(profile):
  settings['Networks']['fixture'].update(EndpointID='',IPAddress='',IPPrefixLen=0,MacAddress='')
  return value
 
+def resumed_bridge_profile(original):
+ value=copy.deepcopy(original);settings=value['NetworkSettings']
+ settings.update(SandboxID='d'*64,SandboxKey='/var/run/docker/netns/'+'d'*12)
+ settings['Networks']['fixture'].update(EndpointID='e'*64,IPAddress='10.251.242.99',MacAddress='02:42:0a:fb:f2:63')
+ value['State'].update(Status='running',Running=True,Pid=900,StartedAt='fresh-owned-start',FinishedAt='',ExitCode=0)
+ return value
+
 class Controls(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)

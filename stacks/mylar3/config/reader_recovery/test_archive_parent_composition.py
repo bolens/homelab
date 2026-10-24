@@ -1,13 +1,16 @@
 """Real private files/fsync/closure, explicit child/NFS/type scheduling doubles."""
+import copy
 from pathlib import Path
 import sys
 import types
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
+from test_nfs_current_roles import bridge_profile,release_bridge,row as role_row,resumed_bridge_profile as resumed_row
 import test_reader_lifecycle_parent as old
 p=old.p
 import comic_archive_terminal_vectors as vector_module
+
 
 class Tests(unittest.TestCase):
  setUp=old.Tests.setUp
@@ -17,20 +20,21 @@ class Tests(unittest.TestCase):
   x.plan['producer_inputs']={'archive_request':old.fixture_ref(self.root/'request.json',p.encode(dict(version=1,owner={'kind':'issue','issue_id':'123','comic_id':'456'},operation_id='d'*64))),'archive_scopes':old.fixture_ref(self.root/'scopes.json',p.encode(dict(version=1,scratch=str(self.root/'scratch'),retention_root=str(self.root/'retention'))))}
   x.plan['sdk_map']=old.fixture_ref(self.root/'sdk-map.json',p.encode({'publication_api.py':'f'*64}));x.plan['mounts'][0]['child']=str(self.root);x.mapping=p.Paths(x.plan['mounts'])
   controls={role:old.fixture_ref(self.root/(role+'.json'),b'{}') for role in p.ARCHIVE_ROLES};scopes=old.fixture_ref(self.root/'actual-scopes.json',b'{}')
-  row=dict(Id='1'*64,Name='reader',Image=x.plan['selected_image'],Path='/init',Args=[],Config={},HostConfig={},NetworkSettings={},Mounts=[],State=dict(Running=False,Paused=False,Pid=0))
+  row=bridge_profile(role_row(1,'reader','running'));row['Image']=x.plan['selected_image']
+  stopped=release_bridge(row);stopped['State'].update(Status='exited',Running=False,Pid=0,FinishedAt='owned-stop')
   x.baselines={'reader':row};x.files={self.source['path']:tuple(self.source['signature9'])};x.nodes={};x.observer=vector_module
   claims=self.root/'claims';claims.mkdir(mode=0o700);self.claims=claims
   class Engine:
    def run(_,args,seconds):
     calls.append(tuple(args));return b'1'*64
-  x.engine=Engine();x.inspect=lambda cid:dict(row,State=dict(Running=True,Paused=False,Pid=3))
+  x.engine=Engine();x.inspect=lambda cid:resumed_row(row)
   def continuous():
    if (x.op/'resume-intent.json').exists():
     if fault=='source':Path(self.source['path']).chmod(0o640)
     if fault=='claim':(claims/'late').write_bytes(b'foreign')
     if fault=='census':(claims/'other').write_bytes(b'foreign')
     if fault=='report':(x.op/'verify-terminal/verify-terminal-report.json').chmod(0o640)
-   return {'reader':row}
+   return {'reader':stopped}
   x.continuous=continuous
   def stop(owner):owner.engine.run(['stop',owner.plan['reader']['id']],owner.left());return owner.continuous()
   p._NFS_ADAPTERS[x]=types.SimpleNamespace(preflight=lambda _:None,run_active=lambda _:None,stop_owned=stop)
@@ -97,5 +101,34 @@ class Tests(unittest.TestCase):
   import comic_archive_backup_action as backup
   import comic_archive_repair_action as action
   self.assertIsNone(backup.PARENT_SOURCE_SHA);self.assertIsNone(action.PARENT_SOURCE_SHA)
+
+ def test_resume_original_profile_new_endpoint_and_fresh_epoch(self):
+  x=self.setup_archive();row=resumed_row(x.baselines['reader']);self.assertTrue(p.checked_reader_resumed_profile(x.baselines['reader'],row,x.plan['reader']['id']))
+  for key,value in (('StartedAt',x.baselines['reader']['State']['StartedAt']),('Pid',0),('Restarting',True),('Dead',True),('ExitCode',1)):
+   changed=copy.deepcopy(row);changed['State'][key]=value
+   with self.subTest(key=key):self.assertFalse(p.checked_reader_resumed_profile(x.baselines['reader'],changed,x.plan['reader']['id']))
+ def test_resume_network_and_immutable_drift_refuse(self):
+  x=self.setup_archive();row=resumed_row(x.baselines['reader'])
+  for key,value in (('NetworkID','f'*64),('Gateway','10.251.242.100'),('Aliases',['foreign']),('IPAddress','10.251.243.99'),('IPPrefixLen',24),('IPAddress','10.251.242.97'),('IPAddress','10.251.242.111'),('MacAddress','01:00:00:00:00:01')):
+   changed=copy.deepcopy(row);changed['NetworkSettings']['Networks']['fixture'][key]=value
+   with self.subTest(key=key,value=value):self.assertFalse(p.checked_reader_resumed_profile(x.baselines['reader'],changed,x.plan['reader']['id']))
+  for key,value in (('Id','f'*64),('Config',{}),('HostConfig',{}),('Mounts',[{'Source':'/foreign'}])):
+   changed=copy.deepcopy(row);changed[key]=value
+   with self.subTest(key=key):self.assertFalse(p.checked_reader_resumed_profile(x.baselines['reader'],changed,x.plan['reader']['id']))
+ def test_resume_configured_ip_and_mac_stay_exact(self):
+  x=self.setup_archive();old=x.baselines['reader'];endpoint=old['NetworkSettings']['Networks']['fixture']
+  endpoint['IPAMConfig']={'IPv4Address':endpoint['IPAddress']};old['Config']['MacAddress']=endpoint['MacAddress']
+  row=resumed_row(old);self.assertFalse(p.checked_reader_resumed_profile(x.baselines['reader'],row,x.plan['reader']['id']))
+  row['NetworkSettings']['Networks']['fixture'].update(IPAddress=endpoint['IPAddress'],MacAddress=endpoint['MacAddress'])
+  self.assertTrue(p.checked_reader_resumed_profile(x.baselines['reader'],row,x.plan['reader']['id']))
+
+ def test_final_inspect_cannot_override_resume_acceptance(self):
+  x=self.setup_archive()
+  def inspect(cid):
+   x.reader_resumed=lambda row:True
+   row=resumed_row(x.baselines['reader']);row['Config']={};return row
+  x.inspect=inspect
+  with self.assertRaises(p.Held):x.execute()
+  self.assertEqual(x.phase,'uncertain');self.assertFalse((x.op/'complete.json').exists())
 
 if __name__=='__main__':unittest.main()
