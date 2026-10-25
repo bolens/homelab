@@ -13,4 +13,7 @@ For native NZB downloads, see the owning Librarr README's NZBGet setup. Select
 its docker-compose.nzbget.yml alongside all existing overrides, configure the
 independent adapter key, and verify category/destination mapping before an actual
 acquisition. Native SABnzbd connection success proves connectivity only. Verify
-an accepted job in NZBGet and Librarr, then completion/source retention separately.
+an accepted job in NZBGet and Librarr, then verify completion and organized files.
+Native v1.4.1 NZB imports move supported media out of the completed-download
+directory regardless of IMPORT_MODE. Verify retention separately for torrent
+seeding payloads and subsequent Bookshelf copy-import sources.

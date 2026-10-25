@@ -40,6 +40,45 @@ class SupplementTests(unittest.TestCase):
         candidate = self.candidate | {'title': 'J R R Tolkien - The Hobbit (retail) (azw3)', 'format': 'azw3'}
         self.assertFalse(s.match_candidate(book, 'J. R. R. Tolkien', candidate))
 
+    def test_same_surname_or_conflicting_author_metadata_is_rejected(self):
+        for title in ('Dune EPUB', self.candidate['title']):
+            candidate = self.candidate | {'title': title, 'author': 'Brian Herbert'}
+            self.assertFalse(s.match_candidate(self.book, 'Frank Herbert', candidate))
+
+    def test_distinguishing_subtitle_is_required(self):
+        book = self.book | {'title': 'Dune: The Illustrated Edition'}
+        self.assertFalse(s.match_candidate(book, 'Frank Herbert', self.candidate))
+        candidate = self.candidate | {'title': 'Frank Herbert - Dune The Illustrated Edition EPUB'}
+        self.assertTrue(s.match_candidate(book, 'Frank Herbert', candidate))
+
+    def test_explicit_rejection_is_failed_and_blocked_without_retry(self):
+        outer = self
+        class Bookshelf:
+            def call(self, path):
+                if path == '/api/v1/author':
+                    return [{'id': 2, 'authorName': 'Frank Herbert'}]
+                if 'wanted/missing' in path:
+                    return {'records': [outer.book]}
+                if '/queue' in path:
+                    return {'records': []}
+                return outer.book
+        class Librarr:
+            grabs = 0
+            def call(self, path, data=None):
+                if '/search?' in path:
+                    return {'results': [outer.candidate]}
+                self.grabs += 1
+                return {'success': False, 'error': 'rejected'}
+        client = Librarr()
+        with tempfile.TemporaryDirectory() as directory:
+            first = s.acquire(Bookshelf(), client, Path(directory), 1, apply=True)
+            second = s.acquire(Bookshelf(), client, Path(directory), 1, apply=True)
+        self.assertEqual(first['failed'], 1)
+        self.assertEqual(first['submitted'], 0)
+        self.assertEqual(second['already_owned_or_queued'], 0)
+        self.assertEqual(second['receipt_blocked'], 1)
+        self.assertEqual(client.grabs, 1)
+
     def test_unknown_submission_is_not_repeated(self):
         outer = self
         class Bookshelf:

@@ -31,7 +31,7 @@ def match_candidate(book, author, candidate):
                    'study guide', 'summary', 'abridged', 'illustrated', 'annotated'):
         if re.search(r'\b' + marker + r'\b', expected) and not re.search(r'\b' + marker + r'\b', advertised):
             return False
-    title = words(book['title'].split(':')[0])
+    title = words(book['title'])
     if title and title[0] in ('a', 'an', 'the'):
         title = title[1:]
     found = words(candidate.get('title', ''))
@@ -40,10 +40,13 @@ def match_candidate(book, author, candidate):
     # Contiguous title matching avoids combining unrelated words from packs.
     if not any(found[i:i + len(title)] == title for i in range(len(found) - len(title) + 1)):
         return False
-    author_words = [w for w in words(author) if len(w) > 2]
-    evidence = set(words(candidate.get('author', '')) + found)
-    surname = words(author.split(',')[0])[-1] if ',' in author else (words(author)[-1] if words(author) else '')
-    if not author_words or surname not in evidence:
+    author_words = set(words(author))
+    advertised_author = set(words(candidate.get('author', '')))
+    evidence = advertised_author | set(found)
+    if not author_words or not author_words <= evidence:
+        return False
+    # Explicit metadata must agree even when the release title names the author.
+    if advertised_author and advertised_author != author_words:
         return False
     allowed = set(words(book['title']) + words(author)) | {
         'epub', 'pdf', 'mobi', 'azw3', 'ebook', 'ebooks', 'retail', 'digital',
@@ -80,11 +83,14 @@ def acquire(bookshelf, librarr, receipts, limit, apply=False):
     authors = {a['id']: a['authorName'] for a in bookshelf.call('/api/v1/author')}
     missing = bookshelf.call('/api/v1/wanted/missing?page=1&pageSize=1000&monitored=true')['records']
     queued = {r.get('bookId') for r in bookshelf.call('/api/v1/queue?page=1&pageSize=1000').get('records', [])}
-    stats = {'searched': 0, 'submitted': 0, 'no_confident_match': 0, 'already_owned_or_queued': 0, 'failed': 0}
+    stats = {'searched': 0, 'submitted': 0, 'no_confident_match': 0, 'already_owned_or_queued': 0, 'receipt_blocked': 0, 'failed': 0}
     for book in missing:
         receipt = receipts / (str(book['id']) + '.json')
-        if book['id'] in queued or receipt.exists():
+        if book['id'] in queued:
             stats['already_owned_or_queued'] += 1
+            continue
+        if receipt.exists():
+            stats['receipt_blocked'] += 1
             continue
         if stats['searched'] >= limit:
             break
@@ -124,6 +130,7 @@ def acquire(bookshelf, librarr, receipts, limit, apply=False):
                 data.update(state='submitted' if result.get('success') else 'rejected', response=result)
                 receipt.write_text(json.dumps(data, indent=2))
                 stats['submitted'] += int(bool(result.get('success')))
+                stats['failed'] += int(not result.get('success'))
             else:
                 # Review never creates an acquisition receipt that would prevent a later apply.
                 review = receipts / ('review-' + str(book['id']) + '.json')

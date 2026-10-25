@@ -215,7 +215,10 @@ internal service URLs, an owner-only JSON keys file with `bookshelf_api_key` and
 `librarr_api_key`, and an owner-only receipt directory. `--limit` bounds each pass.
 Inspect candidate receipts before `--apply`; the apply pass rechecks ownership and
 queues. An intent receipt is written before submission, and uncertain submissions
-require review instead of automatic retry. The helper does not schedule itself or
+require review instead of automatic retry. Rejections count as failures; existing
+receipts are reported as `receipt_blocked`, separately from owned or queued books.
+The helper requires full title and author evidence and rejects conflicting author
+metadata. It does not schedule itself or
 claim that accepted downloads have finished or been imported. Copy-import completed
 files through Bookshelf and verify their book IDs separately.
 
@@ -258,8 +261,11 @@ torrent client. The adapter does not convert one protocol into another.
 Only jobs with the dedicated category and adapter duplicate-key prefix are
 reported. Completion requires an ordinary successful NZB history status, no failed
 script/move stage, and a destination below the configured dedicated root. Manual
-success overrides and warnings are not automatically imported. Imports retain the
-source with Librarr's copy mode. Deletion and arbitrary API modes are rejected;
+success overrides and warnings are not automatically imported. Native Librarr
+v1.4.1 moves supported NZB media into its organized library even when
+`IMPORT_MODE=copy`; the completed-download copy is not retained. Torrent seeding
+payloads remain intact, and subsequent Bookshelf imports should still use copy
+mode. Deletion and arbitrary API modes are rejected;
 manage cancellation in NZBGet itself. A network error after submission can leave
 an accepted job: inspect NZBGet before retrying. Native duplicate protection is
 preserved. This does not automatically register completed files in Bookshelf;
