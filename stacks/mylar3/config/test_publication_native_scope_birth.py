@@ -37,7 +37,7 @@ class Controls(unittest.TestCase):
             provider_sha256=self.provider,command=self.argv,nonce=self.nonce),
             parent_source=copy.deepcopy(self.c.parent),birth_source=dict(path=str(self.source),sha256=self.source_sha),
             config=dict(path=str(self.fixture.config),sha256=hashlib.sha256(self.fixture.config.read_bytes()).hexdigest()),
-            worker_library='/data/comics',selected_image=self.reader['child_image'])
+            worker_library='/data/comics',selected_image=self.reader['child_image'],deadline_seconds=60)
         self.write_seed();self.after_commit=None;self.reply_change=None;self.errors=[];self.frames=[]
         for module,name,value in [(b,'SOURCE',self.source),(l,'BIRTH_SOURCE',self.source),
             (s,'CONFIG_PATH',str(self.fixture.cfg)),(s,'CONFIG_SHA',hashlib.sha256(self.fixture.cfg.read_bytes()).hexdigest()),
@@ -47,10 +47,10 @@ class Controls(unittest.TestCase):
         self.down_read,self.down_write=os.pipe();self.up_read,self.up_write=os.pipe()
         for fd in (self.down_read,self.down_write,self.up_read,self.up_write):self.addCleanup(lambda fd=fd:os.close(fd))
         owner=self
-        def initialize(channel):
-            channel.input=owner.down_read;channel.output=owner.up_write;channel.seq=0;channel.thread=threading.get_ident()
+        def initialize(channel,*,seconds=10):
+            channel.input=owner.down_read;channel.output=owner.up_write;channel.seq=0;channel.thread=threading.get_ident();channel.deadline=l.time.monotonic()+seconds
             channel.facts=(tuple(l.five(os.fstat(channel.input))),tuple(l.five(os.fstat(channel.output))))
-            l._PIPE_SEALS[channel]=(channel.input,channel.output,channel.thread,channel.facts)
+            l._PIPE_SEALS[channel]=(channel.input,channel.output,channel.thread,channel.facts,channel.deadline)
         p=patch.object(l.ParentPipe,'__init__',initialize);p.start();self.addCleanup(p.stop)
         self.thread=threading.Thread(target=self.parent_loop,daemon=True);self.thread.start()
         self.addCleanup(self.stop_parent)
@@ -95,6 +95,17 @@ class Controls(unittest.TestCase):
         scope=s.from_checked_parent(custody);self.assertEqual(scope.binding['roots'],[str(self.fixture.library)])
         self.assertFalse(scope.binding['mutation_authority']);self.assertFalse(scope.binding['publication_acceptance'])
         with self.assertRaises(l.Held):l.from_birth(token)
+    def test_birth_commit_uses_original_channel_budget_beyond_five_seconds(self):
+        real=b.commit
+        def delayed(channel,binding,birth):
+            now=[b.time.monotonic()];select=b.select.select;advanced=[]
+            def wait(*args):
+                if not advanced:now[0]+=6;advanced.append(True)
+                return select(*args)
+            with patch.object(b.time,'monotonic',lambda:now[0]),patch.object(b.select,'select',wait):
+                return real(channel,binding,birth)
+        with patch.object(b,'commit',delayed):token=self.born()
+        self.assertEqual(token.channel.binding(),token.channel_seal)
     def test_seed_has_no_ancestor_DTO(self):
         self.seed['ancestors']={'/':[1,2,3,4,5]};self.write_seed()
         with self.assertRaises(l.Held):self.born()

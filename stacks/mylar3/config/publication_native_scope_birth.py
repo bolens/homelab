@@ -62,7 +62,7 @@ def commit(channel, binding, birth):
         birth=copy.deepcopy(birth))
     raw = life.encoded(request) + b'\n'
     check(os.write(channel.output, raw) == len(raw), 'birth-pipe-short-write')
-    end = time.monotonic() + 5
+    end = original[4]
     buffer = bytearray()
     while not buffer.endswith(b'\n'):
         check(time.monotonic() < end and len(buffer) < life.FRAME_MAX, 'birth-pipe-bound')
@@ -128,8 +128,7 @@ def from_checked_parent(input_path, input_sha, nonce, *, parent_sha, argv):
     """Run before lifecycle construction, in the actual direct provider process."""
     check(all(scope.digest(v) for v in (input_sha, nonce, parent_sha)), 'birth-invocation-digests')
     check(list(argv) == list(sys.orig_argv), 'birth-actual-provider-argv')
-    channel = life.ParentPipe()
-    original_channel = channel.binding()
+    entry_pipes=tuple((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) for z in (os.fstat(0),os.fstat(1)))
     binding = dict(input_path=str(life.canonical(input_path)), input_sha256=input_sha,
         parent_sha256=parent_sha, command=list(argv), nonce=nonce)
     raw, input_fact = life.read(binding['input_path'], input_sha)
@@ -139,8 +138,11 @@ def from_checked_parent(input_path, input_sha, nonce, *, parent_sha, argv):
     seed_sha = digest(raw)
     seed = life.decoded(raw)
     check(set(seed) == {'version', 'kind', 'invocation', 'parent_source', 'birth_source',
-        'config', 'worker_library', 'selected_image'} and type(seed['version']) is int
+        'config', 'worker_library', 'selected_image', 'deadline_seconds'} and type(seed['version']) is int
         and seed['version'] == 1 and seed['kind'] == 'selected-child-native-scope-birth', 'birth-seed-schema')
+    channel = life.ParentPipe(seconds=seed['deadline_seconds'])
+    check(tuple((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) for z in (os.fstat(0),os.fstat(1)))==entry_pipes,'birth-original-entry-pipes')
+    original_channel = channel.binding()
     invocation = seed['invocation']
     check(set(invocation) == set(binding) | {'provider_sha256'}
           and all(invocation[k] == v for k,v in binding.items()), 'birth-original-invocation')

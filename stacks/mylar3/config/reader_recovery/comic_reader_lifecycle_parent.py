@@ -911,7 +911,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475'
+BASE_ADMISSION_SHA = 'a8dbc9393bb349a864e3b59b31786779aa48746035173fc7b730bb350225cd6b'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -3139,9 +3139,11 @@ class LifecycleParent:
             self.generated[value['path']] = copy.deepcopy(value)
             _GENERATED[self] = encode(self.generated)
             self.left()
-            if self in _CHILD_TREES and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
-                if name in {'nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}:self.nfs_child_ref(value)
-                else:_CHILD_TREES[self].project(value)
+            # NFS consumers explicitly admit/project these originals. Keep
+            # ordinary auto-projection without admitting the same NFS input twice.
+            nfs_inputs={'nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
+            if self in _CHILD_TREES and name not in nfs_inputs and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
+                _CHILD_TREES[self].project(value)
             return value
         finally:
             os.close(directory)
@@ -3256,6 +3258,7 @@ class LifecycleParent:
                  and seed['selected_image'] == self.plan['selected_image'], 'prebirth-seed-binding')
             need(set(seed['config']) == {'path', 'sha256'} and digest(seed['config']['sha256']), 'birth-config-ref')
             absolute(seed['config']['path']); absolute(seed['worker_library'])
+            seed['deadline_seconds']=max(1,int(self.left()))
             seed_ref = self.emit(phase + '-input.birth.json', seed)
             pending = dict(phase=phase, input=copy.deepcopy(input_ref), invocation=invocation,
                            reader=copy.deepcopy(custody['reader']),
@@ -4020,6 +4023,7 @@ class LifecycleParent:
             need(supplied['proofs']['archive_sdk_map']==self.plan['sdk_map'],'archive-original-SDK-proof')
             seed=copy.deepcopy(supplied['birth_seed'])
             need(set(seed)=={'version','kind','invocation','parent_source','birth_source','config','worker_library','selected_image'} and type(seed['version']) is int and seed['version']==1 and seed['kind']=='selected-child-native-scope-birth' and seed['invocation']==invocation and seed['parent_source']==self.mapping.child_ref(self.source_ref) and seed['birth_source']==dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=self.plan['birth_source_sha256']) and seed['selected_image']==self.plan['selected_image'],'archive-prebirth-source-binding')
+            seed['deadline_seconds']=max(1,int(self.left()))
             seedref=self.emit(phase+'-input.birth.json',seed)
             _PHASES[self][phase]=dict(phase=phase,input=copy.deepcopy(ref),invocation=invocation,reader=copy.deepcopy(supplied['reader']),proofs={k:self.mapping.child_ref(v) for k,v in supplied['proofs'].items()},seed=seed,seed_ref=seedref,accepted=False)
         need(tuple(five(nfs_lstat(directory)))==fact,'archive-phase-original-directory')

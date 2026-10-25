@@ -78,6 +78,20 @@ class Tests(fixture.Binding):
    with patch.object(self.m,'archive_terminal_original_vectors',checked),patch.object(history.os,'listdir',late),self.assertRaises((o.Held,self.m.Held)):self.observe(cap)
    self.assertTrue(fired)
   finally:self.c.writer.local[1].allow_pending=False
+ def test_history_last_namespace_channel_deadline_holds(self):
+  cap=self.live();history.executed(cap);real=os.listdir;armed=[];fired=[];query=self.m.archive_terminal_original_vectors
+  def checked(*args):
+   result=query(*args);armed.append(True);return result
+  def late(path):
+   result=real(path)
+   if len(armed)>=2 and Path(path)==cap.root and not fired:self.life.channel.deadline+=1;fired.append(True)
+   return result
+  try:
+   with patch.object(self.m,'archive_terminal_original_vectors',checked),patch.object(history.os,'listdir',late),self.assertRaises((o.Held,self.m.Held)):self.observe(cap)
+   self.assertTrue(fired)
+  finally:
+   if fired:self.life.channel.deadline-=1
+
 
  def provider_observe(self,reverse=False):
   sys.path.insert(0,str(Path(__file__).parent/'reader_recovery'))
@@ -103,7 +117,7 @@ class Round(Tests):
   ri,wo=os.pipe();ro,wi=os.pipe()
   for fd in (ri,wo,ro,wi):self.addCleanup(os.close,fd)
   l.channel.input=ri;l.channel.output=wi;l.channel.facts=(tuple(l.m.five(os.fstat(ri))),tuple(l.m.five(os.fstat(wi)))) if hasattr(l,'m') else (tuple(self.m.five(os.fstat(ri))),tuple(self.m.five(os.fstat(wi))))
-  self.m._PIPE_SEALS[l.channel]=(ri,wi,l.channel.thread,l.channel.facts);self.parent_input=ro;self.parent_output=wo
+  self.m._PIPE_SEALS[l.channel]=(ri,wi,l.channel.thread,l.channel.facts,l.channel.deadline);self.parent_input=ro;self.parent_output=wo
  def refs(self):
   result={}
   for role,name in (('originals','execution-originals.json'),('execution_report','execute-report.json'),('terminal_report','terminal-report.json')):

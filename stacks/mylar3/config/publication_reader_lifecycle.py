@@ -82,13 +82,16 @@ def passive(files,nodes,absent=()):
   raise Held('lifecycle-absence-final')
 class ParentPipe:
  """Inherited non-TTY selected Docker child pipes, finite fresh challenges."""
- def __init__(self):
+ def __init__(self,*,seconds=10):
+  require(type(seconds) is int and 1<=seconds<=3600,'lifecycle-channel-budget')
   require(stat.S_ISFIFO(os.fstat(0).st_mode) and stat.S_ISFIFO(os.fstat(1).st_mode),'lifecycle-inherited-pipes')
   self.input=0;self.output=1;self.seq=0;self.thread=threading.get_ident();self.facts=(tuple(five(os.fstat(0))),tuple(five(os.fstat(1))))
-  _PIPE_SEALS[self]=(self.input,self.output,self.thread,self.facts)
+  self.deadline=time.monotonic()+seconds
+  _PIPE_SEALS[self]=(self.input,self.output,self.thread,self.facts,self.deadline)
  def binding(self):
   expected=_PIPE_SEALS.get(self)
-  require(expected is not None and (self.input,self.output,self.thread,self.facts)==expected and threading.get_ident()==expected[2],'lifecycle-original-pipe')
+  require(expected is not None and (self.input,self.output,self.thread,self.facts,self.deadline)==expected and threading.get_ident()==expected[2],'lifecycle-original-pipe')
+  require(time.monotonic()<expected[4],'lifecycle-channel-expired')
   for descriptor,fact in zip(expected[:2],expected[3]):
    z=os.fstat(descriptor)
    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('lifecycle-original-pipe-FD')
@@ -102,7 +105,7 @@ class ParentPipe:
   raw=encoded(message)+b'\n'
   count=0
   while count<len(raw):count+=os.write(self.output,raw[count:])
-  end=time.monotonic()+10;buf=bytearray()
+  end=original[4];buf=bytearray()
   while not buf.endswith(b'\n'):
    require(time.monotonic()<end and len(buf)<FRAME_MAX,'lifecycle-pipe-bound')
    ready=select.select([self.input],[],[],max(0,end-time.monotonic()))[0];require(bool(ready),'lifecycle-parent-unavailable')
@@ -123,7 +126,7 @@ class StoppedReaderCustody:
   raw,self.files[self.input]=read(self.input,input_sha);invocation=decoded(raw)
   self.control=self.input.with_suffix('.lifecycle.json');raw,self.files[self.control]=read(self.control);doc=decoded(raw)
   require(set(doc)=={'version','kind','nonce','input_sha256','command','parent_source','reader','proofs','deadline_seconds'} and type(doc['version']) is int and doc['version']==1 and doc['kind']=='owning-reader-pipe-custody' and doc['nonce']==nonce and doc['input_sha256']==input_sha and doc['command']==list(argv),'lifecycle-control-binding')
-  require(type(doc['deadline_seconds']) is int and 1<=doc['deadline_seconds']<=3600,'lifecycle-deadline');self.deadline=time.monotonic()+doc['deadline_seconds']
+  require(type(doc['deadline_seconds']) is int and 1<=doc['deadline_seconds']<=3600,'lifecycle-deadline');self.deadline=min(self.channel_seal[4],time.monotonic()+doc['deadline_seconds'])
   parent=doc['parent_source'];require(parent['sha256']==parent_sha,'lifecycle-parent-pin');_,self.files[Path(parent['path'])]=read(parent['path'],parent_sha)
   for ref in doc['proofs'].values():
    _,self.files[Path(ref['path'])]=read(ref['path'],ref['sha256']);require(self.files[Path(ref['path'])]==ref['signature9'],'lifecycle-proof-incarnation')
@@ -388,7 +391,12 @@ class StoppedReaderCustody:
    raise Held('lifecycle-absence-final')
   return result
 def from_checked_parent(input_path,input_sha,nonce,*,parent_sha,argv):
- return StoppedReaderCustody(_KEY,input_path,input_sha,nonce,parent_sha,argv,ParentPipe())
+ entry_pipes=tuple((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) for z in (os.fstat(0),os.fstat(1)))
+ raw,_=read(canonical(input_path).with_suffix('.lifecycle.json'));doc=decoded(raw)
+ channel=ParentPipe(seconds=doc['deadline_seconds'])
+ require(tuple((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) for z in (os.fstat(0),os.fstat(1)))==entry_pipes,'lifecycle-original-entry-pipes')
+ channel.binding()
+ return StoppedReaderCustody(_KEY,input_path,input_sha,nonce,parent_sha,argv,channel)
 
 
 def from_birth(birth):
@@ -611,7 +619,7 @@ def bind_archive_terminal_originals(custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
    z=os.fstat(descriptor)
@@ -667,7 +675,7 @@ def bind_archive_terminal_originals(custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
@@ -728,7 +736,7 @@ def archive_terminal_original_vectors(custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
    z=os.fstat(descriptor)
@@ -784,7 +792,7 @@ def archive_terminal_original_vectors(custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
@@ -894,7 +902,7 @@ def archive_terminal_release(custody,scope,cap,refs):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
    z=os.fstat(descriptor)
@@ -957,7 +965,7 @@ def archive_terminal_release(custody,scope,cap,refs):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]
@@ -1032,7 +1040,7 @@ def consume_archive_terminal_release(witness,custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
    z=os.fstat(descriptor)
@@ -1095,7 +1103,7 @@ def consume_archive_terminal_release(witness,custody,scope,cap):
    raise Held('archive-terminal-final-original-writer-controller')
   if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
-  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts,channel.deadline)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
   logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names),'publication':cap._publication}
   pending=[logical];projection=[]

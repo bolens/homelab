@@ -266,6 +266,55 @@ class VectorProjectionTests(unittest.TestCase):
   for registry in (p._NFS_HOST_MODULES,p._NFS_HOST_MODULE_SEALS):self.addCleanup(registry.pop,owner,None)
   import test_nfs_stopped_handoff as stopped
   stopped.seal_fixture_owner(owner);return module
+ def real_emitter(self):
+  self.host_projection();self.owner.op_fact=tuple(p.five(self.op.lstat()))
+  self.owner.emit=p.LifecycleParent.emit.__get__(self.owner)
+ def test_real_emit_defers_each_nfs_input_to_its_explicit_consumer(self):
+  self.real_emitter()
+  names=('cohort-receipt','effective-review','cohort','scope','active','roles-bootstrap','packet')
+  for name in names:
+   with self.subTest(name=name):
+    pairs=len(self.tree.pairs);controls=len(self.tree.nfs_controls)
+    ref=self.owner.emit('nfs-'+name+'-input.json',dict(original=name))
+    self.assertEqual(len(self.tree.pairs),pairs);self.assertEqual(len(self.tree.nfs_controls),controls)
+    self.assertEqual(self.owner.generated[ref['path']],ref);self.assertEqual(p.read(ref),p.encode(dict(original=name)))
+    child=self.owner.nfs_child_ref(ref)
+    self.assertEqual(len(self.tree.pairs),pairs+1);self.assertEqual(len(self.tree.nfs_controls),controls+1)
+    self.assertEqual(self.tree.original(child),ref);self.assertEqual(p.read(ref),Path(self.tree.host(child['path'])).read_bytes())
+  self.owner.left();self.tree.check()
+ def test_real_emit_keeps_ordinary_input_auto_projection(self):
+  self.real_emitter();pairs=len(self.tree.pairs);controls=len(self.tree.nfs_controls)
+  ref=self.owner.emit('ordinary-input.json',dict(original=True))
+  self.assertEqual(len(self.tree.pairs),pairs+1);self.assertEqual(len(self.tree.nfs_controls),controls)
+  self.assertEqual(self.tree.original(self.tree.projected(ref)),ref);self.owner.left()
+ def test_actual_prepare_with_real_emit_preserves_every_projected_original(self):
+  self.real_emitter();emit=self.owner.emit;deferred=[]
+  def checked(name,document):
+   ref=emit(name,document)
+   self.assertFalse(any(row[0][0]==ref['path']for row in self.tree.pairs));deferred.append(name)
+   return ref
+  self.owner.emit=checked;child=self.owner.prepare_nfs_inputs()
+  self.assertEqual(set(deferred),{'nfs-cohort-receipt-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-effective-review-input.json','nfs-active-input.json'})
+  self.assertEqual(p.decode(p.read(self.tree.original(child)))['kind'],'reviewed-nfs-active-input')
+  for ref in self.owner.generated.values():
+   rows=[row for row in self.tree.pairs if row[0][0]==ref['path']];self.assertEqual(len(rows),1)
+   self.assertEqual(p.read(ref),Path(rows[0][1][0]).read_bytes())
+  self.owner.left();self.tree.check()
+ def test_deferred_packet_mutation_refuses_before_engine_entry(self):
+  from unittest.mock import Mock
+  import test_nfs_stopped_handoff as stopped
+  self.real_emitter();engine=Mock(side_effect=AssertionError('engine entered'))
+  self.owner.engine=SimpleNamespace(run=engine);stopped.seal_fixture_owner(self.owner)
+  packet=self.owner.emit('nfs-packet-input.json',dict(original=True))
+  source=self.owner.emit('child-source.json',dict(not_executed=True))
+  p._NFS_PACKET_ROWS[self.owner]=(copy.deepcopy(packet),copy.deepcopy(source),copy.deepcopy(source))
+  p._NFS_PACKET_SEALS[self.owner]=p.encode(p._NFS_PACKET_ROWS[self.owner])
+  p._NFS_CHILD_SOURCE_ROWS[self.owner]=(copy.deepcopy(source),copy.deepcopy(source))
+  for registry in (p._NFS_PACKET_ROWS,p._NFS_PACKET_SEALS,p._NFS_CHILD_SOURCE_ROWS):self.addCleanup(registry.pop,self.owner,None)
+  Path(packet['path']).write_bytes(b'changed')
+  with self.assertRaisesRegex(p.Held,'leaf-FD'):self.owner.open_nfs_child(packet,source)
+  engine.assert_not_called()
+
  def test_actual_prepare_uses_original_private_projection_module(self):
   self.host_projection();result=self.owner.prepare_nfs_inputs();original=self.tree.original(result)
   value=p.decode(p.read(original));self.assertEqual(value['kind'],'reviewed-nfs-active-input');self.owner.left();self.tree.check()

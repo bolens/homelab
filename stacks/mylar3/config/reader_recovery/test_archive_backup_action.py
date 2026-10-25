@@ -85,7 +85,10 @@ class Controls(fixture.Controls):
         def challenge(nonce,sha,parent_sha):
             self.challenges.append((nonce,sha,parent_sha))
             return dict(reader=self.plan['runtime'],child_source_sha256=source_sha,child_image=self.plan['selected_image'])
-        modules={'publication_reader_lifecycle':types.SimpleNamespace(ParentPipe=lambda:types.SimpleNamespace(challenge=challenge))}
+        def channel(*,seconds):
+            self.assertEqual(seconds,self.plan['seconds'])
+            return types.SimpleNamespace(challenge=challenge)
+        modules={'publication_reader_lifecycle':types.SimpleNamespace(ParentPipe=channel)}
         def output(fd,raw):
             if fd==sys.stdout.fileno():frames.append(raw);return len(raw)
             return write(fd,raw)

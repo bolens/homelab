@@ -80,7 +80,7 @@ class Connected(unittest.TestCase):
   self.callback=ns['factory'](x,'execute',self.f.c.input,[],self.row['Id'],p.static(self.row),copy.deepcopy(self.row))
   ri,wo=os.pipe();ro,wi=os.pipe();self.requests=ri;self.response_out=wi
   self.f.c.channel.input=ro;self.f.c.channel.output=wo;self.f.c.channel.facts=(tuple(fixtures.l.five(os.fstat(ro))),tuple(fixtures.l.five(os.fstat(wo))))
-  fixtures.l._PIPE_SEALS[self.f.c.channel]=(ro,wo,self.f.c.channel.thread,self.f.c.channel.facts)
+  fixtures.l._PIPE_SEALS[self.f.c.channel]=(ro,wo,self.f.c.channel.thread,self.f.c.channel.facts,self.f.c.channel.deadline)
   # Custody was formed against the original pipe; the new fixture must be born
   # against these actual two pipes, not rebaseline an admitted custody object.
   self.f.custody=self.f.c.make();self.scope=self.f.make();fixtures.m._OWNED_PAIRS[self.scope]=(self.controller,self.writer)

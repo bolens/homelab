@@ -11,7 +11,7 @@ import threading
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'a91f1b442196afb7e9a37b5eb02184c4e01ef1846577f210d756332eb198932a', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
+PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': '9d4c098a4262d797d0111dc6816538359f407efbb0662a40b9613761c746dbd2', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need

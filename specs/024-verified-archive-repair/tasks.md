@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-24.** 17 of 22 tasks are complete. T019–T022 are delivered
+**Updated 2026-10-25.** 17 of 22 tasks are complete. T019–T022 are delivered
 implementation corrections, not additional runtime gates. Five tasks remain:
 T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
@@ -26,11 +26,14 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-The matching native image, 180-module capture, required SDK102 map and DATA
-precondition from PR [#515](https://github.com/bolens/homelab/pull/515) are verified.
-Reuse unchanged native/worker proofs for their exact original inputs. Changed
-installed host controls require fresh checked outputs; they do not by themselves
-require another image pull or source capture.
+PR [#515](https://github.com/bolens/homelab/pull/515) supplies the retained
+180-module native baseline and DATA precondition; the required SDK has 103
+entries after PR [#521](https://github.com/bolens/homelab/pull/521).
+PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
+modules for the shared phase deadline. Require its matching published image and
+fresh module capture before the next isolated pair. Reuse the unchanged worker
+proof only for its exact original inputs. Host-only changes require fresh checked
+outputs without repeating unchanged image proof.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
@@ -114,6 +117,13 @@ source binding and SourceCohort precede fresh role/scope observations; the ownin
 its owning Parent to create. The Parent owns Writer, stopped-reader custody,
 verified backup/restore, archive transition, factual terminal consumption and
 permitted resume. A wrapper or test count supplies none of those facts.
+
+The preserved BZ attempt passes NFS readiness and reader stop, then holds on
+the first backup challenge: the child exhausts its ten-second response wait
+while the Parent gathers required evidence. Both archives and all 24 native
+tables remain unchanged; the stopped reader's post-hold API is unobserved.
+Complete the shared channel-deadline correction, matching SDK/image delivery
+and fresh isolated pair within T012/T015. BZ has no replay or resume authority.
 
 Forward and explicit `terminal=rollback` use distinct fixtures, requests,
 baselines and original receipts. Rollback restores the causal malformed source,

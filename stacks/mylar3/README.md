@@ -1623,6 +1623,12 @@ The reader recovery cohort also installs the canonical scope-birth helper. It
 captures metadata in the selected child and hands the original inherited pipe
 to lifecycle custody. Public recovery tools under `config/reader_recovery/` are
 for checked temporary source mounts; they are absent from the final image.
+Each recovery pipe retains one monotonic deadline from the Parent's remaining
+phase budget. Backup challenges, scope birth and lifecycle custody share that
+finite budget; repeated challenges cannot renew it. Expiry retains the unknown
+outcome. Observation freshness remains separately limited to 120 seconds.
+Inherited pipe identities are captured before budget reads and checked again
+before the channel is used.
 Their library query keeps the original endpoint and credentials on stdin. When
 native and reader share no original network, a disposable read-only helper uses
 the original worker image and reader network namespace. It has no application
