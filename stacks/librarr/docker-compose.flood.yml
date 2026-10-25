@@ -1,0 +1,57 @@
+# Requires Flood's matching docker-compose.librarr.yml storage override.
+services:
+  librarr:
+    environment:
+      TORRENT_CLIENT: transmission
+      TRANSMISSION_URL: http://librarr-flood-adapter:8080
+      TRANSMISSION_USER: ${BRIDGE_USER:?Set BRIDGE_USER}
+      TRANSMISSION_PASS: ${BRIDGE_PASSWORD:?Set BRIDGE_PASSWORD}
+      QB_SAVE_PATH: /data/downloads/librarr/ebooks
+      QB_AUDIOBOOK_SAVE_PATH: /data/downloads/librarr/audiobooks
+      QB_MANGA_SAVE_PATH: /data/downloads/librarr/manga
+      INCOMING_DIR: /data/downloads/librarr/ebooks
+      MANGA_INCOMING_DIR: /data/downloads/librarr/manga
+    depends_on:
+      librarr-flood-adapter:
+        condition: service_healthy
+
+  librarr-flood-adapter:
+    image: python:3.13.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
+    container_name: librarr-flood-adapter
+    user: "${FLOOD_UID:-1001}:${FLOOD_GID:-1001}"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.5
+    mem_limit: 128m
+    memswap_limit: 256m
+    pids_limit: 64
+    environment:
+      BRIDGE_USER: ${BRIDGE_USER:?Set BRIDGE_USER}
+      BRIDGE_PASSWORD: ${BRIDGE_PASSWORD:?Set BRIDGE_PASSWORD}
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: [python, /app/adapter.py]
+    volumes:
+      - type: bind
+        source: ./flood-adapter/adapter.py
+        target: /app/adapter.py
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: volume
+        source: flood_rtorrent_socket
+        target: /rtorrent
+        read_only: true
+    networks: [torrents]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  flood_rtorrent_socket:
+    external: true
+    name: ${FLOOD_RTORRENT_VOLUME:-flood_rtorrent_data}

@@ -23,7 +23,8 @@ def fixture(root, stack):
     target.mkdir(parents=True)
     for name in ("docker-compose.yml", "stack.env.example", "prepare-stack.sh",
                  "caddy_snippet.conf.example", "sources.json.example",
-                 "docker-compose.readers.yml", "docker-compose.librarr.yml"):
+                 "docker-compose.readers.yml", "docker-compose.librarr.yml", "docker-compose.flood.yml",
+                 "docker-compose.nzbget.yml"):
         source = ROOT / "stacks" / stack / name
         if source.exists():
             shutil.copy2(source, target / name)
@@ -138,6 +139,46 @@ class LibrarrComposeTests(unittest.TestCase):
                 result = self.render("librarr", remove=key)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(key, result.stderr)
+
+    def test_flood_adapter_is_private_and_uses_existing_readonly_socket(self):
+        model = self.model('librarr', 'docker-compose.flood.yml',
+                           extra='BRIDGE_USER=fixture\nBRIDGE_PASSWORD=fixture-password-not-a-secret\n')
+        bridge = model['services']['librarr-flood-adapter']
+        self.assertFalse(bridge.get('ports'))
+        self.assertEqual(set(bridge['networks']), {'torrents'})
+        self.assertTrue(bridge['read_only'])
+        self.assertTrue(all(m['read_only'] for m in bridge['volumes']))
+        app = model['services']['librarr']['environment']
+        self.assertEqual(app['TORRENT_CLIENT'], 'transmission')
+        self.assertEqual(app['QB_SAVE_PATH'], '/data/downloads/librarr/ebooks')
+        self.assertEqual(app['REMOVE_TORRENT_AFTER_IMPORT'], 'false')
+        self.assertTrue(model['volumes']['flood_rtorrent_socket']['external'])
+
+    def test_nzbget_adapter_is_private_and_maps_existing_completed_root(self):
+        model = self.model('librarr', 'docker-compose.nzbget.yml',
+                           extra='SABNZBD_API_KEY=fixture-random-key-not-a-secret\nNZBGET_USERNAME=fixture\nNZBGET_PASSWORD=fixture-password-not-a-secret\n')
+        bridge = model['services']['librarr-nzbget-adapter']
+        self.assertFalse(bridge.get('ports'))
+        self.assertEqual(set(bridge['networks']), {'media-automation'})
+        self.assertTrue(bridge['read_only'])
+        self.assertTrue(all(m['read_only'] for m in bridge['volumes']))
+        self.assertEqual(bridge['environment']['LIBRARR_NZB_ROOT'],
+                         '/data/downloads/usenet/completed/librarr')
+        self.assertEqual(model['services']['librarr']['environment']['SABNZBD_CATEGORY'], 'librarr')
+
+    def test_flood_and_nzbget_overrides_preserve_both_clients(self):
+        model = self.model('librarr', 'docker-compose.flood.yml', 'docker-compose.nzbget.yml',
+                           extra='BRIDGE_USER=fixture\nBRIDGE_PASSWORD=fixture-password\nSABNZBD_API_KEY=fixture-key\nNZBGET_USERNAME=fixture\nNZBGET_PASSWORD=fixture-password\n')
+        app = model['services']['librarr']
+        self.assertEqual(app['environment']['TORRENT_CLIENT'], 'transmission')
+        self.assertEqual(app['environment']['SABNZBD_URL'], 'http://librarr-nzbget-adapter:8080')
+        self.assertEqual(set(app['depends_on']), {'librarr-flood-adapter', 'librarr-nzbget-adapter'})
+
+    def test_flood_accounts_use_persistent_runtime(self):
+        model = self.model('flood')['services']['flood']
+        self.assertIn('--rundir=/data', model['command'])
+        self.assertTrue(any(m['target'] == '/data' and m['type'] == 'volume'
+                            for m in model['volumes']))
 
     def test_default_exposure_and_payload_retention(self):
         model = self.model("librarr")

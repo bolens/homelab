@@ -18,4 +18,6 @@ prepare_stack_ensure_docker_network "media-automation"
 prepare_stack_ensure_docker_network "torrents"
 prepare_stack_msg "Set authentication and integration credentials privately. Verify config ownership matches PUID/PGID."
 prepare_stack_msg "Reader networking is opt-in with docker-compose.readers.yml; ensure ingress-public exists before selecting it."
+prepare_stack_msg "Flood is opt-in: verify its mounted download paths, persistent accounts and socket volume before selecting docker-compose.flood.yml."
+prepare_stack_msg "NZBGet is opt-in with docker-compose.nzbget.yml; verify the dedicated category, credentials and completed-path mapping first."
 prepare_stack_end

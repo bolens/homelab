@@ -56,6 +56,9 @@ echo "Auditing stack preparation scripts..."
 python3 scripts/audit-prepare-scripts.py
 python3 -m unittest discover -s scripts/tests -p test_prepare_storage.py
 python3 -B -m unittest discover -s scripts/tests -p test_librarr_contract.py
+python3 -B -m unittest discover -s scripts/tests -p test_librarr_supplement.py
+python3 -B -m unittest discover -s stacks/librarr/flood-adapter -p 'test_*.py'
+python3 -B -m unittest discover -s stacks/librarr/nzbget-adapter -p 'test_*.py'
 python3 -B -m unittest discover -s scripts/tests -p test_seafile_contract.py
 python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 python3 -m unittest discover -s scripts/tests -p test_restic_retention.py
