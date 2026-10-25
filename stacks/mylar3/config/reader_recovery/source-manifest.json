@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "8db3ed3013fa2924199256f1cc8d9570254bd2999e1bdfae086fb4695c324bd3"
+      "sha256": "49630023a4703560e6ac01afcff972381da6be11c71a0e803e30c672d46d89b2"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "65b58cd36d1ca88799c3a6d709c8757bd5d392113e01e62c3393a331467234d1"
+      "sha256": "446fff8e14830b884667eeb781599c25426e04a79cc5c893f86b8c64b5f5c24c"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "404677c7e5e9be34762d5c06a96d98f9370cf9687648475786e82386b335dbf0"
+      "sha256": "2b5ebfa56d76572c1310c80162345e8be17ce4cdc678136471c13f6699bc05ef"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "a1f8df610c4fd170a960eaa3db5668e5aba96f551242d4e0de40e1c5a23282e2"
+      "sha256": "056771f2cc59a1575d20efe681c84e003f339890c3c5d2284dcbdc7c4de0531f"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -616,7 +616,7 @@
       "sha256": "8f6188aff1bb8deee90ccdea2b6c8b7961934d45bac9d9563346f7b66f504fa6"
     },
     "test_effective_review_projection.py": {
-      "sha256": "ea9c2d4f3396d7cbc987033df0145f5fff7a4a6c9820a59273b70fd6c332eccd"
+      "sha256": "0a8e09088d1849e1c165bc0bedc9c6c209c527592738db43aea64d20cf88e9b6"
     },
     "test_expired_lease_paths.py": {
       "sha256": "1dc62c043c4c3d4e6472667c14ef6f41739fcc0d79d62f45a4bf1dc737b21eb6"

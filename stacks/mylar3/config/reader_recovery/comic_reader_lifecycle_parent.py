@@ -3139,9 +3139,11 @@ class LifecycleParent:
             self.generated[value['path']] = copy.deepcopy(value)
             _GENERATED[self] = encode(self.generated)
             self.left()
-            if self in _CHILD_TREES and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
-                if name in {'nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}:self.nfs_child_ref(value)
-                else:_CHILD_TREES[self].project(value)
+            # NFS consumers explicitly admit/project these originals. Keep
+            # ordinary auto-projection without admitting the same NFS input twice.
+            nfs_inputs={'nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
+            if self in _CHILD_TREES and name not in nfs_inputs and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
+                _CHILD_TREES[self].project(value)
             return value
         finally:
             os.close(directory)
