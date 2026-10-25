@@ -20,6 +20,11 @@ the original configured profile through its expected lifecycle transition, and
 the finite retained protocol must cover that handoff without confusing session
 lifetime with the separate 120-second admission-freshness requirement. Preserve
 physical Writer checks, original process/FD custody and unknown-outcome holds.
+The inherited child channel must retain one monotonic deadline derived from
+the authenticated remaining phase budget. Ordinary challenges and birth-commit
+use that same deadline, and lifecycle custody clamps its limit to the original
+channel. Repeated messages cannot renew it. A fixed shorter response timeout
+cannot enclose host callbacks that legitimately use the owning phase budget.
 Do not create another task, wrapper or review layer for each uncovered seam.
 
 ## Technical Context

@@ -103,7 +103,7 @@ class Round(Tests):
   ri,wo=os.pipe();ro,wi=os.pipe()
   for fd in (ri,wo,ro,wi):self.addCleanup(os.close,fd)
   l.channel.input=ri;l.channel.output=wi;l.channel.facts=(tuple(l.m.five(os.fstat(ri))),tuple(l.m.five(os.fstat(wi)))) if hasattr(l,'m') else (tuple(self.m.five(os.fstat(ri))),tuple(self.m.five(os.fstat(wi))))
-  self.m._PIPE_SEALS[l.channel]=(ri,wi,l.channel.thread,l.channel.facts);self.parent_input=ro;self.parent_output=wo
+  self.m._PIPE_SEALS[l.channel]=(ri,wi,l.channel.thread,l.channel.facts,l.channel.deadline);self.parent_input=ro;self.parent_output=wo
  def refs(self):
   result={}
   for role,name in (('originals','execution-originals.json'),('execution_report','execute-report.json'),('terminal_report','terminal-report.json')):

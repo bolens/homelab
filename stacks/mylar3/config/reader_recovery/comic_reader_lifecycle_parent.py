@@ -911,7 +911,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475'
+BASE_ADMISSION_SHA = '382b4292498f766787c8de7c47f135cdeb3b92485528e0ebbb3a27ad55d4e56d'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -3258,6 +3258,7 @@ class LifecycleParent:
                  and seed['selected_image'] == self.plan['selected_image'], 'prebirth-seed-binding')
             need(set(seed['config']) == {'path', 'sha256'} and digest(seed['config']['sha256']), 'birth-config-ref')
             absolute(seed['config']['path']); absolute(seed['worker_library'])
+            seed['deadline_seconds']=max(1,int(self.left()))
             seed_ref = self.emit(phase + '-input.birth.json', seed)
             pending = dict(phase=phase, input=copy.deepcopy(input_ref), invocation=invocation,
                            reader=copy.deepcopy(custody['reader']),
@@ -4022,6 +4023,7 @@ class LifecycleParent:
             need(supplied['proofs']['archive_sdk_map']==self.plan['sdk_map'],'archive-original-SDK-proof')
             seed=copy.deepcopy(supplied['birth_seed'])
             need(set(seed)=={'version','kind','invocation','parent_source','birth_source','config','worker_library','selected_image'} and type(seed['version']) is int and seed['version']==1 and seed['kind']=='selected-child-native-scope-birth' and seed['invocation']==invocation and seed['parent_source']==self.mapping.child_ref(self.source_ref) and seed['birth_source']==dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=self.plan['birth_source_sha256']) and seed['selected_image']==self.plan['selected_image'],'archive-prebirth-source-binding')
+            seed['deadline_seconds']=max(1,int(self.left()))
             seedref=self.emit(phase+'-input.birth.json',seed)
             _PHASES[self][phase]=dict(phase=phase,input=copy.deepcopy(ref),invocation=invocation,reader=copy.deepcopy(supplied['reader']),proofs={k:self.mapping.child_ref(v) for k,v in supplied['proofs'].items()},seed=seed,seed_ref=seedref,accepted=False)
         need(tuple(five(nfs_lstat(directory)))==fact,'archive-phase-original-directory')

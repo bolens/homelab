@@ -131,7 +131,7 @@ def main():
     modules,files,nodes=a.sdk(plan['sdk_map']);a.merge(files,_BOOT_FILES,'backup-bootstrap-file-conflict');a.merge(nodes,_BOOT_NODES,'backup-bootstrap-node-conflict');files[Path(__file__).absolute()]=ownfact;files[Path(args.input)]=inputfact
     for group in (ownnodes,inputnodes):
         for key,value in group.items():a.need(key not in nodes or nodes[key]==value,'archive-backup-source-node-conflict');nodes[key]=value
-    pipe=modules['publication_reader_lifecycle'].ParentPipe()
+    pipe=modules['publication_reader_lifecycle'].ParentPipe(seconds=plan['seconds'])
     def watch():
         observation=pipe.challenge(plan['nonce'],args.input_sha256,plan['parent_sha256'])
         a.need(observation['reader']==plan['runtime'] and observation['child_source_sha256']==args.source_sha256 and observation['child_image']==plan['selected_image'],'archive-backup-parent-continuity')

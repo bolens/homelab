@@ -27,8 +27,8 @@ class Tests(unittest.TestCase):
   self.state={'Id':'1'*64,'Name':'/reader','Image':'sha256:'+'2'*64,'Path':'/entry','Args':[],'Config':{},'HostConfig':{},'Mounts':[{'Type':'bind','Source':str(self.library),'Destination':'/data/library'}],'State':{'Running':False,'Pid':0,'Status':'exited'}}
   self.reader={'config_root':str(self.config),'restore_root':str(self.restore),'scratch':str(self.scratch),'backup_manifest':self.manifest,'backup_acceptance':self.acceptance,'restore_pairs':self.pairs(self.restore),'current_pairs':self.pairs(self.config),'runtime':self.state,'child_source_sha256':'3'*64,'child_image':'sha256:'+'4'*64}
   self.doc={'version':1,'kind':'owning-reader-pipe-custody','nonce':self.nonce,'input_sha256':self.input['sha256'],'command':['fixture'],'parent_source':self.parent,'reader':self.reader,'proofs':{'manifest':self.manifest,'acceptance':self.acceptance},'deadline_seconds':60}
-  self.write('input.lifecycle.json',m.encoded(self.doc));self.channel=m.ParentPipe.__new__(m.ParentPipe);self.channel.thread=threading.get_ident();self.channel.seq=0
-  readfd,writefd=os.pipe();self.addCleanup(os.close,readfd);self.addCleanup(os.close,writefd);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts)
+  self.write('input.lifecycle.json',m.encoded(self.doc));self.channel=m.ParentPipe.__new__(m.ParentPipe);self.channel.thread=threading.get_ident();self.channel.seq=0;self.channel.deadline=m.time.monotonic()+60
+  readfd,writefd=os.pipe();self.addCleanup(os.close,readfd);self.addCleanup(os.close,writefd);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts,self.channel.deadline)
   self.response={'reader':copy.deepcopy(self.state),'child_source_sha256':'3'*64,'child_image':'sha256:'+'4'*64}
   self.mock=patch.object(m.ParentPipe,'challenge',lambda *args:copy.deepcopy(self.response));self.mock.start();self.addCleanup(self.mock.stop);self.addCleanup(self.tmp.cleanup)
   class Scope:
@@ -46,6 +46,10 @@ class Tests(unittest.TestCase):
  def make(self):return m.StoppedReaderCustody(m._KEY,self.input['path'],self.input['sha256'],self.nonce,self.parent['sha256'],['fixture'],self.channel)
  def test_positive_control_and_original_vectors(self):
   c=self.make();files,nodes,absent=c.vectors();self.assertIn(self.config/'database.sqlite',files);self.assertEqual(len(absent),12);self.assertIn(self.config,nodes)
+ def test_custody_deadline_never_extends_original_channel(self):
+  self.channel.deadline=m.time.monotonic()+5
+  m._PIPE_SEALS[self.channel]=(self.channel.input,self.channel.output,self.channel.thread,self.channel.facts,self.channel.deadline)
+  self.assertEqual(self.make().deadline,self.channel.deadline)
  def test_mutating_current_pair_excluded_only_control_vectors(self):
   c=self.make();(self.config/'database.sqlite').chmod(0o600);c.control_vectors()
   with self.assertRaises(m.Held):c.vectors()
@@ -188,7 +192,7 @@ class Tests(unittest.TestCase):
  def test_channel_callback_cannot_refresh_admitted_descriptor_identity(self):
   c=self.make();real=m.ParentPipe.challenge;readfd,writefd=os.pipe();self.addCleanup(os.close,readfd);self.addCleanup(os.close,writefd)
   def changed(*args):
-   response=real(*args);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts);return response
+   response=real(*args);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts,self.channel.deadline);return response
   with patch.object(m.ParentPipe,'challenge',changed),self.assertRaises(m.Held):c.revalidate_stopped()
  def test_reader_destination_overmount_refuses_wrong_host(self):
   sub=self.library/'sub';sub.mkdir();source=sub/self.source.name;source.write_bytes(b'comic');foreign=self.root/'foreign-reader';foreign.mkdir();(foreign/self.source.name).write_bytes(b'foreign')
@@ -205,6 +209,69 @@ class Tests(unittest.TestCase):
   self.reader['current_pairs']=self.pairs(self.config);self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
   self.assertEqual(self.make().native_url(source),'file:///data/library/sub/a%20comic.cbz')
 class PipeTests(unittest.TestCase):
+ def test_factory_budget_reads_cannot_replace_real_inherited_pipes(self):
+  program='''
+import importlib,json,os,sys,tempfile,types
+from pathlib import Path
+package=types.ModuleType('mylar');package.__path__=[CONFIG];sys.modules['mylar']=package
+b=importlib.import_module('mylar.publication_native_scope_birth');m=b.life
+initial=tuple(tuple(m.five(os.fstat(fd))) for fd in (0,1));created=[];calls=[];reads=[]
+real=m.ParentPipe.__init__
+def constructor(self,**kwargs):
+ real(self,**kwargs);created.append(self.facts)
+m.ParentPipe.__init__=constructor
+def challenge(*args,**kwargs):calls.append(True);raise AssertionError('challenge before entry closure')
+m.ParentPipe.challenge=challenge
+seed=dict(version=1,kind='selected-child-native-scope-birth',invocation={},parent_source={},birth_source={},config={},worker_library='',selected_image='',deadline_seconds=30)
+def read(*args):
+ reads.append(True)
+ if len(reads)==1:
+  r,w=os.pipe();os.dup2(r if DESCRIPTOR==0 else w,DESCRIPTOR)
+ value={'deadline_seconds':30} if FACTORY=='direct' else ({} if len(reads)==1 else seed)
+ return m.encoded(value),[1]*9
+m.read=read
+temporary=tempfile.TemporaryDirectory();input_path=Path(temporary.name)/'input.json';input_path.write_text('{}')
+try:
+ (m if FACTORY=='direct' else b).from_checked_parent(str(input_path),'a'*64,'b'*64,parent_sha='c'*64,argv=list(sys.orig_argv))
+except m.Held as error:
+ assert str(error)==('lifecycle' if FACTORY=='direct' else 'birth')+'-original-entry-pipes',str(error)
+ assert len(created)==1 and created[0]!=initial and not calls
+else:raise AssertionError('foreign entry pipes accepted')
+temporary.cleanup()
+'''
+  for factory in ('direct','birth'):
+   for descriptor in (0,1):
+    with self.subTest(factory=factory,descriptor=descriptor):
+     code='CONFIG='+repr(str(P.parent))+';FACTORY='+repr(factory)+';DESCRIPTOR='+repr(descriptor)+'\n'+program
+     result=subprocess.run([sys.executable,'-I','-B','-c',code],input=b'',capture_output=True,timeout=5)
+     self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
+ def budget_child(self,body):
+  code="import importlib.util; s=importlib.util.spec_from_file_location('m',%r);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)\nnow=[100.];m.time.monotonic=lambda:now[0]\n" % str(P)
+  process=subprocess.Popen([sys.executable,'-I','-B','-c',code+body],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  self.addCleanup(lambda:process.kill() if process.poll() is None else None)
+  return process
+ def test_response_after_ten_seconds_uses_original_total_budget(self):
+  body="c=m.ParentPipe(seconds=40);real=m.select.select\ndef delayed(*args):\n now[0]=111.;return real(*args)\nm.select.select=delayed\nc.challenge('a'*64,'b'*64,'c'*64)\nassert c.binding()[4]==140.\n"
+  process=self.budget_child(body);request=json.loads(process.stdout.readline())
+  response={**request,'type':'observation','reader':{},'child_source_sha256':'d'*64,'child_image':'sha256:'+'e'*64}
+  out,err=process.communicate(m.encoded(response)+b'\n',timeout=5)
+  self.assertEqual((process.returncode,out,err),(0,b'',b''))
+ def test_repeated_challenges_do_not_renew_total_budget(self):
+  body="c=m.ParentPipe(seconds=40)\nfor instant in (111.,139.):\n now[0]=instant;c.challenge('a'*64,'b'*64,'c'*64);assert c.binding()[4]==140.\nnow[0]=140.\ntry:c.challenge('a'*64,'b'*64,'c'*64)\nexcept m.Held as error:assert str(error)=='lifecycle-channel-expired'\nelse:raise AssertionError('expired channel accepted')\n"
+  process=self.budget_child(body)
+  for _ in range(2):
+   request=json.loads(process.stdout.readline());response={**request,'type':'observation','reader':{},'child_source_sha256':'d'*64,'child_image':'sha256:'+'e'*64}
+   process.stdin.write(m.encoded(response)+b'\n');process.stdin.flush()
+  out,err=process.communicate(timeout=5);self.assertEqual((process.returncode,out,err),(0,b'',b''))
+ def test_expired_channel_refuses_before_emitting_request(self):
+  process=self.budget_child("c=m.ParentPipe(seconds=1);now[0]=101.;c.challenge('a'*64,'b'*64,'c'*64)")
+  out,err=process.communicate(timeout=5);self.assertNotEqual(process.returncode,0);self.assertEqual(out,b'');self.assertIn(b'lifecycle-channel-expired',err)
+ def test_channel_deadline_replacement_refuses(self):
+  process=self.budget_child("c=m.ParentPipe(seconds=40);c.deadline+=1;c.challenge('a'*64,'b'*64,'c'*64)")
+  out,err=process.communicate(timeout=5);self.assertNotEqual(process.returncode,0);self.assertEqual(out,b'');self.assertIn(b'lifecycle-original-pipe',err)
+ def test_invalid_channel_budgets_refuse(self):
+  process=self.budget_child("for value in (True,0,-1,3601,1.5):\n try:m.ParentPipe(seconds=value)\n except m.Held as error:assert str(error)=='lifecycle-channel-budget'\n else:raise AssertionError('invalid budget accepted')\n")
+  out,err=process.communicate(timeout=5);self.assertEqual((process.returncode,out,err),(0,b'',b''))
  def child(self,mode):
   code="import importlib.util; s=importlib.util.spec_from_file_location('m',%r);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.ParentPipe().challenge('a'*64,'b'*64,'c'*64)" % str(P)
   process=subprocess.Popen([sys.executable,'-I','-B','-c',code],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)

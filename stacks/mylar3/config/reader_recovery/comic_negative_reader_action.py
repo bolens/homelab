@@ -404,7 +404,7 @@ def main():
  actual_command(plan,args,sys.orig_argv)
  operation,operation_nodes=operation_directory(plan['operation']);_,map_fact,map_nodes=checked(plan['sdk_map']);modules,sdk_files,sdk_nodes=sdk(plan['sdk_map']);sdk_files[Path(plan['sdk_map']['path'])]=map_fact;sdk_nodes.update(map_nodes);files={**sdk_files,own:source_fact,inp:input_fact};nodes={**sdk_nodes,**source_nodes,**input_nodes,**operation_nodes}
  if args.phase=='backup':
-  pipe=modules['publication_reader_lifecycle'].ParentPipe()
+  pipe=modules['publication_reader_lifecycle'].ParentPipe(seconds=plan['seconds'])
   def watch():
    observed=pipe.challenge(plan['nonce'],args.input_sha256,plan['parent_sha256']);need(observed['reader']==plan['runtime'] and observed['child_source_sha256']==args.source_sha256 and observed['child_image']==plan['selected_image'],'action-parent-continuity')
   result=backup(plan,watch)

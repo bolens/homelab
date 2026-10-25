@@ -115,6 +115,13 @@ its owning Parent to create. The Parent owns Writer, stopped-reader custody,
 verified backup/restore, archive transition, factual terminal consumption and
 permitted resume. A wrapper or test count supplies none of those facts.
 
+The preserved BZ attempt passes NFS readiness and reader stop, then holds on
+the first backup challenge: the child exhausts its ten-second response wait
+while the Parent gathers required evidence. Both archives and all 24 native
+tables remain unchanged; the stopped reader's post-hold API is unobserved.
+Complete the shared channel-deadline correction, matching SDK/image delivery
+and fresh isolated pair within T012/T015. BZ has no replay or resume authority.
+
 Forward and explicit `terminal=rollback` use distinct fixtures, requests,
 baselines and original receipts. Rollback restores the causal malformed source,
 not the forward fixture's repaired genesis. Verify each original terminal chain
