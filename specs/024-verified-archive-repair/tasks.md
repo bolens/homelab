@@ -31,7 +31,11 @@ PR [#515](https://github.com/bolens/homelab/pull/515) supplies the retained
 entries after PR [#521](https://github.com/bolens/homelab/pull/521).
 PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
 modules for the shared phase deadline. Require its matching published image and
-fresh module capture before the next isolated pair. Reuse the unchanged worker
+fresh module capture before the next isolated pair. That capture is now verified.
+The subsequent CC attempt passed NFS and backup/restore, then held while the host
+producer confused the copied manifest view with the backup directory. Correct
+that host-only geometry binding and use fresh checked outputs and fixtures;
+preserve CC’s stopped reader and original evidence. Reuse the unchanged worker
 proof only for its exact original inputs. Host-only changes require fresh checked
 outputs without repeating unchanged image proof.
 

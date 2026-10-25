@@ -20,11 +20,13 @@ derive that map and exercise both adapter consumers before engine transport.
 The complete native image map and historical installation receipts remain
 separate evidence.
 
+The archive proof producer binds backup directories to the returned restore root and the backup helper’s original manifest completion vector. A Root-owned manifest view retains its content reference without becoming the parent of the backup or restore directories. Both original and copied manifest bytes and identities remain checked.
+
 `comic_reader_proof_producer.py` produces nine backup-control references using the owning copy, restore, schema, row and reviewed timestamp algorithms. The terminal producer binds the original execute ACK, report, sealed terminal references and fresh terminal-state custody. Parent scheduling is implemented and tested with explicit fixtures; genuine owning provenance, NFS readiness and protected parent integration remain acceptance gates.
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1723 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1727 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route

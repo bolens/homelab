@@ -194,16 +194,24 @@ def backup_controls(request,*,watch):
  # actual HOST kernel must match them, otherwise this invocation holds.
  completed=tuple((str(path),tuple(value)) for path,value in backup['backup_helper_ack']['original_vectors']['files'])
  need(getattr(watch,'__self__',None) is not None and hasattr(watch.__self__,'mapping'),'archive-producer-owning-mapping');mapping=watch.__self__.mapping;completion=tuple((mapping.host(path),value) for path,value in completed)
- o,plan,owner,scopes,source=context(request,watch,[config,restore,manifest_path,manifest_path.parent/'backup'/'config',*[path for path,value in completion]],trees=(config,restore,manifest_path.parent/'backup'/'config'))
+ # The Parent can copy the manifest into a Root-owned control view. Its
+ # location is not the backup geometry; the returned restore root and the
+ # helper's original completion vector retain that binding.
+ backup_root=restore.parent.parent;original_manifest=backup_root/'manifest.json'
+ need(restore==backup_root/'restore'/'config','archive-producer-config-restore-join')
+ manifests=[value for path,value in completion if Path(path)==original_manifest]
+ need(len(manifests)==1,'archive-producer-original-manifest-completion')
+ original_ref=dict(path=str(original_manifest),sha256=backup['manifest']['sha256'],signature9=list(manifests[0]))
+ o,plan,owner,scopes,source=context(request,watch,[config,restore,manifest_path,original_manifest,backup_root/'backup'/'config',*[path for path,value in completion]],trees=(config,restore,backup_root/'backup'/'config'))
  for path,value in completion:o.record(path,value)
  expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,restore,mapping);runtime(watch,expected)
- manifest=o.ref(backup['manifest']);need(type(manifest['version']) is int and manifest['version']==1 and manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']==PINS['comic_reader_backup.py'] and manifest['primitives_sha256']==PINS['comic_reader_backup_primitives.py'] and manifest['backup_verified'] is False and manifest['final_ack_required'] is True,'archive-producer-neutral-backup-source')
+ manifest=o.ref(backup['manifest']);need(same(o.ref(original_ref),manifest),'archive-producer-original-manifest-view');need(type(manifest['version']) is int and manifest['version']==1 and manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']==PINS['comic_reader_backup.py'] and manifest['primitives_sha256']==PINS['comic_reader_backup_primitives.py'] and manifest['backup_verified'] is False and manifest['final_ack_required'] is True,'archive-producer-neutral-backup-source')
  need(backup['backup_helper_ack']['manifest_sha256']==backup['manifest']['sha256'] and backup['backup_helper_ack']['backup_verified'] is True,'archive-producer-actual-helper-ACK')
- scope=[s for s in manifest['scopes'] if s['name']=='config'];need(len(scope)==1 and Path(scope[0]['path'])==config and restore==manifest_path.parent/'restore'/'config','archive-producer-config-restore-join');scope=scope[0]
+ scope=[s for s in manifest['scopes'] if s['name']=='config'];need(len(scope)==1 and Path(scope[0]['path'])==config and restore==backup_root/'restore'/'config','archive-producer-config-restore-join');scope=scope[0]
  primitive=module('comic_reader_backup_primitives.py',o);schema=module('comic_reader_schema.py',o)
  # Reverify every captured source, backup and independently restored member,
  # attributes, complete namespace and database table/schema proof.
- for root in (config,manifest_path.parent/'backup'/'config',restore):
+ for root in (config,backup_root/'backup'/'config',restore):
   for node in (root,*root.parents):o.admit(node)
   rows,_=primitive.inventory(root,'tree',detached=root!=config)
   need(primitive.logical(rows)==primitive.logical(scope['records']) and (root!=config or rows==scope['records']),'archive-producer-full-copy-CAS')

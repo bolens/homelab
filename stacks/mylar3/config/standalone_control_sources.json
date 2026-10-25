@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "b039d3d79168264fefc7523842f590a20afa4bd28520a9def9dc357904f5259b",
+    "sha256": "ed3fdb49170e5e910cb5c2217f58da8ec641d09f36ffbfdb9bb7ea7ec3b5b4ef",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1721,7 +1721,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "2a180d561fdd725be190134e63b668188a7789212cbf36e5b0a131901130bfe6",
+    "sha256": "796e47f02655c016a9e57167203885f231869b9dc505c45a2ce0963d1d67a618",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {

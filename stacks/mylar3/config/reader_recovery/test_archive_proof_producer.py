@@ -47,6 +47,29 @@ class Controls(unittest.TestCase):
   manifest=self.root/'full-backup/manifest.json';self.backup={'manifest':{'path':str(manifest),'sha256':hashlib.sha256(manifest.read_bytes()).hexdigest(),'signature9':a.nine(manifest.stat())},'restore_root':str(self.root/'full-backup/restore/config'),'backup_helper_ack':ack}
   self.request={'version':1,'phase':'backup-controls','nonce':'b'*64,'operation':str(self.operation),'deadline_monotonic':time.monotonic()+60,'parent_plan':self.plan,'parent_source':self.parentref,'context':{'backup':self.backup,'observations':copy.deepcopy(self.observations)}}
  def go(self):return p.produce(self.request['phase'],self.request,watch=self.parent.continuous)
+ def copied_manifest_view(self):
+  original=self.backup['manifest'];self.original_manifest=copy.deepcopy(original)
+  views=self.operation/'child-output-views';views.mkdir(mode=0o700)
+  view=views/'manifest-view.json';view.write_bytes(Path(original['path']).read_bytes());view.chmod(0o600)
+  self.backup['manifest']=dict(path=str(view),sha256=original['sha256'],signature9=a.nine(view.stat()))
+ def test_copied_manifest_view_keeps_original_backup_geometry(self):
+  self.copied_manifest_view();evidence=self.go()['evidence']
+  self.assertEqual(evidence['controls']['backup_manifest'],self.backup['manifest'])
+  self.assertFalse((Path(self.backup['manifest']['path']).parent/'backup').exists())
+  self.assertEqual(json.loads(Path(evidence['controls']['custody']['path']).read_bytes())['restore_root'],self.backup['restore_root'])
+ def test_copied_manifest_view_phase_custody_uses_original_restore(self):
+  self.copied_manifest_view();request=self.phase()
+  result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence']
+  self.assertEqual(result['proofs']['backup_manifest'],self.backup['manifest'])
+ def test_copied_manifest_view_requires_original_completion_vector(self):
+  self.copied_manifest_view()
+  vectors=self.backup['backup_helper_ack']['original_vectors']
+  vectors['files']=[row for row in vectors['files'] if row[0]!=self.original_manifest['path']]
+  with self.assertRaisesRegex(p.Held,'archive-producer-original-manifest-completion'):self.go()
+ def test_copied_manifest_view_refuses_changed_original_manifest(self):
+  self.copied_manifest_view();path=Path(self.original_manifest['path']);path.write_bytes(path.read_bytes()+b' ')
+  with self.assertRaises(p.Held):self.go()
+
  def phase(self):
   result=self.go()['evidence'];request=copy.deepcopy(self.request);request['phase']='phase-custody'
   controls=result['controls'];input_path=self.root/'execute-input.json';provider=str(HERE/'comic_archive_repair_action.py');command=['/lsiopy/bin/python3','-I','-B',provider,'--phase','execute','--input',str(input_path),'--input-sha256','<INPUT_SHA256>','--source-sha256',p.PINS['comic_archive_repair_action.py']]
