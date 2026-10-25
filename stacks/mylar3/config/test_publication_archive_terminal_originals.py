@@ -201,6 +201,21 @@ class Binding(unittest.TestCase):
    self.assertTrue(fired)
   finally:
    if fired:self.life.channel.input,self.life.channel.output=self.life.channel.output,self.life.channel.input
+ def test_final_physical_deadline_drift_invalidates(self):
+  cap=self.fixture();real=self.m.require;listing=os.listdir;armed=[];fired=[]
+  def required(value,reason):
+   real(value,reason)
+   if reason=='archive-terminal-same-original-lifetime':armed.append(True)
+  def late(path):
+   result=listing(path)
+   if armed and Path(path)==cap.root and not fired:self.life.channel.deadline+=1;fired.append(True)
+   return result
+  try:
+   with patch.object(self.m,'require',required),patch.object(self.m.os,'listdir',late),self.assertRaises(self.m.Held):self.m.bind_archive_terminal_originals(self.life,self.scope,cap)
+   self.assertTrue(fired)
+  finally:
+   if fired:self.life.channel.deadline-=1
+
  def test_last_require_pipe_drift_invalidates(self):
   cap=self.fixture();real=self.m.require;fired=[]
   def late(value,reason):

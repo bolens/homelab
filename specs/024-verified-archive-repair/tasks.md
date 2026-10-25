@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-24.** 17 of 22 tasks are complete. T019–T022 are delivered
+**Updated 2026-10-25.** 17 of 22 tasks are complete. T019–T022 are delivered
 implementation corrections, not additional runtime gates. Five tasks remain:
 T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
@@ -26,11 +26,14 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-The matching native image, 180-module capture, required SDK102 map and DATA
-precondition from PR [#515](https://github.com/bolens/homelab/pull/515) are verified.
-Reuse unchanged native/worker proofs for their exact original inputs. Changed
-installed host controls require fresh checked outputs; they do not by themselves
-require another image pull or source capture.
+PR [#515](https://github.com/bolens/homelab/pull/515) supplies the retained
+180-module native baseline and DATA precondition; the required SDK has 103
+entries after PR [#521](https://github.com/bolens/homelab/pull/521).
+PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
+modules for the shared phase deadline. Require its matching published image and
+fresh module capture before the next isolated pair. Reuse the unchanged worker
+proof only for its exact original inputs. Host-only changes require fresh checked
+outputs without repeating unchanged image proof.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

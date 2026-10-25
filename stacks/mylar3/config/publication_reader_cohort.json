@@ -173,7 +173,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456"
+      "tracked_source_sha256": "5af39e6ff3c8ef626c1214382582c62a985f156c69c016828392a095a5ae50a4"
     },
     "publication_archive_layout": {
       "owning_adapters": [
@@ -185,7 +185,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "bafe9427dfe8970e736ce6bc34278a5ff37ef37c42fdfcb607ac19c224d0fcc7"
+      "tracked_source_sha256": "cb4a91bb8c6a5a6c48ed5e9e0044a601f1eb9a5aeaf751fa0b7dc2dbf865efae"
     },
     "publication_archive_prepare_routes": {
       "owning_adapters": [
@@ -559,7 +559,7 @@
       "already_installed": false,
       "filename": "publication_reader_admission.py",
       "owned_predecessor_sha256": "43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071",
-      "sha256": "382b4292498f766787c8de7c47f135cdeb3b92485528e0ebbb3a27ad55d4e56d"
+      "sha256": "a8dbc9393bb349a864e3b59b31786779aa48746035173fc7b730bb350225cd6b"
     },
     "publication_reader_disk": {
       "already_installed": false,
@@ -569,7 +569,7 @@
     "publication_reader_lifecycle": {
       "already_installed": true,
       "filename": "publication_reader_lifecycle.py",
-      "sha256": "ee88d561d6c57d31215a54f9739a92d5d60a8021871e5c7539153261df225889"
+      "sha256": "b79a2ca7bef93a97e060e5273ecb091f746e57e85b6ebec11a61082ad17e9f56"
     },
     "publication_reader_native_coordinator": {
       "already_installed": false,

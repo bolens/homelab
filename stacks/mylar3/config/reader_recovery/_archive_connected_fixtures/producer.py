@@ -15,7 +15,7 @@ method=ast.get_source_segment(text,node);tail=method.index('  cap=self.cap();cap
 class Case(owning.Round):
  fixture=ns['fixture']
  def terminal_channel_setup(self,l):
-  l.channel.input=0;l.channel.output=1;l.channel.facts=(tuple(self.m.five(os.fstat(0))),tuple(self.m.five(os.fstat(1))));self.m._PIPE_SEALS[l.channel]=(0,1,l.channel.thread,l.channel.facts)
+  l.channel.input=0;l.channel.output=1;l.channel.facts=(tuple(self.m.five(os.fstat(0))),tuple(self.m.five(os.fstat(1))));self.m._PIPE_SEALS[l.channel]=(0,1,l.channel.thread,l.channel.facts,l.channel.deadline)
 def run():
  tempfile.tempdir=sys.argv[2];case=Case('runTest');case.setUp();case.round_output=Path(sys.argv[1]);cap=case.fixture();case.scope.controller_writer=lambda:(case.c.controller,case.c.writer);case.scope.writer_session=lambda controller,writer:writer.hold(timeout=0)
  (Path(sys.argv[2])/'fixture-original.json').write_text(json.dumps(dict(retained_original=str(cap.stage),original_sha256=hashlib.sha256(cap.source.read_bytes()).hexdigest(),new_archive=str(cap.source))))

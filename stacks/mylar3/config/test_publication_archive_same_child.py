@@ -78,6 +78,20 @@ class Tests(fixture.Binding):
    with patch.object(self.m,'archive_terminal_original_vectors',checked),patch.object(history.os,'listdir',late),self.assertRaises((o.Held,self.m.Held)):self.observe(cap)
    self.assertTrue(fired)
   finally:self.c.writer.local[1].allow_pending=False
+ def test_history_last_namespace_channel_deadline_holds(self):
+  cap=self.live();history.executed(cap);real=os.listdir;armed=[];fired=[];query=self.m.archive_terminal_original_vectors
+  def checked(*args):
+   result=query(*args);armed.append(True);return result
+  def late(path):
+   result=real(path)
+   if len(armed)>=2 and Path(path)==cap.root and not fired:self.life.channel.deadline+=1;fired.append(True)
+   return result
+  try:
+   with patch.object(self.m,'archive_terminal_original_vectors',checked),patch.object(history.os,'listdir',late),self.assertRaises((o.Held,self.m.Held)):self.observe(cap)
+   self.assertTrue(fired)
+  finally:
+   if fired:self.life.channel.deadline-=1
+
 
  def provider_observe(self,reverse=False):
   sys.path.insert(0,str(Path(__file__).parent/'reader_recovery'))

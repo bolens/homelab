@@ -501,7 +501,7 @@
   },
   {
     "path": "publication_archive_history.py",
-    "sha256": "dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456",
+    "sha256": "5af39e6ff3c8ef626c1214382582c62a985f156c69c016828392a095a5ae50a4",
     "target": "publication_archive_history.py"
   },
   {
@@ -516,7 +516,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "bafe9427dfe8970e736ce6bc34278a5ff37ef37c42fdfcb607ac19c224d0fcc7",
+    "sha256": "cb4a91bb8c6a5a6c48ed5e9e0044a601f1eb9a5aeaf751fa0b7dc2dbf865efae",
     "target": "publication_archive_preparation_existing.py"
   },
   {
@@ -666,7 +666,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "382b4292498f766787c8de7c47f135cdeb3b92485528e0ebbb3a27ad55d4e56d",
+    "sha256": "a8dbc9393bb349a864e3b59b31786779aa48746035173fc7b730bb350225cd6b",
     "target": "publication_reader_admission.py"
   },
   {
@@ -676,7 +676,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "ee88d561d6c57d31215a54f9739a92d5d60a8021871e5c7539153261df225889",
+    "sha256": "b79a2ca7bef93a97e060e5273ecb091f746e57e85b6ebec11a61082ad17e9f56",
     "target": "publication_reader_lifecycle.py"
   },
   {
@@ -1571,7 +1571,7 @@
   },
   {
     "path": "test_publication_archive_same_child.py",
-    "sha256": "2b7d1a9296b35dfca9b9a71ce6f11eb29799294079b097b1ce959747e0384d37",
+    "sha256": "d33eaf8baea5ec23fd8ed8b9687effd3e4e9dbb5cfeae6d018063d6a0c6f0105",
     "target": "test_publication_archive_same_child.py"
   },
   {
@@ -1581,7 +1581,7 @@
   },
   {
     "path": "test_publication_archive_terminal_originals.py",
-    "sha256": "923ffd30742a8becd4c1a3d24a16975dfcee8677194f45bb7aa50649905258a3",
+    "sha256": "1b3533717949590ab9764a60b778fe483d36286fed8f3ec1ecc02f449f953f3f",
     "target": "test_publication_archive_terminal_originals.py"
   },
   {
@@ -1696,7 +1696,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "45b5a0354cda9a3327ce60a6b921770ec764b5848ab9f3f2c32997489484be0e",
+    "sha256": "89d6ce918dfbeda05a7a846d3c390fcea21b76c7106fe3d9108d74b759d2e6d9",
     "target": "test_publication_reader_admission.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "a1654d8b551c8bdeee52949f6a4b9746d62c23fafa7ebb8506a29c909a38be2d",
+    "sha256": "37a67cebff490877a81bc42c4f8bfc015bb622fbda9a25d625ea819dd8cda71d",
     "target": "tagging_stage_sources.json"
   },
   {

@@ -119,7 +119,8 @@ class Installation(unittest.TestCase):
             'publication_reader_lifecycle.py':'b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2',
             'publication_native_scope_birth.py':'28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef',
             'publication_reader_admission.py':'123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475',
-            'publication_archive_preparation_existing.py':'59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4'}
+            'publication_archive_preparation_existing.py':'59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4',
+            'publication_archive_history.py':'dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456'}
         for name,pin in previous.items():raw=raw.replace(base['base_installed_sources'][name].encode(),pin.encode())
         return raw
     def test_reviewed_adoption_base_successor_preserves_historical_membership(self):
@@ -266,7 +267,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'629955ffa9d1c6f5de78c79fa49eadd9fd584ad4ff1da88d7a3ede8a3028273b')
+        self.assertEqual(base['base_cohort_sha256'],'415dddc4593121d9313886811183ac37d50327141c5770d513739e6128e848c9')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         parent=ast.parse((fixes/'reader_recovery/comic_reader_lifecycle_parent.py').read_bytes())
