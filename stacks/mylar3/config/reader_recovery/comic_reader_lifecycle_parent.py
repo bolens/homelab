@@ -1165,13 +1165,56 @@ class Paths:
         return dict(path=str(host),sha256=value['sha256'],signature9=list(stamp))
 
     def check_nfs_probe(self,value):
-        need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner;owner.left()
+        need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner
         row=_NFS_PROBE_ROWS.get(owner);need(row is not None,'nfs-probe-original-unbound')
         child,host,nodes,directories,session,cid,pid,nonce,spec=row
         original_tape=_NFS_PROBE_SEALS.get(owner)
         need(encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-original-table')
         need(value==dict(path=host,sha256=child['sha256'],signature9=child['signature9']) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-probe-original-session-reference')
-        session.close()
+        modules=_NFS_HOST_MODULES.get(owner)
+        integrated=type(modules) is dict and 'comic_nfs_parent_session.py' in modules
+        if integrated:
+            modules=_NFS_HOST_MODULES.get(owner);seal=_NFS_HOST_MODULE_SEALS.get(owner)
+            need(type(modules) is dict and type(seal) is tuple and len(seal)==2,'nfs-probe-original-host-seal')
+            module=modules.get('comic_nfs_parent_session.py')
+            entries=[entry for entry in seal[1] if entry[0]=='comic_nfs_parent_session.py' and entry[1] is module]
+            need(len(entries)==1 and type(session) is getattr(module,'RetainedChild',None),'nfs-probe-original-session-type')
+            entry=entries[0];methods=[item for item in entry[3] if item[0] is type(session) and item[1]=='close']
+            need(len(methods)==1,'nfs-probe-original-session-checker');kind,_,method,code=methods[0]
+            context_original=_NFS_SOURCE_CONTEXTS.get(owner)
+            need(type(context_original) is tuple and len(context_original)==5,'nfs-probe-original-context')
+            context_refs,context_raws,active_original,probe_original,output_original=context_original
+            source_seal=_NFS_SOURCE_SEALS.get(owner);absences=_NFS_EFFECTIVE_ABSENCES.get(owner)
+            def context_values():
+                need(_NFS_SOURCE_CONTEXTS.get(owner) is context_original
+                     and context_original[0] is context_refs and context_original[1] is context_raws
+                     and type(context_refs) is dict and type(context_raws) is dict
+                     and all(type(key) is str and type(value) is dict for key,value in context_refs.items())
+                     and all(type(key) is str and type(value) is bytes for key,value in context_raws.items())
+                     and type(active_original) is bytes and type(probe_original) is bytes
+                     and type(output_original) is str and type(source_seal) is bytes and type(absences) is bytes
+                     and _NFS_SOURCE_SEALS.get(owner) is source_seal
+                     and _NFS_EFFECTIVE_ABSENCES.get(owner) is absences,'nfs-probe-original-context')
+                return (encode(context_refs),tuple(context_raws.items()),active_original,probe_original,output_original)
+            context_tape=context_values()
+            def binding():
+                bound=session.close
+                need(self.owner is owner and _NFS_PROBE_ROWS.get(owner) is row
+                     and _NFS_LIVE_SESSIONS.get(owner) is session
+                     and _NFS_HOST_MODULES.get(owner) is modules and _NFS_HOST_MODULE_SEALS.get(owner) is seal
+                     and tuple(modules.items())==seal[0] and any(value is entry for value in seal[1])
+                     and modules.get('comic_nfs_parent_session.py') is module and module.RetainedChild is kind
+                     and type(session) is kind and kind.close is method
+                     and getattr(bound,'__self__',None) is session and getattr(bound,'__func__',None) is method
+                     and method.__globals__ is module.__dict__ and method.__code__ is code
+                     and method.__defaults__ is None and method.__kwdefaults__ is None
+                     and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),
+                     'nfs-probe-original-session-checker')
+            binding();method(session);binding()
+            need(context_values()==context_tape,'nfs-probe-original-context-values')
+        else:
+            owner.left();session.close()
+        scope_original=None;common_original=None
         # The input was admitted from the child's original UID1000 creator;
         # only its exact retained FD/path/hash is read here.
         fd=os.open(host,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -1182,42 +1225,94 @@ class Paths:
                 block=os.read(fd,min(65536,child['signature9'][2]-len(raw)));need(bool(block),'nfs-probe-original-current-short');raw+=block
             need(hashlib.sha256(raw).hexdigest()==child['sha256'] and tuple(nine(os.fstat(fd)))==tuple(child['signature9']),'nfs-probe-original-current-bytes')
         finally:os.close(fd)
-        if 'binding' in spec:need(spec['binding']==self.nfs_probe_binding(decode(raw)['root']),'nfs-probe-original-retention-binding')
-        result=copy.deepcopy(spec);session.close()
+        if 'binding' in spec:
+            if not integrated:need(spec['binding']==self.nfs_probe_binding(decode(raw)['root']),'nfs-probe-original-retention-binding')
+            else:
+                need(type(owner) is LifecycleParent and owner.mapping is self and self.plan13(),'nfs-probe-retention-owning-mapping')
+                common_original=_ARCHIVE_COMMON_ROOTS.get(owner)
+                need(common_original is not None and common_original[1]==owner.plan['publication_geometry'],'nfs-probe-original-retention-row')
+                geometry=common_original[1]
+                need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs','nfs-probe-searchable-retention-geometry')
+                active=decode(_NFS_SOURCE_CONTEXTS[owner][2]);ref=active['active_scope']
+                need(ref['path'] in owner.files,'nfs-plan13-original-scope')
+                scope_nodes=parents(Path(ref['path']));scope_stamp=tuple(owner.files[ref['path']])
+                scope=decode(read(dict(ref,signature9=list(scope_stamp))))
+                roots=tuple(scope['forbidden_roots'])+(str(Path(active['parent_admission']['path']).parent),)
+                need(_NFS_DATA_ROOTS.get(owner)==roots,'nfs-plan13-original-protected-roots')
+                retention=absolute(geometry['retention']['path']);fixture=absolute(decode(raw)['root'])
+                need(fixture.parent.parent==retention and retention.name=='R'
+                     and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+                     and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',fixture.parent.name) is not None
+                     and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',fixture.name) is not None
+                     and any(retention==Path(path) or Path(path) in retention.parents for path in roots),
+                     'nfs-probe-exact-retention-descendant')
+                stamp=geometry['retention']['signature9']
+                expected=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
+                need(spec['binding']==expected,'nfs-probe-original-retention-binding')
+                scope_original=(ref['path'],scope_stamp,scope_nodes,roots,_NFS_SOURCE_CONTEXTS[owner])
+        result=copy.deepcopy(spec)
+        if not integrated:session.close()
         need(_NFS_PROBE_ROWS.get(owner) is row and encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-final-original-table')
-        for path,original in nodes:
-            z=nfs_lstat(path)
-            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original):raise Held('nfs-probe-original-ancestor5')
         owned_probe=session.probe_replies.probe
         started=owned_probe is not None and hasattr(owned_probe,'process') and owned_probe.process.started is True
         removed=_NFS_PROBE_REMOVED.get(owner)
-        if removed is not None:
-            need(owner.engine not in _NFS_REMOTE_WINDOWS and removed[0] is row
-                 and removed[1] is session and removed[2] is owned_probe
-                 and session.lease_replies.done is True and removed[4] is session.lease_replies.lease
-                 and removed[4].channel.released is True and owned_probe.process.execution_sent is True
-                 and hashlib.sha256(owned_probe.process.kernel_output).hexdigest()==removed[5],
-                 'nfs-probe-cleanup-original-successful-release')
-            for path in removed[6]:
-                if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-drift')
-        for path,original in directories:
+        def phase():
+            need(session.probe_replies.probe is owned_probe and _NFS_PROBE_REMOVED.get(owner) is removed
+                 and (owned_probe is not None and hasattr(owned_probe,'process') and owned_probe.process.started is True)==started,
+                 'nfs-probe-original-physical-phase')
+        def physical():
+            if integrated:phase()
+            for path,original in nodes:
+                z=nfs_lstat(path)
+                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original):raise Held('nfs-probe-original-ancestor5')
             if removed is not None:
-                if not (path==removed[6][0] or Path(path).is_relative_to(removed[6][0])):
-                    raise Held('nfs-probe-cleanup-no-foreign-directory')
-                if not nfs_absent(path):raise Held('nfs-probe-cleanup-directory-reappeared')
-                continue
-            if nfs_absent(path):raise Held('nfs-probe-owned-directory-missing-before-cleanup-proof')
-            z=nfs_lstat(path)
-            actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) if started else (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
-            expected=(original[0],original[1],original[5],original[6],original[7]) if started else original
-            if actual!=expected:raise Held('nfs-probe-original-directory-transition')
-        z=nfs_lstat(host)
-        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(child['signature9']):raise Held('nfs-probe-original-final9')
-        if removed is not None:
-            if _NFS_PROBE_REMOVED.get(owner) is not removed or _NFS_PROBE_ROWS.get(owner) is not row:
-                raise Held('nfs-probe-cleanup-original-final-seal')
-            for path in removed[6]:
-                if not nfs_absent(path):raise Held('nfs-probe-cleanup-final-absence')
+                need(owner.engine not in _NFS_REMOTE_WINDOWS and removed[0] is row
+                     and removed[1] is session and removed[2] is owned_probe
+                     and session.lease_replies.done is True and removed[4] is session.lease_replies.lease
+                     and removed[4].channel.released is True and owned_probe.process.execution_sent is True
+                     and hashlib.sha256(owned_probe.process.kernel_output).hexdigest()==removed[5],
+                     'nfs-probe-cleanup-original-successful-release')
+                for path in removed[6]:
+                    if not nfs_absent(path):raise Held('nfs-probe-cleanup-owned-absence-drift')
+            for path,original in directories:
+                if removed is not None:
+                    if not (path==removed[6][0] or Path(path).is_relative_to(removed[6][0])):
+                        raise Held('nfs-probe-cleanup-no-foreign-directory')
+                    if not nfs_absent(path):raise Held('nfs-probe-cleanup-directory-reappeared')
+                    continue
+                if nfs_absent(path):raise Held('nfs-probe-owned-directory-missing-before-cleanup-proof')
+                z=nfs_lstat(path)
+                actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) if started else (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                expected=(original[0],original[1],original[5],original[6],original[7]) if started else original
+                if actual!=expected:raise Held('nfs-probe-original-directory-transition')
+            z=nfs_lstat(host)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(child['signature9']):raise Held('nfs-probe-original-final9')
+            if removed is not None:
+                if _NFS_PROBE_REMOVED.get(owner) is not removed or _NFS_PROBE_ROWS.get(owner) is not row:
+                    raise Held('nfs-probe-cleanup-original-final-seal')
+                for path in removed[6]:
+                    if not nfs_absent(path):raise Held('nfs-probe-cleanup-final-absence')
+        physical()
+        if integrated:
+            if scope_original is not None:
+                path,stamp,scope_nodes,roots,context=scope_original
+                final({path:stamp},scope_nodes,())
+                need(_NFS_SOURCE_CONTEXTS.get(owner) is context and _NFS_DATA_ROOTS.get(owner)==roots
+                     and _ARCHIVE_COMMON_ROOTS.get(owner) is common_original,'nfs-probe-final-retention-context')
+                check_common_root(common_original)
+            binding();method(session);binding()
+            need(context_values()==context_tape,'nfs-probe-original-context-values')
+            physical()
+            if scope_original is not None:final({path:stamp},scope_nodes,())
+            if common_original is not None:check_common_root(common_original)
+            phase();binding()
+            need(context_values()==context_tape,'nfs-probe-original-context-values')
+            need(_NFS_PROBE_ROWS.get(owner) is row and _NFS_PROBE_SEALS.get(owner)==original_tape
+                 and encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,
+                 'nfs-probe-final-original-table')
+            if scope_original is not None:
+                need(_NFS_SOURCE_CONTEXTS.get(owner) is context and _NFS_DATA_ROOTS.get(owner)==roots
+                     and _ARCHIVE_COMMON_ROOTS.get(owner) is common_original,'nfs-probe-final-retention-context')
         return result
 
     def original_ref(self, value):
