@@ -61,6 +61,15 @@ class Controls(unittest.TestCase):
   self.copied_manifest_view();request=self.phase()
   result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence']
   self.assertEqual(result['proofs']['backup_manifest'],self.backup['manifest'])
+ def test_copied_manifest_original_read_allows_uid1000_under_root_observer(self):
+  self.copied_manifest_view();checked=a.checked
+  def root_reader(ref,private=True):
+   if ref['path']==self.original_manifest['path']:
+    # Project only the Root reader identity; the real original keeps UID1000
+    # and its helper-bound bytes/full9. Other local fixture reads are unchanged.
+    with patch.object(a.os,'geteuid',return_value=0):return checked(ref,private)
+   return checked(ref,private)
+  with patch.object(a,'checked',side_effect=root_reader):self.go()
  def test_copied_manifest_view_requires_original_completion_vector(self):
   self.copied_manifest_view()
   vectors=self.backup['backup_helper_ack']['original_vectors']
