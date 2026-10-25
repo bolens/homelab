@@ -6,11 +6,25 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_reader_lifecycle_parent.py` continuously checks critical container, process and mount facts outside the owned Writer session. Its existing pipe seals the prelease complete census and carries finite enter, held and leave messages. Held challenges and idle checks close local original custody without Docker or API calls; a pending all-false terminal reply and ACK stay inside the Writer, then one post-ACK leave after release precedes independent terminal and worker acceptance. Genuinely Ready and legacy startup-held originals use the same strict source, process and census joins. Its finite runtime projection permits only the specified insignificant Health log/streak changes. `comic_native_process_probe.py` and `comic_native_evidence_adapter.py` produce checked native observations and schema1 phase custody. Original reader-pair signatures remain immutable. Worker library destinations are derived from the unique most-specific physical bind and checked against nested mount shadows; native and worker container paths may differ.
 
+The integrated probe mapping brackets one original scope/retention check with
+its source-bound session checks. It verifies file, ancestor, directory and
+common-root descriptor facts again after the final source callback. Standalone
+root and retention observers retain their own guards. This reduces repeated
+Parent checks during probe preparation without changing freshness limits,
+acknowledgements or recovery admission.
+
+The configured installer selects 103 required modules from the verified native
+source map. This includes `worker_health.py` and `native_writers.py`, whose exact
+pins both native evidence adapters pass to the process probe. Installer tests
+derive that map and exercise both adapter consumers before engine transport.
+The complete native image map and historical installation receipts remain
+separate evidence.
+
 `comic_reader_proof_producer.py` produces nine backup-control references using the owning copy, restore, schema, row and reviewed timestamp algorithms. The terminal producer binds the original execute ACK, report, sealed terminal references and fresh terminal-state custody. Parent scheduling is implemented and tested with explicit fixtures; genuine owning provenance, NFS readiness and protected parent integration remain acceptance gates.
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1582 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1719 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route
@@ -151,6 +165,15 @@ its original process and delegates fixed source-owned engine, host Writer, and
 probe operations over the registered original pipes. Namespace and host reader
 epoch replies bind exact captured roles/source and actual process metadata.
 The host owns exact probe name/spec/CID and separate prepare/create/start.
+The child compares mount rows as tuples after JSON transport, retaining exact
+source, destination, access mode, bind type and mount count checks.
+The nested probe mounts its two checked source copies at their child-tree
+virtual paths, outside protected host ancestry. Physical sources and their
+readonly access remain unchanged. Protected data keeps its original mapping.
+Probe and native adoption joins also accept the observed NFS source-suffix
+encoding only with both roots `/` and the exact authenticated host subtree.
+Device, access, identity and namespace checks remain required. This native SDK
+change needs matching image proof before a fresh checked installation.
 Profile validation constructs argv once between its existing boundary checks;
 the original builder function and code remain bound in the process seal.
 Retention binding observes the original NFS root set once instead of invoking
@@ -264,3 +287,33 @@ The owning SourceCohort emitter may retain an empty stderr log. The host assembl
 Configured plan13 producers map each fresh host operation to the installer-owned
 child path `/_operation`. This keeps the projected Parent URI and SHA equal to
 the checked admission. Other operation mappings refuse before Parent entry.
+
+Each retained cleanup heartbeat keeps its physical Writer ACK and per-file
+checks. The owning reply brackets one local pulse with full original-source
+closure, avoiding nested repeats of the same source graph. Standalone pulse
+calls keep their own full bracket. Original window, process, FIFO, inner PID
+and helper-code checks still precede and follow the heartbeat.
+
+The backup CLI validates the fixed backup sibling executable with its own input
+and source hashes; backup copy/restore tests also invoke the real entrypoint.
+Terminal vectors retain the owning child Tree, including projected controls and
+private scopes; Root output views keep separate inode facts. Worker observers
+inherit only the pinned image labels plus their exact reserved observer label.
+Both recovery paths require a fresh running reader epoch after resume. A single
+unpublished IPv4 bridge may receive a new sandbox, endpoint, dynamic address and
+MAC within its original subnet; container identity, image, configuration, mounts,
+network identity, gateway, aliases and explicitly configured IP/MAC stay exact.
+Source controls verify these boundaries without claiming runtime acceptance.
+
+Admitted-empty lease checks retain the original mapping and session methods from
+their existing seals. The session check supplies one full Parent closure, followed
+by the original helper, Tree, empty-directory, Writer and final pair checks. Pulse
+replies keep both original brackets and every physical Writer acknowledgement.
+The 120-second observation limit remains unchanged. Source controls do not prove
+configured NFS timing or connected forward/rollback acceptance.
+
+NFS input preparation projects declared controls in three finite batches. Each
+batch retains the original Parent checks before and after copying, each Tree
+copy/readback check, the original declaration policy and the loaded projection
+module. It returns no reusable admission. Active-parent source provenance and
+single-file projection retain their existing checks.

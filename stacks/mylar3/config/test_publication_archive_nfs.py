@@ -287,14 +287,18 @@ class Tests(unittest.TestCase):
         self.assertEqual((cap.root/'install-displaced.arc').read_bytes(),self.source_before)
         self.assertEqual(cap._phase,'uncertain')
 
-    def mount_fixture(self, *, shadow=False, readonly=False, source='fixture:/export', nested=False):
+    def mount_fixture(self, *, shadow=False, readonly=False, source=None, nested=False, source_suffix=False):
         import io
         z=self.case.c.source.stat();device=str(os.major(z.st_dev))+':'+str(os.minor(z.st_dev))
         facts=copy.deepcopy(self.facts)
         facts.update(library=str(self.case.c.library),device=z.st_dev,
                      mount={'source':'fixture:/export','target':str(self.common.parent),'fstype':'nfs4','fsroot':'/export','options':'rw','maj:min':device})
+        if source is None:source='fixture:/export'+('/'+self.common.name if source_suffix else '')
         options='ro' if readonly else 'rw'
         rows=[f'101 1 {device} /export/{self.common.name} {self.common} {options} - nfs4 {source} rw']
+        if source_suffix:
+            facts['mount']['fsroot']='/'
+            rows=[f'101 1 {device} / {self.common} {options} - nfs4 {source} rw']
         if shadow:rows.append(f'102 101 {device} /export/{self.common.name}/retention {self.case.retention} rw - nfs4 {source} rw')
         if nested:rows.append(f'103 101 {device} /elsewhere {self.case.c.library}/shadow ro - nfs4 {source} ro')
         real=open
@@ -323,6 +327,23 @@ class Tests(unittest.TestCase):
         with transport:result=ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
         self.assertEqual(result['id'],101)
         self.assertFalse((self.case.c.writer.root/a.PENDING).exists())
+
+    def test_source_suffix_mountinfo_joins_both_original_geometries(self):
+        for searchable in (False,True):
+            if searchable:self.searchable_geometry()
+            facts,transport=self.mount_fixture(source_suffix=True)
+            with transport:result=ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+            self.assertEqual(result['id'],101);self.assertEqual(result['root'],'/')
+
+    def test_source_suffix_mountinfo_refuses_wrong_export_subtree_and_mounts(self):
+        self.searchable_geometry()
+        for change in (dict(source='other:/export/'+self.common.name),dict(source='fixture:/export2/'+self.common.name),dict(source='fixture:/export'),dict(source='fixture:/export/'+self.common.name+'/extra'),dict(readonly=True),dict(shadow=True),dict(nested=True)):
+            with self.subTest(change=change):
+                facts,transport=self.mount_fixture(source_suffix=True,**change)
+                with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+        for key,value in (('fsroot','/export'),('maj:min','1:999'),('source','other:/export')):
+            facts,transport=self.mount_fixture(source_suffix=True);facts['mount'][key]=value
+            with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
 
     def test_searchable_geometry_modes_nonce_and_originals_refuse(self):
         self.searchable_geometry()

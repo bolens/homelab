@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-08
 
-**Status**: Prospective implementation
+**Status**: Core implementation delivered; configured integration and live acceptance pending
 
 **Input**: User request: identify malformed comic archives that can be repaired automatically without losing content, and implement those repairs with a separate subagent while completing library recovery.
 

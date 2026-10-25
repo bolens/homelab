@@ -500,6 +500,9 @@ class WorkerProfiles(unittest.TestCase):
    row['Config'].update(Entrypoint=['python3'],Cmd=['worker.py'],OpenStdin=True,Tty=False,Labels={'com.homelab.reader.worker-observer':'fixture'})
    row['HostConfig'].update(IpcMode='private',PidMode='',SecurityOpt=['no-new-privileges'],PidsLimit=32,Memory=768*1024**2,MemorySwap=768*1024**2,NanoCpus=500000000,RestartPolicy=dict(Name='no'))
   owner=object.__new__(p.LifecycleParent);self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);owner.op=Path(self.temp.name);owner.op_fact=tuple(p.five(owner.op.stat()));owner.generated={};owner.left=lambda:None
+  metadata=owner.op/'worker-image.json';metadata.write_bytes(p.encode([dict(Id=created['Image'],Config={'Labels':{}})]));metadata.chmod(0o600)
+  image_ref=dict(path=str(metadata),sha256=p.hashlib.sha256(metadata.read_bytes()).hexdigest(),signature9=p.nine(metadata.stat()))
+  image_patch=patch.object(p,'WORKER_OBSERVATION_IMAGE_ORIGINAL',image_ref);image_patch.start();self.addCleanup(image_patch.stop)
   intent=((),('worker.py',),(('/fixture','/_operation'),),'fixture',{},(),created['Image'],0);protocol=types.SimpleNamespace(step=0)
   check,state=scope['factory'](owner,cid,p.static(created),protocol,intent)
   return owner,check,state,protocol,created,started,exited
@@ -882,6 +885,106 @@ class SessionClose(unittest.TestCase):
         session,calls,packet=self.session();packet.write_bytes(b'changed packet')
         with self.assertRaises(P.Held):session.close()
         self.assertEqual(calls,[True])
+
+
+class ReleaseRace(unittest.TestCase):
+    """Real original pipes and process; original Parent closure remains active."""
+    session=SessionClose.session
+    def release_session(self,*,frame=True,exitcode=0,nonce=None,sequence=1):
+        session,_,_=self.session();session.state='ready';session.last=0
+        session.lease_replies.lease=None;session.lease_replies.done=True
+        nonce=session.owner.plan['nonce'] if nonce is None else nonce
+        body="import json,sys;command=json.loads(input());assert command['payload']=={'operation':'release','stopped':True};"
+        if frame:
+            body+="print("+repr(json.dumps(dict(type='nfs-done',nonce=nonce,sequence=sequence,payload=None)))+",flush=True);"
+        body+='raise SystemExit('+str(exitcode)+')'
+        process,_=Exit.pump(self,body)
+        ticks=int(Path('/proc/'+str(process.pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+        P._NFS_CHILD_EPOCHS[session.owner]=(session,session.cid,process.pid,b'epoch',ticks,session.created_static)
+        def fact(value,kind):
+            S.need(value==dict(type='nfs-done',nonce=session.owner.plan['nonce'],sequence=1,payload=None)
+                   and kind=='nfs-done','projected-original-fact-frame')
+            return value['payload']
+        session.engine_replies.fact=fact
+        pump=S.OriginalPump(process,time.monotonic()+5,session.close);session.pump=pump
+        S._SESSION_PUMPS[session]=pump
+        return session,process,pump
+    def exit_after_write(self,process,pump):
+        original=S.os.write
+        def write(fd,data):
+            result=original(fd,data)
+            if fd==pump.descriptors[0][0]:process.wait(timeout=5)
+            return result
+        return patch.object(S.os,'write',write)
+    def test_immediate_original_exit_before_write_guard_drains_done_and_reaps(self):
+        session,process,pump=self.release_session()
+        with self.exit_after_write(process,pump):
+            self.assertIsNone(session.request('release',stopped=True))
+        self.assertEqual(session.state,'finished');self.assertEqual(process.returncode,0)
+        self.assertEqual(pump.successful_exit()[1],0)
+        self.assertFalse(Path('/proc/'+str(process.pid)).exists())
+    def test_missing_pid_outside_release_refuses(self):
+        session,process,_=self.release_session();process.kill();process.wait(timeout=5)
+        with self.assertRaisesRegex(S.Held,'local-release-required'):session.close()
+    def test_forged_releasing_state_does_not_admit_missing_pid(self):
+        session,process,_=self.release_session();process.kill();process.wait(timeout=5);session.state='releasing'
+        with self.assertRaisesRegex(S.Held,'local-release-required'):session.close()
+    def test_extant_reused_pid_tick_refuses_even_in_sealed_release(self):
+        session,process,_=self.release_session();epoch=P._NFS_CHILD_EPOCHS[session.owner]
+        changed=(*epoch[:4],epoch[4]+1,epoch[5]);P._NFS_CHILD_EPOCHS[session.owner]=changed
+        session.state='releasing';S._SESSION_SEALS[session]=(*S._SESSION_SEALS[session],(session.pump,changed,0))
+        with self.assertRaisesRegex(S.Held,'local-starttick'):session.close()
+        self.assertIsNone(process.poll())
+    def test_equal_epoch_replacement_in_last_callback_refuses(self):
+        session,_,_=self.release_session();epoch=P._NFS_CHILD_EPOCHS[session.owner]
+        session.state='releasing';S._SESSION_SEALS[session]=(*S._SESSION_SEALS[session],(session.pump,epoch,0))
+        original=P.read;fired=[]
+        def read(ref):
+            result=original(ref)
+            if ref==session.packet_ref and not fired:
+                fired.append(True);P._NFS_CHILD_EPOCHS[session.owner]=tuple(list(epoch))
+            return result
+        with patch.object(P,'read',read),self.assertRaisesRegex(S.Held,'callback-drift'):session.close()
+        self.assertEqual(fired,[True])
+    def test_original_pump_replacement_in_last_callback_refuses(self):
+        session,_,_=self.release_session();epoch=P._NFS_CHILD_EPOCHS[session.owner]
+        session.state='releasing';S._SESSION_SEALS[session]=(*S._SESSION_SEALS[session],(session.pump,epoch,0))
+        original=P.read;fired=[]
+        def read(ref):
+            result=original(ref)
+            if ref==session.packet_ref and not fired:
+                fired.append(True);session.pump=object()
+            return result
+        with patch.object(P,'read',read),self.assertRaisesRegex(S.Held,'callback-drift'):session.close()
+        self.assertEqual(fired,[True])
+    def test_other_kernel_read_error_is_never_treated_as_exit(self):
+        session,process,_=self.release_session();epoch=P._NFS_CHILD_EPOCHS[session.owner]
+        session.state='releasing';S._SESSION_SEALS[session]=(*S._SESSION_SEALS[session],(session.pump,epoch,0))
+        original=Path.read_text
+        def read(path,*args,**kwargs):
+            if path==Path('/proc/'+str(process.pid)+'/stat'):raise PermissionError('projected unreadable original PID')
+            return original(path,*args,**kwargs)
+        with patch.object(Path,'read_text',read),self.assertRaises(PermissionError):session.close()
+    def test_eof_without_done_never_finishes(self):
+        session,process,pump=self.release_session(frame=False)
+        with self.exit_after_write(process,pump),self.assertRaisesRegex(S.Held,'unexpected-EOF'):
+            session.request('release',stopped=True)
+        self.assertEqual(session.state,'failed')
+        with self.assertRaisesRegex(S.Held,'no-successful-exit'):pump.successful_exit()
+    def test_nonzero_exit_after_done_never_finishes(self):
+        session,process,pump=self.release_session(exitcode=3)
+        with self.exit_after_write(process,pump),self.assertRaisesRegex(S.Held,'child-exit'):
+            session.request('release',stopped=True)
+        self.assertEqual(session.state,'failed')
+        with self.assertRaisesRegex(S.Held,'no-successful-exit'):pump.successful_exit()
+    def test_wrong_nonce_or_sequence_never_finishes(self):
+        for values in (dict(nonce='foreign'),dict(sequence=2)):
+            with self.subTest(values=values):
+                session,process,pump=self.release_session(**values)
+                with self.exit_after_write(process,pump),self.assertRaisesRegex(S.Held,'fact-frame'):
+                    session.request('release',stopped=True)
+                self.assertEqual(session.state,'failed')
+                with self.assertRaisesRegex(S.Held,'no-successful-exit'):pump.successful_exit()
 
 
 if __name__=='__main__':unittest.main()

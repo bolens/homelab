@@ -528,6 +528,29 @@ class Tests(unittest.TestCase):
         for value in values.values(): value['State']['Health'] = dict(Status='unhealthy',FailingStreak=9,Log=[{'End':'later'}])
         self.assertEqual(p.LifecycleParent.continuous(self.parent),values)
 
+    def test_continuous_accepts_exact_owned_bridge_teardown(self):
+        fixture_spec=importlib.util.spec_from_file_location('bridge_fixture',ROOT/'test_nfs_current_roles.py')
+        fixtures=importlib.util.module_from_spec(fixture_spec);fixture_spec.loader.exec_module(fixtures)
+        bridge_profile,release_bridge=fixtures.bridge_profile,fixtures.release_bridge
+        values=self.continuous_fixture();x=self.parent
+        original=bridge_profile(p.static(values['reader']))
+        x.baselines['reader']=dict(original,State=copy.deepcopy(values['reader']['State']))
+        values['reader']=dict(release_bridge(original),State=copy.deepcopy(values['reader']['State']))
+        self.assertEqual(p.LifecycleParent.continuous(x),values)
+        values['reader']['NetworkSettings']['Networks']['fixture']['Gateway']='foreign'
+        with self.assertRaisesRegex(p.Held,'continuous-profile'):p.LifecycleParent.continuous(x)
+
+    def test_continuous_reader_original_start_epoch_still_required(self):
+        values=self.continuous_fixture();values['reader']['State']['StartedAt']='foreign'
+        with self.assertRaisesRegex(p.Held,'reader-original-started-at'):p.LifecycleParent.continuous(self.parent)
+
+    def test_reader_stop_profile_guard_refuses_dependency_replacement(self):
+        original=p.static(self.continuous_fixture()['reader'])
+        for target,name in ((p,'reader_stopped_static'),(p.json,'loads')):
+            with patch.object(target,name,lambda *a,**k:True):
+                with self.assertRaisesRegex(p.Held,'original-profile-contract'):
+                    p.checked_reader_stopped_static(original,original,original['Id'])
+
     def test_between_continuous_producer_health_only_allowed(self):
         x, inp, command, calls = self.child_fixture(health_change=True)
         self.assertEqual(x.child_phase('backup', inp, command)['phase'],'backup')
@@ -617,21 +640,24 @@ class SchedulingTests(unittest.TestCase):
             if fault=='observer':raise p.Held('observer-held')
             return dict(outcome=outcome,**rights),originals
         x.observer=types.SimpleNamespace(observe_mapped_with_originals=observe)
-        row=dict(Id='1'*64,Image=x.plan['selected_image'],Name='reader',Path='/init',Args=[],
-                 Config={},HostConfig={},NetworkSettings={},State=dict(Running=False,Paused=False,Pid=0),Mounts=[])
+        fixture_spec=importlib.util.spec_from_file_location('schedule_bridge_fixture',ROOT/'test_nfs_current_roles.py')
+        fixtures=importlib.util.module_from_spec(fixture_spec);fixture_spec.loader.exec_module(fixtures)
+        bridge_profile,release_bridge,role_row,resumed_row=fixtures.bridge_profile,fixtures.release_bridge,fixtures.row,fixtures.resumed_bridge_profile
+        row=bridge_profile(role_row(1,'reader','running'));row['Image']=x.plan['selected_image']
+        stopped_row=release_bridge(row);stopped_row['State'].update(Status='exited',Running=False,Pid=0,FinishedAt='owned-stop')
         x.baselines=dict(reader=row)
         def continuous():
             if fault=='late-source' and (self.operation/'resume-intent.json').exists():Path(self.source['path']).chmod(0o640)
             if fault=='late-claim' and (self.operation/'resume-intent.json').exists():(claims/'shadow').write_bytes(b'x')
             if fault=='late-census' and (self.operation/'resume-intent.json').exists():(claims/'other').write_bytes(b'x')
-            return dict(reader=row)
+            return dict(reader=stopped_row)
         x.continuous=continuous
         # Explicit NFS boundary double for retained terminal scheduling controls.
         def owned_stop(owner):
             owner.phase='stopping';owner.emit('stop-intent.json',dict(id=owner.plan['reader']['id'],automatic_replay=False))
             owner.engine.run(['stop','--timeout','60',owner.plan['reader']['id']],owner.left());observed=owner.continuous();owner.stop_state=copy.deepcopy(observed['reader']['State']);return observed
         p._NFS_ADAPTERS[x]=types.SimpleNamespace(preflight=lambda owner:None,run_active=lambda owner:None,stop_owned=owned_stop)
-        x.inspect=lambda cid:dict(row,State=dict(Running=True,Paused=False,Pid=2))
+        x.inspect=lambda cid:resumed_row(row)
         def produce(phase,context):
             contexts.append((phase,context))
             if phase=='backup-controls':return dict(controls=controls)
@@ -799,6 +825,17 @@ class SchedulingTests(unittest.TestCase):
         with self.assertRaises(p.Held):x.execute()
         self.assertEqual([a[0] for a in calls],['stop'])
 
+
+    def test_final_inspect_cannot_override_ordinary_resume_acceptance(self):
+        x,calls,_,_=self.schedule()
+        def inspect(cid):
+            x.reader_resumed=lambda row:True
+            row=copy.deepcopy(x.baselines['reader']);row['Id']='f'*64
+            row['State'].update(Status='running',Running=True,Pid=900,StartedAt='fresh-owned-start')
+            return row
+        x.inspect=inspect
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual(x.phase,'uncertain');self.assertFalse((x.op/'complete.json').exists())
 
 if __name__ == '__main__':
     unittest.main()

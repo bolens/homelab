@@ -109,8 +109,11 @@ held. These witnesses grant no current media mutation or recovery permission.
 
 ## Prospective aggregate recovery dependency
 
-T020–T025 and T028 source review precede T026 integration and T029 current
-combined runtime acceptance. These gates precede the held rollout in T017;
+T020–T025 and T028 source review precede the T026 source/install milestone.
+One shared T026/T029 isolated forward and distinct rollback then supplies the
+connected criteria of feature 024 T012/T015 and isolated T027. Whole-task
+completion is not a circular prerequisite for that pair. Accepted connected
+proof and matching delivery precede the rollout milestone in T017;
 T027 then supplies fresh live aggregate evidence before T017 reconciliation
 and T018–T019 acceptance and cleanup. Original task IDs and history remain. Native `publication_negative_batch.py` owns the immutable five-source
 marker, complete shared-parent phase projection, exact staged reservations,

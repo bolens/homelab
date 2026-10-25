@@ -85,8 +85,11 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
     need(rows['source']==rows['target'],'namespace-one-child-bind')
     row=rows['source']
-    need(row['target']==str(bind_target) and row['fsroot']==expected_root
-         and export(row)==export(host) and row['maj:min']==host['maj:min']
+    same_export=(row['fsroot']==expected_root and export(row)==export(host))
+    source_suffix=(host['fsroot']==row['fsroot']=='/'
+                   and row['source']==export(host).rstrip('/')+'/'+str(bind_original.relative_to(mountpoint)))
+    need(row['target']==str(bind_target) and (same_export or source_suffix)
+         and row['maj:min']==host['maj:min']
          and row['options']==host['options']
          and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
          'namespace-original-export-bind')
@@ -287,7 +290,14 @@ class ProbeProcess:
         try:inner=ticks(self.running_epoch[0])
         except FileNotFoundError:inner=None
         if client!=self.process_start or inner!=self.running_epoch[2]:
-            need(self.execution_sent and self.process.poll()==0 and inner!=self.running_epoch[2],'probe-original-inner-exit-unknown')
+            status=self.process.poll()
+            # The inner can exit while its original attach client is blocked
+            # forwarding a frame larger than this held stdout FIFO. Drain that
+            # same client before requiring its zero exit in execute_local().
+            original_draining=client==self.process_start and status in (None,0)
+            original_reaped=client is None and status==0
+            need(self.execution_sent and inner!=self.running_epoch[2]
+                 and (original_draining or original_reaped),'probe-original-inner-exit-unknown')
         need(_PROCESS_SEALS.get(self)==seal and seal==(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch),'probe-final-original-process-seal')
     def line(self,seconds=30):
         self.local();deadline=time.monotonic()+seconds;raw=bytearray()

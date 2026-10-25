@@ -50,11 +50,25 @@ class RealLease(unittest.TestCase):
             actor=parent.GeometryOwnerReads(geometry);parent._OWNER_READS=actor
             try:
                 channel=self.launch(owner=owner);events.clear();real_write=parent.os.write
+                import comic_nfs_lease_session as session
+                from types import SimpleNamespace
+                owner.files={str(media):parent.nine(media.stat())};owner.nodes={str(common/'L'):parent.five((common/'L').stat())}
+                absent=(str(common/'R'/'private'/'probe'),str(common/'R'/'private'))
+                dialogue=SimpleNamespace(owner=owner,close=lambda:None,nonce='a'*64,sequence=0)
+                lease=SimpleNamespace(original=lambda:None,channel=channel,release_after_absence=lambda paths,**kw:channel.release(paths,kw['original_files'],kw['original_nodes']))
+                replies=object.__new__(session.HostLeaseReplies);replies.dialogue=dialogue;replies.lease=lease;replies.absent=replies.absence_tape=absent;replies.done=False
+                real_lstat=parent.os.lstat
+                def squashed(path,*args,**kwargs):
+                    if uid[0]==0 and str(path) in absent:raise PermissionError('projected NFS root squash')
+                    return real_lstat(path,*args,**kwargs)
                 def write(fd,data):
                     if b'"action":"release"' in data:self.assertEqual(uid[0],0)
                     return real_write(fd,data)
-                with mock.patch.object(parent.os,'write',side_effect=write):
-                    ack=channel.release([str(common/'R'/'absent')],[(str(media),parent.nine(media.stat()))],[(str(common/'L'),parent.five((common/'L').stat()))])
+                # Session/lease construction is projected; the helper, pipes,
+                # Writer, release and owning stat observer are real.
+                with mock.patch.object(parent.os,'write',side_effect=write),mock.patch.object(parent.os,'lstat',side_effect=squashed):
+                    raw=replies.accept(dict(type='nfs-lease',nonce=dialogue.nonce,sequence=1,payload=dict(operation='release',absent=list(absent),empty=None)))
+                ack=session.json.loads(raw)['payload']
                 self.assertEqual(ack['state'],'release-reviewed');self.assertTrue(channel.released)
                 self.assertIn(1000,events);self.assertEqual(uid[0],0)
             finally:parent.release_owner_reads(actor);parent._CORES.pop(owner,None)
@@ -118,7 +132,7 @@ class FullProfileTransitions(unittest.TestCase):
     def fixture(self):
         import copy
         import comic_reader_lifecycle_parent as p
-        owner=object.__new__(p.LifecycleParent);lease=object.__new__(m.HostWriterLease);lease.owner=owner;lease.g=p.__dict__;lease.cid=lease.cid_original='a'*64;lease.image='sha256:'+'b'*64;lease.name='fixture-lease';lease.command=['/lease-helper.py'];lease.mounts=(('/fixture/helper','/lease-helper.py',False),);lease.epoch=None;lease.profile_original=lease.profile_running=lease.profile_terminal=None;m._FULL_PROFILES[lease]=(None,None,None);self.addCleanup(m._FULL_PROFILES.pop,lease,None);lease.original=lambda **kwargs:None;guard=p.none_network_profile_contract;m._PROFILE_CONTRACTS[lease]=(guard,guard.__code__,guard());self.addCleanup(m._PROFILE_CONTRACTS.pop,lease,None)
+        owner=object.__new__(p.LifecycleParent);lease=object.__new__(m.HostWriterLease);lease.owner=owner;lease.g=p.__dict__;lease.cid=lease.cid_original='a'*64;lease.image='sha256:'+'b'*64;lease.name='fixture-lease';lease.command=['/lease-helper.py'];lease.mounts=(('/fixture/helper','/lease-helper.py',False),);lease.epoch=None;lease.profile_original=lease.profile_running=lease.profile_terminal=None;m._FULL_PROFILES[lease]=(None,None,None);self.addCleanup(m._FULL_PROFILES.pop,lease,None);lease.original=lambda **kwargs:None;guard=p.none_network_profile_contract;m._PROFILE_CONTRACTS[lease]=(guard,guard.__code__,guard(),None);self.addCleanup(m._PROFILE_CONTRACTS.pop,lease,None)
         row=dict(Id=lease.cid,Name='/'+lease.name,Image=lease.image,Path='/lsiopy/bin/python3',Args=lease.command,Created='original-birth',Config=dict(User='1000:1000',Labels={'com.homelab.nfs.lease':lease.name},Entrypoint=['/lsiopy/bin/python3'],Cmd=lease.command),HostConfig=dict(ReadonlyRootfs=True,Privileged=False,NetworkMode='none',PidMode='',IpcMode='private',CapAdd=None,CapDrop=['ALL'],SecurityOpt=['no-new-privileges'],PidsLimit=32,Devices=None,DeviceRequests=None,Binds=None,Tmpfs=None,PortBindings=None,RestartPolicy={'Name':'no'},OomKillDisable=False),Mounts=[dict(Type='bind',Source='/fixture/helper',Destination='/lease-helper.py',RW=False)],NetworkSettings=dict(Ports={},SandboxID='',SandboxKey='',Networks={'none':dict(EndpointID='',NetworkID='',IPAddress='',Gateway='',MacAddress='')}),State=dict(Status='created',Running=False,Pid=0,Paused=False,Restarting=False,Dead=False,OOMKilled=False,StartedAt='original-epoch'))
         owner.inspect=lambda cid:copy.deepcopy(row);lease.profile('created');running=copy.deepcopy(row);running['State'].update(Status='running',Running=True,Pid=123);running['HostConfig']['OomKillDisable']=None;running['NetworkSettings'].update(SandboxID='e'*64,SandboxKey='/var/run/docker/netns/'+'e'*12);running['NetworkSettings']['Networks']['none'].update(EndpointID='c'*64,NetworkID='d'*64)
         terminal=copy.deepcopy(running);terminal['State'].update(Status='exited',Running=False,Pid=0,ExitCode=0);terminal['NetworkSettings'].update(SandboxID='',SandboxKey='');terminal['NetworkSettings']['Networks']['none']['EndpointID']=''

@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).parent))
 import ast
+import importlib.util
 import hashlib
 import json
 from pathlib import Path
@@ -119,18 +120,18 @@ class Installation(unittest.TestCase):
         old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
         self.assertNotEqual(new,old)
         self.assertEqual(base['base_installed_sources'][name],new)
-        historical=raw.replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
+        historical=raw.replace(b'    "worker_health.py",\n',b'').replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
         self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         before=json.loads(historical)
-        self.assertEqual(base['required_sdk_names'],before['required_sdk_names'])
+        self.assertEqual([n for n in base['required_sdk_names'] if n!='worker_health.py'],before['required_sdk_names'])
         self.assertEqual(set(base['base_installed_sources']),set(before['base_installed_sources']))
-        self.assertEqual(len(sdk),102);self.assertEqual(len(base['base_installed_sources']),180)
+        self.assertEqual(len(sdk),103);self.assertEqual(len(base['base_installed_sources']),180)
         self.assertEqual(base['base_cohort'],json.loads(Path(__file__).parent.parent.joinpath('publication_reader_cohort.json').read_bytes()))
 
     def test_stale_adoption_base_and_sdk_refuse_new_reviewed_source_joins(self):
         raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path)
         new=sdk['publication_archive_adoption.py'];old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
-        stale=raw.replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
+        stale=raw.replace(b'    "worker_health.py",\n',b'').replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
         self.assertEqual(m.sha(stale),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,stale,files,receipt)
         old_sdk=dict(sdk);old_sdk['publication_archive_adoption.py']=old
@@ -175,6 +176,40 @@ class Installation(unittest.TestCase):
 
 
 class CurrentBase(unittest.TestCase):
+    def test_required_sdk_reaches_actual_native_adapter_probe(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        raw,base,sdk,artifacts,receipt=self.setup_current()
+        effective,_=m.configured_maps(sdk,raw,artifacts,receipt)
+        # Keep real map derivation, built archive adapter and both pin consumers.
+        # Process custody and engine transport are projected, not runtime proof.
+        for name,source in [('comic_archive_evidence_adapter.py',artifacts['comic_archive_evidence_adapter.py']),('comic_native_evidence_adapter.py',Path(__file__).with_name('comic_native_evidence_adapter.py').read_bytes())]:
+            spec=importlib.util.spec_from_file_location('configured_adapter',Path(__file__).with_name(name))
+            actual=importlib.util.module_from_spec(spec)
+            exec(compile(source,spec.origin,'exec'),actual.__dict__)
+            observed={'held_native':{'Id':'a'*64},'held_worker':{}}
+            child={'Id':'b'*64,'Image':'selected','Mounts':[]}
+            class Owner:
+                def continuous(self):return observed
+                def inspect(self,cid):
+                    self_test.assertEqual(cid,child['Id']);return child
+            self_test=self;owner=Owner();captured=[]
+            class ReachedProbe(Exception):pass
+            def probe(cid,source,query,seconds):
+                captured.append(query['module_pins']);raise ReachedProbe
+            context=(SimpleNamespace(raw=lambda p:b'checked scope'),{'selected_image':'selected'},SimpleNamespace(observed_worker=lambda w:None),effective,b'checked probe')
+            with patch.object(actual,'context',return_value=context),patch.object(actual,'deadline',return_value=20),patch.object(actual,'probe_exec',side_effect=probe),patch.dict(Owner.continuous.__globals__,same_runtime=lambda a,b:a==b):
+                with self.assertRaises(ReachedProbe):
+                    actual.native_observation({'nonce':'c'*64,'context':{'observations':observed,'child':child,'child_mounts':[]}},watch=owner.continuous)
+            self.assertEqual(captured,[{'/app/mylar3/mylar/'+name:base['base_installed_sources'][name] for name in ('worker_health.py','native_writers.py')}])
+
+    def test_required_native_probe_sources_cannot_be_omitted_from_sdk(self):
+        raw,base,sdk,artifacts,receipt=self.setup_current()
+        for name in ('worker_health.py','native_writers.py','publication_native_configured_scope.py'):
+            missing=dict(sdk);missing.pop(name)
+            with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-complete-known-sdk'):
+                m.configured_maps(missing,raw,artifacts,receipt)
+
     # Exact original449 / checked adapter / derived output source-only pins.
     # The private derivation replays actual raw bytes; this is not image proof.
     GETCOMICS_DERIVATION=('200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744',
@@ -203,7 +238,7 @@ class CurrentBase(unittest.TestCase):
     def test_reviewed_current_sdk_and_optional_api_join_exactly(self):
         raw,base,sdk,artifacts,receipt=self.setup_current();before=dict(sdk)
         effective,cohort=m.configured_maps(sdk,raw,artifacts,receipt)
-        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),180);self.assertEqual(len(base['required_sdk_names']),102)
+        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),180);self.assertEqual(len(base['required_sdk_names']),103)
         for name,pin in self.CURRENT_PINS:self.assertEqual(base['base_installed_sources'][name],pin)
         self.assertEqual([name for name in sdk if sdk[name]!=effective[name]],['publication_reader_admission.py'])
         original,adapter,derived=self.GETCOMICS_DERIVATION
@@ -222,7 +257,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'faa2c2f013c2ef449bee714dca3df5c0ad73c0b4d4c169bb048e49069f0574b0')
+        self.assertEqual(base['base_cohort_sha256'],'d5a1f1f8a04d05cba98f6b1284415c5f2c2b4e664d54e8ff2765ad5ff947c2eb')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         action=fixes/'reader_recovery/comic_retained_standalone_action.py'

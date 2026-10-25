@@ -75,7 +75,10 @@ def sdk_map(mapping):
 
 def actual_command(plan,args,argv):
  template=plan.get('command_template');need(type(template) is list and all(type(x) is str for x in template) and template.count('<INPUT_SHA256>')==1 and len(template)>=9 and template[-3]=='<INPUT_SHA256>' and all('<' not in x and '>' not in x for x in template if x!='<INPUT_SHA256>'),'action-command-template')
- prefix=template[:-8];need(len(prefix) in (3,4) and prefix[0]=='/lsiopy/bin/python3' and prefix[-1]==str(Path(__file__).absolute()) and prefix[1:-1] in (['-B'],['-I','-B']),'action-command-prefix')
+ executable=Path(__file__).absolute()
+ if args.phase=='backup':
+  need(plan.get('action')=='archive-one-backup','action-backup-purpose');executable=executable.with_name('comic_archive_backup_action.py')
+ prefix=template[:-8];need(len(prefix) in (3,4) and prefix[0]=='/lsiopy/bin/python3' and prefix[-1]==str(executable) and prefix[1:-1] in (['-B'],['-I','-B']),'action-command-prefix')
  expected=[args.input_sha256 if x=='<INPUT_SHA256>' else x for x in template]
  need(expected==list(argv),'action-actual-command')
  need(expected[-8:]==['--phase',args.phase,'--input',args.input,'--input-sha256',args.input_sha256,'--source-sha256',args.source_sha256],'action-command-shape')

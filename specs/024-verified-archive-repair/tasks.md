@@ -4,41 +4,41 @@
 
 ## Current remaining work
 
-**Updated 2026-10-23.** 17 of 22 tasks are complete. The four corrective
-implementation tasks T019–T022 are delivered; they are not additional runtime
-acceptance gates. T012/T015 share one forward run and one distinct-fixture
-rollback with feature 023 T026/T029 and the isolated portion of T027.
+**Updated 2026-10-24.** 17 of 22 tasks are complete. T019–T022 are delivered
+implementation corrections, not additional runtime gates. Five tasks remain:
+T012/T015 share one isolated forward and one distinct-fixture rollback with
+feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
+scoped live acceptance.
 
-1. Resolve the demonstrated nested probe-validation latency without changing the
-   120-second guard, then use a fresh disposable forward attempt. Independently
-   compare archive bytes/members, native records and reader references/progress.
-2. After accepted forward proof, complete the prepared separate rollback fixture
-   and compare its actual causal original plus the complete native preimage.
-3. Record the original terminal, worker-consumption, NFS/restore and reader-resume
-   evidence once, referencing it from every task it satisfies. Leave unmet
-   criteria open; do not repeat an accepted run for another task ID.
-4. Keep production rollout/repair, selected-pack ACK, whole-library and bulk work
-   as subsequent operational milestones. The current disposable-fixture scope
-   does not authorize production T016–T018 or permanent worker activation.
+1. Finish the owning stopped-reader handoff, then backup/restore, archive
+   transition, factual terminal consumption and permitted resume. Resolve the
+   demonstrated post-stop profile and retained-session lifetime boundaries
+   within T012, preserving original identity, custody and freshness checks.
+   Diagnose held attempts without replay or an inferred resume grant.
+2. After accepted forward proof, run explicit rollback on a distinct fixture.
+   Independently compare its causal source, complete native preimage and affected
+   reader state. Reuse the same immutable installation when its exact inputs
+   remain unchanged.
+3. Record each accepted original terminal/preservation result once and link it
+   from every shared task. Passing source tests, NFS readiness or reader stop
+   alone cannot close T012/T015. Leave every unmet criterion open.
+4. Follow T016–T018 for production backup, selected repair/import and library
+   acceptance. Disposable-fixture authorization supplies no production or
+   permanent-worker activation permission.
 
-PR [#512](https://github.com/bolens/homelab/pull/512) delivered the plan audit and
-removed one duplicate session guard after all hosted checks passed. A fresh
-isolated run then reached probe creation but held at the dialogue deadline
-during birth registration, before reader stop. Its original native/reader
-epochs and inactive worker remain unchanged. Independent post-hold comparisons
-preserve both archives, reader records/progress and six page hashes. The next
-correction removes repeated command construction and root observation, and
-delegates registered common-root custody to its existing complete geometry
-checker. A separate actual Root/NFS benchmark of 24 identical private controls
-reduced these checks from 2.744 seconds to 0.185 seconds, preserving original
-controls, geometry and source bytes. This measures metadata closure, not the
-connected recovery path. Final source additionally checks the exact ancestor
-key set before any Root path access; its regression verifies that consistently
-forged ledgers cannot trigger a foreign metadata read. Terminal acceptance
-remains unproved. This stays within T012, with no new task or acceptance gate.
-Preserve all earlier attempts and
-originals without replay. Historical refusals remain in [evidence
-history](evidence-history.md) and the [shared history](../023-verified-publication-corrections/evidence-history.md).
+The matching native image, 180-module capture, required SDK102 map and DATA
+precondition from PR [#515](https://github.com/bolens/homelab/pull/515) are verified.
+Reuse unchanged native/worker proofs for their exact original inputs. Changed
+installed host controls require fresh checked outputs; they do not by themselves
+require another image pull or source capture.
+
+PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
+audit. Later source corrections remain work within T012, not new task plans.
+Reviewed frozen source and its matching installation may be tested in an
+explicitly authorized disposable operation before merge. Hosted CI still gates
+merge and final delivery must join the accepted runtime evidence. Preserve
+all held attempts. Superseded execution instructions belong in [evidence
+history](evidence-history.md#superseded-execution-notes--2026-10-23), not this queue.
 
 ## Phase 1: Setup
 
