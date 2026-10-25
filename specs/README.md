@@ -40,3 +40,5 @@ Installation validation alone does not establish feature completion.
 - [Independent Kavita provider services](028-kavita-independent-services/spec.md): [plan](028-kavita-independent-services/plan.md), [tasks](028-kavita-independent-services/tasks.md), [validation](028-kavita-independent-services/validation.md). Genuine provider-account verification remains open.
 
 - [Librarr integrations](029-librarr-integrations/spec.md): [plan](029-librarr-integrations/plan.md), [research](029-librarr-integrations/research.md), [tasks](029-librarr-integrations/tasks.md).
+
+- [Librarr Bookshelf supplementation and Flood persistence](030-librarr-flood-supplement/spec.md): [plan](030-librarr-flood-supplement/plan.md), [research](030-librarr-flood-supplement/research.md), [tasks](030-librarr-flood-supplement/tasks.md).

@@ -1,0 +1,47 @@
+# Optional native Librarr SABnzbd client -> existing NZBGet API.
+services:
+  librarr:
+    environment:
+      SABNZBD_URL: http://librarr-nzbget-adapter:8080
+      SABNZBD_API_KEY: ${SABNZBD_API_KEY:?Set SABNZBD_API_KEY}
+      SABNZBD_CATEGORY: ${NZBGET_CATEGORY:-librarr}
+    depends_on:
+      librarr-nzbget-adapter:
+        condition: service_healthy
+
+  librarr-nzbget-adapter:
+    image: python:3.13.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
+    container_name: librarr-nzbget-adapter
+    user: "${PUID:-1000}:${PGID:-1000}"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.5
+    mem_limit: 128m
+    memswap_limit: 256m
+    pids_limit: 64
+    environment:
+      SABNZBD_API_KEY: ${SABNZBD_API_KEY:?Set SABNZBD_API_KEY}
+      NZBGET_URL: ${NZBGET_URL:-http://nzbget:6789}
+      NZBGET_USERNAME: ${NZBGET_USERNAME:?Set NZBGET_USERNAME}
+      NZBGET_PASSWORD: ${NZBGET_PASSWORD:?Set NZBGET_PASSWORD}
+      NZBGET_CATEGORY: ${NZBGET_CATEGORY:-librarr}
+      NZBGET_COMPLETED_ROOT: ${NZBGET_COMPLETED_ROOT:-/downloads/completed/librarr}
+      LIBRARR_NZB_ROOT: ${LIBRARR_NZB_ROOT:-/data/downloads/usenet/completed/librarr}
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: [python, /app/adapter.py]
+    volumes:
+      - type: bind
+        source: ./nzbget-adapter/adapter.py
+        target: /app/adapter.py
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [media-automation]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

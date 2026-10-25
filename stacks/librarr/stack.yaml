@@ -47,6 +47,10 @@ volumes:
 - name: sources.json
   role: config
   critical: true
+- name: FLOOD_RTORRENT_VOLUME
+  role: app_data
+  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null
@@ -62,8 +66,11 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: Pinned Linux amd64 release. Optional reader APIs require docker-compose.readers.yml.
-    Direct downloads are not a Bookshelf download client.
+  notes: 'Pinned Linux amd64 release. Optional reader APIs require docker-compose.readers.yml.
+    Direct downloads are not a Bookshelf download client. Flood is opt-in: verify
+    its mounted download paths, persistent accounts and socket volume before selecting
+    docker-compose.flood.yml. Optional docker-compose.nzbget.yml translates the native
+    SABnzbd client to NZBGet; verify category and completed-path mapping.'
 runtime_security:
   privileged_services: []
   host_network_services: []
