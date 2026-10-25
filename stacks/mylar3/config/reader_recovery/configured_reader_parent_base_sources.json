@@ -102,6 +102,7 @@
     "tagger_supplement.py",
     "tagger_volume_cache.py",
     "worker_handoff.py",
+    "worker_health.py",
     "workflow.py",
     "workflow_nzb.py",
     "workflow_store.py"

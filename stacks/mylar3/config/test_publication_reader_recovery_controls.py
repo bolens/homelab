@@ -99,7 +99,7 @@ class Controls(unittest.TestCase):
   names={row['path']for row in rows}|{'reader_recovery/'+name for name in manifest['files']}|{'reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'}
   for name in names:
    dst=actual/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/name,dst);dst.chmod(0o644)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1717);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1719);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
  def extra_source(self):
   p=self.fixes/'extra.py';p.write_bytes(b'# exact explicit source\n');p.chmod(0o644)
   index=self.fixes/'standalone_control_sources.json';rows=json.loads(index.read_bytes());row=dict(path='extra.py',target='alias.py',sha256=digest(p));rows.extend((row,dict(row,target='another-alias.py')));index.write_text(json.dumps(rows));return p,index,rows
@@ -127,13 +127,13 @@ class Controls(unittest.TestCase):
   return parent
  def test_aggregate_budget_encloses_actual_serial_child_deadlines(self):
   # Only process scheduling/results are projected; actual fixture-copy and
-  # parent runner paths execute. This does not rerun or grant the 1717 controls.
+  # parent runner paths execute. This does not rerun or grant the 1719 controls.
   parent=self.parent();children=[];expected=dict(m.SUITES)
   def child(command,**kw):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],1717);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),75);self.assertEqual(m.SUITES[-1],('test_transition_consumers.py',9))
+  self.assertEqual(value['tests'],1719);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),75);self.assertEqual(m.SUITES[-1],('test_transition_consumers.py',9))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()
