@@ -82,6 +82,25 @@ class Flow(unittest.TestCase):
  def test_fresh_independent_forward_verifier(self):
   result,vectors=self.verify_forward();p.close_vectors(vectors)
   self.assertEqual(result['outcome'],'observed-forward');self.assertFalse(result['ordinary_import_grant']);self.assertFalse(result['publication_acceptance'])
+ def test_separate_verifier_uses_pair_created_after_binding(self):
+  # The real binder allocates another pair. Project only its retained-custody
+  # work here; allocate actual SDK objects and enforce the Scope's current pair.
+  c=self.case.c;allocated=[];scope_type=type(self.scope)
+  def factory(scope):
+   controller=type(c.controller)(c.controller.root,c.controller.roots,tool_root=c.controller.tool_root)
+   writer=type(c.writer)(controller.writer_root,create=False)
+   scope.current_pair=(controller,writer);allocated.append(scope.current_pair)
+   return scope.current_pair
+  def session(scope,controller,writer):
+   if scope.current_pair[0] is not controller or scope.current_pair[1] is not writer:raise p.Held('scope-no-nested-original-writer-session')
+   return writer.hold(timeout=0)
+  original_bind=self.fixture_bind
+  def bind(custody,scope,owner,operation):
+   factory(scope);return original_bind(custody,scope,owner,operation)
+  self.modules['publication_reader_lifecycle'].bind_archive_preparation=bind
+  with patch.object(scope_type,'controller_writer',factory),patch.object(scope_type,'writer_session',session):
+   result,vectors=self.verify_forward();p.close_vectors(vectors)
+  self.assertEqual(result['outcome'],'observed-forward');self.assertGreaterEqual(len(allocated),3)
  def test_original_preparation_bytes_and_stage_incarnation_not_refreshed(self):
   for mode in ('metadata','directory'):
    with self.subTest(mode=mode):

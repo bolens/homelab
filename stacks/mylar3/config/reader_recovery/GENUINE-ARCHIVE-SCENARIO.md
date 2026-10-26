@@ -35,6 +35,13 @@ NFS mount/export/device and selected-child mountinfo. Source and stage must
 share the same actual mount ID. Device equality alone does not qualify.
 Selection precedes pending-marker creation; no failed exchange triggers fallback.
 
+The configured Controller/Writer factory allocates fresh objects. A fixture
+transition already inside the owning Writer session validates its supplied pair
+against the exact original process-local session record and existing Writer
+proof, retaining record identity across callbacks; it never invokes that factory
+again. The separate terminal verifier selects its final pair after preparation
+binding, whose own factory call replaces the Scope's current pair.
+
 Action input v3 contains exact `publication_protocol=rename-link-v1` and
 `terminal=forward|rollback`. Private request v2 explicitly selects terminal
 behavior; old request v1 selects forward in plan13. Old plans10–12 and input

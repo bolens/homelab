@@ -695,3 +695,33 @@ preservation, mutation or publication authority. Execute remains existing-only;
 worker request journals and selected repair stages are not precreated. Retain
 DG/DH and all predecessors without replay or inferred resume. Forward and
 distinct-fixture rollback acceptance remain open.
+
+## Allocating pair reentry — 2026-10-26
+
+Fresh DJ bootstrap from PR #528's frozen source completes the actual ordinary
+archive preflight, records only queued-review/no-grant setup evidence and verifies
+the original 0700 history directory. DI reuses DG's unchanged original installation
+with the new cohort and passes all 58 packet, six Parent and 16 independent
+observer controls, original joins, armed review and fresh preservation baselines.
+Its owning execution passes the history precondition, then the execute helper
+exits 1 at `fixture-same-owning-pair`, without terminal acceptance or resume.
+The reader remains exited 143, native process/config remain original and the
+worker remains Created. Independent comparison proves both archives' full9/hashes
+and all 24 native SQL tables unchanged.
+
+The transition's second `exact_pair` calls the actual Scope factory inside the
+already-held Writer session. That factory allocates fresh objects and replaces
+its pair registry, so comparing them with the original pair always fails. The
+separate verifier has the same ordering error: preparation binding allocates a
+new pair after the verifier captured the pair it later tries to hold. Existing
+flow doubles always returned the same objects and hid both boundaries.
+
+Real Scope/factory/Writer/pipe controls reproduce the first refusal, and a
+separate-verifier test with actual allocated SDK objects reproduces the second.
+The host correction reads the original process-local session record, compares
+Controller/Writer identities without invoking the factory, retains record
+identity across callbacks, and selects the verifier's final pair after binding.
+Native factory semantics remain unchanged. These controls establish source
+behavior only. Preserve DI/DJ and every earlier hold; a fresh matching checked
+installation, unused fixture, accepted forward and distinct rollback are still
+required.

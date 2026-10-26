@@ -167,7 +167,7 @@ class Tests(unittest.TestCase):
   controller=object();writer=object()
   # Only the outer owning-type gate is projected to reach this refusal. This
   # fixture cannot create a real custody or return a genuine successor.
-  with patch.object(a,'exact_pair',return_value=(controller,writer)),patch.object(core,'catalog',side_effect=AssertionError('must not query')):
+  with patch.object(a,'existing_pair',side_effect=lambda *args:scope._writer_proof()),patch.object(core,'catalog',side_effect=AssertionError('must not query')):
    with self.assertRaisesRegex(a.Held,'fixture-test-writer-not-held'):
     a.fixture_transition(dict(version=4,terminal_mode='same-child-v1'),MODULES,object(),scope,controller,writer,{})
   self.assertFalse(self.stage.exists());self.assertEqual(self.source.read_bytes(),self.raw)
@@ -177,7 +177,7 @@ class Tests(unittest.TestCase):
   scope=types.SimpleNamespace(_writer_proof=lambda:None,_native=dict(inspect=rows[0]),_worker=dict(inspect=rows[2]),revalidate=lambda:None)
   custody=types.SimpleNamespace(reader=dict(runtime=rows[1]),deadline=self.deadline,revalidate_stopped=lambda:(_ for _ in ()).throw(a.Held('fixture-test-reader-running')))
   controller=object();writer=object()
-  with patch.object(a,'exact_pair',return_value=(controller,writer)),patch.object(core,'sdk',return_value=()),patch.object(core,'writer_pair'),patch.object(core,'catalog',side_effect=AssertionError('must not query')):
+  with patch.object(a,'existing_pair'),patch.object(core,'sdk',return_value=()),patch.object(core,'writer_pair'),patch.object(core,'catalog',side_effect=AssertionError('must not query')):
    with self.assertRaisesRegex(a.Held,'fixture-test-reader-running'):
     a.fixture_transition(dict(version=4,terminal_mode='same-child-v1'),MODULES,custody,scope,controller,writer,dict(fixture_transition=value))
   self.assertFalse(self.stage.exists());self.assertEqual(self.source.read_bytes(),self.raw)
@@ -269,5 +269,51 @@ class Tests(unittest.TestCase):
   with self.assertRaisesRegex(a.Held,'fixture-owning-successor-only'):a._FixtureSuccessor(None,self.stage,{}, {},{})
   outcome=self.apply();outcome.receipt['sha256']='a'*64
   with self.assertRaisesRegex(a.Held,'fixture-successor-seal'):outcome.close()
+
+class OwningPair(unittest.TestCase):
+ """Actual Scope factory and Writer/pipe session; daemon observations are fixtures."""
+ def setUp(self):
+  import test_ready_writer_session as connected
+  self.connected=connected.Connected('runTest');self.connected.setUp()
+  self.addCleanup(self.connected.doCleanups);self.addCleanup(self.connected.tearDown)
+  self.scope=self.connected.scope;self.custody=self.connected.f.custody
+  self.scope_module=connected.fixtures.m
+  self.modules=dict(publication_native_configured_scope=self.scope_module,
+                    publication_reader_lifecycle=connected.fixtures.l,
+                    publication_api=self.connected.api,media_writer=self.connected.writers)
+  installed=patch.object(a,'installed');installed.start();self.addCleanup(installed.stop)
+  self.controller,self.writer=a.exact_pair(self.modules,self.custody,self.scope)
+ def transition(self,controller=None,writer=None):
+  return a.fixture_transition(dict(version=4,terminal_mode='same-child-v1'),self.modules,
+      self.custody,self.scope,controller or self.controller,writer or self.writer,dict(fixture_transition={}))
+ def test_real_factory_not_reentered_in_original_session(self):
+  with self.scope.writer_session(self.controller,self.writer):
+   original=self.scope_module._WRITER_SESSIONS[self.scope]
+   with patch.object(self.scope,'controller_writer',wraps=self.scope.controller_writer) as factory:
+    with patch.object(a,'fixture_request',side_effect=ValueError('reached-fixture-request')):
+     with self.assertRaisesRegex(ValueError,'reached-fixture-request'):self.transition()
+    self.assertEqual(factory.call_count,0)
+   self.assertIs(self.scope_module._WRITER_SESSIONS[self.scope],original)
+   self.assertIs(self.scope_module._OWNED_PAIRS[self.scope][0],self.controller)
+   self.assertIs(self.scope_module._OWNED_PAIRS[self.scope][1],self.writer)
+  self.assertFalse(self.connected.errors)
+ def test_missing_session_refused_before_fixture_request(self):
+  with patch.object(a,'fixture_request',side_effect=AssertionError('must not read fixture')):
+   with self.assertRaisesRegex(a.Held,'fixture-same-owning-pair'):self.transition()
+ def test_foreign_same_path_pair_refused_in_original_session(self):
+  other=self.connected.api.Controller(self.controller.root,self.controller.roots,tool_root=self.controller.tool_root)
+  foreign=self.connected.writers.Writer(self.controller.writer_root,create=False)
+  with self.scope.writer_session(self.controller,self.writer):
+   with patch.object(a,'fixture_request',side_effect=AssertionError('must not read fixture')):
+    with self.assertRaisesRegex(a.Held,'fixture-same-owning-pair'):self.transition(other,foreign)
+ def test_equal_replaced_session_record_refused(self):
+  with self.scope.writer_session(self.controller,self.writer):
+   original=self.scope_module._WRITER_SESSIONS[self.scope];real=self.scope._writer_proof
+   def replace():
+    result=real();self.scope_module._WRITER_SESSIONS[self.scope]=tuple(list(original));return result
+   try:
+    with patch.object(self.scope,'_writer_proof',side_effect=replace),patch.object(a,'fixture_request',side_effect=AssertionError('must not read fixture')):
+     with self.assertRaisesRegex(a.Held,'fixture-original-writer-session'):self.transition()
+   finally:self.scope_module._WRITER_SESSIONS[self.scope]=original
 
 if __name__=='__main__':unittest.main()

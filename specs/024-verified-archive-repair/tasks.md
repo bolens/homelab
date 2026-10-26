@@ -65,17 +65,24 @@ DG passed prebirth custody, real Birth and the execute child's Writer session,
 then held because archive history had not been initialized. Both archives'
 full9/hashes and all 24 native tables remain unchanged; its reader stays stopped.
 
-The ordinary native repair-request API owns history initialization before
-backup/custody. The disposable catalog setup omitted that request, while host
-flow fixtures initialized history manually. Add the existing authenticated
-request after both catalog completions and before reader scan, recording only
-its queued-review/no-grant result. Keep selected execute existing-only and
-preserve DG/DH without replay or inferred resume. Check adjacent prerequisites
-before another fixture. Unchanged image/SDK proofs may be reused only for exact
-original inputs; use matching frozen host sources and an unused fixture for the
-corrected setup. [Retained failure history](evidence-history.md#missing-disposable-history-preflight--2026-10-26)
-owns these observations. Isolated forward and distinct-fixture rollback remain
-within T012/T015; neither is accepted yet.
+PR [#528](https://github.com/bolens/homelab/pull/528) adds the ordinary authenticated
+repair request before reader scan and backup/custody. Fresh DJ bootstrap records
+its actual queued-review/no-grant result and the original 0700 history directory.
+DI then passes history admission but holds at `fixture-same-owning-pair`: the
+transition calls the allocating Controller/Writer factory inside the original
+Writer session. Both archives' full9/hashes and all 24 native SQL tables remain
+unchanged; the reader stays stopped, native process/config are unchanged and
+worker remains inactive. Preserve DI/DJ without replay or inferred resume.
+
+Correct the existing-session identity check without invoking that factory again.
+Also acquire the separate terminal verifier's final pair after its preparation
+binding, which allocates another pair. Real factory/Writer-session and verifier
+ordering regressions reproduce both failures. Keep native factory semantics and
+all original custody checks. [Retained failure history](evidence-history.md#allocating-pair-reentry--2026-10-26)
+owns the diagnosis. Unchanged image proofs may be reused only for exact original
+inputs; changed host controls require matching checked installation and an unused
+fixture. Forward and distinct-fixture rollback remain within T012/T015; neither
+is accepted yet.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

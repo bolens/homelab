@@ -158,6 +158,17 @@ def exact_pair(modules,custody,scope):
  need(writer.root==controller.writer_root,'repair-same-existing-writer')
  return controller,writer
 
+def existing_pair(modules,custody,scope,controller,writer):
+ # controller_writer is an allocating factory. Inside a Writer session only
+ # the original process-local session row can identify the held pair.
+ installed(modules);native=modules['publication_native_configured_scope']
+ need(type(custody) is modules['publication_reader_lifecycle'].StoppedReaderCustody and type(scope) is native.NativeConfiguredScope and scope._custody is custody,'repair-exact-parent-scope')
+ record=native._WRITER_SESSIONS.get(scope)
+ need(type(record) is tuple and len(record)==11 and record[0] is controller and record[1] is writer,'fixture-same-owning-pair')
+ need(type(controller) is modules['publication_api'].Controller and type(writer) is modules['media_writer'].Writer and writer.root==controller.writer_root,'repair-exact-existing-pair')
+ custody.revalidate_stopped();scope.revalidate();scope._writer_proof()
+ need(native._WRITER_SESSIONS.get(scope) is record and record[0] is controller and record[1] is writer,'fixture-original-writer-session')
+
 def scopes_existing(ref,custody,controller):
  need(custody.proofs.get('archive_scopes')==ref,'repair-parent-owned-scopes')
  raw,_,_=checked(ref);value=decode(raw)
@@ -420,7 +431,7 @@ def fixture_transition(plan,modules,custody,scope,controller,writer,request,publ
  # The Parent must separately join original Bootstrap/catalog refs and exact
  # original gen9 profiles; receipt JSON alone cannot construct either factory.
  need(plan.get('version')==4 and plan.get('terminal_mode')=='same-child-v1','fixture-plan13-same-child-only')
- need(exact_pair(modules,custody,scope)==(controller,writer),'fixture-same-owning-pair');scope._writer_proof()
+ existing_pair(modules,custody,scope,controller,writer)
  value=fixture_request(request['fixture_transition']);need(value['nonce']==scope._native['inspect']['Config'].get('Labels',{}).get('com.homelab.archive.bootstrap'),'fixture-original-nonce')
  fixture_roles(value,(scope._native['inspect'],custody.reader['runtime'],scope._worker['inspect']))
  core=modules['publication_archive_owned'];g=modules['publication_guard'];deadline=min(custody.deadline,time.monotonic()+120)
@@ -551,6 +562,9 @@ def verify_one(plan,modules,custody,scope):
  controller,writer=exact_pair(modules,custody,scope);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  control_join(plan,custody)
  bound=modules['publication_reader_lifecycle'].bind_archive_preparation(custody,scope,plan['owner'],plan['operation_id']);need(bound is custody,'repair-same-original-bound-custody')
+ # Binding derives its own pair. Select the verifier's session pair only after
+ # that callback, retaining the same admitted scope and private geometry.
+ controller,writer=exact_pair(modules,custody,scope);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  ref=plan['execution_originals']
  need(custody.proofs.get('archive_execution_originals')==ref,'repair-parent-original-execute-evidence')
  raw,fact,parents=checked(ref);original=original_execution(decode(raw),plan)
