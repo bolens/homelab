@@ -560,3 +560,27 @@ exact bytes, all six page hashes and the entire native 24-table model are
 unchanged. No accepted terminal or resume authority was produced. Preserve the
 held operation and its exact helper; a changed adapter requires fresh checked
 host controls and a separate unused fixture.
+
+
+## Installed child geometry hold — 2026-10-26
+
+After PR #524 passed hosted CI and merged, the fresh CX packet used the unchanged
+checked installation and an unused disposable fixture. SourceCohort and the host
+selected-child geometry check passed. The owning Parent stopped the disposable
+reader, then held without an accepted terminal. Read-only diagnosis found native
+running, reader exited and worker created; the original native process and
+configuration still match. The exact execute helper's retained traceback ends in
+`publication_native_scope_birth.from_checked_parent` calling
+`publication_native_configured_scope.projection` with 73 mounts and refusing
+`scope-mount-bound`. The earlier host-only correction missed this installed
+consumer and the later Scope constructor's identical limit.
+
+The corrective source uses one SDK child projection across Birth, Scope and both
+host adapters. The existing complete Birth/lifecycle/Scope test was first shown
+to fail with 73 mounts, then pass with the same full vector retained. Refusal
+controls cover an oversized child, malformed irrelevant mount, duplicate relevant
+mount, foreign source mapping and unchanged native/worker 64-row limits. Full
+vector revalidation still rejects drift in an irrelevant copied-control mount.
+Historical fixtures remain unchanged. A new installed SDK image and its actual
+module proof are required before a fresh operation. This source work supplies no
+accepted archive terminal, rollback or reader-resume authority for CX.

@@ -26,23 +26,23 @@ class ChildMountTests(unittest.TestCase):
   return [dict(Type='bind',Source='/fixture/config',Destination='/config',RW=False),dict(Type='bind',Source='/fixture/comics',Destination='/data/comics',RW=True),*[dict(Type='bind',Source='/fixture/control-'+str(i),Destination='/_operation/control-'+str(i),RW=False) for i in range(count-2)]]
  def test_complete_73_mount_child_projects_library_and_native_config(self):
   mounts=self.mounts()
-  self.assertEqual(adapter.child_projection(scope,mounts,'/data/comics/book.cbz'),'/fixture/comics/book.cbz')
-  self.assertEqual(adapter.child_projection(scope,mounts,'/config/config.ini'),'/fixture/config/config.ini')
+  self.assertEqual(scope.child_projection(mounts,'/data/comics/book.cbz'),'/fixture/comics/book.cbz')
+  self.assertEqual(scope.child_projection(mounts,'/config/config.ini'),'/fixture/config/config.ini')
   with self.assertRaisesRegex(scope.Held,'scope-mount-bound'):scope.projection(mounts,'/data/comics/book.cbz')
  def test_child_mount_limit_remains_finite(self):
-  self.assertEqual(adapter.child_projection(scope,self.mounts(147),'/config/config.ini'),'/fixture/config/config.ini')
+  self.assertEqual(scope.child_projection(self.mounts(147),'/config/config.ini'),'/fixture/config/config.ini')
   for mounts in (self.mounts(148),tuple(self.mounts()),[]):
-   with self.assertRaisesRegex(adapter.Held,'adapter-child-mount-bound'):adapter.child_projection(scope,mounts,'/config/config.ini')
+   with self.assertRaisesRegex(scope.Held,'scope-child-mount-bound'):scope.child_projection(mounts,'/config/config.ini')
  def test_most_specific_foreign_shadow_is_visible(self):
   mounts=self.mounts()+[dict(Type='bind',Source='/foreign',Destination='/data/comics/nested',RW=False)]
-  self.assertEqual(adapter.child_projection(scope,mounts,'/data/comics/nested/book.cbz'),'/foreign/book.cbz')
+  self.assertEqual(scope.child_projection(mounts,'/data/comics/nested/book.cbz'),'/foreign/book.cbz')
  def test_duplicate_matching_destination_refuses(self):
   mounts=self.mounts();mounts.append(dict(mounts[1]))
-  with self.assertRaisesRegex(scope.Held,'scope-ambiguous'):adapter.child_projection(scope,mounts,'/data/comics/book.cbz')
+  with self.assertRaisesRegex(scope.Held,'scope-ambiguous'):scope.child_projection(mounts,'/data/comics/book.cbz')
  def test_malformed_irrelevant_mount_still_refuses(self):
   for change in ({'Type':'foreign'},{'RW':1},{'Source':'relative'},{'Destination':'relative'},{'Type':'volume','Driver':'foreign'}):
    mounts=self.mounts();mounts[-1].update(change)
-   with self.subTest(change=change),self.assertRaises((adapter.Held,scope.Held)):adapter.child_projection(scope,mounts,'/config/config.ini')
+   with self.subTest(change=change),self.assertRaises((adapter.Held,scope.Held)):scope.child_projection(mounts,'/config/config.ini')
  def test_actual_native_observation_consumes_complete_child_mount_vector(self):
   import copy,hashlib
   from unittest.mock import patch

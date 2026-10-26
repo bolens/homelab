@@ -184,8 +184,8 @@ def from_checked_parent(input_path, input_sha, nonce, *, parent_sha, argv):
     host_data = scope.projection(native['inspect']['Mounts'], data)
     host_root = scope.projection(native['inspect']['Mounts'], root)
     check(host_root == scope.projection(worker['Mounts'], seed['worker_library'])
-          and host_root == scope.projection(mounts, root)
-          and host_data == scope.projection(mounts, data), 'birth-fresh-mount-geometry')
+          and host_root == scope.child_projection(mounts, root)
+          and host_data == scope.child_projection(mounts, data), 'birth-fresh-mount-geometry')
     dp,rp,dh,rh = map(scope.absolute,(data,root,host_data,host_root))
     check(dp != rp and dp not in rp.parents and rp not in dp.parents and dh != rh
           and dh not in rh.parents and rh not in dh.parents, 'birth-disjoint-derived-roots')

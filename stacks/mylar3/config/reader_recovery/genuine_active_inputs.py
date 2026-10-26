@@ -23,7 +23,7 @@ need = p.need
 HERE = Path(__file__).absolute().parent
 PINS = {
     'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_negative_nfs_active_parent.py': '0bb403a96c01806af0c7fe29d98bddc3811969a1633de6dd5d450873d1204a84',
+    'comic_negative_nfs_active_parent.py': 'f175f7f7340a3854dbe42fffd8f593be1f4450e205a2fae2f47e442f9028bdb3',
     'genuine_source_cohort.py': '9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d',
 }
 RIGHTS = ('backup_verified', 'publication_acceptance', 'mutation_authority')

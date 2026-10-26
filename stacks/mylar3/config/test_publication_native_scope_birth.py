@@ -90,11 +90,38 @@ class Controls(unittest.TestCase):
         self.assertEqual(self.frames[0]['type'],'challenge');self.assertEqual(self.frames[1]['type'],'birth-commit')
         token.original()
     def test_handoff_same_pipe_then_actual_lifecycle_scope_factory(self):
+        self.response['child_mounts'].extend(dict(Type='bind',Source='/fixture/control-'+str(i),Destination='/_operation/control-'+str(i),RW=False) for i in range(71))
+        self.assertEqual(len(self.response['child_mounts']),73)
         token=self.born();channel=token.channel;custody=l.from_birth(token)
         self.assertIs(custody.channel,channel);self.assertGreater(channel.seq,2)
         scope=s.from_checked_parent(custody);self.assertEqual(scope.binding['roots'],[str(self.fixture.library)])
         self.assertFalse(scope.binding['mutation_authority']);self.assertFalse(scope.binding['publication_acceptance'])
+        self.assertEqual(len(scope._mounts),73);scope.revalidate()
         with self.assertRaises(l.Held):l.from_birth(token)
+    def child_controls(self,count=73):
+        self.response['child_mounts'].extend(dict(Type='bind',Source='/fixture/control-'+str(i),Destination='/_operation/control-'+str(i),RW=False) for i in range(count-2))
+    def test_child_mount_limit_refuses_before_proof(self):
+        self.child_controls(148)
+        with self.assertRaisesRegex(s.Held,'scope-child-mount-bound'):self.born()
+        self.assertFalse(self.input.with_suffix('.native-scope.json').exists())
+    def test_irrelevant_malformed_child_mount_refuses_before_proof(self):
+        self.child_controls();self.response['child_mounts'][-1]['RW']=1
+        with self.assertRaisesRegex(s.Held,'scope-mount-kind'):self.born()
+        self.assertFalse(self.input.with_suffix('.native-scope.json').exists())
+    def test_duplicate_child_library_mount_refuses_before_proof(self):
+        self.child_controls();self.response['child_mounts'].append(copy.deepcopy(self.response['child_mounts'][1]))
+        with self.assertRaisesRegex(s.Held,'scope-ambiguous'):self.born()
+        self.assertFalse(self.input.with_suffix('.native-scope.json').exists())
+    def test_foreign_child_library_mapping_refuses_before_proof(self):
+        self.child_controls();self.response['child_mounts'][1]['Source']='/foreign/library'
+        with self.assertRaisesRegex(l.Held,'birth-fresh-mount-geometry'):self.born()
+        self.assertFalse(self.input.with_suffix('.native-scope.json').exists())
+    def test_native_mount_vector_keeps_64_bound(self):
+        self.child_controls();self.response['native']['inspect']['Mounts'].extend(dict(Type='bind',Source='/native/control-'+str(i),Destination='/other/control-'+str(i),RW=False)for i in range(63))
+        with self.assertRaisesRegex(s.Held,'scope-mount-bound'):self.born()
+    def test_worker_mount_vector_keeps_64_bound(self):
+        self.child_controls();self.response['worker']['Mounts'].extend(dict(Type='bind',Source='/worker/control-'+str(i),Destination='/other/control-'+str(i),RW=False)for i in range(64))
+        with self.assertRaisesRegex(s.Held,'scope-mount-bound'):self.born()
     def test_birth_commit_uses_original_channel_budget_beyond_five_seconds(self):
         real=b.commit
         def delayed(channel,binding,birth):

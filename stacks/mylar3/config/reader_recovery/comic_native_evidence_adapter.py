@@ -10,8 +10,8 @@ import subprocess
 import time
 import types
 
-PROBE_SHA = 'c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce'
-SCOPE_SHA = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
+PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
+SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 PRODUCER_SHA = '90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01'
 TERMINAL_PRODUCER_SHA = '00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc'
 MAX = 1024*1024
@@ -107,7 +107,7 @@ def native_observation(request,*,watch):
     library=scope.destination(config);native_host=scope.projection(native['Mounts'],library)
     need(type(plan['native']['roots']) is list and len(plan['native']['roots'])==1,'adapter-single-configured-library-required')
     need(scope.projection(worker['Mounts'],plan['native']['roots'][0])==native_host,'adapter-worker-library')
-    need(scope.projection(child['Mounts'],library)==native_host and scope.projection(child['Mounts'],response['config']['path'])==host,'adapter-child-native-host-geometry')
+    need(scope.child_projection(child['Mounts'],library)==native_host and scope.child_projection(child['Mounts'],response['config']['path'])==host,'adapter-child-native-host-geometry')
     need(expected['child_mounts']==child['Mounts'],'adapter-child-mounts')
     files=tuple((p,tuple(v)) for p,v in o.files.items());nodes=tuple((p,tuple(v)) for p,v in o.nodes.items())
     last=copy.deepcopy(watch());need(set(last)==set(initial) and all(same(last[k],initial[k]) for k in initial) and same(owner.inspect(child['Id']),child),'adapter-final-runtime')

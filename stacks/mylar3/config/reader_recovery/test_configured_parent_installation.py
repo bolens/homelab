@@ -116,6 +116,7 @@ class Installation(unittest.TestCase):
     def before_channel_deadline(self,raw):
         base=json.loads(raw)
         previous={
+            'publication_native_configured_scope.py':'43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed',
             'publication_reader_lifecycle.py':'b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2',
             'publication_native_scope_birth.py':'28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef',
             'publication_reader_admission.py':'123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475',
@@ -164,6 +165,9 @@ class Installation(unittest.TestCase):
         foreign=dict(sdk);foreign['publication_guard.py']='0'*64
         with self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(foreign,raw,files,receipt)
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,raw+b' ',files,receipt)
+        for name,pin in {'publication_native_configured_scope.py':'43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed','publication_native_scope_birth.py':'a0379e5a4b41b112249155ef8baaa5c3a15e7efaa26721aab513cdfb5ead29a1'}.items():
+            stale=dict(sdk);stale[name]=pin
+            with self.subTest(module=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(stale,raw,files,receipt)
     def test_derived_artifact_map_join_cannot_adopt_changed_output(self):
         raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path);files['publication_reader_admission.py']+=b'\nforeign=True\n'
         with self.assertRaisesRegex(m.Held,'configured-derived-artifact-joins'):m.configured_maps(sdk,raw,files,receipt)
@@ -267,7 +271,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'415dddc4593121d9313886811183ac37d50327141c5770d513739e6128e848c9')
+        self.assertEqual(base['base_cohort_sha256'],'3ed607e05797f48f4a93d8193919567718e507c077e930c6fc02560661d74cd7')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         parent=ast.parse((fixes/'reader_recovery/comic_reader_lifecycle_parent.py').read_bytes())

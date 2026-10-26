@@ -481,11 +481,11 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed"
+    "sha256": "4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770"
   },
   {
     "path": "publication_native_scope_birth.py",
-    "sha256": "a0379e5a4b41b112249155ef8baaa5c3a15e7efaa26721aab513cdfb5ead29a1"
+    "sha256": "347fb1315d7814b539ee21eef4ff37f61b0bc1e16463dc23e6e0d5f61f0e535f"
   },
   {
     "path": "publication_negative.py",
@@ -629,7 +629,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "91a9a0a07c27964f4a3dee34b6e10c00c7e1ce88cd2a2f5ce4cea3124d4e621f"
+    "sha256": "4986e0d4faa0fd2858f216b884ece13b94e60742838a3c2d91a4cd73284a9ab5"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
@@ -641,7 +641,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "6aee7eef6d4144941dfa200589251d3ba79bd46ae276429b1eb0a17d890e3472"
+    "sha256": "6e68b1e8e3e6a48c78ea72712346c9cf6667350c117121315b2f28c6a7d7826d"
   },
   {
     "path": "reader_recovery/retained_pack_control.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "3d1f052fed449596cc6e438734bcdc7999407057132c9bea91b4f4517ace468e"
+    "sha256": "3c4d628412052e6c64484bcc06426b3cb6b323c586ab410050830e979ba0cb0b"
   },
   {
     "path": "story_arc_search.py",
@@ -1305,11 +1305,11 @@
   },
   {
     "path": "test_publication_native_configured_scope.py",
-    "sha256": "2f118b3380a7bf02187931ea064107a0c88339705d78993833521831fbb917a1"
+    "sha256": "47acc03f1b28f6457df649f5a1b4c6471688d07f9ba8f7c1349bd414a1848f47"
   },
   {
     "path": "test_publication_native_scope_birth.py",
-    "sha256": "d31b6d671a520ebd5237b433c9c87a22fa5f5bab5e6d33cd3b52b903a4477067"
+    "sha256": "a9676046172f6d316e6aed9284ba6b5042866c0d35302aa8340614d90faeb3bf"
   },
   {
     "path": "test_publication_negative.py",
@@ -1653,7 +1653,7 @@
   },
   {
     "path": "standalone_launch_host/comic_native_process_probe.py",
-    "sha256": "c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce"
+    "sha256": "86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407"
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
@@ -1669,7 +1669,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "30fd2ca0c39e50012f82d69cec616fa99ab75ab7adee04c3825babd6d0ff05aa"
+    "sha256": "a8dba9570b2179d115b1b85924b97548e3263705ff1b37897d86a0521cae458c"
   },
   {
     "path": "standalone_launch_host/private_crypto.py",
@@ -1677,7 +1677,7 @@
   },
   {
     "path": "standalone_launch_host/publication_native_configured_scope.py",
-    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed"
+    "sha256": "4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770"
   },
   {
     "path": "test_standalone_anchor_composition.py",
@@ -1725,7 +1725,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "37a67cebff490877a81bc42c4f8bfc015bb622fbda9a25d625ea819dd8cda71d"
+    "sha256": "84b092d38957d29e5fd909409cce201a3fffdcf87b948e338a9d93edee47bbe8"
   },
   {
     "path": "test_tagging_stage_inputs.py",
