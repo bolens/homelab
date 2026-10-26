@@ -623,3 +623,45 @@ Corrected controls retain version 3, reject floats, booleans, unsupported versio
 and missing/foreign protocols, preserve one-use selection and enter no Writer.
 This component proof grants no configured acceptance. A matching new image,
 actual SDK capture, checked installation and unused fixture are still required.
+
+
+## Prebirth live DATA custody hold — 2026-10-26
+
+PR #526 merged with every local and hosted gate passing. Main publication and
+registry/platform/SLSA joins pass; actual capture verifies all 180 native modules
+and SDK103, and removes its restricted offline helper. Fresh DC installation
+verifies all 27 original outputs. DD's disposable bootstrap passes. Its forward
+packet passes 58 controls, six actual Parent-original guards and 16 independent
+SQL observer controls, with fresh two-archive/two-book/six-page/24-table baselines
+and independent review of the armed graph.
+
+DC passes SourceCohort and enters the owning Parent. The Parent stops only DD's
+disposable reader, then holds during execute prebirth custody in
+`comic_archive_proof_producer.close`: `archive-producer-final-file`. No execute
+child or accepted terminal is produced. Native is running with original
+process/config, reader is exited, and worker remains Created. Independent
+post-hold comparison proves both archives' original full9/hashes and all 24
+native tables unchanged. The original failing in-memory vector was not retained;
+metadata measured afterward cannot identify its exact offending path. DC and DD
+remain held without replay, inferred resume or production authority.
+
+A separate read-only 30-second sample observes a timestamp-only change in native
+DATA. A bounded metadata-only directory watch sees creation/deletion of
+`workflow.sqlite-journal` and SQLite close-write events. This identifies namespace
+activity, not the responsible process or DC's prior failing vector. Source
+inspection shows the worker mounts native DATA read-only at `/mylar`, while
+prebirth custody records every bind Source directory as immutable full9 before
+the future archive Writer window.
+
+The local owning phase-custody reproduction uses a real SQLite transaction that
+creates a journal, then rolls back. Database bytes/full9 and native config remain
+unchanged; only native DATA directory timestamps differ, and the old guard
+refuses `archive-producer-final-file`. Parent/runtime profiles are explicit test
+doubles; this is not Root/NFS or configured acceptance. The finite correction
+requires the checked native DATA projection and the unique read-only worker bind
+to agree, retains the originally captured identity5, and forbids aliasing with
+reader/restore/library/private scopes or immutable trees. Other full9, source,
+census and absence checks remain. Refusals retain bounded path-digest/vector
+metadata in private stderr without changing their authority or retry behavior.
+Changed host controls need fresh checked installation and an unused fixture;
+unchanged native SDK bytes alone do not close the forward/rollback tasks.

@@ -3,6 +3,7 @@ import copy
 import hashlib
 import importlib.util
 import inspect
+import io
 import json
 from pathlib import Path
 import sqlite3
@@ -130,6 +131,87 @@ class Controls(unittest.TestCase):
   request,tree,_,projected=self.copied_provider_phase();physical=tree.host(projected['path']);original_host=self.parent.mapping.original_host
   self.parent.mapping.original_host=lambda path:'/foreign/provider.py' if path==physical else original_host(path)
   with self.assertRaisesRegex(p.Held,'archive-producer-path-roundtrip'):p.produce('phase-custody',request,watch=self.parent.continuous)
+ def live_data_phase(self):
+  self.observations['held_worker']['Mounts'].append(dict(Type='bind',RW=False,Source=str(self.native),Destination='/mylar'))
+  self.request['context']['observations']=copy.deepcopy(self.observations)
+  return self.phase()
+ def final_runtime_activity(self,activity):
+  original=p.runtime;calls=[]
+  def callback(watch,expected):
+   result=original(watch,expected);calls.append(True)
+   if len(calls)==2:activity()
+   return result
+  return callback
+ def test_prebirth_live_data_journal_roundtrip_keeps_original_identity_and_file_guards(self):
+  path=self.native/'workflow.sqlite'
+  with sqlite3.connect(path) as db:db.execute('CREATE TABLE state(value INTEGER)');db.execute('INSERT INTO state VALUES(1)')
+  original=a.nine(path.stat());raw=path.read_bytes();config=a.nine((self.native/'config.ini').stat());observed=[]
+  request=self.live_data_phase()
+  def activity():
+   with sqlite3.connect(path) as db:
+    db.execute('BEGIN IMMEDIATE');db.execute('UPDATE state SET value=2');observed.append(Path(str(path)+'-journal').is_file());db.rollback()
+   self.assertFalse(Path(str(path)+'-journal').exists())
+  with patch.object(p,'runtime',self.final_runtime_activity(activity)):
+   result=p.produce('phase-custody',request,watch=self.parent.continuous)
+  self.assertEqual(observed,[True]);self.assertEqual(path.read_bytes(),raw);self.assertEqual(a.nine(path.stat()),original)
+  self.assertEqual(a.nine((self.native/'config.ini').stat()),config);self.assertIn('birth_seed',result['evidence'])
+ def test_live_data_inode_change_still_refuses_original_node(self):
+  request=self.live_data_phase()
+  def activity():self.native.rename(self.root/'retained-native');self.native.mkdir(mode=0o700)
+  with patch.object(p,'runtime',self.final_runtime_activity(activity)),self.assertRaisesRegex(p.Held,'archive-producer-final-node'):
+   p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_live_data_mode_change_still_refuses_original_node(self):
+  request=self.live_data_phase()
+  with patch.object(p,'runtime',self.final_runtime_activity(lambda:self.native.chmod(0o750))),self.assertRaisesRegex(p.Held,'archive-producer-final-node'):
+   p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_live_data_config_file_incarnation_stays_immutable(self):
+  request=self.live_data_phase();path=self.native/'config.ini';mode=path.stat().st_mode & 0o777
+  def activity():path.chmod(mode ^ 0o040);path.chmod(mode)
+  with patch.object(p,'runtime',self.final_runtime_activity(activity)),self.assertRaisesRegex(p.Held,'archive-producer-final-file'):
+   p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_other_custody_directories_keep_full9(self):
+  request=self.live_data_phase()
+  for directory in (self.config,Path(self.backup['restore_root']),self.library,self.scratch,self.retention):
+   with self.subTest(directory=directory.name):
+    def activity():
+     path=directory/'transient';path.write_bytes(b'');path.unlink()
+    with patch.object(p,'runtime',self.final_runtime_activity(activity)),self.assertRaisesRegex(p.Held,'archive-producer-final-file'):
+     p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_foreign_duplicate_or_writable_worker_data_binding_refuses(self):
+  request=self.live_data_phase();mounts=request['context']['observations']['held_worker']['Mounts']
+  original=copy.deepcopy(mounts)
+  for change in ('foreign','duplicate','writable'):
+   with self.subTest(change=change):
+    mounts[:]=copy.deepcopy(original)
+    if change=='foreign':mounts[-1]['Source']=str(self.forbidden)
+    elif change=='duplicate':mounts.append(copy.deepcopy(mounts[-1]))
+    else:mounts[-1]['RW']=True
+    self.parent.observations['held_worker']['Mounts']=copy.deepcopy(mounts)
+    with self.assertRaisesRegex(p.Held,'archive-producer-live-data-binding'):p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_missing_worker_data_witness_keeps_legacy_directory_full9(self):
+  request=self.phase()
+  def activity():
+   path=self.native/'transient';path.write_bytes(b'');path.unlink()
+  with patch.object(p,'runtime',self.final_runtime_activity(activity)),self.assertRaisesRegex(p.Held,'archive-producer-final-file'):
+   p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_live_data_owner_stat_change_still_refuses_original_node(self):
+  request=self.live_data_phase();active=[];original=p._host_stat
+  def metadata(owner,path):
+   z=original(owner,path)
+   if active and Path(path)==self.native:
+    fields={name:getattr(z,name) for name in ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')};fields['st_uid']+=1;return types.SimpleNamespace(**fields)
+   return z
+  with patch.object(p,'runtime',self.final_runtime_activity(lambda:active.append(True))),patch.object(p,'_host_stat',metadata),self.assertRaisesRegex(p.Held,'archive-producer-final-node'):
+   p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_file_change_diagnostic_is_bounded_metadata_and_does_not_mask_refusal(self):
+  path=self.root/'original-private-name';ref=a.write(path,{'version':1});o=p.Originals([path]);o.ref(ref);originals=o.frozen();path.write_bytes(b'changed')
+  stderr=io.StringIO()
+  with patch.object(sys,'stderr',stderr),self.assertRaisesRegex(p.Held,'^archive-producer-final-file$'):p.close(originals)
+  detail=json.loads(stderr.getvalue());self.assertLess(len(stderr.getvalue()),1024);self.assertNotIn(str(path),stderr.getvalue())
+  self.assertEqual(detail['path_sha256'],hashlib.sha256(str(path).encode()).hexdigest());self.assertEqual(detail['original9'],ref['signature9']);self.assertEqual(detail['current9'],a.nine(path.stat()));self.assertTrue(detail['changed_fields'])
+  with patch.object(sys.stderr,'write',side_effect=OSError('diagnostic unavailable')),self.assertRaisesRegex(p.Held,'^archive-producer-final-file$'):p.close(originals)
+  path.unlink()
+  with self.assertRaises(FileNotFoundError):p.close(originals)
  def test_original_SDK_map_proof_retained(self):
   request=self.phase();result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence'];self.assertEqual(result['proofs']['archive_sdk_map'],self.sdkmap)
  def test_input_SDK_map_mismatch_held(self):

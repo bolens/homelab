@@ -50,6 +50,23 @@ its source-controlled CHILD translation. No map is regenerated or resigned.
 Canonical SDK→birth→same lifecycle pipe→configured scope remains the provider's
 actual path; successful actual child birth is required before repair ACK.
 
+Prebirth custody does not hold the archive Writer. The original native process
+may perform Writer-owned work that creates and removes SQLite journals in DATA.
+Only when the native DATA projection and the worker's unique read-only `/mylar`
+bind identify the same original directory, custody retains its original
+device/inode/mode/UID/GID instead of treating directory timestamps as immutable.
+It must be disjoint from reader config, restore, library, scratch and retention,
+and from every immutable tree. Native config and all other file/full9, stopped
+reader, restore, scope, census and absence checks remain unchanged. Missing
+worker DATA evidence keeps the legacy full9 policy. Native owner/catalog/SQL
+admission remains in the actual child Writer window; directory identity supplies
+no mutation or publication grant.
+
+A final-file refusal emits bounded metadata to the existing private stderr:
+the path's SHA-256, original/current nine-field vectors and changed field indices.
+It emits no path or file contents, preserves the original refusal if diagnostics
+fail, and neither retries the operation nor replaces its original expectations.
+
 ## Finite schedule and observational closure
 
 Before any canary or stop, both checked action and backup providers must carry
