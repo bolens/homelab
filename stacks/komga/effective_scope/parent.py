@@ -465,6 +465,18 @@ def pending_report(raw, runtime_sha, producer_sha, original):
     return report
 
 
+def observation_references(output, producer, producer_sha, parent, parent_sha):
+    """Original code identities join SourceCohort; five proof records are outputs."""
+    roles = {'runtime': 'runtime.private.json', 'report': 'report.private.json',
+             'acceptance': 'acceptance.private.json', 'ack': 'ack.private.json',
+             'parent_ack': 'parent-ack.private.json'}
+    refs = {role: dict(path=str(output / leaf), sha256=digest((output / leaf).read_bytes()))
+            for role, leaf in roles.items()}
+    refs.update(producer=dict(path=str(producer), sha256=producer_sha),
+                parent_source=dict(path=str(parent), sha256=parent_sha))
+    return refs
+
+
 def main():
     need(ACTIVATE is True and IMAGE is not None and PLAN is not None and SUPPLIER_PINS is not None and os.geteuid() == 0 and
          sys.flags.isolated and sys.dont_write_bytecode, 'disabled')
@@ -603,10 +615,8 @@ def main():
             need(owned.inspect(name) is None, 'owned-child-cleanup')
             close()
             out.close()
-            roles = {'producer': 'producer-source.class', 'parent_source': 'parent-source.py', 'runtime': 'runtime.private.json',
-                     'report': 'report.private.json', 'acceptance': 'acceptance.private.json', 'ack': 'ack.private.json',
-                     'parent_ack': 'parent-ack.private.json'}
-            refs = {role: dict(path=str(out.path / leaf), sha256=digest((out.path / leaf).read_bytes())) for role, leaf in roles.items()}
+            refs = observation_references(out.path, HERE / 'KomgaEffectiveScope.class', producer_sha,
+                                          Path(__file__).absolute(), parent_sha)
             out.close()
             out.write('result.private.json', encode(dict(kind='reviewed-komga-effective-originals-v1', references=refs,
                       scope_observation_verified=True, same_process_verified=True, **RIGHTS)))

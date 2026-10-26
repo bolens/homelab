@@ -41,7 +41,7 @@ Every backup/publication/mutation flag remains false. The result covers five per
 
 All ten disposable cases passed against the reviewed public Komga 1.28.1 JAR and its exact 157 dependencies: defaults, precedence, profiles, a normal file import, configtree refusal, changed configuration refusal, missing JVM-default refusal, an explicit JVM default, an inactive document refusal and heap-only environment handling. These use the same collector classes, real ConfigData implementation and typed binder. Each test container exits and passes its exact profile before cleanup.
 
-The earlier source gate ran 85 host/JDK controls plus two compiled-binary reader projection controls. This branch adds six Python parent controls, bringing that owning Python suite to 38; its complete host/JDK gate remains a separate check. The two projection controls use the existing source fixture and do not prove configured Parent admission. Fresh original-process collection, same-pipe acknowledgement, SourceCohort installation and connected NFS/reader execution remain unverified. No task requiring those operations is complete.
+The source gate runs 44 Python parent controls, 14 target-runner controls, three class-transport controls, two compiled-binary reader projection controls and 37 JDK closure cases. The two projection controls use the existing source fixture and do not prove configured Parent admission. Fresh original-process collection, same-pipe acknowledgement, SourceCohort installation and connected NFS/reader execution remain unverified. No task requiring those operations is complete.
 
 Before a configured observation, bind the reviewed actual image, original container and new private output in a separate operator copy. Bind the six `supplier_pins` from the build artifacts: `owned.py`, collector source, collector class, its Held class, public metadata class and public dependency facts. The parent checks its own source separately. Preserve the exact supplier ownership/mode checks. Never put the binding or runtime output in this public directory. An image ID alone does not establish provenance. Join all original process JAR bytes to the public source facts and keep image platform/descriptor identities separate.
 
@@ -62,6 +62,13 @@ original `G/L` library at its same absolute destination read-only. The declared
 `G/R` retention remains outside the library. Extra, duplicate, writable-library,
 foreign and application overlays refuse, even if repeated in a supplied profile.
 No caller mount list or generic destination-prefix exception is accepted.
+
+The seven returned references identify the original executed parent source and
+original compiled producer, plus five generated proof records. SourceCohort
+joins those original code paths and hashes before observations. The retained
+`parent-source.py` and `producer-source.class` copies remain audit evidence;
+they do not replace the originals in that reference graph. Both original code
+and retained-copy closures still run before the result is returned.
 
 The recorded static profile uses the owning lifecycle projection, including
 `NetworkSettings`; Docker’s `Created` field is outside that projection. Reader

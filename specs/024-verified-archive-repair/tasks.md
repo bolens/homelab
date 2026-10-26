@@ -39,7 +39,11 @@ native startup readiness before archive recovery. Native health later reported
 ready; that later observation does not establish the original refusal's cause.
 Retain a bounded original startup readiness record before another fresh fixture.
 Reuse the unchanged checked host installation when its exact originals still
-match. [Retained failure history](evidence-history.md#copied-control-holds-and-bootstrap-readiness--2026-10-25)
+match. A later attempt passed SourceCohort and held during read-only observation,
+before Parent entry or Writer acquisition. The observer's returned code
+references must identify the original compiled producer and executed parent,
+matching SourceCohort, with copied code retained separately as audit evidence.
+Require the fresh packet's exact producer and parent joins before entry. [Retained failure history](evidence-history.md#copied-control-holds-and-bootstrap-readiness--2026-10-25)
 owns prior attempts and their preservation evidence. No isolated forward or
 rollback is accepted yet; both remain within T012/T015.
 Reuse unchanged native and worker image proofs only for their exact original

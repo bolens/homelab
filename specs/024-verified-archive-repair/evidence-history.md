@@ -531,3 +531,15 @@ remains created, and later native health reports ready. The original successful
 health reply was not retained, so its rejection cause is unknown. Preserve the
 fixture without replay. A finite startup state/reason/census-shape record now
 precedes that same refusal; it adds no retry, admission or resume authority.
+
+The next bootstrap passed. Its forward attempt then passed SourceCohort and
+removed its own SourceCohort helper, but held in read-only projection before
+Parent entry or Writer acquisition. The rebuilt maintained effective observer
+returned copied producer/parent paths, whereas the cohort declared their
+original paths. Its older private operator copy had adapted those references.
+The maintained observer now returns both original code identities and the five
+proof-output references, preserving all copied-code and original-source closures.
+The fresh packet must bind the actual compiled producer's path as well as the
+executed parent. Independent post-hold comparison verifies both archive full9
+and byte/member identities, reader books/pages/progress and the entire native
+24-table model are unchanged. The held attempt is retained without replay.
