@@ -74,15 +74,23 @@ Writer session. Both archives' full9/hashes and all 24 native SQL tables remain
 unchanged; the reader stays stopped, native process/config are unchanged and
 worker remains inactive. Preserve DI/DJ without replay or inferred resume.
 
-Correct the existing-session identity check without invoking that factory again.
-Also acquire the separate terminal verifier's final pair after its preparation
-binding, which allocates another pair. Real factory/Writer-session and verifier
-ordering regressions reproduce both failures. Keep native factory semantics and
-all original custody checks. [Retained failure history](evidence-history.md#allocating-pair-reentry--2026-10-26)
-owns the diagnosis. Unchanged image proofs may be reused only for exact original
-inputs; changed host controls require matching checked installation and an unused
-fixture. Forward and distinct-fixture rollback remain within T012/T015; neither
-is accepted yet.
+PR [#529](https://github.com/bolens/homelab/pull/529) corrects original Writer
+pair reuse and the separate verifier's binding order. DM passes those boundaries
+but stops before the fixture write: its receipt writer receives the union of
+library and DATA ancestors instead of the receipt's own ancestry. Keep that union
+in retained custody and admit only the original DATA ancestry for receipt writes.
+The separate-branch regression now exposes this geometry directly.
+
+The connected current-source regression also exposes an unchanged-size SQL case:
+repair can restore the catalog's already recorded size, so SQLite has no journal.
+Skip the SQL UPDATE only for identical complete typed snapshots, retain original
+DB bytes/full9 and all companion absences, and require the owned journal for
+actual catalog changes. Forward/reverse and foreign-companion controls cover
+this boundary. This installed native correction requires a matching new image
+capture and checked host installation before another unused fixture. Preserve
+DM/DN and every earlier hold without replay; forward and distinct-fixture rollback
+remain unaccepted within T012/T015. [Retained failure history](evidence-history.md#disjoint-fixture-ancestry-and-unchanged-catalog--2026-10-26)
+owns the diagnosis.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

@@ -47,6 +47,60 @@ class Tests(unittest.TestCase):
  def lease(self):return r.from_stopped(self.life,self.c.source,self.scratch)
  def cap(self):
   self.prep=self.c.prepare();self.reader=self.lease();return a.prepare_existing(self.prep,self.reader,self.retention)
+ def test_disjoint_fixture_transition_through_preparation_adoption_and_reverse(self):
+  # Actual current modules and files; only installed/lifecycle origins are the
+  # explicit host fixtures used throughout this suite, never a runtime grant.
+  import time
+  from reader_recovery import comic_archive_repair_action as action
+  from reader_recovery import genuine_archive_fixture as fixture
+  c=self.c;genesis=fixture.archive(identity=('Bootstrap Target',2,2024))
+  c.source.write_bytes(genesis);deadline=time.monotonic()+30
+  with sqlite3.connect(c.controller.native_database) as db:db.execute('UPDATE issues SET ComicSize=?',(str(len(genesis)),))
+  for root in (self.cfg,self.restore):
+   with sqlite3.connect(root/'database.sqlite') as db:
+    db.execute('UPDATE MEDIA SET PAGE_COUNT=3');db.execute('DELETE FROM MEDIA_PAGE')
+    db.executemany('INSERT INTO MEDIA_PAGE VALUES (?,?,?)',[('active',n,'Pages/page%02d.png'%(n+1)) for n in range(3)])
+  modules={m.__name__.split('.')[-1]:m for m in c.modules};modules['publication_archive_owned']=o
+  candidate,_=action.fixture_inverse(genesis,modules,deadline);source=o.fact(c.source,action.FIXTURE_LIMIT,deadline)
+  stage=c.controller.root/'fixture-transition-connected'
+  self.assertNotIn(c.source.parent,(stage,*stage.parents))
+  transition=action._fixture_replace(c.source,genesis,candidate,source,stage,o,lambda phase:None,dict(deadline_monotonic=deadline,kind='fixture-unit-evidence-only'),modules)
+  transition.close();cap=self.cap();transition.close();self.assertEqual(cap._before,cap._after)
+  cap.install();transition.close();self.assertEqual(c.source.read_bytes(),genesis)
+  self.assertEqual(cap.stage.read_bytes(),candidate)
+  cap.reverse();transition.close();self.assertEqual(c.source.read_bytes(),candidate)
+  cap.complete_reversed();self.assertEqual(cap._phase,'rollback-complete')
+  self.assertFalse(action.decode((stage/'successor.json').read_bytes())['publication_acceptance'])
+ def unchanged_size_cap(self):
+  malformed=self.c.source.read_bytes();self.c.archive(ordinary=True);size=self.c.source.stat().st_size;self.c.source.write_bytes(malformed)
+  with sqlite3.connect(self.c.controller.native_database) as db:db.execute('UPDATE issues SET ComicSize=?',(str(size),))
+  cap=self.cap();self.assertEqual(cap._before,cap._after);return cap
+ def test_unchanged_catalog_forward_preserves_original_bytes_and_facts(self):
+  cap=self.unchanged_size_cap();db=self.c.controller.native_database;before=o.fact(db,256*1024**2,cap.preparation._deadline)
+  with patch.object(a,'_set_size',side_effect=AssertionError('no SQL write for identical snapshots')):cap.install();cap.complete()
+  self.assertEqual(o.fact(db,256*1024**2,cap.preparation._deadline),before)
+  self.assertFalse(any(os.path.lexists(str(db)+suffix) for suffix in ('-journal','-wal','-shm')))
+ def test_unchanged_catalog_foreign_companion_after_exchange_refused(self):
+  for suffix in ('-journal','-wal','-shm'):
+   with self.subTest(suffix=suffix):
+    case=Tests('runTest');case.setUp()
+    try:
+     cap=case.unchanged_size_cap();real=a.exchange;companion=Path(str(case.c.controller.native_database)+suffix)
+     def late(*args,**kwargs):real(*args,**kwargs);companion.write_bytes(b'foreign')
+     with patch.object(a,'exchange',side_effect=late),self.assertRaises(o.Held):cap.install()
+     self.assertEqual(cap._phase,'uncertain');self.assertEqual(companion.read_bytes(),b'foreign')
+    finally:case.doCleanups()
+ def test_changed_catalog_still_requires_owned_SQLite_journal(self):
+  for foreign in (False,True):
+   with self.subTest(foreign=foreign):
+    case=Tests('runTest');case.setUp()
+    try:
+     cap=case.cap();self.assertNotEqual(cap._before,cap._after)
+     def missing(*args):
+      if foreign:Path(str(case.c.controller.native_database)+'-journal').write_bytes(b'foreign')
+     with patch.object(a,'_set_size',side_effect=missing),self.assertRaises(o.Held):cap.install()
+     self.assertEqual(cap._phase,'uncertain')
+    finally:case.doCleanups()
  def test_late_custody_cannot_refresh_reader_baseline(self):
   for method in ('close','binding'):
    for mutation in ('mode','samebytes'):

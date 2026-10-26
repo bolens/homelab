@@ -401,19 +401,22 @@ class RepairAdoption:
             for path,prior in ((self.source,self._files[self.stage]),(self.stage,self._files[self.source])):
                 actual=o.stat9(os.lstat(path));o.check([actual[i] for i in (0,1,2,3,5,6,7,8)]==[prior[i] for i in (0,1,2,3,5,6,7,8)],'repair-precommit-known-inode');exchanged_files[path]=actual
             exchanged_dirs={path:o.stat9(os.lstat(path)) for path in self._dirs}
-            _set_size(conn,self._owner,before,after,p._deadline)
-            # The journal is owned by this sole existing SQLite connection. Never
-            # ignore an arbitrary companion or an alias under the pending phase.
-            journal=Path(str(dbpath)+'-journal');js=o.stat9(os.lstat(journal))
-            o.check(stat.S_ISREG(js[5]) and js[6]==os.geteuid() and js[8]==1 and any(o.stat9(os.fstat(int(n)))==js for n in os.listdir('/proc/self/fd') if n.isdigit() and _valid_fd(int(n))),'repair-owned-SQL-journal')
-            exchanged_files[journal]=js
+            journal=None
+            if before!=after:
+                _set_size(conn,self._owner,before,after,p._deadline)
+                # Only an actual catalog change admits this connection's journal.
+                # An unchanged size needs no UPDATE and keeps every companion absent.
+                journal=Path(str(dbpath)+'-journal');js=o.stat9(os.lstat(journal))
+                o.check(stat.S_ISREG(js[5]) and js[6]==os.geteuid() and js[8]==1 and any(o.stat9(os.fstat(int(n)))==js for n in os.listdir('/proc/self/fd') if n.isdigit() and _valid_fd(int(n))),'repair-owned-SQL-journal')
+                exchanged_files[journal]=js
+            o.check(snapshot(conn,p._deadline)==after,'repair-precommit-catalog')
             for path,value in {**exchanged_files,**exchanged_dirs}.items():
                 info=os.lstat(path)
                 if [info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink]!=value:raise o.Held('repair-precommit-file')
             for path,value in self._nodes.items():
                 info=os.lstat(path)
                 if [info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid]!=value:raise o.Held('repair-precommit-node')
-            for path in self._absent-{journal}:
+            for path in self._absent-({journal} if journal is not None else set()):
                 try:os.lstat(path)
                 except FileNotFoundError:continue
                 raise o.Held('repair-precommit-companion')
@@ -442,8 +445,12 @@ class RepairAdoption:
                 actual=o.signature(path);o.check([actual[i] for i in (0,1,2,3,5,6,7,8)]==[expected[i] for i in (0,1,2,3,5,6,7,8)],'repair-exchanged-inode-CAS')
             o.check(o.fact(self.source,max(expected_source[2],1),p._deadline)['sha256']==expected_source_sha and o.fact(self.stage,max(expected_stage[2],1),p._deadline)['sha256']==expected_stage_sha,'repair-exchanged-bytes')
             o.check([o.signature(dbpath)[i] for i in (0,1,5,6,7,8)]==[self._files[dbpath][i] for i in (0,1,5,6,7,8)],'repair-catalog-incarnation')
-            self._files[self.source]=o.signature(self.source);self._files[self.stage]=o.signature(self.stage);self._files[dbpath]=o.signature(dbpath)
-            self._contents[self.source]=expected_source_sha;self._contents[self.stage]=expected_stage_sha;self._contents[dbpath]=o.fact(dbpath,256*1024**2,p._deadline)['sha256']
+            if before==after:
+                o.check(reader.retained_fact(dbpath,self._files[dbpath],256*1024**2,p._deadline)['sha256']==self._contents[dbpath],'repair-unchanged-catalog-original')
+            else:
+                self._files[dbpath]=o.signature(dbpath);self._contents[dbpath]=o.fact(dbpath,256*1024**2,p._deadline)['sha256']
+            self._files[self.source]=o.signature(self.source);self._files[self.stage]=o.signature(self.stage)
+            self._contents[self.source]=expected_source_sha;self._contents[self.stage]=expected_stage_sha
             o.check(set(os.listdir(self.source.parent))==self._source_names and set(os.listdir(self.root))==self._names,'repair-finite-namespace-transition')
             self._dirs[self.root]=o.signature(self.root);self._dirs[self.source.parent]=o.signature(self.source.parent)
             self._phase='reversed' if reverse else 'installed';self._seal()

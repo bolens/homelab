@@ -30,8 +30,10 @@ MODULES=dict(publication_guard=guard,publication_archive_owned=core,publication_
 class Tests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
-  self.source=self.root/'target.cbz';self.raw=fixture.archive(identity=('Bootstrap Target',2,2024));self.source.write_bytes(self.raw);self.source.chmod(0o644)
-  self.stage=self.root/'fixture-transition';self.deadline=time.monotonic()+20;self.fact=core.fact(self.source,a.FIXTURE_LIMIT,self.deadline)
+  self.library=self.root/'library';self.data=self.root/'data'
+  self.library.mkdir(mode=0o700);self.data.mkdir(mode=0o700)
+  self.source=self.library/'target.cbz';self.raw=fixture.archive(identity=('Bootstrap Target',2,2024));self.source.write_bytes(self.raw);self.source.chmod(0o644)
+  self.stage=self.data/'fixture-transition';self.deadline=time.monotonic()+20;self.fact=core.fact(self.source,a.FIXTURE_LIMIT,self.deadline)
   self.candidate,self.evidence=a.fixture_inverse(self.raw,MODULES,self.deadline)
   control=self.root/'control.json';control.write_bytes(b'{}');control.chmod(0o600);self.control=core.fact(control,a.FIXTURE_LIMIT,self.deadline)
   self.calls=[]
@@ -54,6 +56,24 @@ class Tests(unittest.TestCase):
   self.assertEqual(self.calls,['candidate-durable','before-write','after-write']);self.assertEqual(a.nine(self.source.stat())[:2],self.fact['signature9'][:2]);self.assertEqual(self.source.stat().st_mtime_ns,self.fact['signature9'][3])
   self.assertFalse(a.decode((self.stage/'successor.json').read_bytes())['reset_authority'])
   self.assertEqual(len(outcome.vectors()['files']),5)
+ def test_source_branch_drift_refused_before_destructive_write(self):
+  def replace(phase):
+   if phase=='before-write':
+    self.library.rename(self.root/'retained-library');self.library.mkdir(mode=0o700)
+    self.source.write_bytes(self.raw);self.source.chmod(0o644)
+  with patch.object(a.os,'pwrite',side_effect=AssertionError('must preserve both sources')):
+   with self.assertRaises(a.Held):self.apply(replace)
+  self.assertEqual(self.source.read_bytes(),self.raw);self.assertEqual((self.root/'retained-library'/'target.cbz').read_bytes(),self.raw)
+ def test_source_branch_drift_refused_after_successor_receipt(self):
+  outcome=self.apply();self.library.rename(self.root/'retained-library');self.library.mkdir(mode=0o700)
+  with self.assertRaises(a.Held):outcome.close()
+  self.assertEqual((self.root/'retained-library'/'target.cbz').read_bytes(),self.candidate)
+ def test_DATA_branch_drift_refused_before_destructive_write(self):
+  def replace(phase):
+   if phase=='before-write':self.data.rename(self.root/'retained-data');self.data.mkdir(mode=0o700)
+  with patch.object(a.os,'pwrite',side_effect=AssertionError('must preserve source')):
+   with self.assertRaises((a.Held,FileNotFoundError)):self.apply(replace)
+  self.assertEqual(self.source.read_bytes(),self.raw)
  def test_600_original_unchanged_permission(self):
   self.source.chmod(0o600);self.fact=core.fact(self.source,a.FIXTURE_LIMIT,self.deadline);self.apply();self.assertEqual(stat.S_IMODE(self.source.stat().st_mode),0o600)
  def test_unsafe_modes_refused_before_mutation(self):

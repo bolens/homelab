@@ -725,3 +725,29 @@ Native factory semantics remain unchanged. These controls establish source
 behavior only. Preserve DI/DJ and every earlier hold; a fresh matching checked
 installation, unused fixture, accepted forward and distinct rollback are still
 required.
+
+
+## Disjoint fixture ancestry and unchanged catalog — 2026-10-26
+
+DM's fresh installation verifies all 27 outputs, and DN bootstraps with the
+original queued-review/no-grant preflight. The forward run passes original Writer
+pair admission, then stops at `action-admitted-output-parent` while writing the
+fixture intent. The receipt writer receives both library and DATA ancestors but
+admits only ancestors of its output. Tests placed both paths under one parent,
+hiding the mismatch. Independent post-hold checks prove both archives' full9/hashes
+and all 24 native SQL tables unchanged. Native process/config remain original,
+reader is exited and worker remains Created; no terminal result or resume exists.
+
+Separate-branch tests reproduce the exact refusal. Receipt writes now select
+original retained stage ancestors while successor seals retain both branches.
+The connected current-source fixture/preparation/adoption test then catches a
+second failure before another operational attempt: the repaired genesis size can
+already equal the native catalog's recorded size. SQLite's no-op UPDATE creates
+no journal; unconditional journal admission raises after exchange. Complete typed
+snapshot equality now skips that UPDATE, retains original DB bytes/full9 and all
+companion absences, and supports both forward and reverse. Changed snapshots still
+require the connection's original live journal. Source tests exercise foreign
+companions and the actual rename/link algorithm on local files with explicit
+origin/transport substitutions; they supply no installed NFS or acceptance proof.
+Historical fixtures and held attempts remain unchanged. The native SDK correction
+requires a matching publication and actual capture before the next fresh fixture.

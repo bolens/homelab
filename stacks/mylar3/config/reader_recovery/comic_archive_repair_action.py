@@ -376,6 +376,9 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
  with core.directory_fd(stage.parent,parent5) as parent:
   os.mkdir(stage.name,0o700,dir_fd=parent);os.fsync(parent)
  nodes.update(core.ancestors([stage]));stage5=nodes[stage]
+ # Receipt admission uses only its original ancestry; the successor retains
+ # the full source/DATA union to detect drift on either branch.
+ receipt_nodes={p:nodes[p] for p in (stage,*stage.parents)}
  # These durable copies precede the intent and first mutation. Never overwrite.
  core.write(stage/'genesis.cbz',genesis,stage5);refs['genesis.cbz']=dict(path=str(stage/'genesis.cbz'),sha256=hashlib.sha256(genesis).hexdigest(),signature9=nine(os.lstat(stage/'genesis.cbz')))
  core.write(stage/'candidate.cbz',candidate,stage5);refs['candidate.cbz']=dict(path=str(stage/'candidate.cbz'),sha256=hashlib.sha256(candidate).hexdigest(),signature9=nine(os.lstat(stage/'candidate.cbz')))
@@ -383,7 +386,7 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
  roundtrip=fixture_roundtrip(genesis,candidate,modules,receipt['deadline_monotonic'],refs['candidate.cbz'])
  guard('candidate-durable')
  intent=dict(receipt,roundtrip=roundtrip,phase='intent-before-write',source_before=sourcefact,genesis=refs['genesis.cbz'],candidate=refs['candidate.cbz'],automatic_replay=False,reset_authority=False,publication_acceptance=False,mutation_authority=False)
- refs['intent.json']=write(stage/'intent.json',intent,expected_nodes=nodes)
+ refs['intent.json']=write(stage/'intent.json',intent,expected_nodes=receipt_nodes)
  retained=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['intent.json'])
  with core.directory_fd(source.parent,nodes[source.parent]) as parent:
   fd=os.open(source.name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent);primary=None
@@ -409,7 +412,7 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
    except BaseException:
     if primary is None:raise
  result=dict(intent,phase='observed-malformed-successor',source_after=successor)
- refs['successor.json']=write(stage/'successor.json',result,expected_nodes=nodes)
+ refs['successor.json']=write(stage/'successor.json',result,expected_nodes=receipt_nodes)
  outcome=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['successor.json']);outcome.close();return outcome
 
 def fixture_roles(value,rows):

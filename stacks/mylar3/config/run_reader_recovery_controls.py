@@ -28,7 +28,7 @@ SUITES=SUITES+(('test_genuine_plan13_producer.py',29),)
 SUITES=SUITES+(('test_genuine_current_roles.py',26),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',25),)
-SUITES=SUITES+(('test_fixture_transition.py',38),('test_transition_consumers.py',9))
+SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
 MAX_FILES=258
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass

@@ -93,6 +93,13 @@ repository list ignored. Verify remote refs and the service result after a sync.
 
 ## 3. Local CI before pushing
 
+`make ci-local` includes the Mylar private-copy recovery controls and current
+archive adoption/rename-link source suites through `make mylar-source-check`.
+They use disposable local files and SQLite, require no Docker access, and preserve
+tracked source files. `MYLAR_PYTHON` selects the interpreter (default `python3`);
+use Python 3.10 to match the native runtime. These source checks do not replace
+the installed-image gate or protected NFS/reader integration acceptance.
+
 Install the hooks once:
 
 ```bash
@@ -109,7 +116,7 @@ all-files and Git-history suite on demand:
 make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
 
-`ci-local` first runs the Komga source/compile gate through
+After the Mylar controls, `ci-local` runs the Komga source/compile gate through
 `make komga-source-check`, the same target used by hosted validation. Set
 `JAVA_HOME_21` to a JDK 21 installation. It defaults to the hosted runner's
 `JAVA_HOME_21_X64` when available. A missing JDK or failed gate stops the command;

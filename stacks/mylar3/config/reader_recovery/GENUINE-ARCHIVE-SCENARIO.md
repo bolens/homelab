@@ -64,6 +64,12 @@ restores the malformed successor. Failure or uncertainty preserves the hold
 without automatic reset or replay. These fixture records grant no live import,
 ACK, publication acceptance or independent custody.
 
+Library and DATA may have disjoint ancestry. Fixture JSON writes admit only their
+original stage ancestors; retained successor seals continue to close both branches.
+If complete typed catalog snapshots are identical, forward/reverse skip the SQL
+UPDATE and retain original database bytes/full9 and every companion absence.
+Actual catalog changes still require the live connection's owned journal.
+
 The six source-owned steps are retain-displaced (no-clobber hardlink),
 detach-source, publish (no-clobber hardlink), detach-stage, retain-original
 (no-clobber hardlink), and detach-displaced. Each has a durable intent and done
