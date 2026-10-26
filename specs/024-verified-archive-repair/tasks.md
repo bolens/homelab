@@ -46,20 +46,30 @@ checked controls and disposable bootstrap passed. A stale private readiness
 input was corrected from its exact Scope and Probe sources before DB passed
 SourceCohort and reached the owning Parent.
 
-DB stopped its disposable reader, then held before archive publication. The
-retained execute traceback proves that the Parent's genuine fixture invocation
-uses version 4 while the installed lifecycle accepts only version 3 for the same
-`rename-link-v1` handshake. Correct that finite policy with strict integer typing
-and exercise the actual Parent version branch through Birth, the original pipe,
-custody, Scope and adoption. Preserve the separate version-1 facts protocol.
-Require a matching new published image, actual module capture, checked host
-installation and unused fixture after this SDK correction. Both archives' full9
-and hashes and all 24 native tables remain unchanged after DB; its reader stays
-stopped. Preserve CX, DB and their held fixtures without replay or inferred
-resume. Reuse unchanged worker proof only where its original inputs match.
-[Retained failure history](evidence-history.md#fixture-publication-version-hold--2026-10-26)
-owns the observations. Isolated forward and distinct-fixture rollback remain
-within T012/T015; neither is accepted yet.
+PR [#526](https://github.com/bolens/homelab/pull/526) delivered strict integer
+versions 3/4 for the unchanged publication protocol. Local and hosted checks,
+main publication, actual 180-module capture and the required SDK103 joins pass.
+Fresh DC host controls verified all 27 outputs, and DD's disposable bootstrap
+passed. DC then reached the owning Parent and stopped only its disposable reader,
+but held in prebirth custody with `archive-producer-final-file`, before archive
+execution. The original transient vector was not retained, so the exact changed
+path in that attempt is unknown. Both archives' full9/hashes, all 24 native tables
+and the original native process/config remain unchanged. Preserve DC/DD and all
+prior holds without replay or inferred resume.
+
+Independent metadata-only observation found native DATA directory changes from
+SQLite journal creation/removal. A local owning phase-custody reproduction proves
+a false hold when a real transaction rolls back with database bytes/full9 and
+config unchanged. Correct only that live directory's prebirth identity policy,
+requiring exact native/worker DATA geometry and original identity5; preserve all
+other file/full9, reader/restore, source, scope and absence guards. Retain bounded
+metadata on future file refusals. This independently demonstrated defect does not
+identify DC's original offending path. Unchanged SDK/image proofs may be reused
+only for their exact native/worker bytes; changed host controls require a fresh
+checked installation and unused fixture. [Retained failure
+history](evidence-history.md#prebirth-live-data-custody-hold--2026-10-26) owns the
+observations. Isolated forward and distinct-fixture rollback remain within
+T012/T015; neither is accepted yet.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
@@ -144,12 +154,10 @@ its owning Parent to create. The Parent owns Writer, stopped-reader custody,
 verified backup/restore, archive transition, factual terminal consumption and
 permitted resume. A wrapper or test count supplies none of those facts.
 
-The preserved BZ attempt passes NFS readiness and reader stop, then holds on
-the first backup challenge: the child exhausts its ten-second response wait
-while the Parent gathers required evidence. Both archives and all 24 native
-tables remain unchanged; the stopped reader's post-hold API is unobserved.
-Complete the shared channel-deadline correction, matching SDK/image delivery
-and fresh isolated pair within T012/T015. BZ has no replay or resume authority.
+Use the current matching host installation and SDK inputs described above for
+the next unused fixture. Historical BZ channel deadlines and later held attempts
+are retained in evidence history; they are not instructions to repeat an old run.
+No held attempt has replay or inferred resume authority.
 
 Forward and explicit `terminal=rollback` use distinct fixtures, requests,
 baselines and original receipts. Rollback restores the causal malformed source,

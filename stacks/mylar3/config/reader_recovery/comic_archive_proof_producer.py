@@ -5,6 +5,7 @@ import importlib.util
 import os
 from pathlib import Path
 import stat
+import sys
 import tempfile
 import time
 import threading
@@ -98,7 +99,15 @@ def close(originals,*,owner=None):
   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-producer-final-node')
  for p,value in files:
   z=_host_stat(owner,p)
-  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-producer-final-file')
+  actual=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+  if actual!=value:
+   # Private failure metadata identifies the original vector without exposing
+   # a path or file contents. Diagnostic failure must preserve the refusal.
+   try:
+    print(a.encoded(dict(kind='archive-producer-file-change',path_sha256=digest(os.fsencode(p)),
+         original9=list(value),current9=list(actual),changed_fields=[i for i in range(9) if value[i]!=actual[i]])).decode(),file=sys.stderr,flush=True)
+   except BaseException:pass
+   raise Held('archive-producer-final-file')
  for p in absent:
   try:_host_stat(owner,p)
   except FileNotFoundError:continue
@@ -322,6 +331,26 @@ def phase_custody(request,*,watch):
  need(bool(candidates),'archive-producer-worker-library')
  maximum=max(x[0] for x in candidates);selected=[x[1] for x in candidates if x[0]==maximum];need(len(selected)==1 and scope.projection(expected['held_worker']['Mounts'],selected[0])==physical,'archive-producer-worker-shadow')
  need(child(physical)==library,'archive-producer-library-child-geometry')
+ # The native process remains live before the child's actual Writer window.
+ # Its SQLite journal can change DATA directory times without changing any
+ # protected file. Only the exact read-only worker DATA bind supplies this
+ # policy; retain the originally captured directory identity, never a new one.
+ data=Path(scope.projection(expected['held_native']['Mounts'],native['data']))
+ bindings=[m for m in expected['held_worker']['Mounts'] if m.get('Destination')=='/mylar']
+ if bindings:
+  need(len(bindings)==1 and bindings[0].get('Type')=='bind' and bindings[0].get('RW') is False
+       and bindings[0].get('Source')==str(data) and data==Path(config_host).parent
+       and scope.projection(expected['held_worker']['Mounts'],'/mylar/config.ini')==config_host,
+       'archive-producer-live-data-binding')
+  protected=(config,restore,Path(physical),*(Path(scopes[k]) for k in ('scratch','retention_root')))
+  need(all(data!=q and not data.is_relative_to(q) and not q.is_relative_to(data) for q in protected)
+       and not any(data==q or data.is_relative_to(q) or q.is_relative_to(data) for q in o.names),
+       'archive-producer-live-data-disjoint')
+  original=o.files.get(data)
+  need(type(original) is tuple and len(original)==9 and stat.S_ISDIR(original[5])
+       and o.nodes.get(data)==tuple(original[i] for i in (0,1,5,6,7)),
+       'archive-producer-live-data-original-node')
+  del o.files[data]
  seed={'version':1,'kind':'selected-child-native-scope-birth','invocation':copy.deepcopy(inv),'parent_source':refchild(request['parent_source']),'birth_source':{'path':'/app/mylar3/mylar/publication_native_scope_birth.py','sha256':plan['birth_source_sha256']},'config':{'path':config_child,'sha256':digest(raw)},'worker_library':selected[0],'selected_image':plan['selected_image']}
  result={'reader':reader,'proofs':proofs,'birth_seed':seed}
  originals=o.frozen();runtime(watch,expected);o.ref(request['parent_source'],json_value=False);o.ref(request['parent_plan']);close(originals,owner=watch.__self__)

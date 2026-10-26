@@ -1,7 +1,7 @@
 {
   "files": {
     "CONTRACT-archive-parent.md": {
-      "sha256": "fd5a873f3d3491d93678d394ae724363e0aa2b314cb52d7acc7ef877c5ff6caf"
+      "sha256": "ac098d2eda0785690e3d99b8d0e910a3c552e37b29b14d964cdc1beb56cc21df"
     },
     "CONTRACT-archive-proof.md": {
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "2a91f83317eb3e1a4d4d6895d6cf64b5b557103f1dc3253b5db83a08c96800df"
+      "sha256": "b6b77d092e796c48d1673d6ec2f701f359efc8c23a8b44a8afa7fd276582de3a"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -379,13 +379,13 @@
       "sha256": "bb09292a00850948d3944c2bca492774c4ee30e046a6ead6646f5889b73996e3"
     },
     "comic_archive_backup_action.py": {
-      "sha256": "0bb2a8d385fe1116815f8b37a79a37b5eeeff78215f43b1b8fcd73ce1dc9db91"
+      "sha256": "6d35032d000c541d7156d80989f43500c74ea8691b1702d925d0b7fd4b336327"
     },
     "comic_archive_evidence_adapter.py": {
       "sha256": "32cc523bba6c5d6233649c946199ddcac542852062ce7df22435bcc81e715d02"
     },
     "comic_archive_proof_producer.py": {
-      "sha256": "c99da7be1c697f618cdb126edc5591caf84b679e661a9eecb412204aa7b19a82"
+      "sha256": "e770803504e348ac99d5ea8d8e1cf52ae481b462335f5d397e3c13d25d4c839d"
     },
     "comic_archive_repair_action.py": {
       "sha256": "9d4c098a4262d797d0111dc6816538359f407efbb0662a40b9613761c746dbd2"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "9965711b1c644f4cddc9edd461f482f5ee8a995366c4ef32f8972c9f87bfd13f"
+      "sha256": "830cf2d851c598af07882cc4dd7bd5bbcd4bee951f598e09c071e721cea17a48"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -574,7 +574,7 @@
       "sha256": "7ad6dcf350468c874d1b01afd707e3673b392995fc64a1059bb1d65f63d67a53"
     },
     "test_archive_proof_producer.py": {
-      "sha256": "a5c364c0e5cd3096b3477aa2fef58b7cbdd4412572172dca20dc4dc63c8afa5f"
+      "sha256": "7130e546c870b005238aeff316ccf265fd7054adb55f4324813208aecdffff13"
     },
     "test_archive_repair_flow.py": {
       "sha256": "1bef422ec62f9058bed2e307d1dc596dc51c4c6b7a9c13aacf5f8311261985e1"
