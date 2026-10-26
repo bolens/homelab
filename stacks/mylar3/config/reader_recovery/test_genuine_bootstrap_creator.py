@@ -139,6 +139,24 @@ class CreatorTests(unittest.TestCase):
               (HERE/'genuine_reader_quiescence.py').read_text(),'--disposable-reader-queue-v1',owner.nonce,owner.engine.ids['native']]
         value=dict(version=1,nonce=owner.nonce,native_cid=owner.engine.ids['native'],base='http://'+owner.reader_host+':25600',key=owner.reader_key,seconds=30)
         return args,value
+    def archive_call(self,owner):
+        args=['exec','--interactive','--user','1000:1000',owner.engine.ids['native'],'/lsiopy/bin/python3','-I','-B','-c',owner.raw['http'].decode(),'--owning-disposable-bootstrap-http-v1',owner.nonce,owner.engine.ids['native']]
+        value=dict(kind='native',base=owner.native_base,key=owner.native_key,operation='request-archive-repair-adoption',arguments=dict(owner=dict(table='issues',issueid='710002',parentcomicid='710001',releasecomicid='710001'),operation_id=owner.nonce),seconds=30)
+        return args,value
+    def test_archive_preflight_is_nonce_bound_and_has_one_mutating_call_budget(self):
+        owner,driver=self.creator();owner.prepare();args,value=self.archive_call(owner);before=len(driver.calls)
+        bad=copy.deepcopy(value);bad['arguments']['operation_id']='f'*64
+        with self.assertRaisesRegex(c.p.Held,'archive-preflight-nonce'):owner.engine.run(args,30,c.p.encode(bad))
+        self.assertEqual(len(driver.calls),before)
+        owner.engine.run(args,30,c.p.encode(value))
+        with self.assertRaisesRegex(c.p.Held,'call-budget'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before+1)
+    def test_lost_archive_preflight_reply_poisons_engine_without_replay(self):
+        owner,driver=self.creator();owner.prepare();args,value=self.archive_call(owner);driver.fail='exec';before=len(driver.calls)
+        with self.assertRaisesRegex(c.p.Held,'lost-response'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertTrue(owner.engine.poisoned)
+        with self.assertRaisesRegex(c.p.Held,'unknown-outcome-held'):owner.engine.run(args,30,c.p.encode(value))
+        self.assertEqual(len(driver.calls),before+1)
     def test_v1_source_schema_and_engine_refuse_queue_extension(self):
         owner,driver=self.creator();owner.prepare();args,value=self.queue_call(owner);before=len(driver.calls)
         with self.assertRaisesRegex(c.p.Held,'undeclared-creator-program'):owner.engine.run(args,30,c.p.encode(value))

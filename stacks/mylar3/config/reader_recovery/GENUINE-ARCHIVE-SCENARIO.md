@@ -120,6 +120,19 @@ is insufficient. This fixture seed is not provider metadata import or ordinary
 import acknowledgement. Host tests explicitly double transport and grant no
 genuine daemon or connected-factory acceptance.
 
+After both catalog completions, the fixture submits the existing authenticated
+`request-archive-repair-adoption` API action for its exact target owner, using
+the fixture nonce as a setup queue key. That ordinary request initializes archive
+history under its native Writer before reader scan and the later Parent's
+backup/custody capture. Its recorded result must be `queued-review`, require a
+root-scoped child and grant no preservation, mutation or publication authority.
+This setup row is distinct from the later selected repair's operation and ACK.
+Creator admits one mutating request bound to that exact nonce. A lost response
+retains the intent and poisons the engine without resubmission. Selected
+execute children still require existing history and never initialize it late.
+Live-operation backups must separately cover native history and workflow state;
+the disposable virgin restore and reader-config backup do not prove that coverage.
+
 The existing catalog may retain its native SQLite mode `0600` or `0644`. Both require
 the same canonical UID/GID1000 DATA directory at `0700`, retained through config
 and SDK reads, constructor, transaction and final checks with original directory

@@ -665,3 +665,33 @@ census and absence checks remain. Refusals retain bounded path-digest/vector
 metadata in private stderr without changing their authority or retry behavior.
 Changed host controls need fresh checked installation and an unused fixture;
 unchanged native SDK bytes alone do not close the forward/rollback tasks.
+
+## Missing disposable history preflight — 2026-10-26
+
+PR #527 merged with every required check passing and the reviewed tree unchanged.
+The first unused proposal refuses before privileged execution because one local
+source has mode 0600 instead of its Git-recorded 0644. Preserve that proposal;
+a clean exact-commit checkout supplies all 692 canonical files with the required
+690 regular 0644 and two executable 0755 modes. Fresh DG installation/export and
+DH bootstrap pass, followed by 58 packet, six Parent and 16 observer controls,
+independent armed review and fresh archive/reader/native baselines.
+
+DG passes SourceCohort, verified backup/restore, reader stop, prebirth custody,
+actual Birth and the original execute pipe. The execute child enters and leaves
+its Writer, then exits 1 without ACK. Its original traceback identifies
+`execute_same_child` calling `publication_archive_history.directory`, which
+refuses the absent `/config/mylar/archive-history-v1`. No accepted terminal or
+resume follows. Original native process/config remain unchanged, worker remains
+Created, and the reader remains exited. Independent post-hold observation proves
+both archives' full9/hashes and all 24 native SQL tables unchanged.
+
+The ordinary `request-archive-repair-adoption` route initializes that history
+under the native Writer before queue admission. Disposable catalog setup never
+called it; host repair-flow tests manually initialized history before custody.
+The correction belongs in disposable catalog setup after both actual processing
+completions and before reader scan and protected backup/custody, through that
+same authenticated API. Its setup queue row grants no selected operation, ACK,
+preservation, mutation or publication authority. Execute remains existing-only;
+worker request journals and selected repair stages are not precreated. Retain
+DG/DH and all predecessors without replay or inferred resume. Forward and
+distinct-fixture rollback acceptance remain open.

@@ -480,7 +480,10 @@ class PurposeEngine:
             value = p.decode(data); http.request(value)
             need(value['base'] == (self.owner.native_base if value['kind'] == 'native' else 'http://' + self.owner.reader_host + ':25600')
                  and value['key'] == (self.owner.native_key if value['kind'] == 'native' else self.owner.reader_key), 'original-http-origin-credentials')
+            if value['operation']=='request-archive-repair-adoption':
+                need(value['arguments']['operation_id']==self.owner.nonce,'creator-archive-preflight-nonce')
             limits = {'health':64,'status':2,'prepare-fresh':1,'initialize-bootstrap':1,'force-process-fixture':2,
+                      'request-archive-repair-adoption':1,
                       'principal':8,'libraries':16,'books':40,'create-library':1,'scan':1,'book':16,'pages':4,'page':8,'set-progress':1}
             name, maximum = 'http-' + value['kind'] + '-' + value['operation'], limits[value['operation']]
         elif program == sources['catalog_helper'].decode():
@@ -498,7 +501,7 @@ class PurposeEngine:
                  'original-queue-origin-credentials')
             name,maximum='reader-task-empty',1
         else:raise p.Held('undeclared-creator-program')
-        return self.call(name, maximum, args, data, readonly=name not in {'http-native-prepare-fresh','http-native-initialize-bootstrap','http-native-force-process-fixture','http-reader-create-library','http-reader-scan','http-reader-set-progress','catalog-seed'})
+        return self.call(name, maximum, args, data, readonly=name not in {'http-native-prepare-fresh','http-native-initialize-bootstrap','http-native-force-process-fixture','http-native-request-archive-repair-adoption','http-reader-create-library','http-reader-scan','http-reader-set-progress','catalog-seed'})
 
 
 class Creator:
