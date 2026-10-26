@@ -278,7 +278,7 @@ def phase_custody(request,*,watch):
   host=str(path)
   for role in ('scratch','retention_root'):
    if host==scopes[role]:host=mapping.private_scope(host,role)
-  result=mapping.child(host);need(mapping.host(result)==host,'archive-producer-path-roundtrip');return result
+  result=mapping.child(host);need(mapping.original_host(mapping.host(result))==host,'archive-producer-path-roundtrip');return result
  def refchild(ref):return mapping.child_ref(ref)
  generated_scopes=o.ref(ctx['archive_scopes']);need(same(generated_scopes,{'version':1,'scratch':child(scopes['scratch']),'retention_root':child(scopes['retention_root'])}),'archive-producer-original-scopes')
  proofs=copy.deepcopy(ctx['controls']);proofs['archive_scopes']=copy.deepcopy(ctx['archive_scopes']);o.ref(plan['sdk_map']);proofs['archive_sdk_map']=copy.deepcopy(plan['sdk_map'])

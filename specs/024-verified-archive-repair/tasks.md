@@ -49,6 +49,13 @@ Correct the five affected physical-vector consumers together, retaining logical
 protocol lookups, physical identities and conflict refusal. The later terminal
 and resume consumers already use physical references. This remains T012 work,
 not a new task or a reason to relax acceptance.
+The next isolated attempt passed those copied-report checks and held before
+archive execution because the custody producer compared a copied provider's
+physical host path directly with its original source path. Both archive
+originals and the complete native database remain unchanged; its reader stays
+stopped without resume authority. Join that roundtrip through the original
+source lookup and exercise provider, input, SDK and control projection through
+the real child-copy mapping before another attempt. This remains T012 work.
 Reuse unchanged native and worker image proofs only for their exact original
 inputs. Host-only changes require fresh checked outputs without repeating
 unchanged image proof.
