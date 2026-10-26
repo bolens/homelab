@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "849c9d753437699f3e7830a4f9a70e944bdbed25e10eb79502d28b62e7bb910a"
+      "sha256": "2a91f83317eb3e1a4d4d6895d6cf64b5b557103f1dc3253b5db83a08c96800df"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -382,7 +382,7 @@
       "sha256": "660ee80c58126c6c7abe84948aa909bdd17b2aa13fb54b08fe2ed93d311267f9"
     },
     "comic_archive_evidence_adapter.py": {
-      "sha256": "4a0a3bcfbf8a22c1659aa02392ec4fb21a4321646c948761b65282642df0419a"
+      "sha256": "0c49e9d091b581db99c875c89b547921cdc3c0f92e48f3b17c7ffd7aa2324b8d"
     },
     "comic_archive_proof_producer.py": {
       "sha256": "dfd23867a2759271fb06de6a9b34dd8fff08ace8a20a4e603de092b99aa47b54"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "5747d1ffa76461514c2bf792e7c8c9de282a86f599fba85b6e950a63d601e829"
+      "sha256": "5ee7a870932da8b6f52c8b4887dce432fdc1a1f85ff1dd2ab7998047f4cf5c4f"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -559,7 +559,7 @@
       "sha256": "5038ffc6726b5e4a8b53bd435638a4b486f43856c2f2eb7eec36ad6aa7ecfef9"
     },
     "test_archive_native_geometry.py": {
-      "sha256": "52516b748747f613bbd83212a8940ea3380bdf42eb9e988d63055abb09027aaa"
+      "sha256": "4ec14af460e327a00738671369e1e48efc8c72c761cdd451f968a1c8373cc744"
     },
     "test_archive_nfs_readiness.py": {
       "sha256": "2a886307b4500d4c960633b622f0ad5ff8425237b4aad2d438c3d511e670428f"

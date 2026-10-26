@@ -543,3 +543,20 @@ The fresh packet must bind the actual compiled producer's path as well as the
 executed parent. Independent post-hold comparison verifies both archive full9
 and byte/member identities, reader books/pages/progress and the entire native
 24-table model are unchanged. The held attempt is retained without replay.
+
+The next fresh operation reused that unchanged fixture and installation, passed
+SourceCohort and the effective-original join, then reached the owning Producer.
+It stopped only its disposable reader and held during the execute child's native
+observation. Both original created and first-started profiles contain 73 unique
+mount destinations. The adapter passed the complete list to the native scope
+parser, which refuses more than 64 rows. The configured Parent adds copied
+controls, private scopes and the admission overlay beyond its original mount
+vector. The child-only correction validates every row, then passes matching
+ancestors to the unchanged parser, preserving duplicate and shadow checks.
+Native/worker mount limits remain unchanged. Read-only diagnosis found native
+running, reader exited, worker created and the original native process/config
+unchanged. Independent post-hold checks also confirm both archive full9 and
+exact bytes, all six page hashes and the entire native 24-table model are
+unchanged. No accepted terminal or resume authority was produced. Preserve the
+held operation and its exact helper; a changed adapter requires fresh checked
+host controls and a separate unused fixture.
