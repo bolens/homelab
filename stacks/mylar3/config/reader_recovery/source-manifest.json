@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "49630023a4703560e6ac01afcff972381da6be11c71a0e803e30c672d46d89b2"
+      "sha256": "17b6372795393666cdd9e8ba2d1dd12f8f1903ac9f0394c18b2cc4806fd1109c"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -379,13 +379,13 @@
       "sha256": "bb09292a00850948d3944c2bca492774c4ee30e046a6ead6646f5889b73996e3"
     },
     "comic_archive_backup_action.py": {
-      "sha256": "dbbd1da3ad2131192ed99f8246846a3f193c9542e7d66f37b1b406c038defd46"
+      "sha256": "b04e3c5b5fad888d8c6198d0d62037410810b84e9b9c8733ad8d558cb048ab8d"
     },
     "comic_archive_evidence_adapter.py": {
       "sha256": "4a0a3bcfbf8a22c1659aa02392ec4fb21a4321646c948761b65282642df0419a"
     },
     "comic_archive_proof_producer.py": {
-      "sha256": "1257006d834762eb34968cba697bec0f37b3dfb20e604da291d46f4b03608f90"
+      "sha256": "6bf253f27384ed633c62d89540483f77cc97d7a260d303eeeaa1ede85c6dbba8"
     },
     "comic_archive_repair_action.py": {
       "sha256": "9d4c098a4262d797d0111dc6816538359f407efbb0662a40b9613761c746dbd2"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "8170fa375b0107fab57b15825a0d4c2f216bb9ab475ccb7916f8fb7d62f17783"
+      "sha256": "0b3e1a6fa7c5bd0ea733aeb9570d2645d82e47f2ca8a5b18263baa186b6a7505"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -574,7 +574,7 @@
       "sha256": "7ad6dcf350468c874d1b01afd707e3673b392995fc64a1059bb1d65f63d67a53"
     },
     "test_archive_proof_producer.py": {
-      "sha256": "46ba7fc4966b1255c1362fe7446ddf453f978298dd803c03b1a6433785c47525"
+      "sha256": "23e4f5fe294b983c85d0d606772c10a12b553d711ae0cbc783c1e9e1395642a8"
     },
     "test_archive_repair_flow.py": {
       "sha256": "1bef422ec62f9058bed2e307d1dc596dc51c4c6b7a9c13aacf5f8311261985e1"
