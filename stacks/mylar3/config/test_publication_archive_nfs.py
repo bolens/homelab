@@ -79,6 +79,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(case.c.source.stat().st_nlink, 1)
         self.assertEqual(cap.stage.stat().st_nlink, 1)
 
+    def test_unchanged_catalog_rename_link_forward_and_reverse_keep_original_database(self):
+        case=self.case;malformed=case.c.source.read_bytes()
+        case.c.archive(ordinary=True);size=case.c.source.stat().st_size;case.c.source.write_bytes(malformed)
+        with closing(sqlite3.connect(case.c.controller.native_database)) as db:
+            db.execute('UPDATE issues SET ComicSize=?',(str(size),));db.commit()
+        cap=self.cap();self.assertEqual(cap._before,cap._after)
+        original=a.o.fact(case.c.controller.native_database,256*1024**2,cap.preparation._deadline)
+        with patch.object(a,'_set_size',side_effect=AssertionError('no SQL update')),patch.object(a,'exchange',side_effect=AssertionError('must use rename/link')):
+            cap.install();self.assert_preserved(cap)
+            cap.reverse();cap.complete_reversed();self.assert_preserved(cap,rollback=True)
+        self.assertEqual(a.o.fact(case.c.controller.native_database,256*1024**2,cap.preparation._deadline),original)
+
     def test_real_forward_and_explicit_reverse_preserve_full_sql_reader_and_originals(self):
         cap = self.cap()
         before_inode = self.case.c.source.stat().st_ino

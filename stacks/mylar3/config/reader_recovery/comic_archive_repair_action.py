@@ -158,6 +158,17 @@ def exact_pair(modules,custody,scope):
  need(writer.root==controller.writer_root,'repair-same-existing-writer')
  return controller,writer
 
+def existing_pair(modules,custody,scope,controller,writer):
+ # controller_writer is an allocating factory. Inside a Writer session only
+ # the original process-local session row can identify the held pair.
+ installed(modules);native=modules['publication_native_configured_scope']
+ need(type(custody) is modules['publication_reader_lifecycle'].StoppedReaderCustody and type(scope) is native.NativeConfiguredScope and scope._custody is custody,'repair-exact-parent-scope')
+ record=native._WRITER_SESSIONS.get(scope)
+ need(type(record) is tuple and len(record)==11 and record[0] is controller and record[1] is writer,'fixture-same-owning-pair')
+ need(type(controller) is modules['publication_api'].Controller and type(writer) is modules['media_writer'].Writer and writer.root==controller.writer_root,'repair-exact-existing-pair')
+ custody.revalidate_stopped();scope.revalidate();scope._writer_proof()
+ need(native._WRITER_SESSIONS.get(scope) is record and record[0] is controller and record[1] is writer,'fixture-original-writer-session')
+
 def scopes_existing(ref,custody,controller):
  need(custody.proofs.get('archive_scopes')==ref,'repair-parent-owned-scopes')
  raw,_,_=checked(ref);value=decode(raw)
@@ -365,6 +376,9 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
  with core.directory_fd(stage.parent,parent5) as parent:
   os.mkdir(stage.name,0o700,dir_fd=parent);os.fsync(parent)
  nodes.update(core.ancestors([stage]));stage5=nodes[stage]
+ # Receipt admission uses only its original ancestry; the successor retains
+ # the full source/DATA union to detect drift on either branch.
+ receipt_nodes={p:nodes[p] for p in (stage,*stage.parents)}
  # These durable copies precede the intent and first mutation. Never overwrite.
  core.write(stage/'genesis.cbz',genesis,stage5);refs['genesis.cbz']=dict(path=str(stage/'genesis.cbz'),sha256=hashlib.sha256(genesis).hexdigest(),signature9=nine(os.lstat(stage/'genesis.cbz')))
  core.write(stage/'candidate.cbz',candidate,stage5);refs['candidate.cbz']=dict(path=str(stage/'candidate.cbz'),sha256=hashlib.sha256(candidate).hexdigest(),signature9=nine(os.lstat(stage/'candidate.cbz')))
@@ -372,7 +386,7 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
  roundtrip=fixture_roundtrip(genesis,candidate,modules,receipt['deadline_monotonic'],refs['candidate.cbz'])
  guard('candidate-durable')
  intent=dict(receipt,roundtrip=roundtrip,phase='intent-before-write',source_before=sourcefact,genesis=refs['genesis.cbz'],candidate=refs['candidate.cbz'],automatic_replay=False,reset_authority=False,publication_acceptance=False,mutation_authority=False)
- refs['intent.json']=write(stage/'intent.json',intent,expected_nodes=nodes)
+ refs['intent.json']=write(stage/'intent.json',intent,expected_nodes=receipt_nodes)
  retained=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['intent.json'])
  with core.directory_fd(source.parent,nodes[source.parent]) as parent:
   fd=os.open(source.name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent);primary=None
@@ -398,7 +412,7 @@ def _fixture_replace(source,genesis,candidate,sourcefact,stage,core,guard,receip
    except BaseException:
     if primary is None:raise
  result=dict(intent,phase='observed-malformed-successor',source_after=successor)
- refs['successor.json']=write(stage/'successor.json',result,expected_nodes=nodes)
+ refs['successor.json']=write(stage/'successor.json',result,expected_nodes=receipt_nodes)
  outcome=_FixtureSuccessor(_FIXTURE_KEY,stage,refs,nodes,refs['successor.json']);outcome.close();return outcome
 
 def fixture_roles(value,rows):
@@ -420,7 +434,7 @@ def fixture_transition(plan,modules,custody,scope,controller,writer,request,publ
  # The Parent must separately join original Bootstrap/catalog refs and exact
  # original gen9 profiles; receipt JSON alone cannot construct either factory.
  need(plan.get('version')==4 and plan.get('terminal_mode')=='same-child-v1','fixture-plan13-same-child-only')
- need(exact_pair(modules,custody,scope)==(controller,writer),'fixture-same-owning-pair');scope._writer_proof()
+ existing_pair(modules,custody,scope,controller,writer)
  value=fixture_request(request['fixture_transition']);need(value['nonce']==scope._native['inspect']['Config'].get('Labels',{}).get('com.homelab.archive.bootstrap'),'fixture-original-nonce')
  fixture_roles(value,(scope._native['inspect'],custody.reader['runtime'],scope._worker['inspect']))
  core=modules['publication_archive_owned'];g=modules['publication_guard'];deadline=min(custody.deadline,time.monotonic()+120)
@@ -551,6 +565,9 @@ def verify_one(plan,modules,custody,scope):
  controller,writer=exact_pair(modules,custody,scope);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  control_join(plan,custody)
  bound=modules['publication_reader_lifecycle'].bind_archive_preparation(custody,scope,plan['owner'],plan['operation_id']);need(bound is custody,'repair-same-original-bound-custody')
+ # Binding derives its own pair. Select the verifier's session pair only after
+ # that callback, retaining the same admitted scope and private geometry.
+ controller,writer=exact_pair(modules,custody,scope);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  ref=plan['execution_originals']
  need(custody.proofs.get('archive_execution_originals')==ref,'repair-parent-original-execute-evidence')
  raw,fact,parents=checked(ref);original=original_execution(decode(raw),plan)

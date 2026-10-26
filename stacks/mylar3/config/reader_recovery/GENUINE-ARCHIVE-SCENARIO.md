@@ -35,6 +35,13 @@ NFS mount/export/device and selected-child mountinfo. Source and stage must
 share the same actual mount ID. Device equality alone does not qualify.
 Selection precedes pending-marker creation; no failed exchange triggers fallback.
 
+The configured Controller/Writer factory allocates fresh objects. A fixture
+transition already inside the owning Writer session validates its supplied pair
+against the exact original process-local session record and existing Writer
+proof, retaining record identity across callbacks; it never invokes that factory
+again. The separate terminal verifier selects its final pair after preparation
+binding, whose own factory call replaces the Scope's current pair.
+
 Action input v3 contains exact `publication_protocol=rename-link-v1` and
 `terminal=forward|rollback`. Private request v2 explicitly selects terminal
 behavior; old request v1 selects forward in plan13. Old plans10–12 and input
@@ -56,6 +63,12 @@ and every stage vector. Forward repair reproduces genesis; explicit rollback
 restores the malformed successor. Failure or uncertainty preserves the hold
 without automatic reset or replay. These fixture records grant no live import,
 ACK, publication acceptance or independent custody.
+
+Library and DATA may have disjoint ancestry. Fixture JSON writes admit only their
+original stage ancestors; retained successor seals continue to close both branches.
+If complete typed catalog snapshots are identical, forward/reverse skip the SQL
+UPDATE and retain original database bytes/full9 and every companion absence.
+Actual catalog changes still require the live connection's owned journal.
 
 The six source-owned steps are retain-displaced (no-clobber hardlink),
 detach-source, publish (no-clobber hardlink), detach-stage, retain-original

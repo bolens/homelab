@@ -65,17 +65,32 @@ DG passed prebirth custody, real Birth and the execute child's Writer session,
 then held because archive history had not been initialized. Both archives'
 full9/hashes and all 24 native tables remain unchanged; its reader stays stopped.
 
-The ordinary native repair-request API owns history initialization before
-backup/custody. The disposable catalog setup omitted that request, while host
-flow fixtures initialized history manually. Add the existing authenticated
-request after both catalog completions and before reader scan, recording only
-its queued-review/no-grant result. Keep selected execute existing-only and
-preserve DG/DH without replay or inferred resume. Check adjacent prerequisites
-before another fixture. Unchanged image/SDK proofs may be reused only for exact
-original inputs; use matching frozen host sources and an unused fixture for the
-corrected setup. [Retained failure history](evidence-history.md#missing-disposable-history-preflight--2026-10-26)
-owns these observations. Isolated forward and distinct-fixture rollback remain
-within T012/T015; neither is accepted yet.
+PR [#528](https://github.com/bolens/homelab/pull/528) adds the ordinary authenticated
+repair request before reader scan and backup/custody. Fresh DJ bootstrap records
+its actual queued-review/no-grant result and the original 0700 history directory.
+DI then passes history admission but holds at `fixture-same-owning-pair`: the
+transition calls the allocating Controller/Writer factory inside the original
+Writer session. Both archives' full9/hashes and all 24 native SQL tables remain
+unchanged; the reader stays stopped, native process/config are unchanged and
+worker remains inactive. Preserve DI/DJ without replay or inferred resume.
+
+PR [#529](https://github.com/bolens/homelab/pull/529) corrects original Writer
+pair reuse and the separate verifier's binding order. DM passes those boundaries
+but stops before the fixture write: its receipt writer receives the union of
+library and DATA ancestors instead of the receipt's own ancestry. Keep that union
+in retained custody and admit only the original DATA ancestry for receipt writes.
+The separate-branch regression now exposes this geometry directly.
+
+The connected current-source regression also exposes an unchanged-size SQL case:
+repair can restore the catalog's already recorded size, so SQLite has no journal.
+Skip the SQL UPDATE only for identical complete typed snapshots, retain original
+DB bytes/full9 and all companion absences, and require the owned journal for
+actual catalog changes. Forward/reverse and foreign-companion controls cover
+this boundary. This installed native correction requires a matching new image
+capture and checked host installation before another unused fixture. Preserve
+DM/DN and every earlier hold without replay; forward and distinct-fixture rollback
+remain unaccepted within T012/T015. [Retained failure history](evidence-history.md#disjoint-fixture-ancestry-and-unchanged-catalog--2026-10-26)
+owns the diagnosis.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
