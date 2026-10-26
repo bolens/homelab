@@ -584,3 +584,42 @@ vector revalidation still rejects drift in an irrelevant copied-control mount.
 Historical fixtures remain unchanged. A new installed SDK image and its actual
 module proof are required before a fresh operation. This source work supplies no
 accepted archive terminal, rollback or reader-resume authority for CX.
+
+
+## Fixture publication version hold — 2026-10-26
+
+PR #525 merged with local and hosted checks passing. Its published native image
+was captured in a restricted offline helper: all 180 native modules and the
+required 103-module SDK match, including corrected Scope and Birth sources. The
+helper was removed. The fresh CY checked installation verified all 27 outputs,
+and CZ's disposable native/reader/worker bootstrap passed.
+
+CY stopped during SourceCohort preparation before Parent entry because its
+private readiness input retained the previous Scope bytes and Probe source hash.
+The separately prepared DB packet derives every readiness source field from its
+exact current cohort. The actual owning predicate rejects CY and each stale
+field independently, and accepts DB. DB's 58 packet, six original-Parent and 16
+independent observer controls passed. DB reuses the unchanged checked installation
+and untouched CZ fixture; no second installation or bootstrap was required.
+
+DB passed SourceCohort and reached the owning Parent. The Parent stopped only the
+disposable reader, then held without an accepted terminal. The exact execute
+helper's retained traceback reaches `StoppedReaderCustody.archive_publication`:
+the genuine fixture request is emitted as version 4, but the native lifecycle's
+explicit publication policy still requires version 3. The action already routes
+both versions to the same NFS publication selection. The previous SDK geometry
+failure is passed; the current refusal occurs before archive publication.
+Read-only diagnosis finds native running, reader exited and worker created.
+Independent post-hold comparisons prove both archive full9 and hashes and the
+entire 24-table native model unchanged; the original native process/config also
+match. Preserve DB, CZ and their helpers without replay or inferred resume.
+
+The focused correction admits only integer invocation versions 3 and 4 with the
+unchanged `rename-link-v1` policy. Its regression executes the Parent's real
+version branch through real Birth, the same OS pipe, custody, Scope and adoption;
+only fixture-document admission, installed origins and parent observations are
+doubled. The old code fails version 4 and incorrectly accepts float `3.0`.
+Corrected controls retain version 3, reject floats, booleans, unsupported versions
+and missing/foreign protocols, preserve one-use selection and enter no Writer.
+This component proof grants no configured acceptance. A matching new image,
+actual SDK capture, checked installation and unused fixture are still required.

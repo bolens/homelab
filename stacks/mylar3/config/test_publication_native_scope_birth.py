@@ -1,5 +1,6 @@
 """Real disposable FD/INI/source/pipe birth; explicitly fake parent and origins."""
 from pathlib import Path
+import ast
 import copy
 import hashlib
 import importlib.util
@@ -68,6 +69,7 @@ class Controls(unittest.TestCase):
                     self.assertEqual(request['nonce'],self.nonce);self.assertEqual(request['input_sha256'],self.sha)
                     self.assertEqual(request['sequence'],len(self.frames))
                     response=dict(request,type='observation',**copy.deepcopy(self.response))
+                    if 'archive_publication' in request:response['archive_publication']=copy.deepcopy(self.publication_facts)
                     if request['type']=='birth-commit':
                         proof=request['birth']['native_scope'];raw=Path(proof['path']).read_bytes()
                         self.assertEqual(hashlib.sha256(raw).hexdigest(),proof['sha256'])
@@ -98,6 +100,64 @@ class Controls(unittest.TestCase):
         self.assertFalse(scope.binding['mutation_authority']);self.assertFalse(scope.binding['publication_acceptance'])
         self.assertEqual(len(scope._mounts),73);scope.revalidate()
         with self.assertRaises(l.Held):l.from_birth(token)
+    def publication_custody(self,request_version=3,*,version=None,protocol='rename-link-v1'):
+        # Execute the Parent's real input-version branch. Original fixture-document
+        # validation is an explicit double here, not a configured fixture claim.
+        source=root/'reader_recovery/comic_reader_lifecycle_parent.py'
+        tree=ast.parse(source.read_bytes())
+        method=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='archive_phase_input')
+        branch=next(n for n in method.body if isinstance(n,ast.If) and any(isinstance(v,ast.Constant) and v.value=='same-child-v1' for v in ast.walk(n)))
+        refs={name:{} for name in ('bootstrap','catalog')}
+        owner=types.SimpleNamespace(plan={'version':13},mapping=types.SimpleNamespace(child_ref=copy.deepcopy))
+        namespace=dict(self=owner,phase='execute',request={'version':request_version,'terminal':'forward'},
+                       value={'version':1,'owner':{'table':'issues','issueid':'1','parentcomicid':'2','releasecomicid':'2'},'operation_id':'e'*64},
+                       archive_fixture_inputs=lambda plan,request:refs)
+        exec(compile(ast.Module(body=[branch],type_ignores=[]),str(source),'exec'),namespace)
+        invocation=namespace['value'];self.assertEqual(invocation['version'],4 if request_version==3 else 3)
+        if version is not None:invocation['version']=version
+        if protocol is None:invocation.pop('publication_protocol')
+        else:invocation['publication_protocol']=protocol
+        self.c.input=self.c.write('input.json',l.encoded(invocation));self.sha=self.c.input['sha256']
+        self.c.doc['input_sha256']=self.sha;self.seed['invocation']['input_sha256']=self.sha;self.write_seed()
+        custody=l.from_birth(self.born());scope=s.from_checked_parent(custody)
+        self.publication_facts=dict(version=1,protocol='rename-link-v1',nonce=self.nonce,
+            input_sha256=self.sha,parent_sha256=self.parent,owner=invocation['owner'],operation_id=invocation['operation_id'],
+            library=scope.binding['host_scopes']['library'],mount=dict(source='fixture:/export',target='/host/library',fstype='nfs4',fsroot='/',options='rw',**{'maj:min':'0:1'}),
+            device=1,geometry={},execution_authority=False,publication_acceptance=False)
+        adoption=REAL_IMPORT_MODULE('mylar.publication_archive_adoption')
+        return custody,scope,adoption
+    def test_parent_v4_birth_pipe_scope_to_actual_publication_selection(self):
+        custody,scope,adoption=self.publication_custody()
+        with patch.object(adoption,'installed'):
+            selection=adoption.nfs_publication(custody,scope)
+        self.assertEqual(selection.facts,self.publication_facts)
+        self.assertNotIn(custody,l._WRITER_PIPE)
+        self.assertEqual(custody.archive_publication_original(scope),selection.facts)
+        with self.assertRaisesRegex(l.Held,'before-writer-one-use'):custody.archive_publication(scope)
+    def test_parent_v3_birth_pipe_scope_keeps_publication_support(self):
+        custody,scope,adoption=self.publication_custody(request_version=2)
+        with patch.object(adoption,'installed'):selection=adoption.nfs_publication(custody,scope)
+        self.assertEqual(selection.facts['protocol'],'rename-link-v1');self.assertNotIn(custody,l._WRITER_PIPE)
+    def test_publication_version_type_and_unknown_versions_refuse(self):
+        for version in (True,3.0,4.0,2,5):
+            with self.subTest(version=version):
+                case=Controls('runTest');case.setUp()
+                try:
+                    custody,scope,adoption=case.publication_custody(version=version)
+                    with patch.object(adoption,'installed'),self.assertRaisesRegex(l.Held,'explicit-source-policy'):
+                        adoption.nfs_publication(custody,scope)
+                    self.assertNotIn(custody,l._ARCHIVE_PUBLICATION);self.assertNotIn(custody,l._WRITER_PIPE)
+                finally:case.doCleanups()
+    def test_publication_missing_or_foreign_protocol_refuses(self):
+        for protocol in (None,'exchange-fallback'):
+            with self.subTest(protocol=protocol):
+                case=Controls('runTest');case.setUp()
+                try:
+                    custody,scope,adoption=case.publication_custody(protocol=protocol)
+                    with patch.object(adoption,'installed'),self.assertRaisesRegex(l.Held,'explicit-source-policy'):
+                        adoption.nfs_publication(custody,scope)
+                    self.assertNotIn(custody,l._ARCHIVE_PUBLICATION)
+                finally:case.doCleanups()
     def child_controls(self,count=73):
         self.response['child_mounts'].extend(dict(Type='bind',Source='/fixture/control-'+str(i),Destination='/_operation/control-'+str(i),RW=False) for i in range(count-2))
     def test_child_mount_limit_refuses_before_proof(self):

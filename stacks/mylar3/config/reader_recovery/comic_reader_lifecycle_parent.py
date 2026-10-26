@@ -911,7 +911,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = 'a8dbc9393bb349a864e3b59b31786779aa48746035173fc7b730bb350225cd6b'
+BASE_ADMISSION_SHA = 'ff57be2b2b085209f8cb88f4ac477be768e7c56014bd9afe9eb6c3d208d9d823'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""

@@ -39,18 +39,27 @@ reader, then held in the installed Birth consumer: the SDK still applied its
 64-row native/worker parser to the complete 73-mount child vector. The retained
 child traceback identifies that exact boundary.
 
-Use one shared selected-child projection in the SDK Scope, Birth and both host
-adapters. Validate every row under the finite 147-row child bound, then project
-matching ancestors through the unchanged parser. Keep native/worker limits and
-full-vector revalidation unchanged. The regression must exercise Birth through
-the actual lifecycle and Scope constructor with all 73 mounts preserved.
-This changes installed SDK bytes: require a matching published native image,
-actual module capture, fresh checked host installation and unused fixture.
-Preserve CX and its stopped reader without replay or inferred resume. Reuse the
-unchanged worker proof only where its original inputs still match.
-[Retained failure history](evidence-history.md#installed-child-geometry-hold--2026-10-26)
-owns the original observations. No isolated forward or rollback is accepted yet;
-both remain within T012/T015.
+PR [#525](https://github.com/bolens/homelab/pull/525) delivered the shared
+selected-child projection in SDK Scope, Birth and both host adapters. Its matching
+image capture verifies all 180 modules and the required 103-module SDK. Fresh
+checked controls and disposable bootstrap passed. A stale private readiness
+input was corrected from its exact Scope and Probe sources before DB passed
+SourceCohort and reached the owning Parent.
+
+DB stopped its disposable reader, then held before archive publication. The
+retained execute traceback proves that the Parent's genuine fixture invocation
+uses version 4 while the installed lifecycle accepts only version 3 for the same
+`rename-link-v1` handshake. Correct that finite policy with strict integer typing
+and exercise the actual Parent version branch through Birth, the original pipe,
+custody, Scope and adoption. Preserve the separate version-1 facts protocol.
+Require a matching new published image, actual module capture, checked host
+installation and unused fixture after this SDK correction. Both archives' full9
+and hashes and all 24 native tables remain unchanged after DB; its reader stays
+stopped. Preserve CX, DB and their held fixtures without replay or inferred
+resume. Reuse unchanged worker proof only where its original inputs match.
+[Retained failure history](evidence-history.md#fixture-publication-version-hold--2026-10-26)
+owns the observations. Isolated forward and distinct-fixture rollback remain
+within T012/T015; neither is accepted yet.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
