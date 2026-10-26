@@ -9,7 +9,7 @@ Before submitting a change:
 
 ```bash
 make hooks-install
-make ci-local
+make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
 
 Do not commit `stack.env`, `.env`, private keys, credentials, real hostnames,

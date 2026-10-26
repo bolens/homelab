@@ -106,8 +106,14 @@ metadata, preparation scripts, and generated documentation. Run the full
 all-files and Git-history suite on demand:
 
 ```bash
-make ci-local
+make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
+
+`ci-local` first runs the Komga source/compile gate through
+`make komga-source-check`, the same target used by hosted validation. Set
+`JAVA_HOME_21` to a JDK 21 installation. It defaults to the hosted runner's
+`JAVA_HOME_21_X64` when available. A missing JDK or failed gate stops the command;
+the gate runs without Docker and does not observe or change service state.
 
 Repository validation ShellChecks every tracked `*.sh` file, including
 stack-local entrypoints and preparation helpers. GitHub pull requests render
