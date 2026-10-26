@@ -10,10 +10,10 @@ T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
 scoped live acceptance.
 
-1. Finish the owning stopped-reader handoff, then backup/restore, archive
-   transition, factual terminal consumption and permitted resume. Resolve the
-   demonstrated post-stop profile and retained-session lifetime boundaries
-   within T012, preserving original identity, custody and freshness checks.
+1. Complete the owning NFS/reader handoff, backup/restore, archive transition,
+   factual terminal consumption and permitted resume within T012, preserving
+   original identity, custody and freshness checks. Use retained failure
+   evidence to distinguish an implementation defect from a correct refusal.
    Diagnose held attempts without replay or an inferred resume grant.
 2. After accepted forward proof, run explicit rollback on a distinct fixture.
    Independently compare its causal source, complete native preimage and affected
@@ -33,11 +33,17 @@ PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed nat
 modules for the shared phase deadline. Require its matching published image and
 fresh module capture before the next isolated pair. That capture is now verified.
 The subsequent CC attempt passed NFS and backup/restore, then held while the host
-producer confused the copied manifest view with the backup directory. Correct
-that host-only geometry binding and use fresh checked outputs and fixtures;
-preserve CC’s stopped reader and original evidence. Reuse the unchanged worker
-proof only for its exact original inputs. Host-only changes require fresh checked
-outputs without repeating unchanged image proof.
+producer confused the copied manifest view with the backup directory. PR
+[#523](https://github.com/bolens/homelab/pull/523) corrects that host-only geometry
+binding. Its fresh checked installation passed; the next isolated attempt held
+before reader stop when a later native readiness projection refused its reply.
+The reader remained running, both archive originals and the full native database
+were unchanged, and no terminal was accepted. Retain the failed reply’s finite
+state/reason and census shape for diagnosis; an earlier ready observation does
+not establish later Writer availability. Preserve both attempts without replay.
+Reuse unchanged native and worker image proofs only for their exact original
+inputs. Host-only changes require fresh checked outputs without repeating
+unchanged image proof.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

@@ -362,6 +362,30 @@ def fresh_native(call, container_id):
     return value
 
 
+def unlocked_native_projection(value):
+    """Keep a rejected observation's finite categories, never its payload."""
+    try:
+        return _NATIVE_PROJECTOR(value)
+    except ValueError:
+        publication=value.get('publication') if type(value) is dict else None
+        publication=publication if type(publication) is dict else {}
+        state=publication.get('state');reason=publication.get('reason')
+        state=state if type(state) is str and state in ('ready','held') else 'other'
+        reason=reason if type(reason) is str and reason in (
+            'verified','startup-restart-required','writer-busy',
+            'authority-unavailable','media-pending') else 'other'
+        census=publication.get('census')
+        shape=('missing' if 'census' not in publication else
+               'null' if census is None else 'object' if type(census) is dict else 'other')
+        try:
+            os.write(2,encode(dict(kind='nfs-native-projection-rejected',state=state,
+                                  reason=reason,census_shape=shape,
+                                  terminal_accepted=False,automatic_replay=False))+b'\n')
+        except OSError:
+            pass
+        raise
+
+
 def native_gate():
     if _COHORT is None:raise Held('explicit-current-source-cohort-required')
     _COHORT.close()
@@ -2543,7 +2567,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         native_row=selected['native'] if selected is not None else next(r for r in current if r['Name']=='/mylar3')
         live=identities(([selected['native'],selected['worker']] if selected is not None else [r for r in current if r['Name']!='/komga']),roles)
         health=fresh_native(call,native_row['Id'])
-        projection=_NATIVE_PROJECTOR(dict(inspect=native_row,process=health['process'],publication=health['publication']))
+        projection=unlocked_native_projection(dict(inspect=native_row,process=health['process'],publication=health['publication']))
         observed=dict(mapping=live,native_process=health['process'],native_config=health['config'],projection=projection)
         # Lease has ended. The original unlocked state and complete census must return.
         check(observed['native_process']==initial['native_process'] and observed['native_config']==initial['native_config']

@@ -700,4 +700,46 @@ class RefusalACKControls(unittest.TestCase):
             for key in ('probe_verified','disposable_probe_verified','platform_supported','owned_fixture_absence_verified','actual_library_platform_verified','native_grant','publication_authority'):
                 self.assertIs(value[key],False)
 
+class NativeProjectionDiagnostics(unittest.TestCase):
+    def test_success_keeps_original_projection_without_output(self):
+        original=object();value={'publication':{'state':'ready'}}
+        with patch.object(P,'_NATIVE_PROJECTOR',return_value=original) as project,patch.object(P.os,'write') as write:
+            self.assertIs(P.unlocked_native_projection(value),original)
+        project.assert_called_once_with(value);write.assert_not_called()
+
+    def test_refusal_records_only_finite_categories_and_preserves_exception(self):
+        for reason in ('writer-busy','authority-unavailable','media-pending'):
+            error=ValueError('private exception payload')
+            value={'publication':{'state':'held','reason':reason,'census':None,'credential':'private-value'}}
+            with patch.object(P,'_NATIVE_PROJECTOR',side_effect=error),patch.object(P.os,'write') as write:
+                with self.assertRaises(ValueError) as caught:P.unlocked_native_projection(value)
+            self.assertIs(caught.exception,error)
+            fd,raw=write.call_args.args;self.assertEqual(fd,2)
+            self.assertEqual(json.loads(raw),dict(kind='nfs-native-projection-rejected',state='held',reason=reason,census_shape='null',terminal_accepted=False,automatic_replay=False))
+            self.assertNotIn(b'private',raw)
+
+    def test_unknown_values_and_census_contents_are_not_disclosed(self):
+        for publication,shape in (({'state':'secret','reason':'credential','census':{'private':'data'}},'object'),({},'missing'),({'census':[]},'other')):
+            with patch.object(P,'_NATIVE_PROJECTOR',side_effect=ValueError('refused')),patch.object(P.os,'write') as write:
+                with self.assertRaises(ValueError):P.unlocked_native_projection({'publication':publication})
+            result=json.loads(write.call_args.args[1]);self.assertEqual((result['state'],result['reason'],result['census_shape']),('other','other',shape))
+            self.assertNotIn('private',write.call_args.args[1].decode())
+
+    def test_diagnostic_io_failure_does_not_replace_original_refusal(self):
+        error=ValueError('original refusal')
+        with patch.object(P,'_NATIVE_PROJECTOR',side_effect=error),patch.object(P.os,'write',side_effect=OSError('unavailable')):
+            with self.assertRaises(ValueError) as caught:P.unlocked_native_projection({})
+        self.assertIs(caught.exception,error)
+
+    def test_retained_canary_current_routes_rejected_fresh_observation_through_diagnostic(self):
+        fixture=FullLifecycleControls('test_unlocked_census_never_accepts_incomplete_or_busy');fixture.setUp()
+        try:
+            canary,rows,events=fixture.fixture(use_core=True,return_factual=True)
+            error=ValueError('scope-native-unlocked-census')
+            with patch.object(P,'_NATIVE_PROJECTOR',side_effect=error),patch.object(P.os,'write') as write:
+                with self.assertRaises(ValueError) as caught:canary.current(stopped=False)
+            self.assertIs(caught.exception,error)
+            self.assertEqual(json.loads(write.call_args.args[1])['kind'],'nfs-native-projection-rejected')
+        finally:fixture.doCleanups()
+
 if __name__=='__main__':unittest.main()
