@@ -1,4 +1,6 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local komga-source-check hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+
+JAVA_HOME_21 ?= $(JAVA_HOME_21_X64)
 
 help:
 	@echo "Homelab repository targets:"
@@ -6,7 +8,8 @@ help:
 	@echo "  validate           Python, Compose YAML, and shell validation"
 	@echo "  validate-strict    Validate and require every lint dependency"
 	@echo "  validate-changed   Validate changed stacks; requires BASE=<git revision>"
-	@echo "  ci-local           Run all pre-commit and history secret checks"
+	@echo "  ci-local           Run Komga JDK 21, pre-commit and history secret checks"
+	@echo "  komga-source-check Run the Komga source/compile gate; requires JAVA_HOME_21"
 	@echo "  hooks-install      Install repository pre-commit hooks"
 	@echo "  hooks-install-site Opt in to Pages browser tests before push"
 	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
@@ -38,8 +41,13 @@ validate-changed:
 	bash scripts/validate-repo.sh --strict --changed-base "$(BASE)"
 
 ci-local:
+	$(MAKE) komga-source-check
 	pre-commit run --all-files
 	bash scripts/scan-secrets-gitleaks.sh git
+
+komga-source-check:
+	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)
+	python3 -I -B stacks/komga/effective_scope/run_source_tests.py --java-home "$(JAVA_HOME_21)"
 
 hooks-install:
 	pre-commit install --install-hooks

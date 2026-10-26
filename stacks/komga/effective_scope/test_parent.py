@@ -29,6 +29,24 @@ class BootstrapSourcePin(unittest.TestCase):
         self.assertEqual(p.BOOTSTRAP_SOURCE_SHA, p.digest(source.read_bytes()))
 
 
+class OriginalReferenceContract(unittest.TestCase):
+    def test_seven_reference_graph_joins_original_code_with_distinct_retained_copies(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);sources=root/'sources';sources.mkdir();output=root/'observation';output.mkdir()
+            producer=sources/'KomgaEffectiveScope.class';producer.write_bytes(b'original class')
+            parent=sources/'parent.py';parent.write_bytes(b'original parent')
+            for original,name in ((producer,'producer-source.class'),(parent,'parent-source.py')):
+                copy=output/name;copy.write_bytes(original.read_bytes());self.assertNotEqual(copy.stat().st_ino,original.stat().st_ino)
+            proofs=dict(runtime='runtime.private.json',report='report.private.json',acceptance='acceptance.private.json',ack='ack.private.json',parent_ack='parent-ack.private.json')
+            for name in proofs.values():(output/name).write_bytes(b'{}')
+            refs=p.observation_references(output,producer,p.digest(producer.read_bytes()),parent,p.digest(parent.read_bytes()))
+            cohort=dict(effective_helper=dict(path=str(producer),sha256=p.digest(producer.read_bytes())),effective_parent=dict(path=str(parent),sha256=p.digest(parent.read_bytes())))
+            self.assertEqual(set(refs),{'producer','parent_source',*proofs})
+            self.assertEqual(refs['producer'],cohort['effective_helper']);self.assertEqual(refs['parent_source'],cohort['effective_parent'])
+            for role,name in proofs.items():self.assertEqual(refs[role],dict(path=str(output/name),sha256=p.digest((output/name).read_bytes())))
+            self.assertEqual((output/'producer-source.class').read_bytes(),producer.read_bytes());self.assertEqual((output/'parent-source.py').read_bytes(),parent.read_bytes())
+
+
 class Tests(unittest.TestCase):
     def snapshot(self):
         return dict(cmd=b'java\0-Dspring.profiles.include=docker\0--enable-native-access=ALL-UNNAMED\0-jar\0application.jar\0--spring.config.additional-location=file:/config/\0', env=b'KOMGA_CONFIGDIR=/config\0PATH=/bin\0', uid=1000, cwd='/app')

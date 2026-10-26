@@ -18,7 +18,7 @@ verification, rollback, and cleanup workflow in [AGENTS.md](AGENTS.md#live-confi
 
 ```sh
 make validate-changed BASE=origin/main
-make ci-local
+make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
 
 Regenerate catalog or topology output from its source rather than hand-editing

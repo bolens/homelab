@@ -20,4 +20,40 @@ class Tests(unittest.TestCase):
  def test_duplicate_physical_source_holds(self):
   mounts=[dict(Type='bind',Source='/fixture/comics',Destination='/a',RW=True),dict(Type='bind',Source='/fixture/comics',Destination='/b',RW=True)]
   with self.assertRaises(adapter.Held):adapter.worker_library_destination(scope,mounts,'/fixture/comics')
+
+class ChildMountTests(unittest.TestCase):
+ def mounts(self,count=73):
+  return [dict(Type='bind',Source='/fixture/config',Destination='/config',RW=False),dict(Type='bind',Source='/fixture/comics',Destination='/data/comics',RW=True),*[dict(Type='bind',Source='/fixture/control-'+str(i),Destination='/_operation/control-'+str(i),RW=False) for i in range(count-2)]]
+ def test_complete_73_mount_child_projects_library_and_native_config(self):
+  mounts=self.mounts()
+  self.assertEqual(adapter.child_projection(scope,mounts,'/data/comics/book.cbz'),'/fixture/comics/book.cbz')
+  self.assertEqual(adapter.child_projection(scope,mounts,'/config/config.ini'),'/fixture/config/config.ini')
+  with self.assertRaisesRegex(scope.Held,'scope-mount-bound'):scope.projection(mounts,'/data/comics/book.cbz')
+ def test_child_mount_limit_remains_finite(self):
+  self.assertEqual(adapter.child_projection(scope,self.mounts(147),'/config/config.ini'),'/fixture/config/config.ini')
+  for mounts in (self.mounts(148),tuple(self.mounts()),[]):
+   with self.assertRaisesRegex(adapter.Held,'adapter-child-mount-bound'):adapter.child_projection(scope,mounts,'/config/config.ini')
+ def test_most_specific_foreign_shadow_is_visible(self):
+  mounts=self.mounts()+[dict(Type='bind',Source='/foreign',Destination='/data/comics/nested',RW=False)]
+  self.assertEqual(adapter.child_projection(scope,mounts,'/data/comics/nested/book.cbz'),'/foreign/book.cbz')
+ def test_duplicate_matching_destination_refuses(self):
+  mounts=self.mounts();mounts.append(dict(mounts[1]))
+  with self.assertRaisesRegex(scope.Held,'scope-ambiguous'):adapter.child_projection(scope,mounts,'/data/comics/book.cbz')
+ def test_malformed_irrelevant_mount_still_refuses(self):
+  for change in ({'Type':'foreign'},{'RW':1},{'Source':'relative'},{'Destination':'relative'},{'Type':'volume','Driver':'foreign'}):
+   mounts=self.mounts();mounts[-1].update(change)
+   with self.subTest(change=change),self.assertRaises((adapter.Held,scope.Held)):adapter.child_projection(scope,mounts,'/config/config.ini')
+ def test_actual_native_observation_consumes_complete_child_mount_vector(self):
+  import copy,hashlib
+  from unittest.mock import patch
+  fixtures=load('test_native_evidence')
+  fixture=fixtures.AdapterTests('test_fresh_probe_scope_and_mount_positive');fixture.setUp();self.addCleanup(fixture.doCleanups)
+  fixture.plan['native']['data']='/config/mylar';fixture.plan['producer']['sha256']=hashlib.sha256((HERE/'comic_archive_evidence_adapter.py').read_bytes()).hexdigest()
+  path=Path(fixture.planref['path']);path.write_bytes(adapter.encode(fixture.plan));fixture.planref.update(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(adapter.nine(path.lstat())))
+  fixture.child['Mounts'].extend(self.mounts()[2:]);fixture.req['context'].update(child=copy.deepcopy(fixture.child),child_mounts=copy.deepcopy(fixture.child['Mounts']))
+  with patch.object(adapter,'probe_exec',lambda *args:copy.deepcopy(fixture.response)):
+   result=adapter.produce('native-observation',fixture.req,watch=fixture.parent.continuous)
+  self.assertEqual(len(result['evidence']['child_mounts']),73)
+  self.assertEqual(result['evidence']['native']['process'],fixture.response['process'])
+
 if __name__=='__main__':unittest.main()

@@ -10,10 +10,10 @@ T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
 scoped live acceptance.
 
-1. Finish the owning stopped-reader handoff, then backup/restore, archive
-   transition, factual terminal consumption and permitted resume. Resolve the
-   demonstrated post-stop profile and retained-session lifetime boundaries
-   within T012, preserving original identity, custody and freshness checks.
+1. Complete the owning NFS/reader handoff, backup/restore, archive transition,
+   factual terminal consumption and permitted resume within T012, preserving
+   original identity, custody and freshness checks. Use retained failure
+   evidence to distinguish an implementation defect from a correct refusal.
    Diagnose held attempts without replay or an inferred resume grant.
 2. After accepted forward proof, run explicit rollback on a distinct fixture.
    Independently compare its causal source, complete native preimage and affected
@@ -32,12 +32,26 @@ entries after PR [#521](https://github.com/bolens/homelab/pull/521).
 PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
 modules for the shared phase deadline. Require its matching published image and
 fresh module capture before the next isolated pair. That capture is now verified.
-The subsequent CC attempt passed NFS and backup/restore, then held while the host
-producer confused the copied manifest view with the backup directory. Correct
-that host-only geometry binding and use fresh checked outputs and fixtures;
-preserve CC’s stopped reader and original evidence. Reuse the unchanged worker
-proof only for its exact original inputs. Host-only changes require fresh checked
-outputs without repeating unchanged image proof.
+PR [#524](https://github.com/bolens/homelab/pull/524) corrects physical copied
+report checks and original-provider roundtrips. The current host installation
+and original-receipt export passed, but its new disposable bootstrap held during
+native startup readiness before archive recovery. Native health later reported
+ready; that later observation does not establish the original refusal's cause.
+Retain a bounded original startup readiness record before another fresh fixture.
+Reuse the unchanged checked host installation when its exact originals still
+match. The observer now returns original producer and executed-parent references
+that join SourceCohort while retaining copied code as audit evidence. The next
+attempt passed that join, reached the owning Producer and stopped its disposable
+reader, then held because its 73-mount execute helper exceeded the geometry
+parser's 64-row limit. The archive adapter must validate the complete helper
+mount vector before projecting relevant ancestors through the unchanged parser.
+Require a fresh checked host installation and unused fixture for that correction;
+retain the stopped attempt without replay or resume. [Retained failure history](evidence-history.md#copied-control-holds-and-bootstrap-readiness--2026-10-25)
+owns prior attempts and their preservation evidence. No isolated forward or
+rollback is accepted yet; both remain within T012/T015.
+Reuse unchanged native and worker image proofs only for their exact original
+inputs. Host-only changes require fresh checked outputs without repeating
+unchanged image proof.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

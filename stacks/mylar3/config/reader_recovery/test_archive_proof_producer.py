@@ -85,6 +85,51 @@ class Controls(unittest.TestCase):
   doc={'version':1,'action':'archive-one','nonce':'b'*64,'controls':controls,'archive_scopes':result['archive_scopes'],'command_template':command,'operation':str(self.operation/'execute'),'sdk_map':self.sdkmap,'parent_sha256':self.parentref['sha256'],'selected_image':'sha256:'+'c'*64,'owner':OWNER,'operation_id':'a'*64};iref=a.write(input_path,doc);actual=[iref['sha256'] if x=='<INPUT_SHA256>' else x for x in command]
   inv={'input_path':str(input_path),'input_sha256':iref['sha256'],'command':actual,'nonce':'b'*64,'parent_sha256':self.parentref['sha256'],'provider_sha256':p.PINS['comic_archive_repair_action.py']}
   request['context']={'backup':self.backup,'controls':controls,'archive_scopes':result['archive_scopes'],'observations':copy.deepcopy(self.observations),'phase':'execute','invocation':inv,'stage':'prebirth'};return request
+ def copied_provider_phase(self):
+  # Runtime/backup remain explicit doubles; all custody paths use real copies,
+  # scopes, full9 checks and Paths dispatch from this boundary onward.
+  import os
+  import comic_child_control_projection as projection
+  import comic_reader_lifecycle_parent as parent
+  request=self.phase();plan=json.loads(Path(self.plan['path']).read_bytes())
+  provider=self.root/'private-code'/'comic_archive_repair_action.py'
+  provider.write_bytes((HERE/'comic_archive_repair_action.py').read_bytes());provider.chmod(0o600)
+  original=dict(path=str(provider),sha256=p.digest(provider.read_bytes()),signature9=a.nine(provider.stat()))
+  tree=projection.Tree(self.root/'child-controls','/_operation',self.operation,lambda ref:a.checked(ref,False)[0],uid=os.geteuid(),gid=os.getegid())
+  mapping=parent.Paths([dict(host=str(self.root),child=str(self.root),write=True),dict(host=str(self.native),child='/config/mylar',write=True),dict(host=str(self.library),child='/comics',write=True)])
+  mapping.owner=self.parent;self.parent.mapping=mapping;self.parent.left=tree.check
+  parent._CHILD_TREES[self.parent]=tree;self.addCleanup(parent._CHILD_TREES.pop,self.parent,None)
+  projected=mapping.child_ref(original)
+  self.assertNotEqual(mapping.host(projected['path']),original['path'])
+  self.assertEqual(mapping.original_host(mapping.host(projected['path'])),original['path'])
+  plan['provider']=original;path=Path(self.plan['path']);path.write_bytes(a.encoded(plan))
+  request['parent_plan']=dict(path=str(path),sha256=p.digest(path.read_bytes()),signature9=a.nine(path.stat()))
+  ctx=request['context'];scope_path=Path(ctx['archive_scopes']['path'])
+  scope_doc=dict(version=1,**{role:mapping.child(mapping.private_scope(str(path),role)) for role,path in [('scratch',self.scratch),('retention_root',self.retention)]})
+  scope_path.write_bytes(a.encoded(scope_doc));ctx['archive_scopes']=dict(path=str(scope_path),sha256=p.digest(scope_path.read_bytes()),signature9=a.nine(scope_path.stat()))
+  inv=ctx['invocation'];old_path=Path(inv['input_path']);doc=json.loads(old_path.read_bytes())
+  path=self.operation/'execute-input.json';child_input=mapping.child(str(path))
+  doc['command_template'][3]=projected['path'];doc['command_template'][7]=child_input
+  doc['controls']={role:mapping.child_ref(ref) for role,ref in ctx['controls'].items()}
+  doc['archive_scopes']=mapping.child_ref(ctx['archive_scopes']);doc['sdk_map']=mapping.child_ref(self.sdkmap);doc['operation']=mapping.child(str(self.operation/'execute'))
+  path.write_bytes(a.encoded(doc));path.chmod(0o600)
+  input_ref=dict(path=str(path),sha256=p.digest(path.read_bytes()),signature9=a.nine(path.stat()))
+  inv['input_path']=mapping.child_ref(input_ref)['path'];inv['input_sha256']=input_ref['sha256']
+  inv['command']=[input_ref['sha256'] if v=='<INPUT_SHA256>' else v for v in doc['command_template']]
+  return request,tree,original,projected
+ def test_phase_custody_joins_real_projected_provider_to_original(self):
+  request,tree,original,projected=self.copied_provider_phase()
+  result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence']
+  self.assertEqual(result['birth_seed']['invocation']['command'][3],projected['path'])
+  tree.check();self.assertEqual(a.nine(Path(original['path']).stat()),original['signature9'])
+ def test_phase_custody_refuses_changed_projected_provider(self):
+  request,tree,_,projected=self.copied_provider_phase()
+  Path(tree.host(projected['path'])).write_bytes(b'foreign')
+  with self.assertRaisesRegex(ValueError,'child-control-final9'):p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_phase_custody_refuses_foreign_original_provider_roundtrip(self):
+  request,tree,_,projected=self.copied_provider_phase();physical=tree.host(projected['path']);original_host=self.parent.mapping.original_host
+  self.parent.mapping.original_host=lambda path:'/foreign/provider.py' if path==physical else original_host(path)
+  with self.assertRaisesRegex(p.Held,'archive-producer-path-roundtrip'):p.produce('phase-custody',request,watch=self.parent.continuous)
  def test_original_SDK_map_proof_retained(self):
   request=self.phase();result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence'];self.assertEqual(result['proofs']['archive_sdk_map'],self.sdkmap)
  def test_input_SDK_map_mismatch_held(self):

@@ -79,6 +79,11 @@ class V13Controls(Controls):
   self.x.plan['producer_inputs']['archive_request']=self.archive_request;self.reseal()
   self.stopped();result=self.ready(self.request())
   self.assertEqual(P.decode(P.read(result['evidence']['evidence']))['operation_id'],self.operation_id)
+ def test_v13_ready_after_backup_preserves_actual_tree_report_copy(self):
+  self.stopped();alias,view=base.Controls.projected_report(self)
+  result=self.ready(self.request());facts=P.decode(P.read(result['evidence']['evidence']))
+  self.assertEqual(facts['kind'],'archive-one-owning-active-to-stopped-nfs-facts')
+  self.assertIs(facts['publication_authority'],False)
  def test_original_terminal_mismatch_refuses_before_ready_output(self):
   self.stopped();self.terminal='rollback'
   with self.assertRaisesRegex(N.Held,'original-terminal-request'):self.ready(self.request())

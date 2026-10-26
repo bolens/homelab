@@ -4,7 +4,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_reader_action.py` loads the authenticated installed SDK map, obtains canonical scope birth and consumes its exact token through lifecycle.from_birth. The original command and inherited parent pipe remain bound. Preparation and execution require an accepted parent, fresh consistent backup and restore, current native/worker/process scope, supported NFS custody and typed factories. Admission's parent hash remains null. Source tests and CLI receipts grant no execution or publication authority.
 
-`comic_reader_lifecycle_parent.py` continuously checks critical container, process and mount facts outside the owned Writer session. Its existing pipe seals the prelease complete census and carries finite enter, held and leave messages. Held challenges and idle checks close local original custody without Docker or API calls; a pending all-false terminal reply and ACK stay inside the Writer, then one post-ACK leave after release precedes independent terminal and worker acceptance. Genuinely Ready and legacy startup-held originals use the same strict source, process and census joins. Its finite runtime projection permits only the specified insignificant Health log/streak changes. `comic_native_process_probe.py` and `comic_native_evidence_adapter.py` produce checked native observations and schema1 phase custody. Original reader-pair signatures remain immutable. Worker library destinations are derived from the unique most-specific physical bind and checked against nested mount shadows; native and worker container paths may differ.
+`comic_reader_lifecycle_parent.py` continuously checks critical container, process and mount facts outside the owned Writer session. Its existing pipe seals the prelease complete census and carries finite enter, held and leave messages. Held challenges and idle checks close local original custody without Docker or API calls; a pending all-false terminal reply and ACK stay inside the Writer, then one post-ACK leave after release precedes independent terminal and worker acceptance. Genuinely Ready and legacy startup-held originals use the same strict source, process and census joins. Its finite runtime projection permits only the specified insignificant Health log/streak changes. `comic_native_process_probe.py` and `comic_native_evidence_adapter.py` produce checked native observations and schema1 phase custody. Original reader-pair signatures remain immutable. Worker library destinations are derived from the unique most-specific physical bind and checked against nested mount shadows; native and worker container paths may differ. The archive adapter validates the complete selected-child mount vector, including copied controls, two private scopes and the admission overlay. It projects only matching ancestors through the owning parser after validating every row. Native and worker mounts keep their 64-row bound.
 
 The integrated probe mapping brackets one original scope/retention check with
 its source-bound session checks. It verifies file, ancestor, directory and
@@ -26,7 +26,7 @@ The archive proof producer binds backup directories to the returned restore root
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1728 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1758 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route
@@ -319,3 +319,14 @@ batch retains the original Parent checks before and after copying, each Tree
 copy/readback check, the original declaration policy and the loaded projection
 module. It returns no reusable admission. Active-parent source provenance and
 single-file projection retain their existing checks.
+
+A rejected post-release native projection records only fixed state/reason categories
+and the census shape in the retained NFS helper stderr. This diagnostic retains
+the original refusal and grants no retry, reader stop or resume authority. An
+earlier ready observation does not freeze later Writer availability.
+
+Generated outputs keep logical keys for protocol lookup and sealed references
+to their physical host copies. Runtime, birth, challenge, Writer release and
+NFS readiness vectors check each reference's physical path and reject
+conflicting facts for the same file. A logical lookup key is never a substitute
+for the retained copy's path or original nine-field identity.

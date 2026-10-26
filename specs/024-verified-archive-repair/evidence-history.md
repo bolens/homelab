@@ -494,3 +494,69 @@ and native adoption. Native adoption belongs to SDK102, so matching image proof
 and a fresh installation must precede another connected run. Both archives,
 reader records/progress and six page hashes remain unchanged after each hold.
 Terminal acceptance remains unproved.
+
+## Copied-control holds and bootstrap readiness — 2026-10-25
+
+The subsequent CC attempt passed NFS and backup/restore, then held while the host
+producer confused the copied manifest view with the backup directory. PR
+[#523](https://github.com/bolens/homelab/pull/523) corrects that host-only geometry
+binding. Its fresh checked installation passed; the next isolated attempt held
+before reader stop when a later native readiness projection refused its reply.
+The reader remained running, both archive originals and the full native database
+were unchanged, and no terminal was accepted. Retain the failed reply’s finite
+state/reason and census shape for diagnosis; an earlier ready observation does
+not establish later Writer availability. Preserve both attempts without replay.
+The next fresh attempt passed NFS, stopped its disposable reader and completed
+backup/restore, then held because a Parent closure treated a logical report key
+as the copied report’s physical path. The reader remains stopped without resume
+authority. Both archive originals and the complete native database are unchanged.
+Correct the five affected physical-vector consumers together, retaining logical
+protocol lookups, physical identities and conflict refusal. The later terminal
+and resume consumers already use physical references. This remains T012 work,
+not a new task or a reason to relax acceptance.
+The next isolated attempt passed those copied-report checks and held before
+archive execution because the custody producer compared a copied provider's
+physical host path directly with its original source path. Both archive
+originals and the complete native database remain unchanged; its reader stays
+stopped without resume authority. Join that roundtrip through the original
+source lookup and exercise provider, input, SDK and control projection through
+the real child-copy mapping before another attempt. This remains T012 work.
+
+The corrected original-provider roundtrip passes the real Tree/Paths custody
+regression, including provider, input, SDK and control projection. Its fresh
+installation and receipt export verified all 27 originals. The subsequent
+disposable bootstrap initialized native state and restarted its native container,
+then held before archive recovery. Native and reader remain running, worker
+remains created, and later native health reports ready. The original successful
+health reply was not retained, so its rejection cause is unknown. Preserve the
+fixture without replay. A finite startup state/reason/census-shape record now
+precedes that same refusal; it adds no retry, admission or resume authority.
+
+The next bootstrap passed. Its forward attempt then passed SourceCohort and
+removed its own SourceCohort helper, but held in read-only projection before
+Parent entry or Writer acquisition. The rebuilt maintained effective observer
+returned copied producer/parent paths, whereas the cohort declared their
+original paths. Its older private operator copy had adapted those references.
+The maintained observer now returns both original code identities and the five
+proof-output references, preserving all copied-code and original-source closures.
+The fresh packet must bind the actual compiled producer's path as well as the
+executed parent. Independent post-hold comparison verifies both archive full9
+and byte/member identities, reader books/pages/progress and the entire native
+24-table model are unchanged. The held attempt is retained without replay.
+
+The next fresh operation reused that unchanged fixture and installation, passed
+SourceCohort and the effective-original join, then reached the owning Producer.
+It stopped only its disposable reader and held during the execute child's native
+observation. Both original created and first-started profiles contain 73 unique
+mount destinations. The adapter passed the complete list to the native scope
+parser, which refuses more than 64 rows. The configured Parent adds copied
+controls, private scopes and the admission overlay beyond its original mount
+vector. The child-only correction validates every row, then passes matching
+ancestors to the unchanged parser, preserving duplicate and shadow checks.
+Native/worker mount limits remain unchanged. Read-only diagnosis found native
+running, reader exited, worker created and the original native process/config
+unchanged. Independent post-hold checks also confirm both archive full9 and
+exact bytes, all six page hashes and the entire native 24-table model are
+unchanged. No accepted terminal or resume authority was produced. Preserve the
+held operation and its exact helper; a changed adapter requires fresh checked
+host controls and a separate unused fixture.
