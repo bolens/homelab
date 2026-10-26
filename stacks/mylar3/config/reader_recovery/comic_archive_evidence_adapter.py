@@ -11,8 +11,8 @@ import time
 import sys
 
 ACTION_SHA='db2a3d59b1859325b4626803cf3ad3a8095a6d313cf717f0f5bc5ecc4563a411'
-PROBE_SHA = 'c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce'
-SCOPE_SHA = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
+PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
+SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 PRODUCER_SHA='d690d903a86480d0dc45dccfdd53863dc659b515bb3b85508f830dbdc5bab8ce'
 TERMINAL_PRODUCER_SHA='d690d903a86480d0dc45dccfdd53863dc659b515bb3b85508f830dbdc5bab8ce'
 MAX = 1024*1024
@@ -109,7 +109,7 @@ def native_observation(request,*,watch):
     need(plan['native']==dict(data=data,roots=[library]),'archive-observed-native-configured-roots')
     need(type(plan['native']['roots']) is list and len(plan['native']['roots'])==1,'adapter-single-configured-library-required')
     worker_library_destination(scope,worker['Mounts'],native_host)
-    need(child_projection(scope,child['Mounts'],library)==native_host and child_projection(scope,child['Mounts'],response['config']['path'])==host,'adapter-child-native-host-geometry')
+    need(scope.child_projection(child['Mounts'],library)==native_host and scope.child_projection(child['Mounts'],response['config']['path'])==host,'adapter-child-native-host-geometry')
     need(expected['child_mounts']==child['Mounts'],'adapter-child-mounts')
     files=tuple((p,tuple(v)) for p,v in o.files.items());nodes=tuple((p,tuple(v)) for p,v in o.nodes.items())
     last=copy.deepcopy(watch());need(set(last)==set(initial) and all(same(last[k],initial[k]) for k in initial) and same(owner.inspect(child['Id']),child),'adapter-final-runtime')
@@ -129,22 +129,6 @@ def current_observations(watch, expected, reason):
     actual=watch()
     need(type(actual) is dict and set(actual)==set(expected)
          and all(same(actual[k],expected[k]) for k in expected),reason)
-
-def child_projection(scope, mounts, child):
-    # Configured child geometry adds up to 80 copied controls, two private scopes
-    # and one admission overlay to the Parent's at-most-64 original mounts.
-    # Validate every row before selecting ancestors, including irrelevant binds.
-    need(type(mounts) is list and 1 <= len(mounts) <= 64 + 80 + 2 + 1,
-         'adapter-child-mount-bound')
-    target=scope.absolute(child);ancestors=[]
-    for row in mounts:
-        need(type(row) is dict,'adapter-child-mount-row')
-        destination=scope.absolute(row.get('Destination'))
-        scope.projection([row],str(destination))
-        if target==destination or destination in target.parents:ancestors.append(row)
-    # The owning parser retains duplicate/shadow rules and its 64-ancestor cap.
-    return scope.projection(ancestors,child)
-
 
 def worker_library_destination(scope, mounts, physical):
     # Inverse the unique most-specific bind Source; then re-project Destination

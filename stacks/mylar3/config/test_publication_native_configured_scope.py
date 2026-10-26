@@ -60,7 +60,8 @@ class Controls(unittest.TestCase):
   x=self.make();self.c.response['worker']['State']['Running']=True
   with self.assertRaises(m.Held):x.revalidate()
  def test_selected_child_mount_RW_drift(self):
-  x=self.make();self.c.response['child_mounts'][0]['RW']=True
+  self.c.response['child_mounts'].extend(self.mount('/fixture/control-'+str(i),'/_operation/control-'+str(i)) for i in range(71));self.write_proof()
+  x=self.make();self.assertEqual(len(x._mounts),73);x.revalidate();self.c.response['child_mounts'][-1]['RW']=True
   with self.assertRaises(m.Held):x.revalidate()
  def test_worker_geometry_wrong(self):
   self.worker['Mounts'][0]['Source']='/host/foreign';self.write_proof()

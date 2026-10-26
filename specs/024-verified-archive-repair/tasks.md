@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-25.** 17 of 22 tasks are complete. T019–T022 are delivered
+**Updated 2026-10-26.** 17 of 22 tasks are complete. T019–T022 are delivered
 implementation corrections, not additional runtime gates. Five tasks remain:
 T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
@@ -32,26 +32,25 @@ entries after PR [#521](https://github.com/bolens/homelab/pull/521).
 PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
 modules for the shared phase deadline. Require its matching published image and
 fresh module capture before the next isolated pair. That capture is now verified.
-PR [#524](https://github.com/bolens/homelab/pull/524) corrects physical copied
-report checks and original-provider roundtrips. The current host installation
-and original-receipt export passed, but its new disposable bootstrap held during
-native startup readiness before archive recovery. Native health later reported
-ready; that later observation does not establish the original refusal's cause.
-Retain a bounded original startup readiness record before another fresh fixture.
-Reuse the unchanged checked host installation when its exact originals still
-match. The observer now returns original producer and executed-parent references
-that join SourceCohort while retaining copied code as audit evidence. The next
-attempt passed that join, reached the owning Producer and stopped its disposable
-reader, then held because its 73-mount execute helper exceeded the geometry
-parser's 64-row limit. The archive adapter must validate the complete helper
-mount vector before projecting relevant ancestors through the unchanged parser.
-Require a fresh checked host installation and unused fixture for that correction;
-retain the stopped attempt without replay or resume. [Retained failure history](evidence-history.md#copied-control-holds-and-bootstrap-readiness--2026-10-25)
-owns prior attempts and their preservation evidence. No isolated forward or
-rollback is accepted yet; both remain within T012/T015.
-Reuse unchanged native and worker image proofs only for their exact original
-inputs. Host-only changes require fresh checked outputs without repeating
-unchanged image proof.
+PR [#524](https://github.com/bolens/homelab/pull/524) delivered copied-control
+roundtrips, original-provider references and the host-side selected-child mount
+check. Its fresh CX operation passed that host check, stopped only its disposable
+reader, then held in the installed Birth consumer: the SDK still applied its
+64-row native/worker parser to the complete 73-mount child vector. The retained
+child traceback identifies that exact boundary.
+
+Use one shared selected-child projection in the SDK Scope, Birth and both host
+adapters. Validate every row under the finite 147-row child bound, then project
+matching ancestors through the unchanged parser. Keep native/worker limits and
+full-vector revalidation unchanged. The regression must exercise Birth through
+the actual lifecycle and Scope constructor with all 73 mounts preserved.
+This changes installed SDK bytes: require a matching published native image,
+actual module capture, fresh checked host installation and unused fixture.
+Preserve CX and its stopped reader without replay or inferred resume. Reuse the
+unchanged worker proof only where its original inputs still match.
+[Retained failure history](evidence-history.md#installed-child-geometry-hold--2026-10-26)
+owns the original observations. No isolated forward or rollback is accepted yet;
+both remain within T012/T015.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

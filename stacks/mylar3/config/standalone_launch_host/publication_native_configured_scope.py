@@ -38,6 +38,16 @@ def projection(mounts,child):
   if p==destination or destination in p.parents:choices.append((len(destination.parts),source,destination))
  check(bool(choices),'scope-unmapped');maximum=max(x[0] for x in choices);selected=[x for x in choices if x[0]==maximum];check(len(selected)==1,'scope-ambiguous')
  _,source,destination=selected[0];return str(source/p.relative_to(destination))
+def child_projection(mounts,child):
+ # Selected children add copied controls, two private scopes and one overlay.
+ check(type(mounts) is list and 1<=len(mounts)<=64+80+2+1,'scope-child-mount-bound')
+ target=absolute(child);choices=[]
+ for row in mounts:
+  check(type(row) is dict,'scope-child-mount-row')
+  destination=absolute(row.get('Destination'))
+  projection([row],str(destination))
+  if target==destination or destination in target.parents:choices.append(row)
+ return projection(choices,child)
 def nine(z):return [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]
 def five(z):return [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]
 def ancestors(paths):
@@ -141,7 +151,7 @@ class NativeConfiguredScope:
   check(MAIN_SHA is not None and doc['main_module']['path']==MAIN_PATH and doc['main_module']['sha256']==MAIN_SHA,'scope-reviewed-main-default-required')
   source_contract(contents[1],contents[2]);root=destination(contents[0]);check(doc['tool_root']=='/opt/archiving-utils','scope-tool-root')
   host_data=projection(self._native['inspect']['Mounts'],data);host_root=projection(self._native['inspect']['Mounts'],root);worker_host=projection(self._worker['inspect']['Mounts'],doc['worker_library']);check(host_root==worker_host,'scope-worker-library-geometry')
-  check(projection(self._mounts,data)==host_data and projection(self._mounts,root)==host_root,'scope-selected-child-geometry')
+  check(child_projection(self._mounts,data)==host_data and child_projection(self._mounts,root)==host_root,'scope-selected-child-geometry')
   required_nodes=ancestors([Path(data)/'.scope-placeholder',Path(root)/'.scope-placeholder']);check(all(self._nodes.get(p)==v for p,v in required_nodes.items()),'scope-configured-root-ancestors')
   dp,rp=absolute(data),absolute(root);dh,rh=absolute(host_data),absolute(host_root)
   check(dp!=rp and dp not in rp.parents and rp not in dp.parents and dh!=rh and dh not in rh.parents and rh not in dh.parents,'scope-overlapping-data-library')

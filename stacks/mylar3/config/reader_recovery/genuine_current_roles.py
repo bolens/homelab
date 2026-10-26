@@ -26,11 +26,11 @@ HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
     'genuine_application_bootstrap.py': '98064a0b4d125cc026e0dd4a115abe3a8b4667918592e2f90d64afe1246b487f',
     'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_reader_lifecycle_parent.py': '08e8784f13e30afb2f3a444655ec1e7bfab550966610a89f6e25f3626e47e6c5',
-    'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed',
+    'comic_reader_lifecycle_parent.py': 'ea049d7965e395699acf94dff777f16d0a42252998c21f8cbf93436cafed4003',
+    'publication_native_configured_scope.py': '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770',
 }
-PROBE_SHA = 'c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce'
-SCOPE_SHA = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
+PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
+SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 QUEUE_SHA = '1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd'
 HTTP_SHA = '502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1'
 
