@@ -353,6 +353,67 @@ class Contracts(unittest.TestCase):
             self.assertEqual(len(count),1);self.assertTrue(path.exists())
 
 
+class ArchivePreflight(unittest.TestCase):
+    owner=dict(table='issues',issueid='710002',parentcomicid='710001',releasecomicid='710001')
+    def request(self):
+        return dict(kind='native',base='http://127.0.0.1:8090',key='K'*32,
+                    operation='request-archive-repair-adoption',
+                    arguments=dict(owner=copy.deepcopy(self.owner),operation_id='a'*64),seconds=10)
+    def test_existing_authenticated_request_has_only_finite_fixture_owner_and_key(self):
+        request,binary=http.request(self.request());form=urllib.parse.parse_qs(request.data.decode())
+        self.assertFalse(binary);self.assertEqual(request.full_url,'http://127.0.0.1:8090/api')
+        self.assertEqual(form['cmd'],['publicationControl'])
+        self.assertEqual(json.loads(form['request'][0]),dict(version=1,action='request-archive-repair-adoption',owner=self.owner,operation_id='a'*64))
+        self.assertEqual(set(form),{'cmd','apikey','request'})
+    def test_foreign_owner_key_or_extra_arguments_refuse(self):
+        for field in self.owner:
+            value=self.request();value['arguments']['owner'][field]='foreign'
+            with self.subTest(field=field),self.assertRaises(http.Held):http.request(value)
+        for key in ('A'*64,'a'*63,True):
+            value=self.request();value['arguments']['operation_id']=key
+            with self.subTest(key=key),self.assertRaises(http.Held):http.request(value)
+        value=self.request();value['arguments']['source']='/foreign'
+        with self.assertRaises(http.Held):http.request(value)
+    def producer(self,root,answer=None,loss=False):
+        producer=object.__new__(c.Catalog);producer.output=root/'catalog.json'
+        producer.native={};producer.helper_ref={};producer.original={};producer.seed=None;producer.inputs=[{},{}];producer.records=[]
+        events=[];producer.original_process=lambda **kw:events.append('original')
+        producer.stage_inputs=lambda:None;producer.request=lambda _:dict(rows=[dict(status='Wanted',location=None),dict(status='Wanted',location=None)])
+        producer.submit=lambda *args:None
+        producer.complete=lambda index,before:(dict(role='target' if index==0 else 'unrelated',owner=copy.deepcopy(self.owner)),before)
+        expected=dict(version=1,operation_id='a'*64,owner=self.owner,outcome='queued-review',root_scoped_child_required=True,reader_preservation_verified=False,mutation_authority=False,publication_acceptance=False)
+        class Session:
+            plan=dict(nonce='a'*64,roles=dict(native=dict(id='b'*64)),images=dict(native='sha256:'+'c'*64))
+            def step(inner,name,operation):events.append(('intent',name));return operation()
+            def http(inner,kind,operation,arguments):
+                value=self.request();value.update(kind=kind,operation=operation,arguments=arguments)
+                request,_=http.request(value);body=json.loads(urllib.parse.parse_qs(request.data.decode())['request'][0]);events.append(body)
+                self.assertEqual(len(producer.records),2)
+                if loss:raise c.p.Held('lost-preflight-response')
+                return copy.deepcopy(expected if answer is None else answer)
+        producer.s=Session();return producer,events,expected
+    def test_actual_catalog_execute_reaches_existing_http_preflight_before_final_observation(self):
+        with tempfile.TemporaryDirectory()as folder:
+            producer,events,expected=self.producer(Path(folder));result=producer.execute()['result']
+            self.assertEqual([x for x in events if isinstance(x,dict)],[dict(version=1,action='request-archive-repair-adoption',owner=self.owner,operation_id='a'*64)])
+            self.assertEqual(events[-1],'original');self.assertEqual(events[-3],('intent','native-archive-preflight'))
+            self.assertEqual(result['archive_history_preflight'],expected)
+            self.assertFalse(result['publication_acceptance']);self.assertFalse(result['mutation_authority'])
+    def test_unaccepted_or_granting_response_holds_before_catalog_output(self):
+        for field,other in [('version',True),('operation_id','d'*64),('owner',{}),('outcome','complete'),('root_scoped_child_required',False),('reader_preservation_verified',True),('mutation_authority',True),('publication_acceptance',True)]:
+            with self.subTest(field=field),tempfile.TemporaryDirectory()as folder:
+                producer,events,answer=self.producer(Path(folder));answer[field]=other
+                producer,events,_=self.producer(Path(folder),answer)
+                with self.assertRaisesRegex(c.p.Held,'archive-preflight'):producer.execute()
+                self.assertFalse(producer.output.exists());self.assertEqual(len([x for x in events if isinstance(x,dict)]),1)
+    def test_lost_preflight_response_is_retained_without_retry(self):
+        with tempfile.TemporaryDirectory()as folder:
+            producer,events,_=self.producer(Path(folder),loss=True)
+            with self.assertRaisesRegex(c.p.Held,'lost-preflight-response'):producer.execute()
+            self.assertEqual(len([x for x in events if isinstance(x,dict)]),1);self.assertFalse(producer.output.exists())
+            self.assertFalse(json.loads(producer.output.with_suffix('.held.json').read_bytes())['automatic_replay'])
+
+
 class OuterObservation(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.library=self.root/'library';self.library.mkdir()

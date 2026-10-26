@@ -57,15 +57,18 @@ def request(value):
     binary = False
     if value['kind'] == 'native':
         need(parsed.hostname == '127.0.0.1' and len(value['key']) == 32, 'native-origin-key')
-        need(op in ('health', 'status', 'prepare-fresh', 'initialize-bootstrap', 'force-process-fixture'), 'native-operation')
+        need(op in ('health', 'status', 'prepare-fresh', 'initialize-bootstrap', 'force-process-fixture', 'request-archive-repair-adoption'), 'native-operation')
         if op == 'force-process-fixture':
             need(set(args)=={'comicid','issueid','nzb_name','nzb_folder'} and (args['comicid'],args['issueid']) in (('710001','710002'),('710011','710012')), 'finite-fixture-owner')
             title='Bootstrap Target' if args['comicid']=='710001' else 'Bootstrap Unrelated'
             need(args['nzb_name']==title.replace(' ','.')+'.002.(2024)-Fixture.cbz' and type(args['nzb_folder'])is str and re.fullmatch(r'/config/(?:[A-Za-z0-9_-]+/)*bootstrap-native-[a-f0-9]{64}/'+title,args['nzb_folder']), 'finite-fixture-source')
             form=dict(cmd='forceProcess',apikey=value['key'],**args)
             return urllib.request.Request(base.rstrip('/')+'/api',data=urllib.parse.urlencode(form).encode(),method='POST',headers={'Content-Type':'application/x-www-form-urlencoded'}),False
-        expected = {'epoch', 'backup'} if op == 'prepare-fresh' else {'token'} if op == 'initialize-bootstrap' else set()
+        expected = {'epoch', 'backup'} if op == 'prepare-fresh' else {'token'} if op == 'initialize-bootstrap' else {'owner','operation_id'} if op == 'request-archive-repair-adoption' else set()
         need(set(args) == expected, 'native-arguments')
+        if op == 'request-archive-repair-adoption':
+            need(args['owner']==dict(table='issues',issueid='710002',parentcomicid='710001',releasecomicid='710001')
+                 and type(args['operation_id'])is str and re.fullmatch('[a-f0-9]{64}',args['operation_id']), 'finite-fixture-archive-preflight')
         form = {'cmd': 'getHealth' if op == 'health' else 'publicationControl', 'apikey': value['key']}
         if op != 'health':
             form['request'] = encode(dict(version=1, action=op, **args)).decode()

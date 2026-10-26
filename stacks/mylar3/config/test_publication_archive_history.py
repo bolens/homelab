@@ -163,6 +163,14 @@ class History(unittest.TestCase):
         self.assertIs(answer['reader_preservation_verified'],False)
         self.assertIs(answer['publication_acceptance'],False)
 
+    def test_ordinary_request_initializes_missing_history_before_selected_custody(self):
+        self.path.rmdir()
+        self.assertFalse(self.path.exists())
+        self.queued()
+        self.assertEqual(self.path.stat().st_mode & 0o7777,0o700)
+        self.assertEqual(list(self.path.iterdir()),[])
+        self.assertEqual(self.c.source.read_bytes(),self.owner.original)
+
     def test_native_final_reader_callback_cannot_mutate_history(self):
         import workflow_store
         body=self.queued();cap=self.cap();history.prepared(cap.preparation)

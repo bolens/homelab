@@ -125,8 +125,16 @@ class Catalog:
             self.stage_inputs();before=self.seed
             for index in range(2):
                 self.submit(before['rows'][index],self.inputs[index]);record,before=self.complete(index,before);self.records.append(record)
+            # The ordinary request owns history initialization BEFORE the
+            # later selected Parent captures backup/custody. This fixture
+            # queue observation is not that later operation's ACK or grant.
+            owner=dict(table='issues',issueid=helper.ISSUES[0],parentcomicid=helper.COMICS[0],releasecomicid=helper.COMICS[0])
+            need(self.records[0]['role']=='target' and self.records[0]['owner']==owner,'native-archive-preflight-owner')
+            preflight=self.s.step('native-archive-preflight',lambda:self.s.http('native','request-archive-repair-adoption',dict(owner=owner,operation_id=self.s.plan['nonce'])))
+            expected=dict(version=1,operation_id=self.s.plan['nonce'],owner=owner,outcome='queued-review',root_scoped_child_required=True,reader_preservation_verified=False,mutation_authority=False,publication_acceptance=False)
+            need(type(preflight)is dict and p.encode(preflight)==p.encode(expected),'native-archive-preflight-response')
             self.original_process(ready=True)
-            result=dict(version=1,kind='disposable-native-catalog-processing-observation',nonce=self.s.plan['nonce'],native_CID=self.s.plan['roles']['native']['id'],native_image=self.s.plan['images']['native'],process=self.original,helper=self.helper_ref,seed=self.seed,inputs=self.inputs,files=self.records,native_catalog_processing_observed=True,ordinary_ack_verified=False,daemon_operation_identity=False,installed_factories_verified=False,actual_nfs_verified=False,birth_verified=False,publication_acceptance=False,mutation_authority=False,automatic_replay=False)
+            result=dict(version=1,kind='disposable-native-catalog-processing-observation',nonce=self.s.plan['nonce'],native_CID=self.s.plan['roles']['native']['id'],native_image=self.s.plan['images']['native'],process=self.original,helper=self.helper_ref,seed=self.seed,inputs=self.inputs,files=self.records,archive_history_preflight=preflight,native_catalog_processing_observed=True,ordinary_ack_verified=False,daemon_operation_identity=False,installed_factories_verified=False,actual_nfs_verified=False,birth_verified=False,publication_acceptance=False,mutation_authority=False,automatic_replay=False)
             return dict(result=result,ref=bootstrap.put(self.output,result))
         except Exception:
             # No resubmission or uncertain source cleanup. Preserve every intent.

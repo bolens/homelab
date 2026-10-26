@@ -57,19 +57,25 @@ path in that attempt is unknown. Both archives' full9/hashes, all 24 native tabl
 and the original native process/config remain unchanged. Preserve DC/DD and all
 prior holds without replay or inferred resume.
 
-Independent metadata-only observation found native DATA directory changes from
-SQLite journal creation/removal. A local owning phase-custody reproduction proves
-a false hold when a real transaction rolls back with database bytes/full9 and
-config unchanged. Correct only that live directory's prebirth identity policy,
-requiring exact native/worker DATA geometry and original identity5; preserve all
-other file/full9, reader/restore, source, scope and absence guards. Retain bounded
-metadata on future file refusals. This independently demonstrated defect does not
-identify DC's original offending path. Unchanged SDK/image proofs may be reused
-only for their exact native/worker bytes; changed host controls require a fresh
-checked installation and unused fixture. [Retained failure
-history](evidence-history.md#prebirth-live-data-custody-hold--2026-10-26) owns the
-observations. Isolated forward and distinct-fixture rollback remain within
-T012/T015; neither is accepted yet.
+PR [#527](https://github.com/bolens/homelab/pull/527) delivered the finite original
+DATA identity correction and bounded refusal metadata. Its real SQLite rollback
+regression, 1,767 recovery controls, local CI, independent review and all hosted
+checks pass. Fresh DG controls verified all 27 outputs and DH bootstrap passed.
+DG passed prebirth custody, real Birth and the execute child's Writer session,
+then held because archive history had not been initialized. Both archives'
+full9/hashes and all 24 native tables remain unchanged; its reader stays stopped.
+
+The ordinary native repair-request API owns history initialization before
+backup/custody. The disposable catalog setup omitted that request, while host
+flow fixtures initialized history manually. Add the existing authenticated
+request after both catalog completions and before reader scan, recording only
+its queued-review/no-grant result. Keep selected execute existing-only and
+preserve DG/DH without replay or inferred resume. Check adjacent prerequisites
+before another fixture. Unchanged image/SDK proofs may be reused only for exact
+original inputs; use matching frozen host sources and an unused fixture for the
+corrected setup. [Retained failure history](evidence-history.md#missing-disposable-history-preflight--2026-10-26)
+owns these observations. Isolated forward and distinct-fixture rollback remain
+within T012/T015; neither is accepted yet.
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

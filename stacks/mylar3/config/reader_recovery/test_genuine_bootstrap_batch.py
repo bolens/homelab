@@ -295,7 +295,10 @@ class BatchTests(unittest.TestCase):
     def test_explicit_network_preflight_uses_owning_batch_dispatch(self):
         self.prepare_and_connected_dispatch(explicit=True)
 
-    def prepare_and_connected_dispatch(self, *, explicit):
+    def test_archive_preflight_uses_owning_batch_dispatch(self):
+        self.prepare_and_connected_dispatch(explicit=True,archive=True)
+
+    def prepare_and_connected_dispatch(self, *, explicit, archive=False):
         from test_genuine_bootstrap_creator import CreatorTests
         fixture = CreatorTests(methodName='runTest')
         fixture.setUp()
@@ -328,6 +331,12 @@ class BatchTests(unittest.TestCase):
         args, value = fixture.queue_call(owner)
         answer = c.p.decode(owner.engine.run(args, 30, c.p.encode(value)))
         self.assertTrue(answer['queue_empty_observed'])
+        if archive:
+            args,value=fixture.archive_call(owner)
+            self.assertTrue(c.p.decode(owner.engine.run(args,30,c.p.encode(value)))['result']['success'])
+            count=len(transport.calls)
+            with self.assertRaisesRegex(c.p.Held,'call-budget'):owner.engine.run(args,30,c.p.encode(value))
+            self.assertEqual(len(transport.calls),count)
         installed = ['exec', '--interactive', '--user', '1000:1000', owner.engine.ids['native'],
                      '/lsiopy/bin/python3', '-I', '-B', '-c', c.b.IMAGE_PROGRAM]
         self.assertEqual(c.p.decode(owner.engine.run(installed, 30, c.p.encode(sorted(owner.sdk)))), owner.sdk)
