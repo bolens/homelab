@@ -375,6 +375,13 @@ class Bootstrap:
         while True:
             try:health = self.http('native', 'health');break
             except ApplicationNotReady:time.sleep(min(0.2,self.seconds()))
+        if health.get('publication', {}).get('state') != 'ready':
+            publication=health.get('publication',{});state=publication.get('state');reason=publication.get('reason')
+            state=state if type(state) is str and state in ('ready','held') else 'other'
+            reason=reason if type(reason) is str and reason in ('verified','startup-restart-required','writer-busy','authority-unavailable','media-pending') else 'other'
+            census=publication.get('census');shape=('missing' if 'census' not in publication else 'null' if census is None else 'object' if type(census) is dict else 'other')
+            try:put(self.output/'native-startup-refusal.json',dict(kind='native-startup-readiness-refused',state=state,reason=reason,census_shape=shape,automatic_replay=False,reader_resume_authority=False))
+            except OSError:pass  # Diagnostic I/O cannot replace the original refusal.
         need(health.get('publication', {}).get('state') == 'ready', 'native-startup-not-ready')
         database = self.data / 'mylar.db'
         need(database.is_file() and not database.is_symlink() and not any(os.path.lexists(str(database) + s) for s in ('-wal', '-shm', '-journal')), 'native-catalog-not-stable')

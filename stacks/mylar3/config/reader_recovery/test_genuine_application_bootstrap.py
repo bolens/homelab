@@ -206,6 +206,25 @@ class BootstrapTests(unittest.TestCase):
             self.assertEqual(sum(call[0] == 'restart' for call in engine.calls), int(failure == 'restart'))
             self.assertFalse((session.output / 'bootstrap.json').exists())
             # Each subcase has its own original fresh directories and evidence.
+    def startup_refusal(self,publication,fail_write=False):
+        session,engine=self.session();session.output.mkdir(mode=0o700);http=session.http
+        session.http=lambda kind,op,*args:dict(publication=publication) if (kind,op)==('native','health') else http(kind,op,*args)
+        put=b.put
+        def write(path,value):
+            if fail_write and path.name=='native-startup-refusal.json':raise OSError('diagnostic unavailable')
+            return put(path,value)
+        with patch.object(b,'put',side_effect=write),self.assertRaisesRegex(b.Held,'native-startup-not-ready'):session.native()
+        self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
+        self.assertFalse((session.output/'03-native-restart-done.json').exists())
+        return session.output/'native-startup-refusal.json'
+    def test_startup_refusal_retains_finite_original_readiness_categories(self):
+        path=self.startup_refusal(dict(state='held',reason='writer-busy',census=None,private_payload='excluded'))
+        value=json.loads(path.read_bytes());self.assertEqual(value,dict(kind='native-startup-readiness-refused',state='held',reason='writer-busy',census_shape='null',automatic_replay=False,reader_resume_authority=False))
+    def test_startup_refusal_excludes_unknown_values_and_census_contents(self):
+        path=self.startup_refusal(dict(state='private-state',reason='private-reason',census=dict(private='excluded')))
+        value=json.loads(path.read_bytes());self.assertEqual((value['state'],value['reason'],value['census_shape']),('other','other','object'));self.assertNotIn('private',path.read_text())
+    def test_startup_refusal_diagnostic_io_failure_preserves_original_hold(self):
+        path=self.startup_refusal(dict(state='held',reason='writer-busy'),fail_write=True);self.assertFalse(path.exists())
     def test_real_entry_cannot_claim_success_without_actual_native_schema(self):
         session, engine = self.session()
         # execute owns its handles; remove our cleanup to avoid closing twice.

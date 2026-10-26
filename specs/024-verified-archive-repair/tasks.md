@@ -32,30 +32,16 @@ entries after PR [#521](https://github.com/bolens/homelab/pull/521).
 PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
 modules for the shared phase deadline. Require its matching published image and
 fresh module capture before the next isolated pair. That capture is now verified.
-The subsequent CC attempt passed NFS and backup/restore, then held while the host
-producer confused the copied manifest view with the backup directory. PR
-[#523](https://github.com/bolens/homelab/pull/523) corrects that host-only geometry
-binding. Its fresh checked installation passed; the next isolated attempt held
-before reader stop when a later native readiness projection refused its reply.
-The reader remained running, both archive originals and the full native database
-were unchanged, and no terminal was accepted. Retain the failed reply’s finite
-state/reason and census shape for diagnosis; an earlier ready observation does
-not establish later Writer availability. Preserve both attempts without replay.
-The next fresh attempt passed NFS, stopped its disposable reader and completed
-backup/restore, then held because a Parent closure treated a logical report key
-as the copied report’s physical path. The reader remains stopped without resume
-authority. Both archive originals and the complete native database are unchanged.
-Correct the five affected physical-vector consumers together, retaining logical
-protocol lookups, physical identities and conflict refusal. The later terminal
-and resume consumers already use physical references. This remains T012 work,
-not a new task or a reason to relax acceptance.
-The next isolated attempt passed those copied-report checks and held before
-archive execution because the custody producer compared a copied provider's
-physical host path directly with its original source path. Both archive
-originals and the complete native database remain unchanged; its reader stays
-stopped without resume authority. Join that roundtrip through the original
-source lookup and exercise provider, input, SDK and control projection through
-the real child-copy mapping before another attempt. This remains T012 work.
+PR [#524](https://github.com/bolens/homelab/pull/524) corrects physical copied
+report checks and original-provider roundtrips. The current host installation
+and original-receipt export passed, but its new disposable bootstrap held during
+native startup readiness before archive recovery. Native health later reported
+ready; that later observation does not establish the original refusal's cause.
+Retain a bounded original startup readiness record before another fresh fixture.
+Reuse the unchanged checked host installation when its exact originals still
+match. [Retained failure history](evidence-history.md#copied-control-holds-and-bootstrap-readiness--2026-10-25)
+owns prior attempts and their preservation evidence. No isolated forward or
+rollback is accepted yet; both remain within T012/T015.
 Reuse unchanged native and worker image proofs only for their exact original
 inputs. Host-only changes require fresh checked outputs without repeating
 unchanged image proof.
