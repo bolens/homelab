@@ -413,7 +413,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "cb4a91bb8c6a5a6c48ed5e9e0044a601f1eb9a5aeaf751fa0b7dc2dbf865efae"
+    "sha256": "251e9db26b19ae2693ac14e64e653de3aa2626023b91b119f85fb2a0dfd93481"
   },
   {
     "path": "publication_archive_prepare_routes.py",
@@ -533,7 +533,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "a8dbc9393bb349a864e3b59b31786779aa48746035173fc7b730bb350225cd6b"
+    "sha256": "ff57be2b2b085209f8cb88f4ac477be768e7c56014bd9afe9eb6c3d208d9d823"
   },
   {
     "path": "publication_reader_disk.py",
@@ -541,7 +541,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "b79a2ca7bef93a97e060e5273ecb091f746e57e85b6ebec11a61082ad17e9f56"
+    "sha256": "e21ed7d045876e44e02f53963372b9bd1e0c134bc5bb3eb6a47b704d7473a30a"
   },
   {
     "path": "publication_reader_native_coordinator.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "3c4d628412052e6c64484bcc06426b3cb6b323c586ab410050830e979ba0cb0b"
+    "sha256": "654ea9fe0b5d08970c7da141e617e56710dfd973986a540382ee94cb66d5a543"
   },
   {
     "path": "story_arc_search.py",
@@ -1309,7 +1309,7 @@
   },
   {
     "path": "test_publication_native_scope_birth.py",
-    "sha256": "a9676046172f6d316e6aed9284ba6b5042866c0d35302aa8340614d90faeb3bf"
+    "sha256": "bbb25096dff5ae2812699f333a7a5da5e62b83fb90013c5ad61a32e6ae0a20ee"
   },
   {
     "path": "test_publication_negative.py",
@@ -1357,7 +1357,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "89d6ce918dfbeda05a7a846d3c390fcea21b76c7106fe3d9108d74b759d2e6d9"
+    "sha256": "d26f1978adb272ce78288b8fafe97822e764e214283119ac6fde51ae6eb5eb69"
   },
   {
     "path": "test_publication_reader_lifecycle.py",
@@ -1725,7 +1725,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "84b092d38957d29e5fd909409cce201a3fffdcf87b948e338a9d93edee47bbe8"
+    "sha256": "0832b777fdc1bdaa08b59cb3cb9fe0c65e2ffaa506a2c9a7dcf496e1caece401"
   },
   {
     "path": "test_tagging_stage_inputs.py",
