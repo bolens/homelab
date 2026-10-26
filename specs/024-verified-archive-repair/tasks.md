@@ -41,6 +41,14 @@ The reader remained running, both archive originals and the full native database
 were unchanged, and no terminal was accepted. Retain the failed reply’s finite
 state/reason and census shape for diagnosis; an earlier ready observation does
 not establish later Writer availability. Preserve both attempts without replay.
+The next fresh attempt passed NFS, stopped its disposable reader and completed
+backup/restore, then held because a Parent closure treated a logical report key
+as the copied report’s physical path. The reader remains stopped without resume
+authority. Both archive originals and the complete native database are unchanged.
+Correct the five affected physical-vector consumers together, retaining logical
+protocol lookups, physical identities and conflict refusal. The later terminal
+and resume consumers already use physical references. This remains T012 work,
+not a new task or a reason to relax acceptance.
 Reuse unchanged native and worker image proofs only for their exact original
 inputs. Host-only changes require fresh checked outputs without repeating
 unchanged image proof.

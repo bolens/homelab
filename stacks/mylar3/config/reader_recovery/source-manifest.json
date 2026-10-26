@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "786f5b4a84350a68298f07a3d3f22eb4d6ca2ff197f6aefbf0b67ebb655eec1d"
+      "sha256": "915bae2608342863ee00dbc6e253c3d6922dfd69a9adf0fe3c546ae3a2315796"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -433,7 +433,7 @@
       "sha256": "adc87a8b46b6bec5d7f2933b29ccfa050b182497b980fb9a6dd333976d0d7568"
     },
     "comic_nfs_factual_successor.py": {
-      "sha256": "070dc60bdc947101be713ac685c796a0f06560836201fa3ff51b80e920369178"
+      "sha256": "fb941ca03e9a7b2df23fa70d51ca1c98a4d2cfa3e20f58a66ba46cf333e9cfb5"
     },
     "comic_nfs_host_engine.py": {
       "sha256": "f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "b0dc546f0d926ef426a41d88e1c8f6af4aac4da44f711760383a258ec2298833"
+      "sha256": "08e8784f13e30afb2f3a444655ec1e7bfab550966610a89f6e25f3626e47e6c5"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "12f1e3c3b7d7a662a0bc06c12b9d142c5c1fce96d4b234ac5e895a8bb779f62e"
@@ -511,7 +511,7 @@
       "sha256": "502d08654d71ecded3f6d2ec78c7a6dcd0702bda149ffece4afebd190ecd6df1"
     },
     "genuine_current_roles.py": {
-      "sha256": "058dd04903e1ef7ec2834e585850ddf32a0aa6dff5e6018eab9abac1ba4cfa83"
+      "sha256": "f8c297d3ad2eccf0116cb6ef412f63118986eb92d6892097fe889dec45d87e59"
     },
     "genuine_native_catalog.py": {
       "sha256": "96c8f7043be8d4ea7a32568129dfacecb8470fa394246df5aea7baeaed8e5ce8"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "906758a03721983732d17d297c8a09999038aa8adc758667f1565c44f23009cf"
+      "sha256": "c72c8eaae2e43067420b6cbe40bd5dd99ae6bb1f8ac8832318eaff0c73ffdd56"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -562,7 +562,7 @@
       "sha256": "52516b748747f613bbd83212a8940ea3380bdf42eb9e988d63055abb09027aaa"
     },
     "test_archive_nfs_readiness.py": {
-      "sha256": "a0295c4112496ad42ed40dcc624e5e1cc6a3d9147a41061c4ca54eeddf45057c"
+      "sha256": "2a886307b4500d4c960633b622f0ad5ff8425237b4aad2d438c3d511e670428f"
     },
     "test_archive_parent_admission.py": {
       "sha256": "eeba5ba9ff06e86394abe1fb0d1f25518ae3366510567e18399499f96c6cfe49"
@@ -703,7 +703,7 @@
       "sha256": "fed38aac39493def1586ffae6a220dc7cb3437410b8fa32b4b3c450ba00983ee"
     },
     "test_nfs_factual_successor.py": {
-      "sha256": "1d22a05bc3fea25e3c157942260681eab639471485aa91ecf73642585303cdeb"
+      "sha256": "68e5e7585c571e0a637b810fbe7ba5a7db7839e6957cd93d9384747acf3cc3a2"
     },
     "test_nfs_mount_namespace.py": {
       "sha256": "f6248970a85c809aedd6026fbd1b62713db5af2a4cf38f703746747766d24257"
@@ -736,7 +736,7 @@
       "sha256": "84decaf43c90c8a1f0adb95b8451ec7ede71fbf52b77c0ac7052c60ff7f85ee3"
     },
     "test_probe_cleanup_transition.py": {
-      "sha256": "fe1df081dcb4efae007101ede6c44417816229062d8474e7bc54352fcd7f2820"
+      "sha256": "82e1ccd8a2ffb420692ebc12d43245e81b0cea816fd710313fe66f91a60dadab"
     },
     "test_probe_lease_order.py": {
       "sha256": "5a4fdf70bc2bbb642488ec3c5c0a3a44209d77a5367f11b7ca520ceda525730c"
@@ -745,7 +745,7 @@
       "sha256": "3f47c7954b6481f1eb8f361bd397eee7df8de67857f2b73c3147c68e2cca80c6"
     },
     "test_reader_lifecycle_parent.py": {
-      "sha256": "09fa006c1169d0e0e0ca1632294873ee7c8448f12cfd7f338fc258a674a1a9a3"
+      "sha256": "8e980b298fe4b4854f107ab1385450c661220a258e0140eebe446990d5acf242"
     },
     "test_reader_phase_custody.py": {
       "sha256": "a9ded69ac33b7de0ba130f62d51a75fe46dccabdadeea2678d0af1f8ed77433f"
@@ -760,7 +760,7 @@
       "sha256": "1822d91f5e0f865cc4e8e16232539a62f29e9bf261de77f462734d45d507d324"
     },
     "test_retained_nfs_boundary.py": {
-      "sha256": "c1c96e6500185121485629dcedfd38a1d78259c14f45b8694e47d728cdd85220"
+      "sha256": "0cfcfa9e4250b2e45bbbcf51338951d2fd697ee260c70611b4b9e48b8ee3e3c2"
     },
     "test_terminal_observation_producer.py": {
       "sha256": "c44dcba7c0ea55bf11ebc8d91ef3fb287636c51cd978c780c51aaaa9306e8787"

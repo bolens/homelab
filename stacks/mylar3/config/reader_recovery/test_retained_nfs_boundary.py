@@ -26,7 +26,24 @@ def legacy_metadata_tree(raw):
                     value=ast.Name(id='os', ctx=ast.Load()), attr=operation,
                     ctx=ast.Load()), args=[node.args[1]], keywords=[]), node)
             return node
-    return Metadata().visit(ast.parse(raw))
+    tree=Metadata().visit(ast.parse(raw))
+    # Physical metadata addresses may differ from protocol lookup aliases.
+    # Normalize only the reviewed originals-loop binding, keeping every other
+    # statement and the complete historical factory body in the comparison.
+    dump=lambda node:ast.dump(node,include_attributes=False)
+    expected_iter=ast.parse('owner.generated.values()',mode='eval').body
+    expected_target=ast.Name(id='ref',ctx=ast.Store())
+    expected_bind=ast.parse("p=ref['path']").body[0]
+    for function in tree.body:
+        if not isinstance(function,ast.FunctionDef) or function.name!='originals':continue
+        loops=[node for node in function.body if isinstance(node,ast.For)
+               and dump(node.iter)==dump(expected_iter) and dump(node.target)==dump(expected_target)
+               and node.body and dump(node.body[0])==dump(expected_bind)]
+        if len(loops)==1:
+            loop=loops[0];loop.target=ast.Tuple(elts=[ast.Name(id='p',ctx=ast.Store()),ast.Name(id='ref',ctx=ast.Store())],ctx=ast.Store())
+            loop.iter=ast.parse('owner.generated.items()',mode='eval').body
+            loop.body=loop.body[1:]
+    return tree
 
 class Boundary(unittest.TestCase):
     def test_bare_facts_cannot_create_retained_observation(self):
@@ -69,6 +86,17 @@ class Boundary(unittest.TestCase):
                     self.assertNotEqual(body('def check(owner, p):\n return ' + call), expected)
             self.assertNotEqual(body('def check(owner, p):\n marker = 1\n return ' + adapter + '(owner, p)'), expected)
             self.assertNotEqual(body('def check(owner, p):\n return os.unlink(p)'), expected)
+    def test_generated_address_normalization_is_exact_and_keeps_all_other_body(self):
+        def body(raw):return ast.dump(legacy_metadata_tree(raw),include_attributes=False)
+        old="def originals(owner,canary):\n for p,ref in owner.generated.items():\n  need(p not in files or files[p]==tuple(ref['signature9']),'conflict')\n  files[p]=tuple(ref['signature9'])\n"
+        new=old.replace('for p,ref in owner.generated.items():','for ref in owner.generated.values():\n  p=ref[\'path\']')
+        self.assertEqual(body(new),body(old))
+        for changed in (new.replace('owner.generated.values()','foreign.generated.values()'),
+                        new.replace('owner.generated.values()','owner.generated.items()'),
+                        new.replace('for ref in','for other in'),new.replace("ref['path']","ref['sha256']"),
+                        new.replace("p=ref['path']","p=ref.get('path')"),new.replace("p=ref['path']","p=ref['path']\n  marker=1"),
+                        new.replace('files[p]==tuple','files[p]!=tuple')):
+            with self.subTest(changed=changed):self.assertNotEqual(body(changed),body(old))
 
     def retained_metadata_join(self, changed_field=None):
         # Parent admission, ready session and final proxy close are projected.

@@ -26,7 +26,7 @@ The archive proof producer binds backup directories to the returned restore root
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1733 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1746 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route
@@ -324,3 +324,9 @@ A rejected post-release native projection records only fixed state/reason catego
 and the census shape in the retained NFS helper stderr. This diagnostic retains
 the original refusal and grants no retry, reader stop or resume authority. An
 earlier ready observation does not freeze later Writer availability.
+
+Generated outputs keep logical keys for protocol lookup and sealed references
+to their physical host copies. Runtime, birth, challenge, Writer release and
+NFS readiness vectors check each reference's physical path and reject
+conflicting facts for the same file. A logical lookup key is never a substitute
+for the retained copy's path or original nine-field identity.

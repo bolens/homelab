@@ -52,7 +52,8 @@ def record(owner,phase):
 def originals(owner,canary):
     files={str(p):tuple(v) for p,v in owner.files.items()};nodes={str(p):tuple(v) for p,v in owner.nodes.items()}
     nodes[str(owner.op)]=tuple(owner.op_fact)
-    for p,ref in owner.generated.items():
+    for ref in owner.generated.values():
+        p=ref['path']
         v=tuple(ref['signature9']);need(p not in files or files[p]==v,'nfs-original-file-conflict');files[p]=v
     for p,v in canary.files:
         need(p not in files or files[p]==tuple(v),'nfs-original-canary-file-conflict');files[p]=tuple(v)

@@ -2909,7 +2909,9 @@ class LifecycleParent:
         cleanup=self.nfs_probe_cleanup_transition(lease,record)
         # Source/control/ancestor closure after the last local physical callback.
         files=dict(self.files);nodes=dict(self.nodes)
-        files.update({path:tuple(value['signature9']) for path,value in self.generated.items()})
+        for ref in self.generated.values():
+            path=ref['path'];value=tuple(ref['signature9'])
+            need(path not in files or files[path]==value,'nfs-writer-window-generated-conflict');files[path]=value
         for path,value in _OUTPUT_NODES.get(self,{}).items():
             need(path not in nodes or nodes[path]==value,'nfs-writer-window-output-node-original');nodes[path]=value
         final(files,nodes,())
@@ -3150,7 +3152,9 @@ class LifecycleParent:
 
     def continuous(self):
         files = dict(self.files); nodes = dict(self.nodes)
-        files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
+        for ref in self.generated.values():
+            path=ref['path'];value=tuple(ref['signature9'])
+            need(path not in files or tuple(files[path])==value,'continuous-original-generated-conflict');files[path]=value
         nodes[str(self.op)] = self.op_fact
         for path,fact in _OUTPUT_NODES.get(self,{}).items():
             need(path not in nodes or nodes[path]==fact,'output-node-original-conflict');nodes[path]=fact
@@ -3285,7 +3289,8 @@ class LifecycleParent:
         # Capture ALL admitted original vectors before copy/read/projection/IPC
         # callbacks. New birth facts never refresh or overwrite those baselines.
         original_files = {path: tuple(value) for path, value in self.files.items()}
-        for path, value in self.generated.items():
+        for value in self.generated.values():
+            path=value['path']
             signature = tuple(value['signature9'])
             if path in original_files and original_files[path] != signature:
                 raise Held('birth-original-generated-conflict')
@@ -3441,7 +3446,9 @@ class LifecycleParent:
         def challenge(message,raw=None):
             nonlocal sequence,original_running,writer_session,writer_confirmed,pending_terminal,consumed_sequence,started_static,started_epoch,started_at
             original_files = dict(self.files)
-            original_files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
+            for ref in self.generated.values():
+                path=ref['path'];value=tuple(ref['signature9'])
+                need(path not in original_files or tuple(original_files[path])==value,'challenge-original-generated-conflict');original_files[path]=value
             original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
             leaving=False
             ws=message.get('writer_session') if type(message) is dict else None

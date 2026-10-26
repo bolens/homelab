@@ -70,6 +70,37 @@ class Cleanup(unittest.TestCase):
   with self.assertRaisesRegex(p.Held,'successful-release'):self.mapping.check_nfs_probe(self.ref)
   self.session.lease_replies.done=True;p._NFS_PROBE_ROWS[self.owner]=tuple(list(self.row))
   with self.assertRaisesRegex(p.Held,'successful-release'):self.mapping.check_nfs_probe(self.ref)
+class ProjectedCleanup(unittest.TestCase):
+ def setUp(self):
+  self.fixture=Cleanup();self.fixture.setUp();self.addCleanup(self.fixture.doCleanups)
+  f=self.fixture;operation=f.base/'operation';operation.mkdir(mode=0o700)
+  spec=importlib.util.spec_from_file_location('cleanup_report_tree',Path(__file__).with_name('comic_child_control_projection.py'))
+  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+  tree=module.Tree(f.base/'report-child','/_operation',operation,p.read);tree._mkdir(tree.root/'backup')
+  source=tree.root/'backup/backup-report.json';source.write_bytes(b'{"phase":"backup"}');source.chmod(0o600)
+  child=dict(path='/_operation/backup/backup-report.json',sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(p.nine(source.stat())))
+  _,self.view=tree.output(child,child['path'],'report');self.alias=str(operation/'backup/backup-report.json')
+  f.owner.generated[self.alias]=self.view
+ def test_release_checks_physical_copy_without_stating_alias(self):
+  f=self.fixture;f.remove();original=p.nfs_lstat
+  def checked(path):
+   self.assertNotEqual(str(path),self.alias)
+   return original(path)
+  from unittest.mock import patch
+  with patch.object(p,'nfs_lstat',side_effect=checked):f.release()
+  self.assertNotIn(f.owner.engine,p._NFS_REMOTE_WINDOWS)
+ def test_release_rejects_conflicting_physical_generated_facts(self):
+  f=self.fixture;other=dict(self.view,signature9=list(self.view['signature9']));other['signature9'][1]+=1;f.owner.generated['another-logical-alias']=other;f.remove()
+  with self.assertRaisesRegex(p.Held,'nfs-writer-window-generated-conflict'):f.release()
+  self.assertIn(f.owner.engine,p._NFS_REMOTE_WINDOWS)
+ def test_release_rejects_physical_drift_after_cleanup_callback(self):
+  f=self.fixture;original=f.owner.nfs_probe_cleanup_transition
+  def late(*args):
+   result=original(*args);Path(self.view['path']).chmod(0o640);return result
+  f.owner.nfs_probe_cleanup_transition=late;f.remove()
+  with self.assertRaises(p.Held):f.release()
+  self.assertIn(f.owner.engine,p._NFS_REMOTE_WINDOWS)
+
 class RetentionCleanup(Cleanup):
  def fixture_path(self):
   root=self.base/('archive-publication-'+'a'*64);root.mkdir(mode=0o711);root.chmod(0o711)

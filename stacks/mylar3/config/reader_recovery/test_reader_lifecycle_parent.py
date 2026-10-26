@@ -528,6 +528,53 @@ class Tests(unittest.TestCase):
         for value in values.values(): value['State']['Health'] = dict(Status='unhealthy',FailingStreak=9,Log=[{'End':'later'}])
         self.assertEqual(p.LifecycleParent.continuous(self.parent),values)
 
+    def projected_report(self):
+        spec=importlib.util.spec_from_file_location('physical_report_tree',ROOT/'comic_child_control_projection.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        tree=module.Tree(self.root/'report-child','/_operation',self.operation,p.read)
+        tree._mkdir(tree.root/'backup')
+        source=fixture_ref(tree.root/'backup/backup-report.json',b'{"phase":"backup"}')
+        child=dict(source,path='/_operation/backup/backup-report.json')
+        _,view=tree.output(child,child['path'],'report')
+        alias=str(self.operation/'backup/backup-report.json')
+        self.assertNotEqual(alias,view['path']);self.assertFalse(Path(alias).exists())
+        self.parent.generated[alias]=view;p._GENERATED[self.parent]=p.encode(self.parent.generated)
+        return alias,view
+
+    def test_continuous_checks_actual_tree_report_copy_not_logical_alias(self):
+        values=self.continuous_fixture();alias,view=self.projected_report();original=p.nfs_lstat
+        def checked(path):
+            self.assertNotEqual(str(path),alias)
+            return original(path)
+        with patch.object(p,'nfs_lstat',side_effect=checked):self.assertEqual(p.LifecycleParent.continuous(self.parent),values)
+
+    def test_continuous_rejects_late_physical_report_drift(self):
+        self.continuous_fixture();alias,view=self.projected_report()
+        self.parent.events=lambda:Path(view['path']).chmod(0o640)
+        with self.assertRaises(p.Held):p.LifecycleParent.continuous(self.parent)
+
+    def test_continuous_refuses_conflicting_original_physical_fact(self):
+        self.continuous_fixture();alias,view=self.projected_report()
+        different=list(view['signature9']);different[1]+=1;self.parent.files[view['path']]=different
+        with self.assertRaisesRegex(p.Held,'continuous-original-generated-conflict'):p.LifecycleParent.continuous(self.parent)
+
+    def test_birth_preserves_actual_tree_report_copy(self):
+        args=self.birth_fixture();alias,view=self.projected_report()
+        self.assertEqual(p.decode(self.parent.accept_birth('prepare',*args))['type'],'birth-accepted')
+
+    def test_birth_refuses_late_physical_report_drift(self):
+        args=self.birth_fixture();alias,view=self.projected_report();inspect=self.parent.inspect
+        def late(cid):
+            Path(view['path']).chmod(0o640)
+            return inspect(cid)
+        self.parent.inspect=late
+        with self.assertRaises(p.Held):self.parent.accept_birth('prepare',*args)
+        self.assertFalse(p._PHASES[self.parent]['prepare']['accepted'])
+
+    def test_transport_challenge_and_birth_keep_projected_report_original(self):
+        owner,inp,command,calls=self.child_fixture(phase='prepare');self.projected_report()
+        self.assertEqual(owner.child_phase('prepare',inp,command)['phase'],'prepare')
+
     def test_continuous_accepts_exact_owned_bridge_teardown(self):
         fixture_spec=importlib.util.spec_from_file_location('bridge_fixture',ROOT/'test_nfs_current_roles.py')
         fixtures=importlib.util.module_from_spec(fixture_spec);fixture_spec.loader.exec_module(fixtures)

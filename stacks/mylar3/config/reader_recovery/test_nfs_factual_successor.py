@@ -76,6 +76,27 @@ class Controls(unittest.TestCase):
         v=P.decode(P.read(r['evidence']['evidence']));self.assertFalse(v['continuous_action_lock']);self.assertTrue(v['canary_writer_lease_released'])
         for key in ('native_grant','publication_authority','reader_resume_authority','actual_library_platform_verified'):self.assertIs(v[key],False)
         self.assertEqual(len(self.stops),1)
+    def projected_report(self):
+        module=load('comic_child_control_projection')
+        tree=module.Tree(self.x.op.parent/'report-child','/_operation',self.x.op,P.read)
+        tree._mkdir(tree.root/'backup')
+        source=ref(tree.root/'backup/backup-report.json',b'{"phase":"backup"}')
+        child=dict(source,path='/_operation/backup/backup-report.json')
+        _,view=tree.output(child,child['path'],'report')
+        alias=str(self.x.op/'backup/backup-report.json')
+        self.assertFalse(Path(alias).exists());self.x.generated[alias]=view
+        P._GENERATED[self.x]=P.encode(self.x.generated)
+        return alias,view
+    def test_factual_ready_preserves_actual_tree_report_copy(self):
+        self.stopped();alias,view=self.projected_report()
+        files=dict(N.originals(self.x,self.canary)[0])
+        self.assertNotIn(alias,files);self.assertEqual(files[view['path']],tuple(view['signature9']))
+        result=N.nfs_ready(self.x,self.request(),watch=self.x.continuous)
+        self.assertIs(P.decode(P.read(result['evidence']['evidence']))['publication_authority'],False)
+    def test_factual_originals_refuse_conflicting_physical_fact(self):
+        self.stopped();alias,view=self.projected_report()
+        different=list(view['signature9']);different[1]+=1;self.x.files[view['path']]=different
+        with self.assertRaisesRegex(N.Held,'nfs-original-file-conflict'):N.originals(self.x,self.canary)
     def test_terminal_dict_cannot_be_canary(self):
         with patch.object(A,'run_active_factual',return_value=self.canary.binding),self.assertRaisesRegex(N.Held,'exact-completed'):self.active()
         self.assertEqual(self.stops,[])
