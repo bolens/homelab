@@ -15,8 +15,13 @@ This stack runs [TwitchDropsMiner](https://github.com/rangermix/TwitchDropsMiner
 If the page stays **blank** through **Cloudflare**, disable **Rocket Loader** (and auto JS minify) for `twitchdrops.*`; the UI relies on **Socket.IO** / WebSockets.
 
 ### Data persistence
-- `./data` is mounted to persist login and settings.
-- (Optional) Uncomment the `logs` volume in `docker-compose.yml` to persist logs.
+- The named volume `twitchdropsminer_data` persists login and settings at `/app/data`.
+- The named volume `twitchdropsminer_logs` persists logs at `/app/logs`.
+
+When updating, preserve both volumes, `TZ`, and custom container options. Reload
+the dashboard afterward to receive the updated assets. The [upstream update
+notes](https://github.com/rangermix/TwitchDropsMiner/releases/tag/v2.3.0) describe
+the retained settings and dashboard sign-in flow.
 
 ### Environment variables
 - `TZ`: Set your timezone (e.g., `Europe/Berlin`).
