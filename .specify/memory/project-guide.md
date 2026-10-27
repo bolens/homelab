@@ -61,6 +61,9 @@ has it. Use the system Python for repository validation and the supported Node
 26 runtime used for these site checks; keep explicit Python 3.10 recovery tests
 separate.
 Do not change production runtimes or validation assertions to fix that PATH.
+Run repository CI with the normal `022` umask: source-ancestor controls must
+observe an actual `0755` to `0700` fixture transition. Create private logs as
+`0600` separately rather than imposing `077` on the test processes.
 
 GitHub job metadata can lag completed runner output. If `gh run view --log`
 refuses an apparently running job, the job-logs API may already provide its
@@ -483,6 +486,13 @@ Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
 Root-private operational evidence. Neither case relaxes private-proof custody.
+
+For descriptor lock checks, Linux fdinfo reports the inode superblock device;
+Btrfs fstat can report a different subvolume device. Bind the original descriptor
+and path with full facts, then check the exact FD's kernel lock inode, process,
+type and range without treating those device namespaces as equal. Exercise the
+owning lock method on the actual host filesystem as well as temporary fixtures;
+a tmpfs-only contention test cannot expose this Btrfs difference.
 
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.

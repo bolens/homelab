@@ -131,6 +131,7 @@ _PHASES = weakref.WeakKeyDictionary()
 _PROJECTORS = weakref.WeakKeyDictionary()
 _OUTPUT_NODES = weakref.WeakKeyDictionary()
 _ARCHIVE_TERMINAL_ROUNDS = weakref.WeakKeyDictionary()
+_ARCHIVE_COMPLETION_LOCKS = weakref.WeakKeyDictionary()
 _ARCHIVE_TERMINAL_SEALS = weakref.WeakKeyDictionary()
 _DIALOGUES = weakref.WeakKeyDictionary()
 _DIALOGUE_SEALS = weakref.WeakKeyDictionary()
@@ -339,6 +340,133 @@ def digest(value):
 def nine(value):
     return [value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
             value.st_ctime_ns, value.st_mode, value.st_uid, value.st_gid, value.st_nlink]
+
+
+def completion_fd_locked(fd, identity9):
+    """Kernel custody of this process's original exclusive flock description."""
+    try:
+        z=os.fstat(fd)
+        if (z.st_dev,z.st_ino)!=tuple(identity9[:2]):return False
+        with open('/proc/self/fdinfo/'+str(fd),encoding='ascii') as stream:info=stream.read(4097)
+        if len(info)>4096:return False
+        # fdinfo selects this exact open file description. Its lock device is
+        # the superblock device; Btrfs fstat instead reports a subvolume device.
+        # The original fstat device/inode remains bound above and by check().
+        identity=r'[0-9a-f]{2,8}:[0-9a-f]{2,8}:'+str(z.st_ino)
+        pattern=r'lock:\s+\d+:\s+FLOCK\s+ADVISORY\s+WRITE\s+'+str(os.getpid())+r'\s+'+identity+r'\s+0\s+EOF'
+        return any(re.fullmatch(pattern,line) for line in info.splitlines())
+    except OSError:return False
+
+
+class ArchiveCompletionExclusion:
+    """Kernel exclusion only; never Writer, mutation or publication authority.
+
+    Native remote observations finish before acquisition. Retained terminal
+    facts still have to match; this does not refresh a snapshot after a race.
+    """
+    def __init__(self, frames):
+        self.nodes, self.files = frames
+        close=type(self).close;close_code=close.__code__;close_defaults=close.__defaults__
+        need(len(self.nodes)==1 and len(self.files)==2,'archive-completion-lock-frames')
+        root, root5 = self.nodes[0]
+        lock, lock9 = self.files[0]
+        need(Path(lock)==Path(root)/'writer-v1.lock' and tuple(root5)[2:]==(stat.S_IFDIR|0o700,1000,1000)
+             and tuple(lock9)[5:]==(stat.S_IFREG|0o600,1000,1000,1),'archive-completion-lock-original-role')
+        self.fd = None;self.witness=None;acquired=False
+        rootfd = os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(tuple(five(os.fstat(rootfd)))==tuple(root5),'archive-completion-lock-directory')
+            fd=os.open('writer-v1.lock',os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=rootfd)
+            self.fd=fd
+            need(tuple(nine(os.fstat(fd)))==tuple(lock9),'archive-completion-lock-original-FD')
+            try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError:raise Held('archive-completion-native-writer-busy') from None
+            acquired=True
+            self.witness=os.dup(fd);os.set_inheritable(self.witness,False)
+            self.check()
+        except BaseException:
+            try:
+                if not acquired and self.fd is not None:
+                    fd,self.fd=self.fd,None;os.close(fd)
+                else:
+                    need(close.__code__ is close_code and close.__defaults__ is close_defaults,'archive-completion-original-close')
+                    close(self)
+            except BaseException:pass
+            raise
+        finally:
+            primary=sys.exc_info()[0] is not None
+            try:os.close(rootfd)
+            except OSError:
+                if not primary:
+                    try:
+                        need(close.__code__ is close_code and close.__defaults__ is close_defaults,'archive-completion-original-close')
+                        close(self)
+                    except BaseException:pass
+                    raise
+
+    def check(self, _kernel=completion_fd_locked, _code=completion_fd_locked.__code__):
+        need(self.fd is not None and self.witness is not None and self.fd!=self.witness,'archive-completion-lock-closed')
+        for path,value in self.nodes:
+            need(tuple(five(nfs_lstat(path)))==tuple(value),'archive-completion-lock-node')
+        for path,value in self.files:
+            need(tuple(nine(nfs_lstat(path)))==tuple(value),'archive-completion-lock-file')
+        value=self.files[0][1];z=os.fstat(self.fd)
+        need(tuple(nine(z))==tuple(value) and os.pread(self.fd,64,0)==b'mylar-media-writer-v1\n',
+             'archive-completion-lock-original-protocol')
+        need(completion_fd_locked is _kernel and _kernel.__code__ is _code,'archive-completion-original-kernel-check')
+        need(_kernel(self.fd,value) and _kernel(self.witness,value),'archive-completion-exclusive-lock-lost')
+
+    def close(self, _kernel=completion_fd_locked, _code=completion_fd_locked.__code__):
+        fd,witness=self.fd,self.witness
+        self.fd=self.witness=None;error=None
+        for owned in (fd,witness):
+            if owned is None:continue
+            try:
+                need(_kernel.__code__ is _code,'archive-completion-cleanup-checker-changed')
+                held=_kernel(owned,self.files[0][1])
+                need(_kernel.__code__ is _code,'archive-completion-cleanup-checker-changed')
+                if held:os.close(owned)
+            except BaseException as current:
+                if error is None:error=current
+        if error is not None:raise error
+
+
+def archive_completion_guard(owner, expected=None, _kernel=completion_fd_locked, _code=completion_fd_locked.__code__):
+    need(completion_fd_locked is _kernel and _kernel.__code__ is _code,'archive-completion-original-kernel-check')
+    record=_ARCHIVE_COMPLETION_LOCKS.get(owner)
+    if expected is not None:need(record is expected,'archive-completion-original-registry')
+    if record is None:return
+    lock,fd,nodes,files,check,code,witness,close=record
+    need(lock.fd==fd and lock.witness==witness and lock.nodes==nodes and lock.files==files
+         and type(lock) is ArchiveCompletionExclusion and type(lock).check is check and check.__code__ is code,
+         'archive-completion-original-lock-binding')
+    check(lock)
+    need(completion_fd_locked is _kernel and _kernel.__code__ is _code
+         and _ARCHIVE_COMPLETION_LOCKS.get(owner) is record and lock.fd==fd and lock.witness==witness and lock.nodes==nodes and lock.files==files
+         and type(lock).check is check and check.__code__ is code,
+         'archive-completion-final-lock-binding')
+
+
+_COMPLETION_DEFINITIONS = (ArchiveCompletionExclusion,ArchiveCompletionExclusion.__init__,
+    ArchiveCompletionExclusion.__init__.__code__,ArchiveCompletionExclusion.check,
+    ArchiveCompletionExclusion.check.__code__,ArchiveCompletionExclusion.check.__defaults__,
+    archive_completion_guard,archive_completion_guard.__code__,archive_completion_guard.__defaults__,
+    completion_fd_locked,completion_fd_locked.__code__,ArchiveCompletionExclusion.close,
+    ArchiveCompletionExclusion.close.__code__,ArchiveCompletionExclusion.close.__defaults__)
+
+
+def completion_definitions_guard(original=_COMPLETION_DEFINITIONS):
+    need(ArchiveCompletionExclusion is original[0] and ArchiveCompletionExclusion.__init__ is original[1]
+         and ArchiveCompletionExclusion.check is original[3] and archive_completion_guard is original[6]
+         and completion_fd_locked is original[9] and ArchiveCompletionExclusion.close is original[11],
+         'archive-completion-original-definitions')
+    current=(ArchiveCompletionExclusion,ArchiveCompletionExclusion.__init__,
+        ArchiveCompletionExclusion.__init__.__code__,ArchiveCompletionExclusion.check,
+        ArchiveCompletionExclusion.check.__code__,ArchiveCompletionExclusion.check.__defaults__,
+        archive_completion_guard,archive_completion_guard.__code__,archive_completion_guard.__defaults__,
+        completion_fd_locked,completion_fd_locked.__code__,ArchiveCompletionExclusion.close,
+        ArchiveCompletionExclusion.close.__code__,ArchiveCompletionExclusion.close.__defaults__)
+    need(current==original,'archive-completion-original-definitions')
 
 
 def five(value):
@@ -3150,7 +3278,9 @@ class LifecycleParent:
         finally:
             os.close(directory)
 
-    def continuous(self):
+    def continuous(self, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__):
+        need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+        archive_completion_guard(self)
         files = dict(self.files); nodes = dict(self.nodes)
         for ref in self.generated.values():
             path=ref['path'];value=tuple(ref['signature9'])
@@ -3177,6 +3307,8 @@ class LifecycleParent:
             need(lifecycle_state(values['reader']) == lifecycle_state({'State': self.stop_state}), 'reader-stop-incarnation')
         self.events()
         self.left(); final(files, nodes, ())
+        need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+        archive_completion_guard(self)
         return values
 
     def events(self):
@@ -3392,16 +3524,22 @@ class LifecycleParent:
         # Copying a child-owned record never admits a new proof row.
         original_ref=(ref['path'],ref['sha256'],tuple(ref['signature9']))
         admitted=tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))
-        physical=self.mapping.host(original_ref[0])
+        mapping=self.mapping;mounts=tuple((r['host'],r['child'],r['write']) for r in mapping.mounts)
+        physical=mapping.host(original_ref[0])
         need(dict(admitted).get(physical)==original_ref[2],'archive-terminal-history-baseline-original9')
-        view=self.child_control(ref,original_ref[0])
-        need((ref['path'],ref['sha256'],tuple(ref['signature9']))==original_ref and tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))==admitted,'archive-terminal-history-proof-unchanged')
+        if self in _CHILD_TREES:
+            _,view=_CHILD_TREES[self].output(ref,original_ref[0],'factual_record',physical=physical)
+        else:view=self.child_control(ref,original_ref[0])
+        final_physical=mapping.host(original_ref[0])
+        need(self.mapping is mapping and tuple((r['host'],r['child'],r['write']) for r in mapping.mounts)==mounts
+             and final_physical==physical and (ref['path'],ref['sha256'],tuple(ref['signature9']))==original_ref
+             and tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))==admitted,'archive-terminal-history-proof-unchanged')
         return view
 
     def phase_provider(self,phase):
         return self.plan['backup_provider'] if self.plan.get('action')=='archive-one' and phase=='backup' else self.plan['provider']
 
-    def child_phase(self, phase, input_ref, actual):
+    def child_phase(self, phase, input_ref, actual, completion_slot=None, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__):
         self.continuous(); name = 'reader-' + phase + '-' + self.plan['nonce'][:16]
         command = actual[1:]
         mounts = copy.deepcopy(self.plan['mounts'])
@@ -3450,7 +3588,10 @@ class LifecycleParent:
                 path=ref['path'];value=tuple(ref['signature9'])
                 need(path not in original_files or tuple(original_files[path])==value,'challenge-original-generated-conflict');original_files[path]=value
             original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
-            leaving=False
+            leaving=False;completion_frames=None
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            archive_completion_guard(self,None if completion_slot is None else completion_slot[0])
+            need(self not in _ARCHIVE_COMPLETION_LOCKS or message is None,'archive-completion-no-further-native-challenge')
             ws=message.get('writer_session') if type(message) is dict else None
             if writer_session is not None:
                 binding_raw,origin_raw,original_child_raw,host_pid,host_ticks,writer_frames,session_files,session_nodes=writer_session
@@ -3499,15 +3640,7 @@ class LifecycleParent:
                 projector=_PROJECTORS[self]
                 need(projector(fresh['native'])==projector(original['native'])
                      and same_runtime(fresh['worker'],original['worker']) and fresh['child_mounts']==original['child_mounts'],'writer-session-restored-original-unlocked')
-                if pending_terminal is not None:
-                    terminal_raw,terminal_seq=pending_terminal
-                    # Existing complete actual terminal/worker validator runs
-                    # only after release; its reply bytes must match pending.
-                    pending_message=decode(terminal_raw)
-                    actual_response=self.accept_archive_terminal(input_ref,actual,pending_message,current,original_running,terminal_raw)
-                    expected_response=encode({**pending_message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
-                    need(actual_response==expected_response,'writer-session-pending-terminal-response')
-                    consumed_sequence=sequence
+                if pending_terminal is not None:completion_frames=writer_frames
                 writer_session=None;writer_confirmed=False;leaving=True
                 # Continue through the original fresh response/file closures.
             else:
@@ -3543,6 +3676,21 @@ class LifecycleParent:
                  and same_runtime(fresh['native']['inspect'], observed['held_native'])
                  and same_runtime(fresh['worker'], observed['held_worker'])
                  and fresh['child_mounts'] == current['Mounts'], 'fresh-native-worker-mounts')
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            if completion_frames is not None:
+                need(self not in _ARCHIVE_COMPLETION_LOCKS,'archive-completion-one-lock')
+                need(type(completion_slot) is list and completion_slot==[None],'archive-completion-owning-slot')
+                lock=ArchiveCompletionExclusion(completion_frames)
+                record=(lock,lock.fd,lock.nodes,lock.files,type(lock).check,type(lock).check.__code__,lock.witness,type(lock).close)
+                completion_slot[0]=record
+                _ARCHIVE_COMPLETION_LOCKS[self]=record
+                terminal_raw,terminal_seq=pending_terminal
+                pending_message=decode(terminal_raw)
+                actual_response=self.accept_archive_terminal(input_ref,actual,pending_message,current,original_running,terminal_raw)
+                expected_response=encode({**pending_message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
+                need(actual_response==expected_response,'writer-session-pending-terminal-response')
+                consumed_sequence=sequence-1
+                archive_completion_guard(self,record)
             if ws is not None and ws.get('stage')=='enter':
                 need((self.plan.get('version') in (10,11,12,13) and phase in ('execute','verify-terminal')
                       or self.plan.get('version')==9 and self.plan.get('kind')=='reviewed-negative-five-lifecycle-protocol' and phase in ('prepare','execute')) and writer_session is None
@@ -3605,6 +3753,8 @@ class LifecycleParent:
                     z=nfs_lstat(path)
                     if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('challenge-original-pipe-file-final')
                 if tuple(self.files.items())!=pipe_files or tuple(self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            archive_completion_guard(self,None if completion_slot is None else completion_slot[0])
             return response
         ack = self.engine.interactive(cid, challenge, self.left())
         need(writer_session is None,'writer-session-leave-before-natural-exit')
@@ -3790,7 +3940,15 @@ class LifecycleParent:
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('worker-parent-final-node')
             for path,value in files:
                 z=nfs_lstat(path)
-                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('worker-parent-final-file')
+                actual9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                if actual9!=tuple(value):
+                    # Retain the failing observation, not a later live sample.
+                    # Never expose paths/contents or replace the primary refusal.
+                    try:
+                        print(encode(dict(kind='worker-parent-file-change',path_sha256=hashlib.sha256(os.fsencode(path)).hexdigest(),
+                            original9=list(value),current9=list(actual9),changed_fields=[i for i in range(9) if value[i]!=actual9[i]])).decode(),file=sys.stderr,flush=True)
+                    except BaseException:pass
+                    raise Held('worker-parent-final-file')
             if (module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))!=constants:raise Held('worker-parent-final-protocol-constants')
             if module.__dict__.get('Round') is not functions[1] or type(protocol) is not functions[1] or type(protocol).__getattribute__ is not object.__getattribute__ or len(functions[1].__dict__)!=len(functions[2]) or any(functions[1].__dict__.get(name) is not value for name,value in functions[2]) or functions[1].__init__.__code__ is not functions[3] or functions[1].accept.__code__ is not functions[4]:raise Held('worker-parent-final-protocol-implementation')
             for name,function,code in functions[0]:
@@ -4062,7 +4220,8 @@ class LifecycleParent:
         check_common_root(geometry)
         _ARCHIVE_PUBLICATION_REQUESTS[self]=encode(result);return result
 
-    def execute_archive(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__):
+    def execute_archive(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__, _kernel=completion_fd_locked, _kernel_code=completion_fd_locked.__code__):
+        completion_slot=[None]
         try:
             nfs=_NFS_ADAPTERS.get(self);need(nfs is not None,'archive-NFS-owner-required')
             need(callable(getattr(self.observer,'partition',None)),'archive-terminal-vector-implementation')
@@ -4087,7 +4246,9 @@ class LifecycleParent:
             payload=dict(controls={k:self.mapping.child_ref(v) for k,v in controls['controls'].items()},archive_scopes=self.mapping.child_ref(controls['archive_scopes']))
             inp,cmd=self.phase_input('execute',payload,context)
             ready=self.produce('archive-nfs-ready',dict(input=inp,command=cmd,context=context));need(set(ready)=={'evidence'},'archive-NFS-finite-facts');read(ready['evidence'])
-            report=self.child_phase('execute',inp,cmd)
+            report=self.child_phase('execute',inp,cmd,completion_slot=completion_slot)
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            archive_completion_guard(self,completion_slot[0])
             request=decode(read(self.plan['producer_inputs']['archive_request']))
             need(report['kind']=='archive-one-owning-execute-observation' and report['owner']==request['owner'] and report['operation_id']==request['operation_id'] and report['outcome'] in ('observed-forward','observed-rollback'),'archive-execute-owning-result')
             if self.plan.get('version')==13:need(report['outcome']=='observed-'+request.get('terminal','forward'),'archive-original-request-terminal-outcome')
@@ -4152,12 +4313,31 @@ class LifecycleParent:
                 try:nfs_lstat(path)
                 except FileNotFoundError:continue
                 raise Held('archive-resume-absence')
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            archive_completion_guard(self,completion_slot[0])
             resumed=self.engine.run(['start',self.plan['reader']['id']],seconds).decode().strip();need(resumed==self.plan['reader']['id'],'archive-resume-ACK-unknown')
             current=self.inspect(resumed);need(_resume.__code__ is _resume_code and _resume(self.baselines['reader'],current,self.plan['reader']['id']) and _resume.__code__ is _resume_code,'archive-compatible-reader-resume')
+            need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
+            archive_completion_guard(self,completion_slot[0])
             self.phase='complete'
             return self.emit('complete.json',dict(version=1,action='archive-one',outcome='parent-complete',reader_index_acceptance=False,ordinary_import_grant=False,publication_acceptance=False,automatic_replay=False))
         except BaseException:
             self.phase='uncertain';raise Held('archive-parent-uncertain-hold-no-replay-or-resume') from None
+        finally:
+            primary=sys.exc_info()[0] is not None
+            _ARCHIVE_COMPLETION_LOCKS.pop(self,None)
+            record=completion_slot[0]
+            if record is not None:
+                error=None
+                for fd in (record[1],record[6]):
+                    try:
+                        need(_kernel.__code__ is _kernel_code,'archive-completion-cleanup-checker-changed')
+                        owned=_kernel(fd,record[3][0][1])
+                        need(_kernel.__code__ is _kernel_code,'archive-completion-cleanup-checker-changed')
+                        if owned:os.close(fd)
+                    except BaseException as current:
+                        if error is None:error=current
+                if error is not None and not primary:raise error
 
     def execute(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__):
         if self.plan.get('action')=='archive-one':return self.execute_archive()

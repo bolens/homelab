@@ -6,6 +6,8 @@ import copy
 from contextlib import closing
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -26,7 +28,7 @@ class Tests(unittest.TestCase):
  def unit5(self):
   self.setup();x=self.parent;x.plan.update(version=12,native={'data':str(self.root),'roots':[str(self.root)]})
   self.archive=self.root/'Comic.cbz';self.archive.write_bytes(b'preserved fixture archive bytes')
-  self.catalog=self.root/'mylar.db';self.authority=self.root/'workflow.sqlite';writer=self.root/'media-writer';writer.mkdir();self.marker=writer/'publication-v1.json';self.marker.write_bytes(b'{}')
+  self.catalog=self.root/'mylar.db';self.authority=self.root/'workflow.sqlite';writer=self.root/'media-writer';writer.mkdir(mode=0o700);self.marker=writer/'publication-v1.json';self.marker.write_bytes(b'{}')
   with closing(sqlite3.connect(self.catalog)) as db,db:
    db.execute('CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT)');db.execute('CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Location TEXT,Status TEXT)');db.execute('CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ReleaseComicID TEXT,Location TEXT,Status TEXT,Deleted INT)')
    db.execute('INSERT INTO comics VALUES(?,?)',('456',str(self.root)));db.execute('INSERT INTO issues VALUES(?,?,?,?)',('123','456','Comic.cbz','Downloaded'))
@@ -94,6 +96,152 @@ class Tests(unittest.TestCase):
  def test_genuine_nested_original_pipes_worker_readback_before_producer_release(self):
   self.unit5();ack=self.run_nested();self.assertEqual(ack,{'fixture':'synthetic-parent-facts-only'});self.assertTrue(self.both);self.assertTrue(self.worker_final)
   result=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]['worker_result'];self.assertEqual(result['type'],'observed');self.assertTrue(all(v is False for v in result['rights'].values()))
+ def change_authority_before_worker_guard(self):
+  self.unit5();original=self.parent.continuous;module=p._WORKER_MODULES[self.parent];fired=[]
+  def continuous():
+   result=original()
+   if module._ROUND_STATES and not fired:
+    before=self.authority.stat();os.utime(self.authority,ns=(before.st_atime_ns,before.st_mtime_ns+1));fired.append(True)
+   return result
+  self.parent.continuous=continuous
+  return fired
+ def test_worker_guard_retains_exact_failing_metadata_without_paths(self):
+  fired=self.change_authority_before_worker_guard();before=self.authority.read_bytes();stderr=io.StringIO()
+  with patch.object(sys,'stderr',stderr),self.assertRaises(p.Held) as caught:self.run_nested()
+  self.assertEqual(str(caught.exception.__context__),'worker-parent-final-file')
+  self.assertEqual(fired,[True]);self.assertIsNone(self.worker_row);self.assertFalse(self.worker_final)
+  self.assertEqual(self.authority.read_bytes(),before)
+  detail=p.decode(stderr.getvalue().encode());self.assertLess(len(stderr.getvalue()),1024)
+  self.assertNotIn(str(self.authority),stderr.getvalue());self.assertEqual(detail['kind'],'worker-parent-file-change')
+  self.assertEqual(detail['path_sha256'],hashlib.sha256(os.fsencode(self.authority)).hexdigest())
+  self.assertEqual(detail['current9'],p.nine(self.authority.lstat()));self.assertIn(3,detail['changed_fields'])
+  self.assertEqual(detail['current9'][3],detail['original9'][3]+1)
+ def test_worker_metadata_diagnostic_failure_preserves_original_refusal(self):
+  fired=self.change_authority_before_worker_guard()
+  with patch.object(sys.stderr,'write',side_effect=OSError('diagnostic unavailable')),self.assertRaises(p.Held) as caught:self.run_nested()
+  self.assertEqual(str(caught.exception.__context__),'worker-parent-final-file')
+  self.assertEqual(fired,[True]);self.assertIsNone(self.worker_row);self.assertFalse(self.worker_final)
+ def completion_lock(self):
+  self.real_spawn=subprocess.Popen
+  self.unit5()
+  root=self.marker.parent;root.chmod(0o700)
+  path=root/'writer-v1.lock';path.write_bytes(b'mylar-media-writer-v1\n');path.chmod(0o600)
+  frames=(((str(root),tuple(p.five(root.lstat()))),),((str(path),tuple(p.nine(path.lstat()))),(str(self.marker),tuple(p.nine(self.marker.lstat())))))
+  return path,frames
+ def competing_lock(self,path):
+  program="import fcntl,os,sys;fd=os.open(sys.argv[1],os.O_RDWR);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)"
+  with patch.object(p.subprocess,'Popen',self.real_spawn):
+   return subprocess.run([sys.executable,'-I','-B','-c',program,str(path)],capture_output=True).returncode
+ def kernel_lock_sample(self):
+  import fcntl
+  path=self.root/'kernel-lock';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+  self.addCleanup(os.close,fd);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  frame=p.nine(os.fstat(fd))
+  return fd,frame
+ def test_completion_kernel_accepts_distinct_btrfs_superblock_device(self):
+  fd,frame=self.kernel_lock_sample()
+  # Btrfs stat reports the subvolume device; fdinfo reports the superblock.
+  device='00:00' if frame[0] else '00:01'
+  info=f'lock:\t1: FLOCK ADVISORY WRITE {os.getpid()} {device}:{frame[1]} 0 EOF\n'
+  with patch('builtins.open',return_value=io.StringIO(info)):
+   self.assertTrue(p.completion_fd_locked(fd,frame))
+ def test_completion_kernel_device_alias_never_relaxes_other_custody(self):
+  fd,frame=self.kernel_lock_sample()
+  valid=f'lock:\t1: FLOCK ADVISORY WRITE {os.getpid()} 00:00:{frame[1]} 0 EOF\n'
+  variants=[valid.replace(str(os.getpid())+' ',str(os.getpid()+1)+' '),
+            valid.replace(':'+str(frame[1])+' ',':'+str(frame[1]+1)+' '),
+            valid.replace('FLOCK','POSIX'),valid.replace('WRITE','READ'),
+            valid.replace('00:00:','zz:00:'),valid.replace(' 0 EOF',' 1 EOF'),
+            valid.replace(' 0 EOF',' 0 10'),'pos:\t0\n','x'*4097]
+  for info in variants:
+   with self.subTest(info=info[:90]),patch('builtins.open',return_value=io.StringIO(info)):
+    self.assertFalse(p.completion_fd_locked(fd,frame))
+  for field in (0,1):
+   wrong=frame.copy();wrong[field]+=1
+   with self.subTest(identity_field=field),patch('builtins.open',return_value=io.StringIO(valid)):
+    self.assertFalse(p.completion_fd_locked(fd,wrong))
+ def test_completion_exclusion_real_kernel_competitor_and_release(self):
+  path,frames=self.completion_lock();lock=p.ArchiveCompletionExclusion(frames)
+  try:
+   lock.check();self.assertNotEqual(self.competing_lock(path),0)
+   self.run_nested();lock.check();self.assertTrue(self.worker_final)
+   self.assertNotEqual(self.competing_lock(path),0)
+  finally:lock.close()
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_exclusion_contending_writer_refuses_without_wait(self):
+  import fcntl
+  path,frames=self.completion_lock();fd=os.open(path,os.O_RDWR)
+  try:
+   fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+   with self.assertRaisesRegex(p.Held,'native-writer-busy'):p.ArchiveCompletionExclusion(frames)
+   self.assertIsNone(self.worker_row)
+  finally:os.close(fd)
+ def test_completion_exclusion_original_file_drift_refuses(self):
+  path,frames=self.completion_lock();os.utime(path,ns=(path.stat().st_atime_ns,path.stat().st_mtime_ns+1))
+  with self.assertRaisesRegex(p.Held,'original-FD'):p.ArchiveCompletionExclusion(frames)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_exclusion_protocol_bytes_refuse(self):
+  path,frames=self.completion_lock();path.write_bytes(b'x'*len(b'mylar-media-writer-v1\n'))
+  frames=(frames[0],((str(path),tuple(p.nine(path.lstat()))),frames[1][1]))
+  with self.assertRaisesRegex(p.Held,'original-protocol'):p.ArchiveCompletionExclusion(frames)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_exclusion_callback_unlock_refuses(self):
+  import fcntl
+  path,frames=self.completion_lock();lock=p.ArchiveCompletionExclusion(frames)
+  try:
+   fcntl.flock(lock.fd,fcntl.LOCK_UN)
+   with self.assertRaisesRegex(p.Held,'exclusive-lock-lost'):lock.check()
+  finally:
+   fd,witness=lock.fd,lock.witness;lock.close();os.close(fd);os.close(witness)
+ def test_completion_exclusion_callback_same_inode_reopen_refuses(self):
+  import fcntl
+  path,frames=self.completion_lock();lock=p.ArchiveCompletionExclusion(frames);fd=lock.fd
+  os.close(fd);replacement=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+  if replacement!=fd:os.dup2(replacement,fd);os.close(replacement)
+  try:
+   with self.assertRaises(BlockingIOError):fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+   with self.assertRaisesRegex(p.Held,'exclusive-lock-lost'):lock.check()
+  finally:
+   lock.close();os.fstat(fd);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);os.close(fd)
+ def test_completion_constructor_root_close_failure_releases_acquired_lock(self):
+  import stat
+  path,frames=self.completion_lock();real_close=os.close
+  def close(fd):
+   directory=stat.S_ISDIR(os.fstat(fd).st_mode);real_close(fd)
+   if directory:raise OSError('root-close-failure')
+  with patch.object(os,'close',close),self.assertRaisesRegex(OSError,'root-close-failure'):
+   p.ArchiveCompletionExclusion(frames)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_constructor_root_close_failure_preserves_busy_refusal(self):
+  import stat,fcntl
+  path,frames=self.completion_lock();fd=os.open(path,os.O_RDWR);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);real_close=os.close
+  def close(other):
+   directory=stat.S_ISDIR(os.fstat(other).st_mode);real_close(other)
+   if directory:raise OSError('root-close-failure')
+  try:
+   with patch.object(os,'close',close),self.assertRaisesRegex(p.Held,'native-writer-busy'):
+    p.ArchiveCompletionExclusion(frames)
+  finally:os.close(fd)
+ def test_completion_constructor_independent_close_errors_preserve_root_error(self):
+  import stat
+  path,frames=self.completion_lock();real_close=os.close
+  def close(fd):
+   directory=stat.S_ISDIR(os.fstat(fd).st_mode);real_close(fd)
+   raise OSError('root-close-failure' if directory else 'lock-close-failure')
+  with patch.object(os,'close',close),self.assertRaisesRegex(OSError,'root-close-failure'):
+   p.ArchiveCompletionExclusion(frames)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_constructor_failure_uses_original_cleanup_checker(self):
+  path,frames=self.completion_lock();lstat=p.nfs_lstat;kernel=p.completion_fd_locked;foreign=[]
+  def changed(path):
+   value=lstat(path);p.completion_fd_locked=lambda *args:foreign.append(True)
+   return value
+  try:
+   with patch.object(p,'nfs_lstat',changed),self.assertRaisesRegex(p.Held,'original-kernel-check'):
+    p.ArchiveCompletionExclusion(frames)
+   self.assertEqual(foreign,[])
+  finally:p.completion_fd_locked=kernel
+  self.assertEqual(self.competing_lock(path),0)
  def test_late_parent_source_drift_never_releases_producer(self):
   self.unit5();fired=[]
   def change(state):

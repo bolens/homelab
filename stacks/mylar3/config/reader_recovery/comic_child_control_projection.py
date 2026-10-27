@@ -118,8 +118,13 @@ class Tree:
         self._append('nfs_controls',((original,public),),expected);self.check()
 
     def _pair_bound(self,original=None):
-        ordinary=sum(p[0] not in [row[0] for row in self.nfs_controls] for p in self.pairs)+len(self.outputs)
-        need(ordinary<32 or original in [row[0] for row in self.nfs_controls],'child-control-bound')
+        # Input projections and returned factual views have separate budgets.
+        # Plan13 uses 26 ordinary + 40 NFS inputs and 11 terminal/backup views;
+        # both terminal directions remain below the unchanged shared limit.
+        if original is None:need(len(self.outputs)<16,'child-output-bound')
+        else:
+            ordinary=sum(p[0] not in [row[0] for row in self.nfs_controls] for p in self.pairs)
+            need(ordinary<32 or original in [row[0] for row in self.nfs_controls],'child-control-bound')
         need(len(self.pairs)+len(self.outputs)<80,'child-control-total-bound')
 
     def project(self,ref):
@@ -187,9 +192,14 @@ class Tree:
             need(len(outputs)==1,'child-output-projected-unique');self.check();return reference(outputs[0][4])
         host=self.project(ref);return dict(host,path=str(self.child_root/Path(host['path']).relative_to(self.root)))
     def original(self,ref):
-        p,sha,stamp=frozen(ref);host=self.host(p)
+        p,sha,stamp=frozen(ref)
+        outputs=[row[3] for row in self.outputs if row[4]==(p,sha,stamp)]
+        if outputs:
+            projected=[row[0] for row in self.pairs
+                       if (str(self.child_root/Path(row[1][0]).relative_to(self.root)),row[1][1],row[1][2])==(p,sha,stamp)]
+            need(len(outputs)==1 and not projected,'child-pair-original-binding');self.check();return reference(outputs[0])
+        host=self.host(p)
         rows=[row[0] for row in self.pairs if row[1]==(host,sha,stamp)]
-        rows += [row[3] for row in self.outputs if row[4]==(p,sha,stamp)]
         need(len(rows)==1,'child-pair-original-binding');self.check();return reference(rows[0])
     def child(self,path):
         path=Path(path)
@@ -213,9 +223,9 @@ class Tree:
     def original_host(self, path):
         path=str(path)
         rows=[p for p in self.pairs if p[1][0]==path]
-        if rows:
-            need(len(rows)==1,'child-original-host-unique');self.check();return rows[0][0][0]
         outputs=[r for r in self.outputs if r[0]==path]
+        if rows:
+            need(len(rows)==1 and not outputs,'child-original-host-unique');self.check();return rows[0][0][0]
         if outputs:
             need(len(outputs)==1,'child-output-host-unique');self.check();return outputs[0][3][0]
         return path
@@ -237,19 +247,52 @@ class Tree:
     def scope_owner(self,path):
         path=str(path);rows=[r for r in self.scopes if r[2]==path]
         need(len(rows)==1,'child-private-scope-owned-binding');self.check();return self.uid
-    def output(self,ref,expected_path,role):
+    def output(self,ref,expected_path,role,*,physical=None):
         need(role in ('native_scope','report','terminal','factual_record'),'child-output-role')
         child=frozen(ref);need(child[0]==str(expected_path),'child-output-exact-path')
+        # Only the owning proof-copy path supplies an already-mapped origin.
+        # General Tree.host admission remains confined to the private tree.
+        if physical is not None:
+            need(role=='factual_record' and type(physical) is str and Path(physical).is_absolute() and str(Path(physical))==physical
+                 and '..' not in Path(physical).parts,'child-output-proof-path')
         existing=[r for r in self.outputs if r[4][0]==child[0]]
         if existing:
-            need(len(existing)==1 and existing[0][4]==child and existing[0][5]==role,'child-output-original-conflict');self.check()
+            need(len(existing)==1 and existing[0][4]==child and existing[0][5]==role
+                 and (physical is None or physical==existing[0][0]),'child-output-original-conflict');self.check()
             data,_=raw(reference(existing[0][3]),os.geteuid());self.check();return data,reference(existing[0][3])
         self._pair_bound()
         expected=self._state()
-        host=self.host(child[0]);hoststamp=nine(self.stat(host))
+        host=self.host(child[0]) if physical is None else physical;hoststamp=nine(self.stat(host))
         need(hoststamp==child[2],'child-output-returned-original9')
         hostref=dict(path=host,sha256=child[1],signature9=list(hoststamp))
-        data,nodes=raw(hostref,self.uid)
+        need(_SEALS.get(self)==expected and self.owner_vector is self.identity[-1]
+             and id(self.owner_reads)==self.identity[6],'child-output-original-owner-vector')
+        methods={}
+        if self.owner_vector is not None:
+            cls,originals,dependencies,seal,registry=self.owner_vector
+            g=next(value for name,value,_ in originals if name=='control_vector').__globals__;dependency=dependencies[0]
+            need(type(self.owner_reads) is cls and g.get('_OWNER_READS') is self.owner_reads
+                 and all(cls.__dict__.get(name) is value and value.__code__ is code for name,value,code in originals)
+                 and g.get('_OWNER_READ_SEALS') is registry and registry.get(self.owner_reads) is seal
+                 and self.owner_reads.registry is registry and self.owner_reads.seal is seal
+                 and g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2]
+                 and dependency[1](dependencies),'child-output-original-owner-code')
+            methods={name:value for name,value,_ in originals}
+        if methods and methods['contains'](self.owner_reads,host):
+            need(hoststamp[6]==self.uid and stat.S_ISREG(hoststamp[5]) and stat.S_IMODE(hoststamp[5])==0o600
+                 and hoststamp[8]==1 and 0<hoststamp[2]<=MAX,'child-control-owner')
+            nodes=ancestors(host,self.owner_reads)
+            need(_SEALS.get(self)==expected and self.owner_vector is self.identity[-1]
+                 and id(self.owner_reads)==self.identity[6] and type(self.owner_reads) is cls
+                 and g.get('_OWNER_READS') is self.owner_reads
+                 and all(cls.__dict__.get(name) is value and value.__code__ is code for name,value,code in originals)
+                 and g.get('_OWNER_READ_SEALS') is registry and registry.get(self.owner_reads) is seal
+                 and self.owner_reads.registry is registry and self.owner_reads.seal is seal
+                 and g.get(dependency[0]) is dependency[1] and dependency[1].__code__ is dependency[2]
+                 and dependency[1](dependencies),'child-output-original-owner-code')
+            data=methods['read'](self.owner_reads,hostref)
+            close(((host,hoststamp),),nodes,self.owner_reads)
+        else:data,nodes=raw(hostref,self.uid)
         folder=self.original_operation/'child-output-views'
         if not any(path==str(folder) for path,_ in self.nodes):
             folder.mkdir(mode=0o700);folder_fd=os.open(folder,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)

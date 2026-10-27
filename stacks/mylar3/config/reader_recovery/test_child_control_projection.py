@@ -176,17 +176,160 @@ class Controls(unittest.TestCase):
         self.assertFalse(m.CHILD_CONTROL_PROJECTION_ENABLED);self.assertIsNone(m.CHILD_CONTROL_SOURCE_SHA)
 
     def test_declared_nfs_controls_have_finite_separate_budget(self):
-        for index in range(40):
+        for index in range(48):
             source=self.op/('nfs-control-'+str(index)+'.json');source.write_bytes(b'{"public":true}');source.chmod(0o600)
             ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
             self.tree.reserve_nfs_control(ref);self.tree.project(ref)
-        self.assertEqual(len(self.tree.nfs_controls),40);self.tree.check()
+        self.assertEqual(len(self.tree.nfs_controls),48);self.tree.check()
+        with self.assertRaisesRegex(c.Held,'nfs-control-declared-bound'):self.tree.reserve_nfs_control(self.ref)
     def test_default_budget_does_not_expand_without_declared_nfs_originals(self):
         for index in range(32):
             source=self.op/('normal-'+str(index)+'.json');source.write_bytes(b'{}');source.chmod(0o600)
             ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
             self.tree.project(ref)
         with self.assertRaisesRegex(c.Held,'child-control-bound'):self.tree.project(self.ref)
+
+    def budget_input(self,index,*,nfs=False):
+        source=self.op/('budget-'+str(index)+'.json');source.write_bytes(b'{}');source.chmod(0o600)
+        ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
+        if nfs:self.tree.reserve_nfs_control(ref)
+        self.tree.project(ref)
+        return ref
+
+    def budget_output(self,index):
+        phase=self.tree.phase('execute');source=phase/('factual-'+str(index)+'.json')
+        source.write_bytes(b'{"factual":true}');source.chmod(0o600)
+        return dict(path=self.tree.child(str(source)),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
+
+    def mounted_proof_owner(self):
+        import comic_reader_lifecycle_parent as parent
+        data=self.base/'native-data';data.mkdir(mode=0o700)
+        common=self.base/'canonical-nfs';common.mkdir(mode=0o711)
+        retention=common/'R';retention.mkdir(mode=0o700)
+        class Owner:
+            child_control=parent.LifecycleParent.child_control
+            def left(owner):owner.tree.check()
+        owner=Owner();owner.tree=self.tree
+        owner.mapping=parent.Paths([dict(host=str(self.op),child='/_operation',write=True),
+            dict(host=str(data),child='/config/mylar',write=True),dict(host=str(common),child=str(common),write=True)])
+        owner.mapping.owner=owner;parent._CHILD_TREES[owner]=self.tree
+        return parent,owner,data,retention
+
+    def mounted_record(self,owner,path):
+        path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        path.write_bytes(b'{"factual":true}');path.chmod(0o600)
+        return dict(path=owner.mapping.child(str(path)),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(c.nine(path.lstat())))
+
+    def test_plan13_terminal_projection_retains_all_11_proof_views(self):
+        parent,owner,data,retention=self.mounted_proof_owner()
+        self.tree.project(self.ref)
+        for index in range(25):self.budget_input(index)
+        for index in range(26,66):self.budget_input(index,nfs=True)
+        proof={};views=[]
+        # Six existing views precede baseline, preparation, two histories and
+        # the causal fixture receipt, in both forward and rollback dialogues.
+        backup=self.tree.phase('backup');execute=self.tree.phase('execute')
+        paths=[self.tree.root/'execute-input.native-scope.json',backup/'backup-report.json',backup/'reader-backup/manifest.json',
+            execute/'execution-originals.json',execute/'execute-report.json',execute/'terminal-report.json',
+            retention/'adopt-operation/journal/baseline.json',data/'archive-repair-operation/preparation.json',
+            data/'archive-repair-operation/executed.json',data/'archive-repair-operation/complete.json',
+            data/'fixture-transition-operation/successor.json']
+        for path in paths:
+            ref=self.mounted_record(owner,path);physical=owner.mapping.host(ref['path'])
+            proof[physical]=list(ref['signature9']);original=dict(proof)
+            view=parent.LifecycleParent.child_control_from_proof(owner,ref,proof)
+            self.assertEqual(proof,original);self.assertEqual(Path(view['path']).read_bytes(),b'{"factual":true}')
+            self.assertEqual(parent.LifecycleParent.child_control_from_proof(owner,ref,proof),view)
+            self.assertEqual(self.tree.original(ref),view);self.assertEqual(self.tree.projected(view),ref)
+            views.append(view)
+        self.assertEqual(len(self.tree.pairs),66);self.assertEqual(len(self.tree.outputs),11)
+        self.assertEqual(len({v['path']for v in views}),11);self.tree.check()
+        foreign=dict(ref,signature9=list(ref['signature9']));foreign['signature9'][1]+=1
+        with self.assertRaisesRegex(parent.Held,'archive-terminal-history-baseline-original9'):
+            parent.LifecycleParent.child_control_from_proof(owner,foreign,proof)
+
+    def test_external_proof_is_required_and_general_tree_host_stays_confined(self):
+        parent,owner,data,_=self.mounted_proof_owner();path=data/'preparation.json';ref=self.mounted_record(owner,path)
+        with self.assertRaisesRegex(c.Held,'child-tree-path'):self.tree.host(ref['path'])
+        with self.assertRaisesRegex(parent.Held,'archive-terminal-history-baseline-original9'):
+            parent.LifecycleParent.child_control_from_proof(owner,ref,{})
+        self.assertFalse((self.op/'child-output-views').exists());self.assertEqual(path.read_bytes(),b'{"factual":true}')
+
+    def test_external_proof_rejects_hash_identity_and_mapping_drift(self):
+        parent,owner,data,_=self.mounted_proof_owner();path=data/'preparation.json';ref=self.mounted_record(owner,path);proof={str(path):tuple(ref['signature9'])}
+        wrong=dict(ref,sha256='a'*64)
+        with self.assertRaisesRegex(c.Held,'child-control-hash'):
+            parent.LifecycleParent.child_control_from_proof(owner,wrong,proof)
+        wrong=dict(ref,signature9=list(ref['signature9']));wrong['signature9'][1]+=1
+        with self.assertRaisesRegex(parent.Held,'archive-terminal-history-baseline-original9'):
+            parent.LifecycleParent.child_control_from_proof(owner,wrong,proof)
+        real=os.fsync;fired=[]
+        def changed(fd):
+            real(fd)
+            if not fired:owner.mapping.mounts[1]['write']=False;fired.append(True)
+        with patch.object(c.os,'fsync',changed),self.assertRaisesRegex(parent.Held,'archive-terminal-history-proof-unchanged'):
+            parent.LifecycleParent.child_control_from_proof(owner,ref,proof)
+        self.assertTrue(fired);self.assertEqual(path.read_bytes(),b'{"factual":true}')
+
+    def test_proof_final_mapping_callback_cannot_change_mounts(self):
+        parent,owner,data,_=self.mounted_proof_owner();path=data/'preparation.json';ref=self.mounted_record(owner,path)
+        original=owner.mapping.host;calls=[]
+        def changed(value):
+            result=original(value);calls.append(value)
+            if len(calls)==2:owner.mapping.mounts[1]['write']=False
+            return result
+        with patch.object(owner.mapping,'host',changed),self.assertRaisesRegex(parent.Held,'archive-terminal-history-proof-unchanged'):
+            parent.LifecycleParent.child_control_from_proof(owner,ref,{str(path):tuple(ref['signature9'])})
+        self.assertEqual(len(calls),2)
+
+    def test_external_output_reread_cannot_rebind_physical_origin_or_role(self):
+        parent,owner,data,_=self.mounted_proof_owner();path=data/'preparation.json';ref=self.mounted_record(owner,path)
+        _,view=self.tree.output(ref,ref['path'],'factual_record',physical=str(path))
+        for physical,role in [(str(data/'other.json'),'factual_record'),(str(path),'report')]:
+            with self.assertRaisesRegex(c.Held,'child-output-(original-conflict|proof-path)'):
+                self.tree.output(ref,ref['path'],role,physical=physical)
+        self.assertEqual(self.tree.output(ref,ref['path'],'factual_record',physical=str(path))[1],view)
+        path.chmod(0o640)
+        with self.assertRaises(c.Held):self.tree.output(ref,ref['path'],'factual_record',physical=str(path))
+
+    def test_proof_copy_preserves_private_scope_mapping(self):
+        parent,owner,_,_=self.mounted_proof_owner();scratch=self.base/'scratch';scratch.mkdir(mode=0o700)
+        self.tree.scope(scratch,'scratch');path=scratch/'observation.json';ref=self.mounted_record(owner,path)
+        self.assertTrue(ref['path'].startswith('/_operation/scope-scratch-'))
+        view=parent.LifecycleParent.child_control_from_proof(owner,ref,{str(path):tuple(ref['signature9'])})
+        self.assertEqual(self.tree.original(ref),view);self.assertEqual(self.tree.projected(view),ref);self.tree.check()
+
+    def test_output_inverse_still_refuses_an_ambiguous_projected_input(self):
+        ref=self.tree.projected(self.ref);self.tree.output(ref,ref['path'],'factual_record')
+        with self.assertRaisesRegex(c.Held,'child-pair-original-binding'):self.tree.original(ref)
+        with self.assertRaisesRegex(c.Held,'child-original-host-unique'):self.tree.original_host(self.tree.host(ref['path']))
+
+    def test_outputs_leave_all_32_ordinary_input_slots_available(self):
+        for index in range(16):
+            ref=self.budget_output(index);self.tree.output(ref,ref['path'],'factual_record')
+        for index in range(32):self.budget_input(index)
+        with self.assertRaisesRegex(c.Held,'child-control-bound'):self.tree.project(self.ref)
+        self.assertEqual(len(self.tree.pairs),32);self.assertEqual(len(self.tree.outputs),16);self.tree.check()
+
+    def test_output_budget_refuses_seventeenth_without_copying_or_losing_existing_view(self):
+        for index in range(16):
+            ref=self.budget_output(index);_,view=self.tree.output(ref,ref['path'],'factual_record')
+        original=self.tree.outputs;extra=self.budget_output(16)
+        with self.assertRaisesRegex(c.Held,'child-output-bound'):self.tree.output(extra,extra['path'],'factual_record')
+        self.assertEqual(self.tree.outputs,original)
+        self.assertEqual(self.tree.output(ref,ref['path'],'factual_record')[1],view)
+        self.assertEqual(Path(self.tree.host(extra['path'])).read_bytes(),b'{"factual":true}');self.tree.check()
+
+    def test_shared_80_record_bound_still_covers_inputs_and_outputs(self):
+        for index in range(32):self.budget_input(index)
+        for index in range(32,69):self.budget_input(index,nfs=True)
+        for index in range(11):
+            ref=self.budget_output(index);self.tree.output(ref,ref['path'],'factual_record')
+        self.assertEqual(len(self.tree.pairs)+len(self.tree.outputs),80)
+        extra=self.budget_output(11);original=self.tree.outputs
+        with self.assertRaisesRegex(c.Held,'child-control-total-bound'):self.tree.output(extra,extra['path'],'factual_record')
+        with self.assertRaisesRegex(c.Held,'child-control-total-bound'):self.budget_input(69,nfs=True)
+        self.assertEqual(self.tree.outputs,original);self.tree.check()
     def test_declared_nfs_budget_refuses_changed_original(self):
         self.tree.reserve_nfs_control(self.ref);foreign=dict(self.ref,sha256='a'*64)
         with self.assertRaisesRegex(c.Held,'original-conflict'):self.tree.reserve_nfs_control(foreign)

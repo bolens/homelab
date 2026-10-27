@@ -1,7 +1,7 @@
 {
   "files": {
     "CONTRACT-archive-parent.md": {
-      "sha256": "8fbe54c60cd307f9aa7dc5cfa8970d2bf97c0933459aa87f1d31b697b343e0a3"
+      "sha256": "495ffb0102e7718e9945296b6b117b4ed8a1452640c0d0427c1ba77edb97a207"
     },
     "CONTRACT-archive-proof.md": {
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "0af11e366b367038d08d1dac701b5b9b30dc37a15175522840712c3fb0fad224"
+      "sha256": "ddc01bac0b1ea090cd2c368e8696315e62e9364fbbabd299edec0e6dae2d58aa"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -400,7 +400,7 @@
       "sha256": "3fa569e80a8812de545ef71c31ea81f12518fb31454a5249f2605d099dd310d2"
     },
     "comic_child_control_projection.py": {
-      "sha256": "3cb5176428a51c028b51b60b47516fb829c65fec730dee8f8cd85b7ddcb0c6d7"
+      "sha256": "343022f6cb9fb2ffb569077033fe03a5218bd6a40ea22cd532eb7d685d3d7646"
     },
     "comic_native_evidence_adapter.py": {
       "sha256": "ebd79313752149cdd350d495e07eedd6a2233e5c19344e2d7bcff6c1e5bdc48a"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "a95918cac18d817b4c009733f4c4d4984b658e2caf735d5c48c8b18636438622"
+      "sha256": "43cf41df26cdacc180bc3701426cc1abf148c5521a3a997200f176ddfd42475a"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "12f1e3c3b7d7a662a0bc06c12b9d142c5c1fce96d4b234ac5e895a8bb779f62e"
@@ -487,7 +487,7 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "7e06e47429389a0e61e4efca545229c06f1ca15db3ae2d591ae129edf3bd7768"
+      "sha256": "861ca3bf228d5203f89043437c459b8579e28eecd2664f829066992df34485c2"
     },
     "genuine_active_inputs.py": {
       "sha256": "28075c356a213a9ff1703e03af7731815fca59fb2b254802d1d21de9c93098da"
@@ -511,7 +511,7 @@
       "sha256": "756b26bf25e3bf6e669ffdb5bc8eb682fda032a6b01c9c70916cce91f28d40f8"
     },
     "genuine_current_roles.py": {
-      "sha256": "ba87e0d807d1d26dbab4154f9eecbf956b6e53b3f4be4fdd0af1a9cee7403d45"
+      "sha256": "49db8cf207400a4c42272a12c44838b227eb0d3cfca59b40cfb283d7090e87b7"
     },
     "genuine_native_catalog.py": {
       "sha256": "af76f96dad58721ba9b87cf90c2955384d9ad5f2307f9ae12719b4197406949e"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "f36c44828f42fd07459801a80f2c2017a89e59c6a58a79671af2fa5ccf37d40e"
+      "sha256": "ff989d03ae55f4c8fc77544e9ffa0c8fe173f5cfa3c175e144c2cffc2d7a50e1"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -568,7 +568,7 @@
       "sha256": "eeba5ba9ff06e86394abe1fb0d1f25518ae3366510567e18399499f96c6cfe49"
     },
     "test_archive_parent_composition.py": {
-      "sha256": "3babbbeec05a00b3be03c6bc60a01538c29002f288428ebd35052f8b7b88a015"
+      "sha256": "8b0329a8e627ec5e35a420060b06750c84cb917d4c553a6fd10b4d59b62e385f"
     },
     "test_archive_plan13.py": {
       "sha256": "7ad6dcf350468c874d1b01afd707e3673b392995fc64a1059bb1d65f63d67a53"
@@ -592,13 +592,13 @@
       "sha256": "9ed2754646da4442060a74c42c155c14add63d70f5d399d21b42f119270abcac"
     },
     "test_archive_worker_composition.py": {
-      "sha256": "5f932d5ac6bb8d6f375940f1d63be9c0f2c2b15d006ca03d185455f7215f49d0"
+      "sha256": "b0eece01037695fe6cd12aac9c95153fb55e1549977be3e4afa8c5f4f9bb7ce4"
     },
     "test_archive_worker_vectors.py": {
       "sha256": "cce5c6761057c17b6e30ebfb7eb014934abe9e4c24535e455f5153b10f0b9c5c"
     },
     "test_child_control_projection.py": {
-      "sha256": "392bd4cf9bc89f9572d0f3a0dd5693ab94e81627349f3fba03f0008fbee3fbb7"
+      "sha256": "a0317d7a1a6db88abac70d826850fd9c1bdfb227e1e12fbd3dda2523d7f69adb"
     },
     "test_child_factory_interface.py": {
       "sha256": "b656edf6048986cf1132de089daa09efcf4c2d11bda71b9e51821b74f717e730"
@@ -607,7 +607,7 @@
       "sha256": "0821fc0a2973afc3cdad18906b62831c74c1b02940301af232a7ec52179604ee"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "4ffc6f4044c4409d05797279ed6e4cc6a2df9ac2480390764b89ee78e2efd421"
+      "sha256": "47ef3b9cc064c23366e97a7e3aa9e52bddfaeb9015d9384a9d074afd8a9f3471"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "021aff2a4364d9d580745eb6d290ea676c54aa00e466df63e61b33dc242dedf6"

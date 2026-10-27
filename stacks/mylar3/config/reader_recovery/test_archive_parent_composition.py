@@ -45,7 +45,7 @@ class Tests(unittest.TestCase):
    seed=dict(version=1,kind='selected-child-native-scope-birth',invocation=context['invocation'],parent_source=x.mapping.child_ref(self.source),birth_source=dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=x.plan['birth_source_sha256']),config={'path':'/data/config.ini','sha256':'b'*64},worker_library='/worker/library',selected_image=x.plan['selected_image'])
    return dict(reader={},proofs={'archive_sdk_map':x.plan['sdk_map']},birth_seed=seed)
   x.produce=produce
-  def child(phase,ref,command):
+  def child(phase,ref,command,**kwargs):
    phases.append(phase)
    if phase=='backup':
     backup_root=x.op/'backup'/'reader-backup';backup_root.mkdir(mode=0o700)
@@ -65,6 +65,75 @@ class Tests(unittest.TestCase):
   x.child_phase=child
   x.core=p.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,engine=id(x.engine),thread=x.thread,deadline=x.deadline));p._CORES[x]=x.core
   return x
+ def with_completion_lock(self,fault=None):
+  import os,fcntl
+  x=self.setup_archive(fault=fault);root=self.root/'media-writer';root.mkdir(mode=0o700)
+  lockpath=root/'writer-v1.lock';lockpath.write_bytes(b'mylar-media-writer-v1\n');lockpath.chmod(0o600)
+  marker=root/'publication-v1.json';marker.write_bytes(b'{}');marker.chmod(0o600)
+  frames=(((str(root),tuple(p.five(root.lstat()))),),tuple((str(path),tuple(p.nine(path.lstat()))) for path in (lockpath,marker)))
+  child=x.child_phase;run=x.engine.run;checks=[]
+  def exclusion():
+   fd=os.open(lockpath,os.O_RDWR)
+   try:
+    with self.assertRaises(BlockingIOError):fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+   finally:os.close(fd)
+   checks.append(True)
+  def wrapped_child(phase,ref,command,**kwargs):
+   if phase=='execute':
+    lock=p.ArchiveCompletionExclusion(frames)
+    record=(lock,lock.fd,lock.nodes,lock.files,type(lock).check,type(lock).check.__code__,lock.witness,type(lock).close)
+    kwargs['completion_slot'][0]=record;p._ARCHIVE_COMPLETION_LOCKS[x]=record
+   if phase in ('execute','verify-terminal'):exclusion()
+   return child(phase,ref,command,**kwargs)
+  def wrapped_run(args,seconds):
+   if args[0]=='start':exclusion()
+   return run(args,seconds)
+  x.child_phase=wrapped_child;x.engine.run=wrapped_run
+  return x,lockpath,checks
+ def assert_completion_released(self,x,path):
+  import os,fcntl
+  self.assertNotIn(x,p._ARCHIVE_COMPLETION_LOCKS)
+  fd=os.open(path,os.O_RDWR)
+  try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  finally:os.close(fd)
+ def test_completion_exclusion_retained_through_reader_resume_then_released(self):
+  x,path,checks=self.with_completion_lock();x.execute()
+  self.assertEqual(len(checks),3);self.assert_completion_released(x,path)
+ def test_completion_exclusion_failure_releases_without_reader_resume(self):
+  x,path,checks=self.with_completion_lock(fault='ACK')
+  self.assertRaises(p.Held,x.execute);self.assertEqual([c[0] for c in self.calls],['stop'])
+  self.assertEqual(len(checks),2);self.assert_completion_released(x,path)
+ def test_completion_original_registry_loss_never_resumes_and_releases(self):
+  x,path,checks=self.with_completion_lock();continuous=x.continuous
+  def changed():
+   value=continuous()
+   if (x.op/'resume-intent.json').exists():p._ARCHIVE_COMPLETION_LOCKS.pop(x,None)
+   return value
+  x.continuous=changed
+  self.assertRaises(p.Held,x.execute);self.assertEqual([c[0] for c in self.calls],['stop'])
+  self.assert_completion_released(x,path)
+ def test_completion_cleanup_never_calls_changed_kernel_checker_code(self):
+  x,path,checks=self.with_completion_lock();continuous=x.continuous;child=x.child_phase;records=[]
+  kernel=p.completion_fd_locked;code=kernel.__code__;p.foreign_cleanup_executed=False
+  def foreign(fd,identity9):
+   globals()['foreign_cleanup_executed']=True
+   return True
+  def capture(*args,**kwargs):
+   result=child(*args,**kwargs)
+   if args[0]=='execute':records.append(kwargs['completion_slot'][0])
+   return result
+  def changed():
+   result=continuous()
+   if (x.op/'resume-intent.json').exists():kernel.__code__=foreign.__code__
+   return result
+  x.child_phase=capture;x.continuous=changed
+  try:
+   self.assertRaises(p.Held,x.execute);self.assertFalse(p.foreign_cleanup_executed)
+   self.assertEqual([c[0] for c in self.calls],['stop'])
+  finally:
+   kernel.__code__=code
+   for record in records:record[-1](record[0])
+  self.assert_completion_released(x,path)
  def test_finite_backup_execute_verify_resume(self):
   x=self.setup_archive();x.execute();self.assertEqual(self.phases,['backup','execute','verify-terminal']);self.assertEqual([c[0] for c in self.calls],['stop','start']);self.assertFalse(p.decode(p.read(x.generated[str(x.op/'complete.json')]))['publication_acceptance'])
  def test_independent_rollback_outcome_same_schedule(self):

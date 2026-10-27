@@ -347,6 +347,61 @@ class WorkflowTest(unittest.TestCase):
         for t in threads:t.start()
         for t in threads:t.join(5);self.assertFalse(t.is_alive())
         self.assertEqual(sum(r[1] for r in results),1)
+    def test_quiescent_ticks_preserve_database_with_fresh_intake_telemetry(self):
+        workflow._STARTED=True
+        workflow.store().set('meta','library_seen',[])
+        with patch.object(workflow.time,'time',return_value=1000):
+            initial=workflow.intake()
+        def namespace():
+            root=Path(self.tmp.name);result={}
+            for path in (root,*sorted(root.rglob('*'))):
+                z=path.lstat()
+                result[str(path.relative_to(root))]=((z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink),hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None)
+            return result
+        before=namespace()
+        for now,free in ((1031,19*1024**3),(1062,18*1024**3)):
+            workflow._STORE=Store(self.tmp.name,existing_only=True)
+            with patch.object(workflow.time,'time',return_value=now), patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=free)):
+                workflow.tick(app.SEARCH_QUEUE)
+                value=workflow.intake()
+            self.assertEqual(workflow._OBSERVER_ERRORS,0)
+            self.assertEqual(value['checked_at'],now)
+            self.assertEqual(value['free_bytes'],free)
+            self.assertFalse(value['paused'])
+            self.assertEqual(workflow.store().get('intake','current'),initial)
+            self.assertEqual(namespace(),before)
+
+    def test_intake_transitions_survive_store_reload_without_resetting_latch(self):
+        workflow.set_policy({'queue_high':3,'queue_low':1,'free_stop_gib':5,'free_resume_gib':10})
+        now=1000
+        def sample(depth,free,paused):
+            nonlocal now
+            now+=31
+            app.PP_QUEUE=Queue()
+            for _ in range(depth):app.PP_QUEUE.put({})
+            workflow._STORE=Store(self.tmp.name,existing_only=True)
+            before=len(workflow.store().events(stage='intake'))
+            old=workflow.store().get('intake','current',{})
+            with patch.object(workflow.time,'time',return_value=now), patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=free*1024**3)):
+                value=workflow.intake()
+            self.assertEqual(value['paused'],paused)
+            changed=old.get('paused')!=paused or old.get('reason')!=value['reason']
+            self.assertEqual(len(workflow.store().events(stage='intake')),before+int(changed))
+            self.assertEqual(workflow.store().get('intake','current')['paused'],paused)
+        for args in ((0,20,False),(3,20,True),(2,19,True),(1,18,False),
+                     (0,4,True),(0,7,True),(0,10,False)):
+            sample(*args)
+
+    def test_incomplete_intake_is_initialized_and_invalid_latch_refuses(self):
+        workflow.store().set('intake','current',{'paused':False,'checked_at':0})
+        value=workflow.intake()
+        self.assertEqual(workflow.store().get('intake','current'),value)
+        for latch in (0,1,'false',None):
+            old={'paused':latch,'checked_at':workflow.time.time()}
+            workflow.store().set('intake','current',old)
+            with self.assertRaises(ValueError):workflow.intake()
+            self.assertEqual(workflow.store().get('intake','current'),old)
+
     def test_intake_hysteresis_preserves_deferred_queue(self):
         workflow.set_policy({'queue_high':3,'queue_low':1})
         for _ in range(3):app.PP_QUEUE.put({})

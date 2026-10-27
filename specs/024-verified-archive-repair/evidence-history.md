@@ -921,3 +921,145 @@ terminal witnesses, preserving payload/compressed bytes/pages/XML and complete
 access attributes. Pure controls now verify the finite ZIP reconstruction and
 reject hidden header/envelope drift. Original-chain integration and actual
 distinct-fixture rollback remain outstanding.
+
+## Terminal projection capacity — 2026-10-27
+
+PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
+comparison correction with all 13 PR checks passing. EB installs all 27 controls;
+EC bootstrap, 58 packet checks, six original-Parent checks and fresh independent
+baselines pass. Its single forward attempt reconstructs genesis bytes, then the
+Parent holds at `child-control-bound` while copying the first baseline view.
+The reader remains stopped, native running and worker unstarted. No owning
+terminal return was accepted. Preserve the attempt without replay or resume.
+Independent observations confirm target bytes, unrelated archive full9/hash and
+all 24 native SQL tables match their baselines; original native process and
+configuration bindings remain unchanged.
+
+The projection counts ordinary inputs and factual output views together under
+32, so 26 ordinary inputs and six views leave no room for the remaining proof
+records. Tracing the entire forward/rollback acceptance path establishes 26
+ordinary inputs, 40 declared NFS inputs and 11 output views: 77 total. ACK/report
+rereads reuse existing views, and resume adds no projection. Keep ordinary
+inputs limited to 32, NFS reservations to 48 and all records together to 80;
+give factual outputs their own limit of 16. Retain exact paths, original proof,
+private copies, seals and final closure. Regressions reproduce the refusal
+through the actual Parent proof-copy method, exercise all 11 views and free
+rereads, and refuse the first excess input, output, NFS reservation and shared
+entry. This correction remains within T012/T015; it adds no task or runtime gate.
+
+
+## Terminal record path and owner routing — 2026-10-27
+
+EE/EF passes the separate projection budgets and the child reports observed
+forward reconstruction. Parent terminal consumption then refuses
+`child-tree-path`: its baseline is a canonical NFS retention original, while
+preparation, histories and the causal receipt use the mapped DATA directory.
+The actual 11-record layout was missing from the earlier capacity regression.
+The adjacent direct Root read would also refuse private UID1000 NFS records.
+These are inconsistent callers of the established ownership contract, not new
+filesystem requirements. The original attempt remains held without replay or
+resume. Independent post-hold comparison verifies genesis bytes, unrelated
+archive full9/hash and all 24 native SQL tables; native remains running, reader
+stopped and worker unstarted.
+
+The correction keeps general child-tree path admission confined. Only the
+owning proof-copy method supplies an exact mapped physical origin after checking
+its original proof9. NFS originals use the existing sealed owner reader as
+UID1000, including ancestor and final checks. Local UID1000 originals remain
+Root-readable and copied into separate private Root views. Mapping checks follow
+the last mapping callback; owner-method bindings precede dispatch. Both inverse
+routes reject conflicting input/output origins. The complete 77-record regression
+now uses canonical NFS and DATA layouts and exercises all 11 copies and free
+rereads. Source checks alone do not prove actual NFS or connected acceptance.
+
+
+The isolated synthetic Root/NFS check now passes against these actual Parent
+and projection sources. It exercises 66 projected inputs and all 11 terminal
+outputs on the real mount, proves direct Root access refuses while the existing
+UID1000 reader succeeds, rejects a mode0640 original, preserves all original
+bytes/identities and geometry, and restores Root identity after each read. The
+private Root views remain distinct mode0600 files. This is component evidence;
+no Docker, application workflow or connected recovery acceptance was exercised.
+
+
+## Worker file guard diagnosis — 2026-10-27
+
+EH/EI passed the corrected terminal-copy path, including all 11 factual views,
+then held at `worker-parent-final-file` before creating the observation worker.
+The original terminal result and resume were not accepted. The reader remains
+stopped; the native fixture is running and the fixture worker remains Created.
+Independent target-byte, unrelated archive full9/hash and 24-table native
+comparisons pass. All 19 protected operation-file facts match at the later
+read-only comparison.
+
+Later samples show changed timestamps for the native workflow database and DATA
+directory, but those samples postdate the failure. They cannot identify its
+original offending row. The Parent captures terminal facts under Writer and
+consumes them after release; ordinary native work can then invalidate them.
+The same facts are checked again through worker completion, terminal closure
+and resume. Neither weakening the first guard nor adopting later facts resolves
+that lifetime boundary.
+
+The worker guard now retains bounded failure-time path SHA-256 and original and
+current metadata, without paths or contents. Nested-pipe controls cover an
+unchanged-byte timestamp change before worker creation and failure of diagnostic
+output without replacing the original refusal. This is diagnostic coverage, not
+a correction of the Writer-release exposure or connected acceptance. Preserve
+EH/EI and use its original records; never replay or infer reader resume.
+
+
+## Failure-time native drift — 2026-10-27
+
+EJ/EK passes source preparation, then holds at `worker-parent-final-file` before
+worker creation. The bounded failure-time path hash matches the fixture's native
+`workflow.sqlite`; mtime/ctime changed while device, inode, size, mode, ownership
+and link count remained original. This establishes the offending file for EJ,
+not EH. The protected diagnosis confirms the observation worker was not created,
+the reader is stopped, the native fixture is running and the fixture worker
+remains Created. Independent target bytes, unrelated full9/hash and all 24
+native tables match their baselines. No owning return or resume was accepted.
+
+The source correction retains host exclusion on the original native Writer lock
+after both post-release native observations through worker validation, ACK, child
+exit and permitted resume. It neither refreshes terminal facts nor grants typed
+Writer authority. A competing write before acquisition still refuses. Real flock,
+owning leave-handler and resume/failure-cleanup controls exercise this boundary;
+configured forward and distinct rollback acceptance remain required. Preserve
+EJ/EK and prior held generations without replay.
+
+
+## Btrfs completion-lock device identity — 2026-10-27
+
+EL/EM held immediately after completion-lock acquisition. The retained trace
+identifies the kernel-custody predicate; the original native/reader/worker states
+are running/stopped/Created, and there is no owning return. Independent target
+bytes, unrelated full9/hash and all 24 native tables match their baselines.
+
+A private control reproduces the difference on the actual Btrfs filesystem:
+fstat reports the subvolume device while fdinfo reports the superblock device.
+The same check passes on tmpfs. The correction validates device syntax while
+retaining exact original descriptor/path facts, inode, process, FLOCK/WRITE,
+whole-file range and duplicate descriptor custody. Actual Btrfs contention and
+release pass. Synthetic mismatched-device acceptance and malformed/foreign-lock
+refusals join the existing descriptor reuse, unlock and cleanup controls.
+This remains T012/T015 implementation work; no held attempt has replay or reader
+resume authority, and configured forward/rollback acceptance remains pending.
+
+## Unchanged intake persistence — 2026-10-27
+
+EO/EP passed completion-lock acquisition, then held at the original workflow
+file guard before worker creation. Only mtime/ctime changed. Native remained
+running, reader stopped and worker Created; no owning return was accepted.
+Independent target bytes, unrelated full9/hash and all 24 native tables remain
+preserved. The exact historical writer is not proven by timing alone.
+
+Source audit identifies a periodic no-op writer: expired intake samples rewrite
+SQLite even when pause/reason are unchanged. The correction retains initial
+records and durable admission transitions, including queue/storage hysteresis,
+while returning fresh telemetry without rewriting unchanged decisions. Real
+Store regressions exercise eligible ticks, exact database/namespace preservation,
+changing free-space samples, reopen-based hysteresis and invalid pause refusal.
+`make ci-local` now includes the workflow suite directly. Strict original facts
+and refusal rules remain unchanged; legitimate writes in the handoff gap still
+hold. New native workflow bytes require matching image/SDK proof before another
+fixture. This is existing T012/T015 work, with no new task or runtime gate.

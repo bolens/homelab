@@ -29,13 +29,35 @@ scoped live acceptance.
 PR [#537](https://github.com/bolens/homelab/pull/537) delivered the NFS descriptor
 correction with matching 180-module capture, SDK103 proof and 27 installed
 controls. The four installed-image discovery/import/lost-reply/rename cases pass.
-DY/DZ reconstructs the genesis archive and produces a child forward observation,
-then the host Parent refuses equal directory facts represented as lists and
-tuples. Correct the value comparison and refresh the checked host installation
-before a new fixture. Target bytes, unrelated full9/hash and all 24 native
-tables match their baselines. The reader stays stopped; forward acceptance and
-distinct rollback remain unaccepted. See the
-[terminal comparison diagnosis](evidence-history.md#terminal-directory-fact-comparison--2026-10-27).
+PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
+comparison correction. PR [#541](https://github.com/bolens/homelab/pull/541)
+separates input/output budgets and corrects terminal-copy path and owner routing.
+EH/EI passes all 11 terminal copies, then holds at the worker's exact file guard.
+The read-only diagnosis and all 19 protected operation-file comparisons pass.
+EJ/EK's failure-time diagnostic identifies native workflow-database mtime/ctime
+changes before worker creation. The correction retains host exclusion on the
+original native Writer lock after the existing fresh observations through worker,
+ACK, child exit and resume; all original facts and refusal rules remain strict.
+Local real-lock and owning-handler checks cover ordering, contention, lost
+custody and cleanup. Verify the corrected configured forward and a distinct
+rollback before marking acceptance. EH's independent target/unrelated/native
+comparisons passed. EJ's protected diagnosis confirms the same pre-worker hold:
+native running, reader stopped, worker Created. Independent target bytes,
+unrelated full9/hash and all 24 native tables match their baselines.
+EL/EM then held at completion-lock acquisition because fdinfo's superblock
+device differs from Btrfs fstat's subvolume device. The correction retains exact
+FD/path facts, inode, process, exclusive whole-file lock and duplicate custody.
+Actual-host contention/release, device-alias and foreign-lock controls pass. EL/EM
+is preserved with reader stopped; target bytes, unrelated full9/hash and native24
+remain original. Forward and distinct rollback acceptance still remain open.
+EO/EP passed the Btrfs lock check, then held on workflow-database mtime/ctime
+changes. Periodic intake checks currently rewrite unchanged decisions. The
+correction persists initialization and admission transitions while returning
+fresh telemetry without no-op writes. Real-store tick and reload/hysteresis
+regressions cover this path. It changes native workflow bytes, so the next
+fixture requires a matching published image and SDK capture. Preserve EO/EP;
+its reader is stopped and no terminal result was accepted.
+See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
