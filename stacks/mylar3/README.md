@@ -1482,6 +1482,10 @@ Current catalog ownership supplies the source. Preparation verifies private repa
 bytes and separate original/restore custody. Status rechecks current facts and
 retains incomplete operations without replay. Both actions retain false publication,
 adoption and reader grants. They cannot replace a library file or confirm import.
+Private local custody may retain an NFS-only ACL as sealed source metadata when
+the local filesystem cannot store it. Both private byte copies still retain
+identical portable attributes. Publishing or reversing on NFS requires the full
+original ACL to be applied and verified there; local copies alone do not prove it.
 The pending and terminal markers for both negative retirement
 (`negative-retirement-v1.pending`, `negative-retirement-v1.terminal-pending`)
 and archive repair (`archive-repair-v1.pending`,

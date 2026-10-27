@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "830f6542e4422c1a10d22cb4d7e7331eb9f5e77ff673a8d66a341996186f5ef3",
+  "base_cohort_sha256": "86df308057ea8839796ab4307a4592fbfe0f3e0339865b1ef37c04cbbbe3fd3a",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -188,13 +188,13 @@
     "publication_archive_dispatch.py": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7",
     "publication_archive_history.py": "5af39e6ff3c8ef626c1214382582c62a985f156c69c016828392a095a5ae50a4",
     "publication_archive_layout.py": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168",
-    "publication_archive_owned.py": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1",
-    "publication_archive_preparation_existing.py": "251e9db26b19ae2693ac14e64e653de3aa2626023b91b119f85fb2a0dfd93481",
-    "publication_archive_prepare_routes.py": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02",
+    "publication_archive_owned.py": "1ee5a8eaed9e8f6b1fe3ba18ba500449dc4b948d9581c341e5ef1e29ca8e503a",
+    "publication_archive_preparation_existing.py": "250c6144a4e039cb6f0c6047788722db88784e5c19975a9cf6fc6ac05acc89f7",
+    "publication_archive_prepare_routes.py": "6421f9ab44446990b5ab69c814cee4eb2cb8511b606a35a26cdc5f7c8e7ff1cf",
     "publication_archive_reader.py": "6ecb8ef27a0031045200995761d9c7fb8181c9b4b9906dffd091a2e3e53044ad",
     "publication_archive_repair.py": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
     "publication_archive_rollback.py": "675081c87096fc97021c3e72bcb8f7ce975836313849efdb6293af9ffbc99d04",
-    "publication_archive_verifier.py": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1",
+    "publication_archive_verifier.py": "8beb0d046523ea4a51d1a905930d5cfa1ef89d6fddfd34dba15e8ad1699b819c",
     "publication_conversion.py": "133ffebcee2149b28fbc504f2794f36cda0e0505daed94a3de567494ba2c71d0",
     "publication_derivative.py": "f9133246f5049b2746eda4512ebf1d654e8c486601ecb791ada331b893017f0b",
     "publication_filesystem_binding.py": "337c1bdb82200bbf36eb4f91a76977b3e5853fb765fe170b89e78c05c3587262",
@@ -481,13 +481,13 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "251e9db26b19ae2693ac14e64e653de3aa2626023b91b119f85fb2a0dfd93481"
+        "tracked_source_sha256": "250c6144a4e039cb6f0c6047788722db88784e5c19975a9cf6fc6ac05acc89f7"
       },
       "publication_archive_prepare_routes": {
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02"
+        "tracked_source_sha256": "6421f9ab44446990b5ab69c814cee4eb2cb8511b606a35a26cdc5f7c8e7ff1cf"
       },
       "publication_archive_reader": {
         "owning_adapters": [
@@ -511,7 +511,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1"
+        "tracked_source_sha256": "8beb0d046523ea4a51d1a905930d5cfa1ef89d6fddfd34dba15e8ad1699b819c"
       },
       "publication_conversion": {
         "owning_adapters": [
@@ -784,7 +784,7 @@
       "publication_archive_owned": {
         "already_installed": true,
         "filename": "publication_archive_owned.py",
-        "sha256": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1"
+        "sha256": "1ee5a8eaed9e8f6b1fe3ba18ba500449dc4b948d9581c341e5ef1e29ca8e503a"
       },
       "publication_native_configured_scope": {
         "already_installed": true,

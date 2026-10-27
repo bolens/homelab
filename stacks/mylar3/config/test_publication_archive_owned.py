@@ -4,6 +4,8 @@ SDK import-resolution is substituted for host tests only. These are not actual
 installed-image gates, reader/adoption proof, or operational capability tests.
 """
 import inspect
+from contextlib import contextmanager
+import errno
 import hashlib
 import importlib
 import os
@@ -18,6 +20,23 @@ import publication_api as api
 import media_writer as writers
 import publication_guard as g
 import test_publication_api as fixture
+
+@contextmanager
+def nfs_acl(source, error=errno.EOPNOTSUPP):
+ """Model the actual NFS-only ACL on a local disposable source inode."""
+ real_attributes=m.attributes;real_set=os.setxattr
+ key=lambda p:(os.stat(p).st_dev,os.stat(p).st_ino)
+ values={key(source):'0000000100000002'}
+ def attributes(p):
+  value=real_attributes(p)
+  if key(p) in values:value['xattrs']['system.nfs4_acl']=values[key(p)]
+  return value
+ def setxattr(fd,name,value,*args,**kwargs):
+  if name!='system.nfs4_acl':return real_set(fd,name,value,*args,**kwargs)
+  code=error(fd) if callable(error) else error
+  if code is not None:raise OSError(code,'modeled ACL transport refusal')
+  z=os.fstat(fd);values[z.st_dev,z.st_ino]=value.hex()
+ with patch.object(m,'attributes',attributes),patch.object(os,'setxattr',setxattr):yield values
 
 class Controls(unittest.TestCase):
  call=fixture.NativeProtocolTests.call
@@ -133,6 +152,40 @@ class Controls(unittest.TestCase):
   with self.writer.hold():
    p=self.prepare();(p._operation/'restored-original.arc').write_bytes(b'foreign')
    with self.assertRaises(m.Held):p.revalidate()
+ def test_nfs_acl_retained_in_source_evidence_with_portable_private_copies(self):
+  os.setxattr(self.source,'user.fixture',b'keep')
+  with nfs_acl(self.source),self.writer.hold():
+   p=self.prepare();source=p.binding['source_attributes']
+   self.assertIn('system.nfs4_acl',source['xattrs'])
+   copies=[m.attributes(p._operation/name) for name in ('original.arc','restored-original.arc')]
+   self.assertEqual(copies[0],copies[1]);expected=__import__('copy').deepcopy(source)
+   del expected['xattrs']['system.nfs4_acl'];self.assertEqual(copies[0],expected)
+   self.assertEqual(copies[0]['xattrs']['user.fixture'],b'keep'.hex());p.revalidate()
+ def test_supported_private_acl_copy_still_preserves_complete_attributes(self):
+  with nfs_acl(self.source,error=None),self.writer.hold():
+   p=self.prepare()
+   for name in ('original.arc','restored-original.arc'):self.assertEqual(m.attributes(p._operation/name),p.binding['source_attributes'])
+ def test_acl_permission_error_is_not_portability(self):
+  with nfs_acl(self.source,error=errno.EPERM),self.writer.hold(),self.assertRaises(OSError):self.prepare()
+ def test_unsupported_user_attribute_is_not_portability(self):
+  os.setxattr(self.source,'user.fixture',b'keep');real=os.setxattr
+  def denied(fd,name,*args,**kwargs):
+   if name=='user.fixture':raise OSError(errno.EOPNOTSUPP,'unsupported user attribute')
+   return real(fd,name,*args,**kwargs)
+  with patch.object(os,'setxattr',denied),self.writer.hold(),self.assertRaises(OSError):self.prepare()
+ def test_portable_copy_attribute_drift_is_not_refreshed(self):
+  with nfs_acl(self.source),self.writer.hold():
+   p=self.prepare();os.setxattr(p._operation/'restored-original.arc','user.foreign',b'late')
+   with self.assertRaises(m.Held):p.revalidate()
+ def test_source_acl_drift_is_not_portability(self):
+  with nfs_acl(self.source) as values,self.writer.hold():
+   p=self.prepare();values[(self.source.stat().st_dev,self.source.stat().st_ino)]='00000003'
+   with self.assertRaises(m.Held):p.revalidate()
+ def test_custody_projection_cannot_discard_or_replace_other_attributes(self):
+  source=m.attributes(self.source);source['xattrs']={'system.nfs4_acl':'0102','user.fixture':'03'}
+  import copy
+  for change in (lambda a:a['xattrs'].pop('user.fixture'),lambda a:a['xattrs'].update({'system.nfs4_acl':'ffff'}),lambda a:a['xattrs'].update({'user.extra':'00'}),lambda a:a.update(mode=a['mode']^0o100)):
+   actual=copy.deepcopy(source);change(actual);self.assertFalse(m.custody_attributes_match(actual,source))
  def test_expired_hold_held(self):
   with self.writer.hold():p=self.prepare()
   with self.assertRaises(m.Held):p.revalidate()

@@ -511,17 +511,17 @@
   },
   {
     "path": "publication_archive_owned.py",
-    "sha256": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1",
+    "sha256": "1ee5a8eaed9e8f6b1fe3ba18ba500449dc4b948d9581c341e5ef1e29ca8e503a",
     "target": "publication_archive_owned.py"
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "251e9db26b19ae2693ac14e64e653de3aa2626023b91b119f85fb2a0dfd93481",
+    "sha256": "250c6144a4e039cb6f0c6047788722db88784e5c19975a9cf6fc6ac05acc89f7",
     "target": "publication_archive_preparation_existing.py"
   },
   {
     "path": "publication_archive_prepare_routes.py",
-    "sha256": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02",
+    "sha256": "6421f9ab44446990b5ab69c814cee4eb2cb8511b606a35a26cdc5f7c8e7ff1cf",
     "target": "publication_archive_prepare_routes.py"
   },
   {
@@ -541,7 +541,7 @@
   },
   {
     "path": "publication_archive_verifier.py",
-    "sha256": "97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1",
+    "sha256": "8beb0d046523ea4a51d1a905930d5cfa1ef89d6fddfd34dba15e8ad1699b819c",
     "target": "publication_archive_verifier.py"
   },
   {
@@ -1516,7 +1516,7 @@
   },
   {
     "path": "test_publication_archive_adoption.py",
-    "sha256": "fe9c673351a59af33bab062d30a793f73e80ed35916fc65d4b061bad82fa16eb",
+    "sha256": "9d7dc4cadbc869af54f415f75bd2f3a6915c7879e6aa0d21bfde278111cbb672",
     "target": "test_publication_archive_adoption.py"
   },
   {
@@ -1546,7 +1546,7 @@
   },
   {
     "path": "test_publication_archive_owned.py",
-    "sha256": "4eeda3c1534679121eed22254b175821877242649c5cd33a57a7ad7f41d4a51f",
+    "sha256": "6928b05135b2a369461ab36c84f8a012c68869c07e4f24b9f980519402d03fbd",
     "target": "test_publication_archive_owned.py"
   },
   {
@@ -1556,7 +1556,7 @@
   },
   {
     "path": "test_publication_archive_preparation_existing.py",
-    "sha256": "a6539887a39af1ed2e2e75086e61c0c815dee1d82b4ac274ffb50b1c473d00f4",
+    "sha256": "116ff47f81dc2b714b58d43ac9fa1c58206fd422b10668fc41bfc06440bf433d",
     "target": "test_publication_archive_preparation_existing.py"
   },
   {
@@ -1586,7 +1586,7 @@
   },
   {
     "path": "test_publication_archive_verifier_vectors.py",
-    "sha256": "c1d4a867b985a5c6bbb5fc3cbe0754ccce3ce6865528fd9383efaa756048b7ba",
+    "sha256": "f15d4c3e6005221592cf894a2ce244d0b7724dcd563c8e60e296099cd07ed2c5",
     "target": "test_publication_archive_verifier_vectors.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "4611d484da768aa3448d0a26581946a9a8927b873f11912526927040cc294c21",
+    "sha256": "43611eb8c052706287d7007685641483c2c3a9e57790353a6caf0d1bb7a6c9ca",
     "target": "tagging_stage_sources.json"
   },
   {

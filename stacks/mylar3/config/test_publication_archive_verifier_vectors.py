@@ -1,5 +1,6 @@
 """Genuine local catalogs, reader pairs and exchange; SDK origins explicitly doubled."""
 import inspect
+import errno
 import os
 from pathlib import Path
 import sqlite3
@@ -42,6 +43,18 @@ class Controls(unittest.TestCase):
   self.completed();self.assert_vectors(self.verify())
  def test_rollback_complete_vectors_original_facts(self):
   self.completed(True);result=self.verify(True);self.assert_vectors(result);self.assertTrue(result['summary']['rollback_verified'])
+ def portable_custody(self,reversed=False):
+  # Local tests explicitly model NFS ACL support only for canonical media.
+  # They exercise the real preparation/adoption/verifier, not NFS acceptance.
+  def transport(fd):
+   return errno.EOPNOTSUPP if Path(os.readlink('/proc/self/fd/'+str(fd))).name in ('original.arc','restored-original.arc') else None
+  with f.native.nfs_acl(self.c.source,error=transport):
+   self.completed(reversed);result=self.verify(reversed);self.assert_vectors(result)
+   body=self.c.modules[2].decode_json((self.prep._operation/'preparation.json').read_text())
+   self.assertIn('system.nfs4_acl',body['source_attributes']['xattrs'])
+   self.assertNotIn('system.nfs4_acl',o.attributes(Path(body['custody']['original']['path']))['xattrs'])
+ def test_forward_verifier_retains_canonical_acl_with_portable_custody(self):self.portable_custody()
+ def test_rollback_verifier_retains_canonical_acl_with_portable_custody(self):self.portable_custody(True)
  def test_absent_inactive_claim_carried(self):
   with sqlite3.connect(self.c.controller.native_database) as db:db.execute("INSERT INTO issues VALUES ('777','456','late.cbz','Wanted','0')")
   self.completed();self.assertIsNone(self.verify()['original_vectors']['claims'][str(self.c.library/'late.cbz')])

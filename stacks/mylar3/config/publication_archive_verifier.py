@@ -105,7 +105,8 @@ def _verify(controller,writer,custody,baseline_path,scratch,seconds=120,*,rollba
     files.update({p:f['signature9'] for p,f in observed.items()})
     if nfs:verify_nfs_receipts(root,publication,observed,rollback,deadline)
     for key in ('original','restore'):
-        expected=prep['custody'][key];p=Path(expected['path']);o.check(observed[p]==expected and o.attributes(p)==prep['source_attributes'],'verifier-original-restored-custody')
+        expected=prep['custody'][key];p=Path(expected['path']);o.check(observed[p]==expected and o.custody_attributes_match(o.attributes(p),prep['source_attributes']),'verifier-original-restored-custody')
+    o.check(o.attributes(Path(prep['custody']['original']['path']))==o.attributes(Path(prep['custody']['restore']['path'])),'verifier-restored-attributes')
     raw_original=o.read_checked(Path(prep['custody']['original']['path']),prep['custody']['original']['signature9'],MAX,deadline)
     plan=modules[4].classify(raw_original,g,deadline);o.check(plan['status']=='repair-candidate','verifier-only-supported-original')
     witness=o.witness(raw_original,prep['source'],plan,modules,deadline)

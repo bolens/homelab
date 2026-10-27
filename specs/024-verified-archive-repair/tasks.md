@@ -1,6 +1,6 @@
 # Tasks: Verified archive repair
 
-**Current delivery requirement (2026-10-10)**: Hosted CI must pass before any further merge. The user has revoked the outage waiver; historical waivers in the linked evidence history do not authorize new exceptions. Fix failing checks while preserving their acceptance assertions.
+**Current delivery requirement (2026-10-26)**: Run hosted CI normally. The user permits skipping GitHub CI only for a confirmed monthly quota refusal; retain equivalent local checks and record the refused run. Historical outage waivers grant no other exception or branch-protection bypass.
 
 ## Current remaining work
 
@@ -26,71 +26,14 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-PR [#515](https://github.com/bolens/homelab/pull/515) supplies the retained
-180-module native baseline and DATA precondition; the required SDK has 103
-entries after PR [#521](https://github.com/bolens/homelab/pull/521).
-PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
-modules for the shared phase deadline. Require its matching published image and
-fresh module capture before the next isolated pair. That capture is now verified.
-PR [#524](https://github.com/bolens/homelab/pull/524) delivered copied-control
-roundtrips, original-provider references and the host-side selected-child mount
-check. Its fresh CX operation passed that host check, stopped only its disposable
-reader, then held in the installed Birth consumer: the SDK still applied its
-64-row native/worker parser to the complete 73-mount child vector. The retained
-child traceback identifies that exact boundary.
-
-PR [#525](https://github.com/bolens/homelab/pull/525) delivered the shared
-selected-child projection in SDK Scope, Birth and both host adapters. Its matching
-image capture verifies all 180 modules and the required 103-module SDK. Fresh
-checked controls and disposable bootstrap passed. A stale private readiness
-input was corrected from its exact Scope and Probe sources before DB passed
-SourceCohort and reached the owning Parent.
-
-PR [#526](https://github.com/bolens/homelab/pull/526) delivered strict integer
-versions 3/4 for the unchanged publication protocol. Local and hosted checks,
-main publication, actual 180-module capture and the required SDK103 joins pass.
-Fresh DC host controls verified all 27 outputs, and DD's disposable bootstrap
-passed. DC then reached the owning Parent and stopped only its disposable reader,
-but held in prebirth custody with `archive-producer-final-file`, before archive
-execution. The original transient vector was not retained, so the exact changed
-path in that attempt is unknown. Both archives' full9/hashes, all 24 native tables
-and the original native process/config remain unchanged. Preserve DC/DD and all
-prior holds without replay or inferred resume.
-
-PR [#527](https://github.com/bolens/homelab/pull/527) delivered the finite original
-DATA identity correction and bounded refusal metadata. Its real SQLite rollback
-regression, 1,767 recovery controls, local CI, independent review and all hosted
-checks pass. Fresh DG controls verified all 27 outputs and DH bootstrap passed.
-DG passed prebirth custody, real Birth and the execute child's Writer session,
-then held because archive history had not been initialized. Both archives'
-full9/hashes and all 24 native tables remain unchanged; its reader stays stopped.
-
-PR [#528](https://github.com/bolens/homelab/pull/528) adds the ordinary authenticated
-repair request before reader scan and backup/custody. Fresh DJ bootstrap records
-its actual queued-review/no-grant result and the original 0700 history directory.
-DI then passes history admission but holds at `fixture-same-owning-pair`: the
-transition calls the allocating Controller/Writer factory inside the original
-Writer session. Both archives' full9/hashes and all 24 native SQL tables remain
-unchanged; the reader stays stopped, native process/config are unchanged and
-worker remains inactive. Preserve DI/DJ without replay or inferred resume.
-
-PR [#529](https://github.com/bolens/homelab/pull/529) corrects original Writer
-pair reuse and the separate verifier's binding order. DM passes those boundaries
-but stops before the fixture write: its receipt writer receives the union of
-library and DATA ancestors instead of the receipt's own ancestry. Keep that union
-in retained custody and admit only the original DATA ancestry for receipt writes.
-The separate-branch regression now exposes this geometry directly.
-
-The connected current-source regression also exposes an unchanged-size SQL case:
-repair can restore the catalog's already recorded size, so SQLite has no journal.
-Skip the SQL UPDATE only for identical complete typed snapshots, retain original
-DB bytes/full9 and all companion absences, and require the owned journal for
-actual catalog changes. Forward/reverse and foreign-companion controls cover
-this boundary. This installed native correction requires a matching new image
-capture and checked host installation before another unused fixture. Preserve
-DM/DN and every earlier hold without replay; forward and distinct-fixture rollback
-remain unaccepted within T012/T015. [Retained failure history](evidence-history.md#disjoint-fixture-ancestry-and-unchanged-catalog--2026-10-26)
-owns the diagnosis.
+PR [#529](https://github.com/bolens/homelab/pull/529) is delivered with matching
+180-module capture and SDK103 proof. Its DP/DQ attempt reaches owning preparation
+but holds on an NFS-only ACL copied to private local custody. The correction
+retains complete source attributes and exact portable-copy evidence; canonical
+NFS publication and reverse still require full ACL preservation. Deliver the
+matching source/image/control closure before another unused fixture. Forward
+and distinct rollback remain unaccepted. See the [original diagnosis and bounded
+NFS checks](evidence-history.md#nfs-acl-on-private-local-custody--2026-10-26).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
@@ -149,7 +92,7 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 ## Phase 6: Delivery
 
 - [x] T014 Update Mylar/Komga README and inspect their Compose, environment, metadata, preparation and ingress contracts together; diagnostics reuse existing settings/mounts/ports/privileges and introduce no new dependency. Regenerate affected catalog sources only through owning generators.
-- [ ] T015 Close both delivery and configured-runtime evidence: independently review the final integrated source/failure boundaries, pass focused and owning source/runtime suites, `make validate`, `make ci-local` and all required hosted checks, then deliver through `RELEASING.md` with exact matching installed native/worker source/type proofs. Reuse unchanged accepted image proofs only for their exact original inputs. Complete the connected factory/NFS/terminal-consumption portion jointly with T012 and feature 023 T026/T029 when every criterion passes; source checks, publication or historical image proof alone are insufficient. No CI waiver or protection bypass is authorized.
+- [ ] T015 Close both delivery and configured-runtime evidence: independently review the final integrated source/failure boundaries, pass focused and owning source/runtime suites, `make validate`, `make ci-local` and all required hosted checks, then deliver through `RELEASING.md` with exact matching installed native/worker source/type proofs. Reuse unchanged accepted image proofs only for their exact original inputs. Complete the connected factory/NFS/terminal-consumption portion jointly with T012 and feature 023 T026/T029 when every criterion passes; source checks, publication or historical image proof alone are insufficient. Apply the current delivery requirement above; no protection bypass is authorized.
 
 ## Phase 7: Scoped live acceptance
 

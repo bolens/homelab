@@ -47,6 +47,10 @@ class Tests(unittest.TestCase):
  def lease(self):return r.from_stopped(self.life,self.c.source,self.scratch)
  def cap(self):
   self.prep=self.c.prepare();self.reader=self.lease();return a.prepare_existing(self.prep,self.reader,self.retention)
+ def test_portable_private_custody_does_not_allow_unsupported_canonical_acl(self):
+  before=o.signature(self.c.source);raw=self.c.source.read_bytes()
+  with native.nfs_acl(self.c.source),self.assertRaises(OSError):self.cap()
+  self.assertEqual(o.signature(self.c.source),before);self.assertEqual(self.c.source.read_bytes(),raw)
  def test_disjoint_fixture_transition_through_preparation_adoption_and_reverse(self):
   # Actual current modules and files; only installed/lifecycle origins are the
   # explicit host fixtures used throughout this suite, never a runtime grant.

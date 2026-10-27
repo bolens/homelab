@@ -16,6 +16,17 @@ The existing authenticated primary-key POST `publicationControl` adapter accepts
 
 Write exclusive private staged bytes and distinct preservation/restore custody outside scanned roots, fsync and independently verify every readback and physical fact. Seal source/stage/custody/catalog/census/writer facts before returning immutable non-executable preparation. Missing/linked/aliased/stale state stays held; no caller receipt creates authority.
 
+Complete source attributes include the raw NFS `system.nfs4_acl`. A private local
+copy may lack only that attribute after its exact destination write returns
+`EOPNOTSUPP`; every other attribute or error remains strict. The second private
+copy reproduces the first copy's verified attributes, while source metadata,
+both copies' original physical/hash facts and their exact actual attributes
+remain retained. Reconstruction and terminal verification check that same finite
+projection. This is byte/portable-attribute custody, not proof of ACL restoration
+on a local filesystem. Canonical NFS derivative publication and reversal still
+require complete original ACL application and readback. Exercise both the actual
+NFS-to-local boundary and same-NFS ACL readback before a new configured attempt.
+
 ### Preparation/status source integration
 
 Preparation creates an exclusive private operation directory with intent, original,

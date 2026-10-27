@@ -5,6 +5,7 @@ malformed original. Other matched owners retain ordinary SDK observation.
 """
 from contextlib import closing,contextmanager
 import copy
+import errno
 import hashlib
 import importlib
 import io
@@ -246,7 +247,17 @@ def write(path,raw,parent_identity):
         with os.fdopen(fd,'wb') as stream:stream.write(raw);stream.flush();os.fsync(stream.fileno())
         os.fsync(parent)
 
+def custody_attributes_match(actual,source):
+    # The complete original ACL stays in source_attributes. A private local
+    # byte copy can lack this NFS-only attribute; canonical NFS files cannot.
+    if actual==source:return True
+    portable=copy.deepcopy(source)
+    if 'system.nfs4_acl' not in portable['xattrs']:return False
+    del portable['xattrs']['system.nfs4_acl']
+    return actual==portable
+
 def preserve(source,target,sourcefact,sourceattrs,deadline,parent_identity):
+    expected=copy.deepcopy(sourceattrs)
     with checked_stream(source,sourcefact['signature9']) as inp,directory_fd(target.parent,parent_identity) as parent:
         info=os.fstat(parent);check(stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'private-copy-parent')
         fd=os.open(target.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
@@ -258,10 +269,14 @@ def preserve(source,target,sourcefact,sourceattrs,deadline,parent_identity):
             os.fchmod(out.fileno(),stat.S_IMODE(sourceattrs['mode']))
             check(os.fstat(out.fileno()).st_uid==sourceattrs['uid'] and os.fstat(out.fileno()).st_gid==sourceattrs['gid'],'custody-ownership')
             os.utime(out.fileno(),ns=(os.fstat(out.fileno()).st_atime_ns,sourceattrs['mtime_ns']))
-            for name,value in sourceattrs['xattrs'].items():os.setxattr(out.fileno(),name,bytes.fromhex(value))
+            for name,value in sourceattrs['xattrs'].items():
+                try:os.setxattr(out.fileno(),name,bytes.fromhex(value))
+                except OSError as error:
+                    if name!='system.nfs4_acl' or error.errno!=errno.EOPNOTSUPP:raise
+                    del expected['xattrs'][name]
             os.fsync(out.fileno());created=stat9(os.fstat(out.fileno()))
         os.fsync(parent);check(signature(target)==created,'custody-path-CAS')
-    check(attributes(target)==sourceattrs and fact(target,512*1024**2,deadline)['sha256']==sourcefact['sha256'],'custody-readback')
+    check(attributes(target)==expected and fact(target,512*1024**2,deadline)['sha256']==sourcefact['sha256'],'custody-readback')
 
 _KEY=object()
 _SEALS=weakref.WeakKeyDictionary()
@@ -377,7 +392,9 @@ def prepare_existing(controller,writer,owner,operation_id):
     check(files[op/'intent.json']['sha256']==hashlib.sha256(intent).hexdigest(),'intended-intent')
     preserve(source,op/'original.arc',sourcefact,sourceattrs,deadline,parent_identity)
     files[op/'original.arc']=fact(op/'original.arc',512*1024**2,deadline)
-    preserve(op/'original.arc',op/'restored-original.arc',files[op/'original.arc'],sourceattrs,deadline,parent_identity)
+    copyattrs=attributes(op/'original.arc')
+    check(custody_attributes_match(copyattrs,sourceattrs),'custody-original-attributes')
+    preserve(op/'original.arc',op/'restored-original.arc',files[op/'original.arc'],copyattrs,deadline,parent_identity)
     files[op/'restored-original.arc']=fact(op/'restored-original.arc',512*1024**2,deadline)
     write(op/'prepared.cbz',repaired,parent_identity)
     staged=fact(op/'prepared.cbz',512*1024**2+2,deadline);files[op/'prepared.cbz']=staged
@@ -401,7 +418,7 @@ def prepare_existing(controller,writer,owner,operation_id):
     check(set(os.listdir(op))=={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'},'closed-stage-census')
     for p,f in files.items():check(fact(p,max(f['signature9'][2],1),deadline)==f,'stage-CAS')
     attrs={p:attributes(p) for p in (source,op/'original.arc',op/'restored-original.arc')}
-    check(all(v==sourceattrs for v in attrs.values()),'preserved-attributes')
+    check(attrs[source]==sourceattrs and attrs[op/'original.arc']==attrs[op/'restored-original.arc']==copyattrs,'preserved-attributes')
     result=RepairPreparation(_KEY,controller,writer,modules,files,attrs,nodes,claims,census,records,binding,deadline,op,directory)
     result.revalidate();return result
 
