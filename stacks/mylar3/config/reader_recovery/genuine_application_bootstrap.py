@@ -372,9 +372,18 @@ class Bootstrap:
         result = self.engine.run(['restart', '--timeout', '30', self.plan['roles']['native']['id']], self.seconds()).decode().strip()
         need(result == self.plan['roles']['native']['id'], 'original-restart-ack')
         self.roles(restarting=True)
-        while True:
-            try:health = self.http('native', 'health');break
-            except ApplicationNotReady:time.sleep(min(0.2,self.seconds()))
+        health = {}
+        # Share the Creator's existing 64-call health budget. Busy observations
+        # grant nothing; only a later fresh ready response can cross this gate.
+        for _ in range(64):
+            try:health = self.http('native', 'health')
+            except ApplicationNotReady:pass
+            else:
+                publication = health.get('publication', {})
+                if not (type(publication) is dict and publication.get('state') == 'held'
+                        and publication.get('reason') == 'writer-busy'
+                        and 'census' in publication and publication['census'] is None):break
+            time.sleep(min(0.2,self.seconds()))
         if health.get('publication', {}).get('state') != 'ready':
             publication=health.get('publication',{});state=publication.get('state');reason=publication.get('reason')
             state=state if type(state) is str and state in ('ready','held') else 'other'

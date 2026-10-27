@@ -1063,3 +1063,22 @@ changing free-space samples, reopen-based hysteresis and invalid pause refusal.
 and refusal rules remain unchanged; legitimate writes in the handoff gap still
 hold. New native workflow bytes require matching image/SDK proof before another
 fixture. This is existing T012/T015 work, with no new task or runtime gate.
+
+## Bootstrap startup contention — 2026-10-27
+
+PR #541 merged with local and hosted checks, mirrored main, successful
+publication, actual 180-module capture and all four installed-image cases.
+ER installation verified all 27 outputs. ES completed native prepare-fresh and
+initialize-bootstrap, then retained restart intent and a readiness refusal:
+publication held, reason writer-busy, null census. The retained trace reaches
+Creator.execute and Bootstrap.native; it does not identify the Writer or prove
+that contention persisted. No recovery terminal or replay is accepted.
+
+Bootstrap previously waited for unavailable HTTP but rejected the first
+returned busy payload. The correction polls only unavailable HTTP and explicit
+held/writer-busy/null-census responses within the original deadline and existing
+64-call health budget. A fresh ready response is still required before schema,
+source, role and catalog checks. Other holds remain immediate refusals. Owning
+regressions cover eventual readiness, persistent contention, other holds,
+unexpected census and deadline exhaustion with one restart. Native180/SDK103
+bytes remain unchanged. This is existing T012/T015 work.

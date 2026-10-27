@@ -213,7 +213,7 @@ class BootstrapTests(unittest.TestCase):
         def write(path,value):
             if fail_write and path.name=='native-startup-refusal.json':raise OSError('diagnostic unavailable')
             return put(path,value)
-        with patch.object(b,'put',side_effect=write),self.assertRaisesRegex(b.Held,'native-startup-not-ready'):session.native()
+        with patch.object(b.time,'sleep'),patch.object(b,'put',side_effect=write),self.assertRaisesRegex(b.Held,'native-startup-not-ready'):session.native()
         self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
         self.assertFalse((session.output/'03-native-restart-done.json').exists())
         return session.output/'native-startup-refusal.json'
@@ -225,6 +225,60 @@ class BootstrapTests(unittest.TestCase):
         value=json.loads(path.read_bytes());self.assertEqual((value['state'],value['reason'],value['census_shape']),('other','other','object'));self.assertNotIn('private',path.read_text())
     def test_startup_refusal_diagnostic_io_failure_preserves_original_hold(self):
         path=self.startup_refusal(dict(state='held',reason='writer-busy'),fail_write=True);self.assertFalse(path.exists())
+    def test_startup_busy_waits_for_fresh_ready_before_catalog_check(self):
+        session,engine=self.session();session.output.mkdir(mode=0o700);http=session.http;calls=[]
+        responses=iter((b.ApplicationNotReady('starting'),dict(publication=dict(state='held',reason='writer-busy',census=None)),dict(publication=dict(state='ready'))))
+        def observe(kind,operation,*args):
+            if (kind,operation)!=('native','health'):return http(kind,operation,*args)
+            calls.append(operation);value=next(responses)
+            if isinstance(value,Exception):raise value
+            return value
+        session.http=observe
+        with patch.object(b.time,'sleep'),self.assertRaisesRegex(b.Held,'native-catalog-not-stable'):session.native()
+        self.assertEqual(len(calls),3)
+        self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
+        self.assertFalse((session.output/'native-startup-refusal.json').exists())
+
+    def test_startup_persistent_busy_is_bounded_without_another_restart(self):
+        session,engine=self.session();session.output.mkdir(mode=0o700);http=session.http;calls=[]
+        def observe(kind,operation,*args):
+            if (kind,operation)!=('native','health'):return http(kind,operation,*args)
+            calls.append(operation);return dict(publication=dict(state='held',reason='writer-busy',census=None))
+        session.http=observe
+        with patch.object(b.time,'sleep'),self.assertRaisesRegex(b.Held,'native-startup-not-ready'):session.native()
+        self.assertEqual(len(calls),64)
+        self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
+        self.assertEqual(json.loads((session.output/'native-startup-refusal.json').read_text())['reason'],'writer-busy')
+
+    def rejected_startup_observation(self,publication):
+        session,engine=self.session();session.output.mkdir(mode=0o700);http=session.http;calls=[]
+        def observe(kind,operation,*args):
+            if (kind,operation)!=('native','health'):return http(kind,operation,*args)
+            calls.append(operation);return dict(publication=publication)
+        session.http=observe
+        with patch.object(b.time,'sleep'),self.assertRaisesRegex(b.Held,'native-startup-not-ready'):session.native()
+        self.assertEqual(len(calls),1)
+        self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
+
+    def test_startup_busy_does_not_retry_other_publication_holds(self):
+        self.rejected_startup_observation(dict(state='held',reason='media-pending',census=None))
+
+    def test_startup_busy_with_a_census_is_not_retried(self):
+        self.rejected_startup_observation(dict(state='held',reason='writer-busy',census={}))
+
+    def test_startup_busy_keeps_original_deadline(self):
+        session,engine=self.session();session.output.mkdir(mode=0o700);http=session.http;calls=[]
+        def observe(kind,operation,*args):
+            if (kind,operation)!=('native','health'):return http(kind,operation,*args)
+            session.seconds();calls.append(operation)
+            return dict(publication=dict(state='held',reason='writer-busy',census=None))
+        session.http=observe
+        def elapsed(_):session.end=time.monotonic()-1
+        with patch.object(b.time,'sleep',side_effect=elapsed),self.assertRaisesRegex(b.Held,'bootstrap-deadline'):session.native()
+        self.assertEqual(len(calls),1)
+        self.assertEqual(sum(call[0]=='restart' for call in engine.calls),1)
+        self.assertFalse((session.output/'03-native-restart-done.json').exists())
+
     def test_real_entry_cannot_claim_success_without_actual_native_schema(self):
         session, engine = self.session()
         # execute owns its handles; remove our cleanup to avoid closing twice.
