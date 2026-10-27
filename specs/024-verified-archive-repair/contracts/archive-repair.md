@@ -119,12 +119,18 @@ adoption module requires matching installed image/SDK proof.
 Under stopped reader, inactive worker and exclusive original Writer, each
 install/reverse records intent then completion for retain-displaced hardlink,
 source unlink, no-clobber publication hardlink, stage unlink, original-retention
-hardlink and displaced unlink. Full source/stage FDs, streaming hashes with
-monotonic deadlines, attributes and finite nlink1→2→1 transitions remain bound.
-After all callbacks, inline original file/FD/ancestor/namespace/absence CAS
-immediately precedes each syscall. Original and repaired revisions remain held
-through every uncertain boundary. No unknown outcome triggers replay, automatic
-restoration, cleanup or reader restart.
+hardlink and displaced unlink. Original source/stage identities, streaming hashes
+with monotonic deadlines, attributes and finite nlink1→2→1 transitions remain
+bound. Before each unlink, close only the affected inode's owned FD after
+hash/alias validation. After all callbacks, inline original pathname, remaining
+FD, ancestor, namespace and absence CAS immediately precedes each syscall.
+Reopen the affected inode through its predetermined surviving hardlink with
+no-follow semantics and verify its original identity, bytes and metadata before
+any callback or completion receipt. The other inode and directory FDs remain
+held. This avoids NFS open-file silly-renames without admitting hidden aliases
+or refreshing expectations. Original and repaired revisions remain held through
+every uncertain boundary. Close/reopen uncertainty and other unknown outcomes
+grant no replay, automatic restoration, cleanup or reader restart.
 
 This requires no independent actor writing the selected names throughout the
 operation. Writer excludes cooperating applications; UID1000/mode0700 do not
