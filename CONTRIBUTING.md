@@ -12,6 +12,9 @@ make hooks-install
 make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
 
+Install the locked npm tools in each checkout or worktree. `make ci-local` checks
+for its Markdown tooling before running the source suites.
+
 Do not commit `stack.env`, `.env`, private keys, credentials, real hostnames,
 private addresses, or machine-specific paths. Update `stack.env.example`,
 `stack.yaml`, the stack README, and preparation behavior together when a

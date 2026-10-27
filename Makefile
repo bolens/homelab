@@ -43,6 +43,7 @@ validate-changed:
 	bash scripts/validate-repo.sh --strict --changed-base "$(BASE)"
 
 ci-local:
+	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-source-check
 	pre-commit run --all-files
