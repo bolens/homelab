@@ -22,6 +22,121 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
 
+    def test_additional_sidecars_from_postings_are_removed(self) -> None:
+        posting = "release.1234abcd___123456abcdef_ [newzNZB] [4_22] - yEnc  1393 (1_1)"
+        files = {
+            "lyrics.lrc": b"[00:01.00]Fixture lyrics\n",
+            "windows.nfo": "Artist: Fixture\r\nAlbum: Artist’s album\r\n".encode("cp1252"),
+            "scene.nfo": "█ Fixture café · █\r\n".encode("cp437"),
+            posting: b"Artist...: Fixture\r\nAlbum....: Example\r\nSource...: CD\r\nEncoder..: FLAC\r\n01 Example Song\r\n",
+            posting.replace("1393", "821"): b"01-song.flac 1234abcd\r\n02-song.flac ABCD1234\r\n",
+            "obfuscated-recovery": b"iii\x01\x00\x0d\x00\x04\x00test" + b"recovery blocks",
+        }
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in {**files, "song.flac": audio}.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in {**files, "song.flac": audio}.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+                main.process_release(root)
+
+    def test_windows_nfo_accents_do_not_select_cp437_drawing_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = b"fLaC" + bytes(32)
+            (root / "song.flac").write_bytes(audio)
+            for name, text in {"accent.nfo": "Artist: Édith Fixture\r\nAlbum: Best Of\r\nCopyright © 1990\r\n",
+                               "degree.nfo": "Copyright © 1990\r\nTemperature 20°\r\n"}.items():
+                (root / name).write_bytes(text.encode("cp1252"))
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
+    def test_windows_nfo_duplicates_do_not_block_archive_tracks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            info = "Artist: Fixture\nAlbum: Große Fixture\nCopyright © 2026\n".encode("cp1252")
+            (root / "release.nfo").write_bytes(info)
+            audio = b"fLaC" + bytes(32)
+            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                output.writestr("release.nfo", info)
+                output.writestr("song.flac", audio)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
+    def test_additional_sidecar_recognition_preserves_unconfirmed_content(self) -> None:
+        posting = "release.1234abcd___123456abcdef_ [newzNZB] [4_22] - yEnc  1393 (1_1)"
+        info = b"Artist: Fixture\nAlbum: Example\nSource: CD\nEncoder: FLAC\n01 Example Song\n"
+        files = {
+            "notes": info, posting: b"unstructured text\n",
+            posting.replace("1393", "822"): info + b"x" * 65536,
+            posting.replace("1393", "823"): b"Artist: Fixture\nAlbum: Example\n01 Song\n",
+            posting.replace("1393", "824"): b"01-song.flac 1234abcd\ninvalid checksum\n",
+            posting.replace("1393", "825"): info + b"\x00",
+            posting.replace("1393", "821"): b"../song.flac 1234abcd\n",
+            "binary.lrc": b"\x00unknown binary", "audio.lrc": b"fLaC" + bytes(32),
+            "truncated-recovery": b"iii\x01\x00\x0d\x00\x04\x00tes",
+            "named.mp3": b"iii\x00\x00\x07\x00",
+            "unknown.nfo": b"notes\x81", "control.nfo": b"notes\x00",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name, payload in files.items():
+                (root / name).write_bytes(payload)
+            main.process_release(root)
+            expected = {("audio.lrc.flac" if name == "audio.lrc" else name): payload for name, payload in files.items()}
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_additional_sidecars_remain_protected_by_cues_and_empty_output_guard(self) -> None:
+        payloads = {"lyrics.lrc": b"[00:01.00]Fixture lyrics\n",
+                    "obfuscated-recovery": b"iii\x00\x00\x07\x00",
+                    "windows.nfo": "Artist’s notes\n".encode("cp1252")}
+        for name, payload in payloads.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(payload)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root)
+                cue = f'FILE "{name}" BINARY\n'.encode()
+                (root / "album.cue").write_bytes(cue)
+                main.process_release(root)
+                self.assertEqual((root / name).read_bytes(), payload)
+                self.assertEqual((root / "album.cue").read_bytes(), cue)
+
+    def test_windows_playlists_validate_completeness_and_keep_encoding(self) -> None:
+        for missing in (False, True):
+            for cleanup in (False, True):
+                with self.subTest(missing=missing, cleanup=cleanup), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    release = root / "Release"
+                    (release / "Audio").mkdir(parents=True)
+                    (release / "Audio/01 Artist’s Song.flac").write_bytes(b"fLaC" + bytes(32))
+                    if not missing:
+                        (release / "Audio/02 Artist’s Song.flac").write_bytes(b"fLaC" + bytes(32))
+                    text = "#EXTM3U\r\nAudio/01 Artist’s Song.flac\r\nAudio/02 Artist’s Song.flac\r\n"
+                    (release / "tracks.m3u").write_bytes(text.encode("cp1252"))
+                    before = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+                    if missing and cleanup:
+                        with self.assertRaisesRegex(ValueError, "incomplete playlist"):
+                            main.process_release(root)
+                        self.assertEqual({str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}, before)
+                    elif not missing:
+                        main.process_release(root, cleanup=cleanup)
+                        if cleanup:
+                            self.assertFalse(any(root.rglob("*.m3u")))
+                        else:
+                            self.assertEqual((root / "tracks.m3u").read_bytes(), text.replace("Audio/", "").encode("cp1252"))
+                            main.process_release(root, cleanup=False)
+                    else:
+                        main.process_release(root, cleanup=False)
+                        self.assertEqual({str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}, before)
+
     def test_utf16_sidecars_are_cleaned_without_changing_audio_or_cues(self) -> None:
         for encoding, bom in (("utf-16-le", b"\xff\xfe"), ("utf-16-be", b"\xfe\xff")):
             with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temp:
