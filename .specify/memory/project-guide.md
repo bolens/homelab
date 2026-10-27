@@ -61,6 +61,9 @@ has it. Use the system Python for repository validation and the supported Node
 26 runtime used for these site checks; keep explicit Python 3.10 recovery tests
 separate.
 Do not change production runtimes or validation assertions to fix that PATH.
+Run repository CI with the normal `022` umask: source-ancestor controls must
+observe an actual `0755` to `0700` fixture transition. Create private logs as
+`0600` separately rather than imposing `077` on the test processes.
 
 GitHub job metadata can lag completed runner output. If `gh run view --log`
 refuses an apparently running job, the job-logs API may already provide its

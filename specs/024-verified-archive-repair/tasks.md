@@ -29,13 +29,15 @@ scoped live acceptance.
 PR [#537](https://github.com/bolens/homelab/pull/537) delivered the NFS descriptor
 correction with matching 180-module capture, SDK103 proof and 27 installed
 controls. The four installed-image discovery/import/lost-reply/rename cases pass.
-DY/DZ reconstructs the genesis archive and produces a child forward observation,
-then the host Parent refuses equal directory facts represented as lists and
-tuples. Correct the value comparison and refresh the checked host installation
-before a new fixture. Target bytes, unrelated full9/hash and all 24 native
-tables match their baselines. The reader stays stopped; forward acceptance and
-distinct rollback remain unaccepted. See the
-[terminal comparison diagnosis](evidence-history.md#terminal-directory-fact-comparison--2026-10-27).
+PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
+comparison correction. EB/EC then reconstructs the genesis archive, but holds
+while copying terminal proof records: its input and output views incorrectly
+share a 32-record limit. The complete path uses 26 ordinary inputs, 40 NFS
+inputs and 11 output views, within the unchanged 80-record total. Separate the
+input/output budgets and refresh the checked host installation before a new
+fixture. Target bytes, unrelated full9/hash and all 24 native tables match
+their baselines; the reader stays stopped. Forward acceptance and distinct
+rollback remain open. See the [projection diagnosis](evidence-history.md#terminal-projection-capacity--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

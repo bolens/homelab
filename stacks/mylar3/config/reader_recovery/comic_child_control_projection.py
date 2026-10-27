@@ -118,8 +118,13 @@ class Tree:
         self._append('nfs_controls',((original,public),),expected);self.check()
 
     def _pair_bound(self,original=None):
-        ordinary=sum(p[0] not in [row[0] for row in self.nfs_controls] for p in self.pairs)+len(self.outputs)
-        need(ordinary<32 or original in [row[0] for row in self.nfs_controls],'child-control-bound')
+        # Input projections and returned factual views have separate budgets.
+        # Plan13 uses 26 ordinary + 40 NFS inputs and 11 terminal/backup views;
+        # both terminal directions remain below the unchanged shared limit.
+        if original is None:need(len(self.outputs)<16,'child-output-bound')
+        else:
+            ordinary=sum(p[0] not in [row[0] for row in self.nfs_controls] for p in self.pairs)
+            need(ordinary<32 or original in [row[0] for row in self.nfs_controls],'child-control-bound')
         need(len(self.pairs)+len(self.outputs)<80,'child-control-total-bound')
 
     def project(self,ref):

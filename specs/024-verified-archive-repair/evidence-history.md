@@ -921,3 +921,28 @@ terminal witnesses, preserving payload/compressed bytes/pages/XML and complete
 access attributes. Pure controls now verify the finite ZIP reconstruction and
 reject hidden header/envelope drift. Original-chain integration and actual
 distinct-fixture rollback remain outstanding.
+
+## Terminal projection capacity — 2026-10-27
+
+PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
+comparison correction with all 13 PR checks passing. EB installs all 27 controls;
+EC bootstrap, 58 packet checks, six original-Parent checks and fresh independent
+baselines pass. Its single forward attempt reconstructs genesis bytes, then the
+Parent holds at `child-control-bound` while copying the first baseline view.
+The reader remains stopped, native running and worker unstarted. No owning
+terminal return was accepted. Preserve the attempt without replay or resume.
+Independent observations confirm target bytes, unrelated archive full9/hash and
+all 24 native SQL tables match their baselines; original native process and
+configuration bindings remain unchanged.
+
+The projection counts ordinary inputs and factual output views together under
+32, so 26 ordinary inputs and six views leave no room for the remaining proof
+records. Tracing the entire forward/rollback acceptance path establishes 26
+ordinary inputs, 40 declared NFS inputs and 11 output views: 77 total. ACK/report
+rereads reuse existing views, and resume adds no projection. Keep ordinary
+inputs limited to 32, NFS reservations to 48 and all records together to 80;
+give factual outputs their own limit of 16. Retain exact paths, original proof,
+private copies, seals and final closure. Regressions reproduce the refusal
+through the actual Parent proof-copy method, exercise all 11 views and free
+rereads, and refuse the first excess input, output, NFS reservation and shared
+entry. This correction remains within T012/T015; it adds no task or runtime gate.

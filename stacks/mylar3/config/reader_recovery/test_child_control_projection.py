@@ -176,17 +176,83 @@ class Controls(unittest.TestCase):
         self.assertFalse(m.CHILD_CONTROL_PROJECTION_ENABLED);self.assertIsNone(m.CHILD_CONTROL_SOURCE_SHA)
 
     def test_declared_nfs_controls_have_finite_separate_budget(self):
-        for index in range(40):
+        for index in range(48):
             source=self.op/('nfs-control-'+str(index)+'.json');source.write_bytes(b'{"public":true}');source.chmod(0o600)
             ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
             self.tree.reserve_nfs_control(ref);self.tree.project(ref)
-        self.assertEqual(len(self.tree.nfs_controls),40);self.tree.check()
+        self.assertEqual(len(self.tree.nfs_controls),48);self.tree.check()
+        with self.assertRaisesRegex(c.Held,'nfs-control-declared-bound'):self.tree.reserve_nfs_control(self.ref)
     def test_default_budget_does_not_expand_without_declared_nfs_originals(self):
         for index in range(32):
             source=self.op/('normal-'+str(index)+'.json');source.write_bytes(b'{}');source.chmod(0o600)
             ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
             self.tree.project(ref)
         with self.assertRaisesRegex(c.Held,'child-control-bound'):self.tree.project(self.ref)
+
+    def budget_input(self,index,*,nfs=False):
+        source=self.op/('budget-'+str(index)+'.json');source.write_bytes(b'{}');source.chmod(0o600)
+        ref=dict(path=str(source),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
+        if nfs:self.tree.reserve_nfs_control(ref)
+        self.tree.project(ref)
+        return ref
+
+    def budget_output(self,index):
+        phase=self.tree.phase('execute');source=phase/('factual-'+str(index)+'.json')
+        source.write_bytes(b'{"factual":true}');source.chmod(0o600)
+        return dict(path=self.tree.child(str(source)),sha256=hashlib.sha256(source.read_bytes()).hexdigest(),signature9=list(c.nine(source.lstat())))
+
+    def test_plan13_terminal_projection_retains_all_11_proof_views(self):
+        import comic_reader_lifecycle_parent as parent
+        for index in range(26):self.budget_input(index)
+        for index in range(26,66):self.budget_input(index,nfs=True)
+        class Owner:
+            child_control=parent.LifecycleParent.child_control
+            def left(self):self.tree.check()
+        owner=Owner();owner.tree=self.tree
+        owner.mapping=parent.Paths([dict(host=str(self.op),child='/_operation',write=True)])
+        owner.mapping.owner=owner;parent._CHILD_TREES[owner]=self.tree
+        proof={};views=[]
+        # Six existing views precede baseline, preparation, two histories and
+        # the causal fixture receipt, in both forward and rollback dialogues.
+        for index in range(11):
+            ref=self.budget_output(index);physical=self.tree.host(ref['path'])
+            proof[physical]=list(ref['signature9']);original=dict(proof)
+            view=parent.LifecycleParent.child_control_from_proof(owner,ref,proof)
+            self.assertEqual(proof,original);self.assertEqual(Path(view['path']).read_bytes(),b'{"factual":true}')
+            self.assertEqual(parent.LifecycleParent.child_control_from_proof(owner,ref,proof),view)
+            views.append(view)
+        self.assertEqual(len(self.tree.pairs),66);self.assertEqual(len(self.tree.outputs),11)
+        self.assertEqual(len({v['path']for v in views}),11);self.tree.check()
+        foreign=dict(ref,signature9=list(ref['signature9']));foreign['signature9'][1]+=1
+        with self.assertRaisesRegex(parent.Held,'archive-terminal-history-baseline-original9'):
+            parent.LifecycleParent.child_control_from_proof(owner,foreign,proof)
+
+    def test_outputs_leave_all_32_ordinary_input_slots_available(self):
+        for index in range(16):
+            ref=self.budget_output(index);self.tree.output(ref,ref['path'],'factual_record')
+        for index in range(32):self.budget_input(index)
+        with self.assertRaisesRegex(c.Held,'child-control-bound'):self.tree.project(self.ref)
+        self.assertEqual(len(self.tree.pairs),32);self.assertEqual(len(self.tree.outputs),16);self.tree.check()
+
+    def test_output_budget_refuses_seventeenth_without_copying_or_losing_existing_view(self):
+        for index in range(16):
+            ref=self.budget_output(index);_,view=self.tree.output(ref,ref['path'],'factual_record')
+        original=self.tree.outputs;extra=self.budget_output(16)
+        with self.assertRaisesRegex(c.Held,'child-output-bound'):self.tree.output(extra,extra['path'],'factual_record')
+        self.assertEqual(self.tree.outputs,original)
+        self.assertEqual(self.tree.output(ref,ref['path'],'factual_record')[1],view)
+        self.assertEqual(Path(self.tree.host(extra['path'])).read_bytes(),b'{"factual":true}');self.tree.check()
+
+    def test_shared_80_record_bound_still_covers_inputs_and_outputs(self):
+        for index in range(32):self.budget_input(index)
+        for index in range(32,69):self.budget_input(index,nfs=True)
+        for index in range(11):
+            ref=self.budget_output(index);self.tree.output(ref,ref['path'],'factual_record')
+        self.assertEqual(len(self.tree.pairs)+len(self.tree.outputs),80)
+        extra=self.budget_output(11);original=self.tree.outputs
+        with self.assertRaisesRegex(c.Held,'child-control-total-bound'):self.tree.output(extra,extra['path'],'factual_record')
+        with self.assertRaisesRegex(c.Held,'child-control-total-bound'):self.budget_input(69,nfs=True)
+        self.assertEqual(self.tree.outputs,original);self.tree.check()
     def test_declared_nfs_budget_refuses_changed_original(self):
         self.tree.reserve_nfs_control(self.ref);foreign=dict(self.ref,sha256='a'*64)
         with self.assertRaisesRegex(c.Held,'original-conflict'):self.tree.reserve_nfs_control(foreign)
