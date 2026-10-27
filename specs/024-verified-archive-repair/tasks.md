@@ -44,6 +44,12 @@ rollback before marking acceptance. EH's independent target/unrelated/native
 comparisons passed. EJ's protected diagnosis confirms the same pre-worker hold:
 native running, reader stopped, worker Created. Independent target bytes,
 unrelated full9/hash and all 24 native tables match their baselines.
+EL/EM then held at completion-lock acquisition because fdinfo's superblock
+device differs from Btrfs fstat's subvolume device. The correction retains exact
+FD/path facts, inode, process, exclusive whole-file lock and duplicate custody.
+Actual-host contention/release, device-alias and foreign-lock controls pass. EL/EM
+is preserved with reader stopped; target bytes, unrelated full9/hash and native24
+remain original. Forward and distinct rollback acceptance still remain open.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan

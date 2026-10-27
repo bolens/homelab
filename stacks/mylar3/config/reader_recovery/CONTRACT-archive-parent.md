@@ -277,6 +277,10 @@ consumption, ACK, natural child exit and the permitted reader resume. Later
 native application/health requests refuse; scoped Docker inspection/events and
 owned worker/reader operations retain their existing source and lifecycle guards.
 Check original lock bindings after callbacks and immediately before resume.
+The descriptor's kernel lock record must identify the original inode, current
+process, exclusive FLOCK and whole-file range. Validate its device syntax;
+do not equate the superblock device in fdinfo with the subvolume device reported
+by Btrfs fstat. Original descriptor/path device and full file facts remain exact.
 Release the owned lock on every return/refusal without replacing the primary
 failure or closing a foreign reused descriptor. The release-to-acquisition gap
 is not an atomic lock transfer: changes in that gap must still hold.

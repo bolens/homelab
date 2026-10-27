@@ -487,6 +487,13 @@ to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
 Root-private operational evidence. Neither case relaxes private-proof custody.
 
+For descriptor lock checks, Linux fdinfo reports the inode superblock device;
+Btrfs fstat can report a different subvolume device. Bind the original descriptor
+and path with full facts, then check the exact FD's kernel lock inode, process,
+type and range without treating those device namespaces as equal. Exercise the
+owning lock method on the actual host filesystem as well as temporary fixtures;
+a tmpfs-only contention test cannot expose this Btrfs difference.
+
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
 Record the actual `docker image inspect` ID and container `Image` on that daemon.

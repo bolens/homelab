@@ -1026,3 +1026,21 @@ Writer authority. A competing write before acquisition still refuses. Real flock
 owning leave-handler and resume/failure-cleanup controls exercise this boundary;
 configured forward and distinct rollback acceptance remain required. Preserve
 EJ/EK and prior held generations without replay.
+
+
+## Btrfs completion-lock device identity — 2026-10-27
+
+EL/EM held immediately after completion-lock acquisition. The retained trace
+identifies the kernel-custody predicate; the original native/reader/worker states
+are running/stopped/Created, and there is no owning return. Independent target
+bytes, unrelated full9/hash and all 24 native tables match their baselines.
+
+A private control reproduces the difference on the actual Btrfs filesystem:
+fstat reports the subvolume device while fdinfo reports the superblock device.
+The same check passes on tmpfs. The correction validates device syntax while
+retaining exact original descriptor/path facts, inode, process, FLOCK/WRITE,
+whole-file range and duplicate descriptor custody. Actual Btrfs contention and
+release pass. Synthetic mismatched-device acceptance and malformed/foreign-lock
+refusals join the existing descriptor reuse, unlock and cleanup controls.
+This remains T012/T015 implementation work; no held attempt has replay or reader
+resume authority, and configured forward/rollback acceptance remains pending.

@@ -132,6 +132,34 @@ class Tests(unittest.TestCase):
   program="import fcntl,os,sys;fd=os.open(sys.argv[1],os.O_RDWR);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)"
   with patch.object(p.subprocess,'Popen',self.real_spawn):
    return subprocess.run([sys.executable,'-I','-B','-c',program,str(path)],capture_output=True).returncode
+ def kernel_lock_sample(self):
+  import fcntl
+  path=self.root/'kernel-lock';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+  self.addCleanup(os.close,fd);fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  frame=p.nine(os.fstat(fd))
+  return fd,frame
+ def test_completion_kernel_accepts_distinct_btrfs_superblock_device(self):
+  fd,frame=self.kernel_lock_sample()
+  # Btrfs stat reports the subvolume device; fdinfo reports the superblock.
+  device='00:00' if frame[0] else '00:01'
+  info=f'lock:\t1: FLOCK ADVISORY WRITE {os.getpid()} {device}:{frame[1]} 0 EOF\n'
+  with patch('builtins.open',return_value=io.StringIO(info)):
+   self.assertTrue(p.completion_fd_locked(fd,frame))
+ def test_completion_kernel_device_alias_never_relaxes_other_custody(self):
+  fd,frame=self.kernel_lock_sample()
+  valid=f'lock:\t1: FLOCK ADVISORY WRITE {os.getpid()} 00:00:{frame[1]} 0 EOF\n'
+  variants=[valid.replace(str(os.getpid())+' ',str(os.getpid()+1)+' '),
+            valid.replace(':'+str(frame[1])+' ',':'+str(frame[1]+1)+' '),
+            valid.replace('FLOCK','POSIX'),valid.replace('WRITE','READ'),
+            valid.replace('00:00:','zz:00:'),valid.replace(' 0 EOF',' 1 EOF'),
+            valid.replace(' 0 EOF',' 0 10'),'pos:\t0\n','x'*4097]
+  for info in variants:
+   with self.subTest(info=info[:90]),patch('builtins.open',return_value=io.StringIO(info)):
+    self.assertFalse(p.completion_fd_locked(fd,frame))
+  for field in (0,1):
+   wrong=frame.copy();wrong[field]+=1
+   with self.subTest(identity_field=field),patch('builtins.open',return_value=io.StringIO(valid)):
+    self.assertFalse(p.completion_fd_locked(fd,wrong))
  def test_completion_exclusion_real_kernel_competitor_and_release(self):
   path,frames=self.completion_lock();lock=p.ArchiveCompletionExclusion(frames)
   try:

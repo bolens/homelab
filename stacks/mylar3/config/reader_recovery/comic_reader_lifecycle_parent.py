@@ -349,8 +349,11 @@ def completion_fd_locked(fd, identity9):
         if (z.st_dev,z.st_ino)!=tuple(identity9[:2]):return False
         with open('/proc/self/fdinfo/'+str(fd),encoding='ascii') as stream:info=stream.read(4097)
         if len(info)>4096:return False
-        identity=f'{os.major(z.st_dev):02x}:{os.minor(z.st_dev):02x}:{z.st_ino}'
-        pattern=r'lock:\s+\d+:\s+FLOCK\s+ADVISORY\s+WRITE\s+'+str(os.getpid())+r'\s+'+re.escape(identity)+r'\s+0\s+EOF'
+        # fdinfo selects this exact open file description. Its lock device is
+        # the superblock device; Btrfs fstat instead reports a subvolume device.
+        # The original fstat device/inode remains bound above and by check().
+        identity=r'[0-9a-f]{2,8}:[0-9a-f]{2,8}:'+str(z.st_ino)
+        pattern=r'lock:\s+\d+:\s+FLOCK\s+ADVISORY\s+WRITE\s+'+str(os.getpid())+r'\s+'+identity+r'\s+0\s+EOF'
         return any(re.fullmatch(pattern,line) for line in info.splitlines())
     except OSError:return False
 
