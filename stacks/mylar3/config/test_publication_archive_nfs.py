@@ -5,7 +5,7 @@ StoppedReaderCustody. Only NFS transport/factory admission is substituted here;
 all archive bytes, descriptor/link operations, SQLite and phase receipts are real.
 The mandatory installed NFS/Parent/Birth scenario remains a separate gate.
 """
-from contextlib import closing
+from contextlib import closing, contextmanager
 import copy
 import os
 from pathlib import Path
@@ -107,6 +107,43 @@ class Tests(unittest.TestCase):
         cap.complete_reversed()
         cap.close()
 
+    def test_NFS_open_inode_unlink_model_forward_reverse_and_terminal(self):
+        cap = self.cap()
+        unlink, rename = a.os.unlink, a.os.rename
+        directories = {tuple(a.o.stat5(p.lstat()))[:2]: p for p in (cap.root,cap.source.parent)}
+        calls, hidden = [], []
+        def nfs_unlink(name, *, dir_fd=None):
+            if dir_fd is None or tuple(a.o.stat5(os.fstat(dir_fd)))[:2] not in directories:
+                return unlink(name,dir_fd=dir_fd)
+            parent = directories[tuple(a.o.stat5(os.fstat(dir_fd)))[:2]]
+            target = os.stat(name,dir_fd=dir_fd,follow_symlinks=False)
+            opened = False
+            for entry in os.listdir('/proc/self/fd'):
+                try:
+                    row = os.fstat(int(entry))
+                except OSError:
+                    continue
+                if (row.st_dev,row.st_ino)==(target.st_dev,target.st_ino):
+                    opened = True
+            calls.append(opened)
+            if opened:
+                alias = '.nfs-component-'+str(len(calls))
+                rename(name,alias,src_dir_fd=dir_fd,dst_dir_fd=dir_fd)
+                hidden.append(parent/alias)
+                return None
+            return unlink(name,dir_fd=dir_fd)
+        try:
+            with patch.object(a.os,'unlink',side_effect=nfs_unlink):
+                cap.install();self.assert_preserved(cap)
+                cap.reverse();cap.complete_reversed();cap.close()
+                self.assert_preserved(cap,rollback=True)
+                self.assertTrue(self.verify_terminal(cap,rollback=True)['summary']['rollback_verified'])
+            self.assertEqual(calls,[False]*6)
+            self.assertFalse(hidden)
+        finally:
+            for path in hidden:
+                if path.exists():unlink(path)
+
     def test_forward_completion_closes_exported_protocol_and_candidate_absences(self):
         cap = self.cap()
         cap.install()
@@ -144,7 +181,7 @@ class Tests(unittest.TestCase):
         with self.assertRaisesRegex(a.o.Held, 'repair-exact-publication-selection'):
             a.prepare_existing(prep, reader, case.retention, publication=self.facts)
 
-    def fault_case(self, reverse, fault):
+    def fault_case(self, reverse, fault, *, status_refuses=False):
         child = Tests('runTest')
         child.setUp()
         try:
@@ -166,10 +203,13 @@ class Tests(unittest.TestCase):
             self.assertEqual((child.case.prep._operation / 'restored-original.arc').read_bytes(), child.source_before)
             paths = (cap.source, cap.stage, cap.root / 'install-displaced.arc', cap.root / 'reverse-displaced.arc')
             state = {str(p): (p.read_bytes(), a.o.signature(p)) if p.exists() else None for p in paths}
-            observed = cap.uncertain_status()
-            self.assertEqual(observed['outcome'], 'held-nfs-transition-uncertain')
-            self.assertFalse(observed['automatic_replay'])
-            self.assertFalse(observed['reader_resume_authority'])
+            if status_refuses:
+                with self.assertRaises(a.o.Held):cap.uncertain_status()
+            else:
+                observed = cap.uncertain_status()
+                self.assertEqual(observed['outcome'], 'held-nfs-transition-uncertain')
+                self.assertFalse(observed['automatic_replay'])
+                self.assertFalse(observed['reader_resume_authority'])
             self.assertEqual({str(p): (p.read_bytes(), a.o.signature(p)) if p.exists() else None for p in paths}, state)
         finally:
             child.doCleanups()
@@ -232,6 +272,75 @@ class Tests(unittest.TestCase):
                         yield
                 with self.subTest(reverse=reverse, boundary=boundary):
                     self.fault_case(reverse, fault)
+
+    def reopen_fault(self, cap, boundary, mode):
+        @contextmanager
+        def fault():
+            original = a.os.open
+            identities = {(p.stat().st_dev,p.stat().st_ino) for p in (cap.root,cap.source.parent)}
+            count = [0]
+            def opened(name, flags, *args, **kwargs):
+                directory = kwargs.get('dir_fd')
+                relevant = directory is not None and flags & os.O_CLOEXEC and not flags & os.O_DIRECTORY and (lambda z:(z.st_dev,z.st_ino))(os.fstat(directory)) in identities
+                if relevant:
+                    count[0] += 1
+                    if count[0] == boundary:
+                        if mode=='unavailable':raise OSError('surviving original unavailable')
+                        parent = Path(os.readlink('/proc/self/fd/'+str(directory)))
+                        path = parent/name
+                        if mode=='foreign-inode':
+                            raw = path.read_bytes();attrs = path.stat()
+                            alias = parent/'foreign-survivor.arc';alias.write_bytes(raw)
+                            os.chmod(alias,attrs.st_mode & 0o7777);os.utime(alias,ns=(attrs.st_atime_ns,attrs.st_mtime_ns))
+                            os.replace(alias,path)
+                        else:
+                            with path.open('r+b') as stream:
+                                first=stream.read(1);stream.seek(0);stream.write(bytes([first[0]^1]));stream.flush();os.fsync(stream.fileno())
+                return original(name,flags,*args,**kwargs)
+            with patch.object(a.os,'open',side_effect=opened):yield
+            self.assertEqual(count[0],boundary)
+        return fault()
+
+    def test_each_survivor_reopen_failure_forward_reverse_retains_custody(self):
+        for reverse in (False,True):
+            for boundary in (1,2,3):
+                with self.subTest(reverse=reverse,boundary=boundary):
+                    self.fault_case(reverse,lambda cap:self.reopen_fault(cap,boundary,'unavailable'))
+
+    def test_foreign_inode_or_changed_bytes_never_become_surviving_original(self):
+        for reverse in (False,True):
+            for boundary in (1,2,3):
+                for mode in ('foreign-inode','changed-bytes'):
+                    with self.subTest(reverse=reverse,boundary=boundary,mode=mode):
+                        self.fault_case(reverse,lambda cap:self.reopen_fault(cap,boundary,mode),status_refuses=True)
+
+    def test_close_lost_response_never_closes_reused_descriptor(self):
+        for reverse in (False,True):
+            for boundary in (1,2,3):
+                @contextmanager
+                def fault(cap):
+                    original = a.os.close
+                    identities = {(p.stat().st_dev,p.stat().st_ino) for p in (cap.source,cap.stage)}
+                    count=[0];sentinel=[]
+                    def closed(fd):
+                        row=os.fstat(fd)
+                        relevant=(row.st_dev,row.st_ino) in identities
+                        result=original(fd)
+                        if relevant:
+                            count[0]+=1
+                            if count[0]==boundary:
+                                new=os.open('/dev/null',os.O_RDONLY|os.O_CLOEXEC);sentinel.append(new)
+                                self.assertEqual(new,fd)
+                                raise OSError('close response lost after descriptor reuse')
+                        return result
+                    try:
+                        with patch.object(a.os,'close',side_effect=closed):yield
+                        self.assertEqual(len(sentinel),1)
+                        os.fstat(sentinel[0])
+                    finally:
+                        for fd in sentinel:original(fd)
+                with self.subTest(reverse=reverse,boundary=boundary):
+                    self.fault_case(reverse,fault)
 
     def test_post_filesystem_sql_failure_retains_both_revisions_and_native_preimage(self):
         cap = self.cap()

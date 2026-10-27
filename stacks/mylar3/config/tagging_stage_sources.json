@@ -102,7 +102,7 @@
     },
     {
       "path": "publication_archive_adoption.py",
-      "sha256": "f2d4c6f5097f7138157cafceec6a115bf5e06951f63ad2a17e735a393c5918db"
+      "sha256": "488afb1fc6839afe799f02b7e56f7851a18e785cec1d86e0d867fe2a9825e0b1"
     },
     {
       "path": "publication_archive_derivative.py",

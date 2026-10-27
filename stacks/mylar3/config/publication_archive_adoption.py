@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import sqlite3
 import stat
+import sys
 import threading
 import time
 import weakref
@@ -258,7 +259,9 @@ class RepairAdoption:
         """Explicit NFS protocol; no exchange attempt or automatic recovery.
 
         Each intent/done is durable. The only library publication is no-clobber
-        link. Full source/stage FDs survive every transition and callback.
+        link. Each unlink closes only its inode's owned FD, then reopens the
+        original surviving hardlink before any callback or done receipt. This
+        avoids NFS silly-renaming an open inode without admitting hidden names.
         """
         o.check(self._publication is not None and self._publication['protocol']=='rename-link-v1' and self._publication['mount']['fstype']=='nfs4','repair-nfs-selected-before-dispatch')
         displaced=self.root/('reverse-displaced.arc' if reverse else 'install-displaced.arc')
@@ -272,15 +275,19 @@ class RepairAdoption:
                 v=o.stat9(os.fstat(fd));o.check(v==self._files[path] and v[8]==1,'repair-nfs-original-FD')
                 originals[key]=(list(v),self._contents[path]);stamps[key]=list(v)
             def check_state():
-                self._life();self.reader.revalidate()
+                self._life()
                 prep=self.preparation;guard=prep._modules[2];writer=prep._writer
-                o.check(getattr(writer.local[1],'depth',0)>0 and writer.local is prep._local and guard.writer_identity(writer)==prep._identity and guard.registry_snapshot(prep._controller.database,writer.root/'publication-v1.json')==(self._census,self._records),'repair-nfs-original-writer-census')
                 files={path:v for path,v in self._files.items() if path not in (self.source,self.stage)}
                 dirs={**self._dirs,**directory9}
                 absent=set(self._absent)-{displaced}
                 for path,key in locations.items():
                     if key is None:absent.add(path)
                     else:files[path]=list(stamps[key])
+                root_names=set(self._names)
+                if locations[self.stage] is None:root_names.remove(self.stage.name)
+                if locations[displaced] is not None:root_names.add(displaced.name)
+                source_names=set(self._source_names)
+                if locations[self.source] is None:source_names.remove(self.source.name)
                 for key,fd in fds.items():
                     current=o.stat9(os.fstat(fd));o.check(current==stamps[key],'repair-nfs-live-original-FD9')
                     content=hashlib.sha256();offset=0
@@ -288,15 +295,16 @@ class RepairAdoption:
                         o.check(time.monotonic()<prep._deadline,'repair-nfs-read-deadline')
                         block=os.pread(fd,min(1024**2,current[2]-offset),offset);o.check(bool(block),'repair-nfs-original-short-read');content.update(block);offset+=len(block)
                     o.check(content.hexdigest()==originals[key][1] and o.stat9(os.fstat(fd))==stamps[key],'repair-nfs-original-FD-bytes')
+                # Reopened aliases must already prove the original FD bytes,
+                # pathname identities and exact namespace before callbacks.
+                direct({**files,**dirs},self._nodes,absent)
+                o.check(set(os.listdir(self.root))==root_names and set(os.listdir(self.source.parent))==source_names and set(os.listdir(self.journal))=={path.name for path in self._files if path.parent==self.journal},'repair-nfs-before-callback-namespace')
+                self.reader.revalidate()
+                o.check(getattr(writer.local[1],'depth',0)>0 and writer.local is prep._local and guard.writer_identity(writer)==prep._identity and guard.registry_snapshot(prep._controller.database,writer.root/'publication-v1.json')==(self._census,self._records),'repair-nfs-original-writer-census')
                 for path,value in files.items():
                     if path in locations:continue
                     actual=reader.retained_fact(path,value,max(value[2],1),prep._deadline)
                     o.check(actual['sha256']==self._contents[path],'repair-nfs-immutable-control-bytes')
-                root_names=set(self._names)
-                if locations[self.stage] is None:root_names.remove(self.stage.name)
-                if locations[displaced] is not None:root_names.add(displaced.name)
-                source_names=set(self._source_names)
-                if locations[self.source] is None:source_names.remove(self.source.name)
                 o.check(set(os.listdir(self.root))==root_names and set(os.listdir(self.source.parent))==source_names and set(os.listdir(self.journal))=={path.name for path in self._files if path.parent==self.journal},'repair-nfs-complete-namespace')
                 direct({**files,**dirs},self._nodes,absent)
                 for path,value in self._claims.items():
@@ -323,6 +331,16 @@ class RepairAdoption:
                 record(number,step,'intent')
                 with o.directory_fd(self.source.parent,directory_nodes[self.source.parent]) as library_fd,o.directory_fd(self.root,directory_nodes[self.root]) as private_fd:
                     check_state()
+                    detached = {'detach-source':self.source,'detach-stage':self.stage,'detach-displaced':displaced}.get(step)
+                    detached_key = None
+                    if detached is not None:
+                        detached_key=locations[detached]
+                        survivors=[path for path,value in locations.items() if value==detached_key and path!=detached]
+                        o.check(detached_key in fds and len(survivors)==1,'repair-nfs-original-surviving-link')
+                        survivor=survivors[0]
+                        # Remove ownership before close: a failed close may have
+                        # released/reused its number and must never be retried.
+                        owned=fds.pop(detached_key);os.close(owned)
                     # Final primitive CAS after all reader/hash/receipt/helpers.
                     # Writer excludes cooperating applications. There is no NFS
                     # conditional-unlink primitive against a hostile same-UID
@@ -364,12 +382,22 @@ class RepairAdoption:
                         os.link(displaced.name,self.stage.name,src_dir_fd=private_fd,dst_dir_fd=private_fd,follow_symlinks=False);locations[self.stage]='old'
                     else:
                         os.unlink(displaced.name,dir_fd=private_fd);locations[displaced]=None
+                    if detached_key is not None:
+                        parent_fd=library_fd if survivor.parent==self.source.parent else private_fd
+                        fds[detached_key]=os.open(survivor.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent_fd)
                     os.fsync(library_fd);os.fsync(private_fd)
                     capture_changed();check_state()
                 record(number,step,'done')
             check_state();self._dirs.update(directory9);self._seal()
         finally:
-            for fd in fds.values():os.close(fd)
+            primary=sys.exc_info()[1];errors=[]
+            for key in tuple(fds):
+                fd=fds.pop(key)
+                try:os.close(fd)
+                except BaseException as error:errors.append(error)
+            if errors:
+                if primary is None:raise errors[0]
+                primary.nfs_descriptor_cleanup_errors=tuple(type(error).__name__ for error in errors)
 
     def _change(self,reverse=False):
         self.close();o.check(self._phase==('installed' if reverse else 'prepared'),'repair-phase')

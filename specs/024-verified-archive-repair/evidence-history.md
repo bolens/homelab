@@ -857,3 +857,32 @@ lifecycle mapping to the actual archive reader lease, including BOOK, MEDIA and
 MEDIA_PAGE observations. Source tests and this diagnosis do not establish
 configured repair acceptance. Matching image/control delivery and a fresh
 fixture remain part of the existing shared T012/T015 execution order.
+
+## NFS open-file unlink — 2026-10-27
+
+PR [#533](https://github.com/bolens/homelab/pull/533) passed local and hosted
+checks, main publication and actual 180-module capture. DW verified all 27
+installed outputs and SDK103; DX bootstrap and independent archive, reader and
+24-table native baselines passed. The forward attempt passed the corrected
+reader URL mapping and reached the owning NFS archive transition. It held after
+detach-source without an accepted terminal. The reader remains exited143,
+native running and worker Created. Preserve DW/DX without replay or resume.
+
+The original journal ends at detach-source intent. The original archive remains
+at the declared displaced name and the repaired candidate remains at swap;
+their hashes match the original preparation and baseline. Independent checks
+verify member payloads, compressed bytes, CRCs and pages, unchanged unrelated
+archive full9/hash, and unchanged complete native SQL state. The target's original
+pathname is absent. A later Writer-leave status refusal is secondary to the
+uncertain transition, not evidence to relax native admission.
+
+A separate synthetic check on the same NFS transport reproduces open-file
+silly-renaming: unlink leaves a hidden alias and elevated link count until the
+descriptor closes. The correction closes only the affected inode's owned FD
+before final pathname CAS and unlink, then reopens its predetermined surviving
+hardlink and checks original identity/bytes before callbacks. Six durable steps,
+no-clobber publication, strict namespace and no uncertain retry remain intact.
+The corrected synthetic NFS algorithm passes forward/reverse, preservation and
+independent terminal verification with explicit component admission substitution.
+This does not establish installed factories or connected forward/rollback
+acceptance. T012/T015 and the shared feature 023 criteria remain open.

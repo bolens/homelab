@@ -385,7 +385,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "f2d4c6f5097f7138157cafceec6a115bf5e06951f63ad2a17e735a393c5918db"
+    "sha256": "488afb1fc6839afe799f02b7e56f7851a18e785cec1d86e0d867fe2a9825e0b1"
   },
   {
     "path": "publication_archive_derivative.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "4706fa5748fe4a7a9c197f94a8e2256116fb02cf18e8d48fb7e5978706a7b01d"
+    "sha256": "d72b76f0b500feb48a05a99d70ad91a4b8461ca5760b09645e768ecb13f9864a"
   },
   {
     "path": "story_arc_search.py",
@@ -1217,7 +1217,7 @@
   },
   {
     "path": "test_publication_archive_nfs.py",
-    "sha256": "36e43ac1e78899d49b10c06fcf490c537b30f9cc1519d5863783dd00c12402fd"
+    "sha256": "1a4ef720cfb36cc8a54ad3835731e4f69c41a3387ed8744f9492c66d4e4b2db6"
   },
   {
     "path": "test_publication_archive_diagnostics.py",
@@ -1725,7 +1725,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "d65b4449b51f5ca18ee23ae7e38410f372e303149a8a9b9f0829dc24a0f32eaa"
+    "sha256": "ad099179b07efdfe931eae763194a817e813c4f1db223a9b7df1a485e94ce17f"
   },
   {
     "path": "test_tagging_stage_inputs.py",
