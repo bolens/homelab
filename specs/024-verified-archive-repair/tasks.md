@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-26.** 17 of 22 tasks are complete. T019–T022 are delivered
+**Updated 2026-10-27.** 17 of 22 tasks are complete. T019–T022 are delivered
 implementation corrections, not additional runtime gates. Five tasks remain:
 T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
@@ -26,14 +26,15 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-PR [#531](https://github.com/bolens/homelab/pull/531) is delivered with matching
-180-module capture, SDK103 proof and 27 installed controls. DT/DU reaches the
-stopped-reader archive lease but holds because its canonical reader bind lies
-outside a hard-coded `/data/` prefix. The mapping correction retains unique
-mount projection, inverse shadow checks and the exact observed stored URL.
-Deliver its matching source/image/control closure before another unused fixture.
-Forward and distinct rollback remain unaccepted. See the
-[original diagnosis](evidence-history.md#canonical-reader-mount-projection--2026-10-26).
+PR [#533](https://github.com/bolens/homelab/pull/533) is delivered with matching
+180-module capture, SDK103 proof and 27 installed controls. DW/DX passes the
+corrected reader mapping, then holds during NFS detach-source: an open archive
+FD causes a hidden silly-rename alias instead of the expected unlink. The old
+archive and staged replacement are retained with verified hashes, members,
+compressed bytes and pages; unrelated full9/hash and all 24 native tables match.
+Deliver the close/unlink/reopen correction and matching source/image/control
+closure before another unused fixture. Forward and distinct rollback remain
+unaccepted. See the [NFS diagnosis](evidence-history.md#nfs-open-file-unlink--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

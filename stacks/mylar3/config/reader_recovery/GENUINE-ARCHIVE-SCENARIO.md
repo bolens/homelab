@@ -81,9 +81,17 @@ The six source-owned steps are retain-displaced (no-clobber hardlink),
 detach-source, publish (no-clobber hardlink), detach-stage, retain-original
 (no-clobber hardlink), and detach-displaced. Each has a durable intent and done
 receipt, separate for install and explicit reverse. Original source/candidate
-FDs, streaming hashes, metadata and exact finite nlink transitions remain bound
-through callbacks. Inline file/FD/ancestor/absence/namespace CAS follows the
-last callbacks before each syscall. Baseline v2 and the independent verifier
+identities, streaming hashes, metadata and exact finite nlink transitions remain
+bound through callbacks. Before an unlink, the affected inode's owned FD closes
+after hash/alias validation. Complete inline pathname/ancestor/absence/namespace
+CAS then precedes the unlink. The same inode is reopened through its predetermined
+surviving hardlink with no-follow semantics and verified against its original
+identity and bytes before any callback or done receipt. The other inode and both
+directory FDs remain held. This avoids NFS open-file silly-renames without
+admitting `.nfs*` aliases or refreshing expectations. Close/reopen uncertainty
+retains the marker and named originals without retry. Descriptor cleanup attempts
+every still-owned FD once and preserves the primary transition error.
+Baseline v2 and the independent verifier
 cover the protocol, full phase journal, original G and displaced absences.
 Legacy baseline v1 schemas remain unchanged.
 
