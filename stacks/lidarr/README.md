@@ -47,13 +47,13 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `lidarr:8686`)          |
 | **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
-| **Image**  | Locally built `homelab/lidarr:3.1.0.4875-null-metadata-guards.4`     |
+| **Image**  | Patched `ghcr.io/bolens/homelab-lidarr:latest`; optional `LIDARR_IMAGE` override     |
 | **Env**    | `TZ`, `PUID`, `PGID`, `LIDARR_MEDIA_PATH`, optional `LIDARR__*` |
 | **Storage**| `lidarr_config` → `/config`, `${LIDARR_MEDIA_PATH}` → `/data`; use `/data/music` and `/data/downloads/*` |
 
 ## Temporary identification patch
 
-The local image pins Lidarr `3.1.0.4875` and LinuxServer's corresponding
+The local image pins Lidarr `3.1.6.5079` and LinuxServer's corresponding
 image digest, then replaces only `Lidarr.Core.dll`. The patch prevents a
 candidate release with missing artist metadata from aborting the entire
 library scan. It also ignores orphaned track-file relations during upgrade
