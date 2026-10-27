@@ -3392,10 +3392,16 @@ class LifecycleParent:
         # Copying a child-owned record never admits a new proof row.
         original_ref=(ref['path'],ref['sha256'],tuple(ref['signature9']))
         admitted=tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))
-        physical=self.mapping.host(original_ref[0])
+        mapping=self.mapping;mounts=tuple((r['host'],r['child'],r['write']) for r in mapping.mounts)
+        physical=mapping.host(original_ref[0])
         need(dict(admitted).get(physical)==original_ref[2],'archive-terminal-history-baseline-original9')
-        view=self.child_control(ref,original_ref[0])
-        need((ref['path'],ref['sha256'],tuple(ref['signature9']))==original_ref and tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))==admitted,'archive-terminal-history-proof-unchanged')
+        if self in _CHILD_TREES:
+            _,view=_CHILD_TREES[self].output(ref,original_ref[0],'factual_record',physical=physical)
+        else:view=self.child_control(ref,original_ref[0])
+        final_physical=mapping.host(original_ref[0])
+        need(self.mapping is mapping and tuple((r['host'],r['child'],r['write']) for r in mapping.mounts)==mounts
+             and final_physical==physical and (ref['path'],ref['sha256'],tuple(ref['signature9']))==original_ref
+             and tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))==admitted,'archive-terminal-history-proof-unchanged')
         return view
 
     def phase_provider(self,phase):

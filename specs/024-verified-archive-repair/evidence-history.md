@@ -946,3 +946,37 @@ private copies, seals and final closure. Regressions reproduce the refusal
 through the actual Parent proof-copy method, exercise all 11 views and free
 rereads, and refuse the first excess input, output, NFS reservation and shared
 entry. This correction remains within T012/T015; it adds no task or runtime gate.
+
+
+## Terminal record path and owner routing — 2026-10-27
+
+EE/EF passes the separate projection budgets and the child reports observed
+forward reconstruction. Parent terminal consumption then refuses
+`child-tree-path`: its baseline is a canonical NFS retention original, while
+preparation, histories and the causal receipt use the mapped DATA directory.
+The actual 11-record layout was missing from the earlier capacity regression.
+The adjacent direct Root read would also refuse private UID1000 NFS records.
+These are inconsistent callers of the established ownership contract, not new
+filesystem requirements. The original attempt remains held without replay or
+resume. Independent post-hold comparison verifies genesis bytes, unrelated
+archive full9/hash and all 24 native SQL tables; native remains running, reader
+stopped and worker unstarted.
+
+The correction keeps general child-tree path admission confined. Only the
+owning proof-copy method supplies an exact mapped physical origin after checking
+its original proof9. NFS originals use the existing sealed owner reader as
+UID1000, including ancestor and final checks. Local UID1000 originals remain
+Root-readable and copied into separate private Root views. Mapping checks follow
+the last mapping callback; owner-method bindings precede dispatch. Both inverse
+routes reject conflicting input/output origins. The complete 77-record regression
+now uses canonical NFS and DATA layouts and exercises all 11 copies and free
+rereads. Source checks alone do not prove actual NFS or connected acceptance.
+
+
+The isolated synthetic Root/NFS check now passes against these actual Parent
+and projection sources. It exercises 66 projected inputs and all 11 terminal
+outputs on the real mount, proves direct Root access refuses while the existing
+UID1000 reader succeeds, rejects a mode0640 original, preserves all original
+bytes/identities and geometry, and restores Root identity after each read. The
+private Root views remain distinct mode0600 files. This is component evidence;
+no Docker, application workflow or connected recovery acceptance was exercised.

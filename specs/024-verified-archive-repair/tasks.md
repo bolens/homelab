@@ -30,14 +30,15 @@ PR [#537](https://github.com/bolens/homelab/pull/537) delivered the NFS descript
 correction with matching 180-module capture, SDK103 proof and 27 installed
 controls. The four installed-image discovery/import/lost-reply/rename cases pass.
 PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
-comparison correction. EB/EC then reconstructs the genesis archive, but holds
-while copying terminal proof records: its input and output views incorrectly
-share a 32-record limit. The complete path uses 26 ordinary inputs, 40 NFS
-inputs and 11 output views, within the unchanged 80-record total. Separate the
-input/output budgets and refresh the checked host installation before a new
-fixture. Target bytes, unrelated full9/hash and all 24 native tables match
-their baselines; the reader stays stopped. Forward acceptance and distinct
-rollback remain open. See the [projection diagnosis](evidence-history.md#terminal-projection-capacity--2026-10-27).
+comparison correction. PR [#541](https://github.com/bolens/homelab/pull/541)
+separates input/output budgets. EE/EF passes that boundary and reconstructs the
+genesis archive, then holds when the terminal-copy path treats an external NFS
+record as a private-tree path. The adjacent direct Root read also bypasses the
+existing UID1000 NFS reader. Correct both routes using the existing ownership
+contract, verify the actual Root/NFS copy path, then refresh the checked host
+installation for a new fixture. Target bytes, unrelated full9/hash and all 24
+native tables match their baselines; the reader stays stopped. Forward acceptance
+and distinct rollback remain open. See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

@@ -17,12 +17,12 @@ T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 PR #537 delivered the NFS descriptor correction with matching publication,
 180-module capture, SDK103 and startup-source proof. The four installed-image
 discovery/import/lost-reply/rename cases pass. PR #540 delivered the equal-directory
-fact comparison correction. EB/EC reconstructs the genesis archive, then holds
-at the projection's combined input/output limit. The complete terminal path
-needs 77 records within the existing total of 80. Separate its input/output
-budgets and refresh the checked host installation before a new fixture. The
-target's genesis bytes, unrelated full9/hash and all 24 native tables are
-preserved; the stopped reader remains held. SDK103 remains the required selection. Reuse unchanged proofs
+fact comparison correction. PR #541 separates the input/output budgets. EE/EF
+passes that boundary and reconstructs the genesis archive, then holds on an
+external terminal-record path. Correct its mapping and route NFS reads through
+the existing UID1000 owner reader before refreshing host controls and using a
+new fixture. Target genesis bytes, unrelated full9/hash and all 24 native tables
+remain preserved; the stopped reader remains held. SDK103 remains the required selection. Reuse unchanged proofs
 only for their exact image/source inputs. Changed host controls require fresh checked installation outputs;
 unchanged installations may serve distinct fixtures. Source delivery alone
 cannot establish accepted runtime terminals. The current shared work finishes
