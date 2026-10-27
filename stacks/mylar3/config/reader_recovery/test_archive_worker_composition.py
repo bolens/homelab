@@ -6,6 +6,8 @@ import copy
 from contextlib import closing
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -94,6 +96,31 @@ class Tests(unittest.TestCase):
  def test_genuine_nested_original_pipes_worker_readback_before_producer_release(self):
   self.unit5();ack=self.run_nested();self.assertEqual(ack,{'fixture':'synthetic-parent-facts-only'});self.assertTrue(self.both);self.assertTrue(self.worker_final)
   result=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]['worker_result'];self.assertEqual(result['type'],'observed');self.assertTrue(all(v is False for v in result['rights'].values()))
+ def change_authority_before_worker_guard(self):
+  self.unit5();original=self.parent.continuous;module=p._WORKER_MODULES[self.parent];fired=[]
+  def continuous():
+   result=original()
+   if module._ROUND_STATES and not fired:
+    before=self.authority.stat();os.utime(self.authority,ns=(before.st_atime_ns,before.st_mtime_ns+1));fired.append(True)
+   return result
+  self.parent.continuous=continuous
+  return fired
+ def test_worker_guard_retains_exact_failing_metadata_without_paths(self):
+  fired=self.change_authority_before_worker_guard();before=self.authority.read_bytes();stderr=io.StringIO()
+  with patch.object(sys,'stderr',stderr),self.assertRaises(p.Held) as caught:self.run_nested()
+  self.assertEqual(str(caught.exception.__context__),'worker-parent-final-file')
+  self.assertEqual(fired,[True]);self.assertIsNone(self.worker_row);self.assertFalse(self.worker_final)
+  self.assertEqual(self.authority.read_bytes(),before)
+  detail=p.decode(stderr.getvalue().encode());self.assertLess(len(stderr.getvalue()),1024)
+  self.assertNotIn(str(self.authority),stderr.getvalue());self.assertEqual(detail['kind'],'worker-parent-file-change')
+  self.assertEqual(detail['path_sha256'],hashlib.sha256(os.fsencode(self.authority)).hexdigest())
+  self.assertEqual(detail['current9'],p.nine(self.authority.lstat()));self.assertIn(3,detail['changed_fields'])
+  self.assertEqual(detail['current9'][3],detail['original9'][3]+1)
+ def test_worker_metadata_diagnostic_failure_preserves_original_refusal(self):
+  fired=self.change_authority_before_worker_guard()
+  with patch.object(sys.stderr,'write',side_effect=OSError('diagnostic unavailable')),self.assertRaises(p.Held) as caught:self.run_nested()
+  self.assertEqual(str(caught.exception.__context__),'worker-parent-final-file')
+  self.assertEqual(fired,[True]);self.assertIsNone(self.worker_row);self.assertFalse(self.worker_final)
  def test_late_parent_source_drift_never_releases_producer(self):
   self.unit5();fired=[]
   def change(state):

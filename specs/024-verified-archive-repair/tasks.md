@@ -31,14 +31,18 @@ correction with matching 180-module capture, SDK103 proof and 27 installed
 controls. The four installed-image discovery/import/lost-reply/rename cases pass.
 PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
 comparison correction. PR [#541](https://github.com/bolens/homelab/pull/541)
-separates input/output budgets. EE/EF passes that boundary and reconstructs the
-genesis archive, then holds when the terminal-copy path treats an external NFS
-record as a private-tree path. The adjacent direct Root read also bypasses the
-existing UID1000 NFS reader. Correct both routes using the existing ownership
-contract, verify the actual Root/NFS copy path, then refresh the checked host
-installation for a new fixture. Target bytes, unrelated full9/hash and all 24
-native tables match their baselines; the reader stays stopped. Forward acceptance
-and distinct rollback remain open. See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
+separates input/output budgets and corrects terminal-copy path and owner routing.
+EH/EI passes all 11 terminal copies, then holds at the worker's exact file guard.
+The read-only diagnosis and all 19 protected operation-file comparisons pass.
+Later native workflow/DATA timestamp changes cannot identify the historical
+failing row. Retain its path hash and original/current metadata at the guard
+before another connected attempt; do not refresh facts or weaken the guard.
+Audit the Writer-release boundary through worker observation, ACK and resume:
+terminal facts are captured under Writer but consumed after release. This is a
+known concurrency exposure, not yet proof of EH's particular failing file.
+Target bytes, unrelated full9/hash and all 24 native tables match their baselines;
+the reader stays stopped. Forward acceptance and distinct rollback remain open.
+See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

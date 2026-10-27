@@ -3796,7 +3796,15 @@ class LifecycleParent:
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('worker-parent-final-node')
             for path,value in files:
                 z=nfs_lstat(path)
-                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('worker-parent-final-file')
+                actual9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                if actual9!=tuple(value):
+                    # Retain the failing observation, not a later live sample.
+                    # Never expose paths/contents or replace the primary refusal.
+                    try:
+                        print(encode(dict(kind='worker-parent-file-change',path_sha256=hashlib.sha256(os.fsencode(path)).hexdigest(),
+                            original9=list(value),current9=list(actual9),changed_fields=[i for i in range(9) if value[i]!=actual9[i]])).decode(),file=sys.stderr,flush=True)
+                    except BaseException:pass
+                    raise Held('worker-parent-final-file')
             if (module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))!=constants:raise Held('worker-parent-final-protocol-constants')
             if module.__dict__.get('Round') is not functions[1] or type(protocol) is not functions[1] or type(protocol).__getattribute__ is not object.__getattribute__ or len(functions[1].__dict__)!=len(functions[2]) or any(functions[1].__dict__.get(name) is not value for name,value in functions[2]) or functions[1].__init__.__code__ is not functions[3] or functions[1].accept.__code__ is not functions[4]:raise Held('worker-parent-final-protocol-implementation')
             for name,function,code in functions[0]:

@@ -980,3 +980,29 @@ UID1000 reader succeeds, rejects a mode0640 original, preserves all original
 bytes/identities and geometry, and restores Root identity after each read. The
 private Root views remain distinct mode0600 files. This is component evidence;
 no Docker, application workflow or connected recovery acceptance was exercised.
+
+
+## Worker file guard diagnosis — 2026-10-27
+
+EH/EI passed the corrected terminal-copy path, including all 11 factual views,
+then held at `worker-parent-final-file` before creating the observation worker.
+The original terminal result and resume were not accepted. The reader remains
+stopped; the native fixture is running and the fixture worker remains Created.
+Independent target-byte, unrelated archive full9/hash and 24-table native
+comparisons pass. All 19 protected operation-file facts match at the later
+read-only comparison.
+
+Later samples show changed timestamps for the native workflow database and DATA
+directory, but those samples postdate the failure. They cannot identify its
+original offending row. The Parent captures terminal facts under Writer and
+consumes them after release; ordinary native work can then invalidate them.
+The same facts are checked again through worker completion, terminal closure
+and resume. Neither weakening the first guard nor adopting later facts resolves
+that lifetime boundary.
+
+The worker guard now retains bounded failure-time path SHA-256 and original and
+current metadata, without paths or contents. Nested-pipe controls cover an
+unchanged-byte timestamp change before worker creation and failure of diagnostic
+output without replacing the original refusal. This is diagnostic coverage, not
+a correction of the Writer-release exposure or connected acceptance. Preserve
+EH/EI and use its original records; never replay or infer reader resume.

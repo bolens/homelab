@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "578b4665d3ab9caf4562bdc482ee023a567f12a60948e2e9d9ba8c1f5c2493f6"
+      "sha256": "9012132172bf3e785686c4c1b6f06924d707797121512df1fcfe8cd4cebc5be1"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "5e727425687c91fa16bf8a6b1a54a5427e1b90f6bb4f67995949ba7136e34e56"
+      "sha256": "7e43ca9b773bc03728331862d1983f63b25e7a697bf9c8e0b9954ecb70181773"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "12f1e3c3b7d7a662a0bc06c12b9d142c5c1fce96d4b234ac5e895a8bb779f62e"
@@ -511,7 +511,7 @@
       "sha256": "756b26bf25e3bf6e669ffdb5bc8eb682fda032a6b01c9c70916cce91f28d40f8"
     },
     "genuine_current_roles.py": {
-      "sha256": "e80338aa05ade8c3e06985b5d6483ffa33e710affdca1aa9a6b5437221400e6e"
+      "sha256": "725e4ce7bad33b6498c0bfedf665cd053fc184989d773607cd0e40eb26aa2cd6"
     },
     "genuine_native_catalog.py": {
       "sha256": "af76f96dad58721ba9b87cf90c2955384d9ad5f2307f9ae12719b4197406949e"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "38366ce900b6719518585909703958e3f5e5060100d216d054535311c18882f7"
+      "sha256": "85514e59eb4c1db11a460861cbb6fc7f70d0b2b20a5c7db2c73f6515e2653ea2"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -592,7 +592,7 @@
       "sha256": "9ed2754646da4442060a74c42c155c14add63d70f5d399d21b42f119270abcac"
     },
     "test_archive_worker_composition.py": {
-      "sha256": "5f932d5ac6bb8d6f375940f1d63be9c0f2c2b15d006ca03d185455f7215f49d0"
+      "sha256": "508bb3a250a3d21302ccdcfa99c30e6e98b34fe4b63f9bd413cc3bfe501ec0a0"
     },
     "test_archive_worker_vectors.py": {
       "sha256": "cce5c6761057c17b6e30ebfb7eb014934abe9e4c24535e455f5153b10f0b9c5c"
