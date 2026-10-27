@@ -66,7 +66,7 @@ built-in unpacker and removes empty subdirectories inside the processed release.
 It preserves the processing directory itself, its parents such as
 `usenet/completed/music`, and sibling release directories. An empty music
 category directory is retained.
-After successful extraction, `.accurip`, `.jpg`, `.log`, `.m3u`,
+After successful extraction, `.accurip`, `.jpg`, `.log`, `.lrc`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in
@@ -82,15 +82,26 @@ are retained. Cleanup removes a file with a sidecar extension only when its
 content is a recognized image or PDF document, or the entire file is readable text. BOM-marked UTF-16 text, including Exact
 Audio Copy logs, is supported in either byte order. Local UTF-16 playlists receive
 the same completeness checks as UTF-8 playlists; retained playlists keep their
-BOM and byte order when references change. Malformed UTF-16, binary
+BOM and byte order when references change. Explicit `.m3u` and `.m3u8` playlists
+also support Windows-1252 and preserve that encoding when references change.
+Malformed UTF-16, binary
 control characters and cue-referenced files remain protected.
-Scene `.nfo` files containing CP437 box art are also recognised when all other
-content is printable ASCII or ordinary text whitespace. The fallback is limited
-to `.nfo`, drawing glyphs and the CP437 black square; unsupported binary content
-remains protected.
-Binary `.srr` recovery sidecars are recognised by the ReScene marker and valid
-bounded application header. Unknown or malformed binary files with that suffix
-remain retained, and cue references continue to protect files from cleanup.
+Scene `.nfo` files support Windows-1252 text and CP437 box art with accented
+letters and middle dots. The entire file must pass the text checks. Binary
+controls, undefined Windows-1252 bytes and unsupported CP437 glyphs remain
+protected. Adjacent drawing glyphs keep malformed box art from being retried as
+Windows text. Lyrics files with an `.lrc` suffix use the normal text cleanup rules.
+Binary SRR recovery sidecars are recognised by the ReScene marker and valid
+bounded application header, including files with obfuscated names. Unknown or
+malformed binary files remain retained. Named audio/video and cue-referenced
+files remain protected.
+
+Obfuscated posting names ending in the scene hash and `newzNZB`/`yEnc` fields
+also support UTF-8 SFV checksum lists and release NFOs up to 64 KiB. Checksum
+lists require local audio paths and eight-digit hexadecimal CRCs on every
+non-comment entry. Release NFOs require nonempty artist and album fields, at
+least two additional release fields and a numbered track entry. Unstructured
+text, unsafe checksum paths and unidentified binary files are retained.
 
 Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
 filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
@@ -120,7 +131,8 @@ MusicBrainz tags do not invalidate album/track metadata; conflicting values
 used for album identity or track positions remain ambiguous. Missing entries stop processing
 before cleanup. Complete recognised lists, including extensionless files, are
 removed during cleanup. Unknown, ambiguous, remote and unsafe M3U lists stay
-retained. Recognition accepts UTF-8 lists up to 1 MiB with local audio paths;
+retained. Recognition accepts UTF-8, BOM-marked UTF-16 and explicit Windows-1252 M3U
+lists up to 1 MiB with local audio paths;
 it does not fetch URLs or infer completeness from unrelated text.
 Retained, resolvable playlists have their references updated whenever files move
 or gain extensions, including cleanup-disabled helpers and cue-protected lists.

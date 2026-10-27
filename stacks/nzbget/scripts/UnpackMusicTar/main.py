@@ -42,6 +42,7 @@ UNWANTED_SUFFIXES = {
     ".accurip",
     ".jpg",
     ".log",
+    ".lrc",
     ".m3u",
     ".m3u8",
     ".md5",
@@ -251,20 +252,35 @@ def is_text_sidecar(path: Path) -> bool:
     except UnicodeDecodeError:
         if encoding == "utf-16" or path.suffix.casefold() != ".nfo":
             return False
-        # Scene NFOs often use CP437 box art. Limit the fallback to printable
-        # ASCII plus drawing glyphs, rather than interpreting arbitrary binary
-        # bytes as printable characters in a single-byte encoding.
+        # Scene NFOs mix drawing glyphs with accented release text. Keep the
+        # drawing alphabet separate from Windows text, and reject binary controls.
         drawing = False
+        valid_cp437 = True
+        drawing_run = False
+        previous_drawing = False
         with path.open("rb") as stream:
             while chunk := stream.read(65536):
-                for byte, char in zip(chunk, chunk.decode("cp437")):
-                    if byte >= 128:
-                        if not ("\u2500" <= char <= "\u259f" or char == "\u25a0"):
-                            return False
-                        drawing = True
-                    elif not char.isprintable() and char not in "\t\r\n\f":
+                for char in chunk.decode("cp437"):
+                    glyph = "\u2500" <= char <= "\u259f" or char == "\u25a0"
+                    drawing |= glyph
+                    drawing_run |= glyph and previous_drawing
+                    previous_drawing = glyph
+                    if not (char.isascii() and (char.isprintable() or char in "\t\r\n\f")
+                            or glyph or char.isalpha() or char == "·"):
+                        valid_cp437 = False
+        if drawing and valid_cp437:
+            return True
+        # A lone accented Windows character can resemble a drawing glyph.
+        # Keep malformed box art protected rather than retrying it as Windows text.
+        if drawing_run:
+            return False
+        try:
+            with path.open(encoding="cp1252") as stream:
+                while chunk := stream.read(65536):
+                    if any(not char.isprintable() and char not in "\t\r\n\f" for char in chunk):
                         return False
-        return drawing
+        except UnicodeDecodeError:
+            return False
     return True
 
 
@@ -306,6 +322,31 @@ def is_album_info_sidecar(path: Path) -> bool:
             and re.search(r"^[ \t]*\d{1,3}[ .)-]+\S[^\r\n]*\r?$", text, re.MULTILINE) is not None)
 
 
+def is_obfuscated_posting_sidecar(path: Path) -> bool:
+    """Require both a posting filename and structured release metadata/checksums."""
+    if not re.search(r"\.[0-9a-f]{8}___[0-9a-f]{12}_ \[newzNZB\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+                     path.name, re.IGNORECASE):
+        return False
+    with path.open("rb") as stream:
+        raw = stream.read(65537)
+    if not raw or len(raw) > 65536:
+        return False
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return False
+    if any(not char.isprintable() and char not in "\t\r\n\f" for char in text):
+        return False
+    lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith(";")]
+    if lines and all((match := re.fullmatch(r"(.+) +[0-9a-fA-F]{8}", line))
+                     and playlist_reference(match[1]) is not None for line in lines):
+        return True
+    fields = {match[1].casefold() for line in text.splitlines()
+              if (match := re.fullmatch(r"[ \t]*(Artist|Album|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*", line, re.IGNORECASE))}
+    return ({"artist", "album"} <= fields and len(fields) >= 4
+            and re.search(r"^[ \t]*\d{1,3}[ .)-]+\S[^\r\n]*\r?$", text, re.MULTILINE) is not None)
+
+
 def disposable(path: Path) -> bool:
     suffix = path.suffix.casefold()
     if suffix not in KNOWN_MEDIA_SUFFIXES | {".cue", ".m3u", ".m3u8"}:
@@ -316,7 +357,9 @@ def disposable(path: Path) -> bool:
     if not suffix and is_album_info_sidecar(path):
         return detected_suffix(path) is None and playlist_entries(path) is None
     if suffix not in UNWANTED_SUFFIXES:
-        return False
+        if suffix in KNOWN_MEDIA_SUFFIXES | {".cue"} or detected_suffix(path) is not None:
+            return False
+        return is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path)
     # Playlist disposal needs the whole release, including files from later
     # archives. Never discard a duplicate before completeness is established.
     if path.suffix.casefold() in {".m3u", ".m3u8"} or playlist_entries(path) is not None:
@@ -598,6 +641,18 @@ def playlist_reference(line: str) -> PurePosixPath | None:
     return entry
 
 
+def playlist_encoding(raw: bytes, path: Path) -> str:
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return "utf-16-le" if raw[:2] == b"\xff\xfe" else "utf-16-be"
+    try:
+        raw.decode("utf-8-sig")
+        return "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
+    except UnicodeDecodeError:
+        if path.suffix.casefold() not in {".m3u", ".m3u8"}:
+            raise
+        return "cp1252"
+
+
 def playlist_entries(path: Path) -> list[PurePosixPath] | None:
     """Recognise bounded local M3U text, never arbitrary text or remote paths."""
     if path.suffix.casefold() in KNOWN_MEDIA_SUFFIXES | {".cue"}:
@@ -606,7 +661,7 @@ def playlist_entries(path: Path) -> list[PurePosixPath] | None:
         return None
     try:
         raw = path.read_bytes()
-        text = raw.decode("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig")
+        text = raw.decode(playlist_encoding(raw, path)).removeprefix("\ufeff")
     except UnicodeDecodeError:
         return None
     entries = []
@@ -784,8 +839,7 @@ def plan_tree(root: Path, *, flatten: bool = True,
             continue
         raw = playlist.read_bytes()
         bom = raw[:2] if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else b""
-        encoding = ("utf-16-le" if bom == b"\xff\xfe" else "utf-16-be") if bom else (
-            "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8")
+        encoding = playlist_encoding(raw, playlist)
         lines = []
         for line in raw[len(bom):].decode(encoding).splitlines(keepends=True):
             entry = playlist_reference(line)
