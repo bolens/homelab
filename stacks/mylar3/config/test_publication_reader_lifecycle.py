@@ -12,7 +12,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 P=Path(__file__).resolve().with_name('publication_reader_lifecycle.py')
 spec=importlib.util.spec_from_file_location('lifecycle_fixture',P);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -54,6 +54,44 @@ class Tests(unittest.TestCase):
   c=self.make();(self.config/'database.sqlite').chmod(0o600);c.control_vectors()
   with self.assertRaises(m.Held):c.vectors()
  def test_observed_stored_URL_spelling(self):self.assertEqual(self.make().native_url(self.source),'file:///data/library/a%20comic.cbz')
+ def reader_destination(self,destination,url):
+  self.state['Mounts'][0]['Destination']=destination
+  with closing(sqlite3.connect(self.config/'database.sqlite')) as db,db:db.execute('UPDATE BOOK SET URL=?',(url,))
+  self.reader['current_pairs']=self.pairs(self.config);self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+ def test_observed_URL_at_canonical_and_custom_reader_destinations(self):
+  for destination in (str(self.library),'/reader/comics'):
+   with self.subTest(destination=destination):
+    url=(Path(destination)/self.source.name).as_uri();self.reader_destination(destination,url)
+    self.assertEqual(self.make().native_url(self.source),url)
+ def test_alias_outside_data_does_not_hide_equal_source_ambiguity(self):
+  self.state['Mounts'].append(dict(self.state['Mounts'][0],Destination='/reader/comics'));self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+  with self.assertRaisesRegex(m.Held,'native-reader-mapping'):self.make().native_url(self.source)
+ def test_custom_reader_destination_overmount_refused(self):
+  self.reader_destination('/reader/comics','file:///reader/comics/a%20comic.cbz')
+  self.state['Mounts'].append(dict(Type='bind',Source=str(self.root),Destination='/reader/comics'));self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+  with self.assertRaisesRegex(m.Held,'destination-shadow'):self.make().native_url(self.source)
+ def test_custom_reader_destination_requires_actual_stored_URL(self):
+  self.reader_destination('/reader/comics','file:///reader/foreign/a%20comic.cbz')
+  with self.assertRaisesRegex(m.Held,'unique-observed-native-URL'):self.make().native_url(self.source)
+ def test_canonical_reader_mapping_reaches_actual_archive_lease(self):
+  # Installed origins, native scope and the parent pipe use fixture substitutes.
+  # Both native_url and from_stopped use actual database/mount logic.
+  for root in (self.config,self.restore):
+   for name in ('database.sqlite','tasks.sqlite'):
+    with closing(sqlite3.connect(root/name)) as db,db:
+     db.execute('DROP TABLE BOOK');db.execute('CREATE TABLE BOOK(ID TEXT, URL TEXT, DELETED_DATE TEXT)')
+     db.execute('CREATE TABLE MEDIA(BOOK_ID TEXT, STATUS TEXT, PAGE_COUNT INTEGER)');db.execute('CREATE TABLE MEDIA_PAGE(BOOK_ID TEXT, NUMBER INTEGER, FILE_NAME TEXT)')
+     if name=='database.sqlite':
+      db.execute('INSERT INTO BOOK VALUES (?,?,NULL)',('active',self.source.as_uri()))
+      db.execute("INSERT INTO MEDIA VALUES ('active','READY',1)");db.execute("INSERT INTO MEDIA_PAGE VALUES ('active',0,'page01.png')")
+  self.reader['restore_pairs']=self.pairs(self.restore);self.reader_destination(str(self.library),self.source.as_uri())
+  owned=__import__('publication_archive_owned');package=ModuleType('mylar');package.__path__=[str(P.parent)]
+  spec=importlib.util.spec_from_file_location('archive_reader_integration_fixture',P.with_name('publication_archive_reader.py'));reader=importlib.util.module_from_spec(spec)
+  with patch.dict(sys.modules,{'mylar':package,'mylar.publication_archive_owned':owned}):spec.loader.exec_module(reader)
+  custody=self.make()
+  with patch.object(reader,'installed'),patch.object(reader,'lifecycle',return_value=m):
+   lease=reader.from_stopped(custody,self.source,self.scratch)
+   self.assertEqual(lease.binding['url'],self.source.as_uri());self.assertEqual(lease.binding['active_book_id'],'active');self.assertEqual(lease.binding['page_names'],['page01.png']);lease.revalidate()
  def test_ambiguous_stored_URL_refused(self):
   con=sqlite3.connect(self.config/'database.sqlite');con.execute('INSERT INTO BOOK VALUES (2,?)',('file:///data/library/a comic.cbz',));con.commit();con.close();self.reader['current_pairs']=self.pairs(self.config);self.write('input.lifecycle.json',m.encoded(self.doc))
   with self.assertRaises(m.Held):self.make().native_url(self.source)

@@ -21,7 +21,7 @@ def load(name, path):
     return module
 m = load('admission_fixture', str(_PORTABLE_ROOT / 'publication_reader_admission.py'))
 assert Path(m.__file__).resolve() == _PORTABLE_ROOT / 'publication_reader_admission.py'
-assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == 'ff57be2b2b085209f8cb88f4ac477be768e7c56014bd9afe9eb6c3d208d9d823'
+assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == '2bdc483dec44c9f3296dd9b2d36d71c6fc8079d264c1b548682dfa0d6d9ac771'
 d = load('disk_fixture', str(_PORTABLE_ROOT / 'fixtures/comic_komga_stopped_reader_disk_v3.py'))
 f = load('kernel_fixture', str(_PORTABLE_ROOT / 'test_publication_reader_softdelete.py'))
 
@@ -625,7 +625,7 @@ class GeometryControls(unittest.TestCase):
         self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
         self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
-        self.assertEqual(m.LIFECYCLE_SHA,'e21ed7d045876e44e02f53963372b9bd1e0c134bc5bb3eb6a47b704d7473a30a')
+        self.assertEqual(m.LIFECYCLE_SHA,'19a58d6847c40b98ac1152863ee7881fd216c6c32c2cd7cbfb09fb40dab2369f')
         self.assertIsNone(m.PARENT_SHA)
 
 if __name__ == '__main__':

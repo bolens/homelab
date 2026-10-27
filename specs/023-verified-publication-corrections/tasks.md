@@ -8,16 +8,16 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-24.** Eight tasks retain integration or operational criteria.
+**Updated 2026-10-26.** Eight tasks retain integration or operational criteria.
 The immediate work is the shared isolated forward and
 separate rollback described in [feature 024's current work](../024-verified-archive-repair/tasks.md#current-remaining-work).
 One accepted pair can satisfy the connected portions of T026/T029, isolated
 T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 
-The matching native image, source capture, required SDK and DATA precondition/source proof from
-PR #515 are retained as the baseline. PR #522 changes five native modules and
-requires matching publication and a fresh 180-module capture before the next
-isolated pair; SDK103 remains the required selection. Reuse unchanged proofs
+PR #531 has matching publication, 180-module capture, SDK103 and DATA proof.
+Its DT/DU forward attempt holds at the stopped-reader lease's canonical mount
+projection. Deliver the corrected mapping and matching image/control closure
+before the next unused fixture; SDK103 remains the required selection. Reuse unchanged proofs
 only for their exact image/source inputs. Changed host controls require fresh checked installation outputs;
 unchanged installations may serve distinct fixtures. Source delivery alone
 cannot establish accepted runtime terminals. The current shared work finishes
@@ -138,7 +138,7 @@ T017 retains the verified 12-scope outer backup and isolated restore with all 72
 
 | Task | Next bounded action and inputs | Evidence required to mark complete |
 | --- | --- | --- |
-| T026 | Use the current checked installation and matching source/image evidence in the shared isolated pair. Use PR #515 only as the derivation baseline; capture the matching published native image with all five changed modules before binding fresh controls. | Exact installed SDK/factory joins, accepted original terminal/consumption and final source/namespace closure; reuse unchanged image proof only for exact original inputs. |
+| T026 | Use the current checked installation and matching source/image evidence in the shared isolated pair. Capture the matching published native image with every changed required module before binding fresh controls. | Exact installed SDK/factory joins, accepted original terminal/consumption and final source/namespace closure; reuse unchanged image proof only for exact original inputs. |
 | T029 | Complete the shared isolated forward and distinct rollback using the delivered host controls, fresh roles/scope and an independently verified backup/restore for each fixture. Preserve held attempts without replay and retain the separate freshness guard and original runtime custody. | Original execute/terminal chain, actual NFS and causal archive transition, independent physical/native/reader comparisons and factual native/worker consumption. Installed ordinary import/lost-response/naming component proof remains required. |
 | T017 | Coordinate writers and follow the owning rollout route. For registration/reconciliation use `scripts/prepare-publication-corrections.py`, native registration preparation/acceptance, a fresh retained-repeat plan, `commitRetainedRepeat` and passive `retainedRepeatStatus`. | Verified backup/restore, exact image/config/data baseline, accepted registration/token/status, wrong repeat outside the scanned library, correct owners/bytes/readers and database integrity unchanged. Complete only after T027 and the required retained paths succeed. |
 | T027 | Use the maintained NFS factual/reader-proof contracts with original operational geometry and mount/source refs. Retain custody through canary cleanup, Writer release, reader stop, backup/restore and independent terminal verification. | Actual readiness and owned cleanup; checked factual owner; stopped-reader and database-restore controls; terminal/reader resume proof and complete final physical coverage. Disposable Btrfs helper tests do not prove actual NFS or lease behavior. |

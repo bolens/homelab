@@ -835,3 +835,25 @@ private derivative/receipt creation and the derivative's final attribute readbac
 PR [#531](https://github.com/bolens/homelab/pull/531) carries the original exclusive
 file-descriptor fact through these boundaries and rejects replacements. This
 source correction remains part of T012/T015; it supplies no runtime acceptance.
+
+## Canonical reader mount projection — 2026-10-26
+
+PR [#531](https://github.com/bolens/homelab/pull/531) passed local and hosted
+checks, main publication and actual 180-module capture. DT verified 27 installed
+outputs and SDK103; DU bootstrap and fresh preservation baselines passed. The
+forward attempt reached causal fixture replacement and owning preparation,
+then held in `StoppedReaderCustody.native_url` with
+`lifecycle-native-reader-mapping`. Its reader binds the library at its original
+canonical path, while that method considered only destinations under `/data/`.
+The execute helper exited1. No terminal or resume was accepted. The reader
+remains exited143, native running and worker Created. The unrelated archive
+retains its full9/hash and all 24 native tables are unchanged. The target differs
+from genesis. Preserve DT/DU without replay.
+
+The correction removes the destination-prefix assumption while retaining the
+unique deepest source bind, inverse destination/shadow checks, exact observed
+BOOK URL and final custody closure. Regression coverage joins the actual
+lifecycle mapping to the actual archive reader lease, including BOOK, MEDIA and
+MEDIA_PAGE observations. Source tests and this diagnosis do not establish
+configured repair acceptance. Matching image/control delivery and a fresh
+fixture remain part of the existing shared T012/T015 execution order.
