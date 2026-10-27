@@ -1486,6 +1486,9 @@ Private local custody may retain an NFS-only ACL as sealed source metadata when
 the local filesystem cannot store it. Both private byte copies still retain
 identical portable attributes. Publishing or reversing on NFS requires the full
 original ACL to be applied and verified there; local copies alone do not prove it.
+Created copies, derivatives and receipts retain the original file-descriptor
+identity through readback and later checks. Replacing a file with identical bytes
+cannot establish a new custody baseline.
 The pending and terminal markers for both negative retirement
 (`negative-retirement-v1.pending`, `negative-retirement-v1.terminal-pending`)
 and archive repair (`archive-repair-v1.pending`,

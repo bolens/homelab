@@ -152,6 +152,42 @@ class Controls(unittest.TestCase):
   with self.writer.hold():
    p=self.prepare();(p._operation/'restored-original.arc').write_bytes(b'foreign')
    with self.assertRaises(m.Held):p.revalidate()
+ def test_custody_last_readback_retains_created_FD_identity(self):
+  real=m.fact;fired=[]
+  def late(target,*args):
+   if Path(target).name=='original.arc' and not fired:
+    info=target.stat();temporary=target.with_name('replacement');temporary.write_bytes(target.read_bytes());temporary.chmod(stat.S_IMODE(info.st_mode));os.utime(temporary,ns=(info.st_atime_ns,info.st_mtime_ns));os.replace(temporary,target);fired.append(True)
+   return real(target,*args)
+  with self.writer.hold(),patch.object(m,'fact',side_effect=late),self.assertRaisesRegex(m.Held,'custody-readback'):self.prepare()
+  self.assertTrue(fired)
+ def test_late_created_file_replacement_cannot_become_baseline(self):
+  real=m.write
+  for index,name in enumerate(('intent.json','prepared.cbz','preparation.json'),10):
+   with self.subTest(name=name):
+    self.operation_id=f'{index:064x}';fired=[]
+    def late(target,*args):
+     result=real(target,*args)
+     if target.name==name:
+      info=target.stat();temporary=target.with_name('replacement');temporary.write_bytes(target.read_bytes());temporary.chmod(stat.S_IMODE(info.st_mode));os.utime(temporary,ns=(info.st_atime_ns,info.st_mtime_ns));os.replace(temporary,target);fired.append(True)
+     return result
+    with self.writer.hold(),patch.object(m,'write',side_effect=late),self.assertRaises(m.Held):self.prepare()
+    self.assertTrue(fired)
+ def test_late_custody_change_cannot_become_baseline(self):
+  real=m.preserve
+  for index,(name,replace) in enumerate((('original.arc',False),('restored-original.arc',False),('original.arc',True),('restored-original.arc',True)),2):
+   with self.subTest(name=name,replace=replace):
+    self.operation_id=f'{index:064x}';fired=[]
+    def late(*args):
+     result=real(*args);target=args[1]
+     if target.name==name:
+      raw=target.read_bytes();info=target.stat()
+      if replace:
+       temporary=target.with_name('replacement');temporary.write_bytes(raw);temporary.chmod(stat.S_IMODE(info.st_mode));os.replace(temporary,target)
+      else:target.write_bytes(bytes([raw[0]^1])+raw[1:])
+      os.utime(target,ns=(info.st_atime_ns,info.st_mtime_ns));fired.append(True)
+     return result
+    with self.writer.hold(),patch.object(m,'preserve',side_effect=late),self.assertRaises(m.Held):self.prepare()
+    self.assertTrue(fired)
  def test_nfs_acl_retained_in_source_evidence_with_portable_private_copies(self):
   os.setxattr(self.source,'user.fixture',b'keep')
   with nfs_acl(self.source),self.writer.hold():
@@ -214,15 +250,17 @@ class Controls(unittest.TestCase):
  def test_late_preparation_write_corruption_not_adopted(self):
   real=m.write
   def late(p,raw,*a):
-   real(p,raw,*a)
+   result=real(p,raw,*a)
    if p.name=='preparation.json':p.write_bytes(b'{}')
-  with self.writer.hold(),patch.object(m,'write',side_effect=late),self.assertRaisesRegex(m.Held,'intended-preparation'):self.prepare()
+   return result
+  with self.writer.hold(),patch.object(m,'write',side_effect=late),self.assertRaisesRegex(m.Held,'read-path-CAS'):self.prepare()
  def test_late_custody_alias_catalog_claim_held(self):
   self.sql('INSERT INTO issues VALUES (?,?,?,?)',('777','456','late.cbz','Wanted'))
   real=m.preserve;fired=[]
   def late(*a):
-   real(*a)
+   result=real(*a)
    if not fired:os.symlink(self.source,self.library/'late.cbz');fired.append(True)
+   return result
   with self.writer.hold(),patch.object(m,'preserve',side_effect=late),self.assertRaises(Exception):self.prepare()
   self.assertTrue(fired)
 
@@ -238,8 +276,9 @@ class Controls(unittest.TestCase):
  def test_late_xattr_change_is_not_adopted(self):
   real=m.preserve;fired=[]
   def late(*a):
-   real(*a)
+   result=real(*a)
    if not fired:os.setxattr(self.source,'user.fixture',b'foreign');fired.append(True)
+   return result
   with self.writer.hold(),patch.object(m,'preserve',side_effect=late),self.assertRaises(m.Held):self.prepare()
   self.assertTrue(fired)
  def test_late_stage_read_adds_foreign_child_not_adopted(self):

@@ -97,11 +97,11 @@ def _set_size(db,owner,before,after,deadline):
 
 def _copy_derivative(prep,destination):
     f=prep._binding['derivative'];raw=o.read_checked(Path(f['path']),f['signature9'],512*1024**2+2,prep._deadline)
-    o.write(destination,raw,o.stat5(os.lstat(destination.parent)))
+    created=o.write(destination,raw,o.stat5(os.lstat(destination.parent)))
     # Derivative retains original access attributes/xattrs; mtime is explicit new
     # revision time, so the reader's normal scanner can detect the replacement.
     attrs=copy.deepcopy(prep._binding['source_attributes']);attrs['mtime_ns']=time.time_ns()
-    initial=o.signature(destination)
+    initial=created['signature9']
     with o.directory_fd(destination.parent,o.stat5(os.lstat(destination.parent))) as parent:
         fd=os.open(destination.name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=parent)
         try:
@@ -113,7 +113,7 @@ def _copy_derivative(prep,destination):
             final=o.stat9(os.fstat(fd));o.check(o.stat9(os.stat(destination.name,dir_fd=parent,follow_symlinks=False))==final,'derivative-attribute-path')
         finally:os.close(fd)
     result=o.fact(destination,512*1024**2+2,prep._deadline)
-    o.check(result['sha256']==f['sha256'] and o.attributes(destination)==attrs,'derivative-copy')
+    o.check(result==dict(path=str(destination),signature9=final,sha256=f['sha256']) and o.attributes(destination)==attrs,'derivative-copy')
     return result,attrs
 
 _NFS_SELECTIONS=weakref.WeakKeyDictionary()
@@ -207,7 +207,8 @@ class RepairAdoption:
     def _seal(self):_SEALS[self]=self._core()
     def _life(self):o.check(_SEALS.get(self)==self._core() and threading.get_ident()==self._thread and time.monotonic()<self.preparation._deadline and self._objects==[id(self.preparation),id(self.reader),id(self.preparation._writer),id(self.preparation._controller)],'repair-lifetime')
     def _record(self,name,value):
-        raw=o.compact(value);p=self.journal/name;o.write(p,raw,self._nodes[self.journal]);f=o.fact(p,1024**2,self.preparation._deadline)
+        raw=o.compact(value);p=self.journal/name;f=o.write(p,raw,self._nodes[self.journal])
+        o.check(o.fact(p,1024**2,self.preparation._deadline)==f,'repair-created-receipt')
         o.check(f['sha256']==hashlib.sha256(raw).hexdigest(),'repair-intended-receipt');self._files[p]=f['signature9'];self._contents[p]=f['sha256'];o.check(set(os.listdir(self.journal))=={q.name for q in self._files if q.parent==self.journal},'repair-record-census');self._dirs[self.journal]=o.signature(self.journal);self._receipt={'path':str(p),'sha256':f['sha256'],'signature9':f['signature9']};self._seal()
         return f
     def _native(self):
@@ -378,7 +379,7 @@ class RepairAdoption:
             p.revalidate() # No marker exists yet, ordinary ownership is unchanged.
             marker=p._writer.root/PENDING
             raw=o.compact(dict(version=1,purpose='same-path-owned-archive-repair',operation_id=p._binding['operation_id'],owner=self._owner,preparation=p._binding['token'],reader=self.reader.binding,**({'publication':self._publication} if self._publication is not None else {})))
-            o.write(marker,raw,o.stat5(os.lstat(p._writer.root)));self._files[marker]=o.signature(marker);self._contents[marker]=hashlib.sha256(raw).hexdigest();self._absent.remove(marker);self._seal()
+            created=o.write(marker,raw,o.stat5(os.lstat(p._writer.root)));self._files[marker]=created['signature9'];self._contents[marker]=hashlib.sha256(raw).hexdigest();self._absent.remove(marker);self._seal()
         intent='reverse-intent.json' if reverse else 'install-intent.json'
         self._record(intent,{'version':1,'phase':intent,'source':self._files[self.source],'stage':self._files[self.stage],'owner':self._owner,'reader_sha256':o.digest(self.reader.binding)})
         self.close();dbpath=p._controller.native_database
@@ -527,7 +528,7 @@ class RepairAdoption:
         self.reader.revalidate();self.close()
         terminal=w.root/TERMINAL;pending=w.root/PENDING
         successor=o.compact({'version':1,'purpose':'archive-repair-terminal','operation_id':p._binding['operation_id'],'owner':self._owner,'source_sha256':self._contents[self.source],'reader_all_tables':self.reader.binding['all_tables_sha256']})
-        o.write(terminal,successor,self._nodes[w.root]);self._files[terminal]=o.signature(terminal);self._contents[terminal]=hashlib.sha256(successor).hexdigest();self._absent.remove(terminal);self._seal()
+        created=o.write(terminal,successor,self._nodes[w.root]);self._files[terminal]=created['signature9'];self._contents[terminal]=hashlib.sha256(successor).hexdigest();self._absent.remove(terminal);self._seal()
         self._record('complete-intent.json',{'version':1,'phase':'archive-and-references-verified','source_sha256':self._contents[self.source],'reader_all_tables':self.reader.binding['all_tables_sha256'],'publication_acceptance':False})
         self.close()
         # A durable terminal successor exists before the first marker unlink.
@@ -608,7 +609,7 @@ class RepairAdoption:
         try:
             # A write may be durable before its caller receives the result. Keep
             # every marker on an unknown initial successor/intent response.
-            o.write(terminal,successor,self._nodes[w.root]);self._files[terminal]=o.signature(terminal);self._contents[terminal]=hashlib.sha256(successor).hexdigest();self._absent.remove(terminal);self._seal()
+            created=o.write(terminal,successor,self._nodes[w.root]);self._files[terminal]=created['signature9'];self._contents[terminal]=hashlib.sha256(successor).hexdigest();self._absent.remove(terminal);self._seal()
             self._record('rollback-complete-intent.json',{'version':1,'phase':'original-native-and-reader-preimage-verified','source_sha256':self._contents[self.source],'reader_all_tables':self.reader.binding['all_tables_sha256'],'publication_acceptance':False})
             self.close()
         except BaseException:
@@ -706,8 +707,8 @@ def prepare_existing(preparation,lease,retention_root,*,publication=None):
     original_db=prep._controller.native_database
     original_fact=o.fact(original_db,256*1024**2,prep._deadline)
     preimage=op/'native-before.sqlite'
-    o.write(preimage,o.read_checked(original_db,original_fact['signature9'],256*1024**2,prep._deadline),nodes[op])
-    pf=o.fact(preimage,256*1024**2,prep._deadline)
+    pf=o.write(preimage,o.read_checked(original_db,original_fact['signature9'],256*1024**2,prep._deadline),nodes[op])
+    o.check(o.fact(preimage,256*1024**2,prep._deadline)==pf,'repair-created-preimage')
     o.check(pf['sha256']==original_fact['sha256'] and o.fact(original_db,256*1024**2,prep._deadline)==original_fact,'repair-native-preimage')
     with closing(sqlite3.connect(preimage.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
         o.check(snapshot(db,prep._deadline)==before,'repair-native-preimage-logical')

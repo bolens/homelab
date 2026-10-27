@@ -244,8 +244,10 @@ def write(path,raw,parent_identity):
         info=os.fstat(parent)
         check(stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'private-write-parent')
         fd=os.open(path.name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
-        with os.fdopen(fd,'wb') as stream:stream.write(raw);stream.flush();os.fsync(stream.fileno())
-        os.fsync(parent)
+        with os.fdopen(fd,'wb') as stream:
+            stream.write(raw);stream.flush();os.fsync(stream.fileno());created=stat9(os.fstat(stream.fileno()))
+        os.fsync(parent);check(signature(path)==created,'private-write-path-CAS')
+    return dict(path=str(path),signature9=created,sha256=hashlib.sha256(raw).hexdigest())
 
 def custody_attributes_match(actual,source):
     # The complete original ACL stays in source_attributes. A private local
@@ -276,7 +278,9 @@ def preserve(source,target,sourcefact,sourceattrs,deadline,parent_identity):
                     del expected['xattrs'][name]
             os.fsync(out.fileno());created=stat9(os.fstat(out.fileno()))
         os.fsync(parent);check(signature(target)==created,'custody-path-CAS')
-    check(attributes(target)==expected and fact(target,512*1024**2,deadline)['sha256']==sourcefact['sha256'],'custody-readback')
+    result=dict(path=str(target),signature9=created,sha256=sourcefact['sha256'])
+    check(attributes(target)==expected and fact(target,512*1024**2,deadline)==result,'custody-readback')
+    return result
 
 _KEY=object()
 _SEALS=weakref.WeakKeyDictionary()
@@ -388,16 +392,13 @@ def prepare_existing(controller,writer,owner,operation_id):
     finally:os.close(fd)
     intent=compact(dict(version=1,kind='owned-archive-repair-prepare-intent',source=sourcefact,
         owner=owner,census=census,operation_id=operation_id,executable=False,mutation_authority=False))
-    write(op/'intent.json',intent,parent_identity);files[op/'intent.json']=fact(op/'intent.json',1024**2,deadline)
+    files[op/'intent.json']=write(op/'intent.json',intent,parent_identity)
     check(files[op/'intent.json']['sha256']==hashlib.sha256(intent).hexdigest(),'intended-intent')
-    preserve(source,op/'original.arc',sourcefact,sourceattrs,deadline,parent_identity)
-    files[op/'original.arc']=fact(op/'original.arc',512*1024**2,deadline)
+    files[op/'original.arc']=preserve(source,op/'original.arc',sourcefact,sourceattrs,deadline,parent_identity)
     copyattrs=attributes(op/'original.arc')
     check(custody_attributes_match(copyattrs,sourceattrs),'custody-original-attributes')
-    preserve(op/'original.arc',op/'restored-original.arc',files[op/'original.arc'],copyattrs,deadline,parent_identity)
-    files[op/'restored-original.arc']=fact(op/'restored-original.arc',512*1024**2,deadline)
-    write(op/'prepared.cbz',repaired,parent_identity)
-    staged=fact(op/'prepared.cbz',512*1024**2+2,deadline);files[op/'prepared.cbz']=staged
+    files[op/'restored-original.arc']=preserve(op/'original.arc',op/'restored-original.arc',files[op/'original.arc'],copyattrs,deadline,parent_identity)
+    staged=write(op/'prepared.cbz',repaired,parent_identity);files[op/'prepared.cbz']=staged
     readback=read_checked(op/'prepared.cbz',staged['signature9'],512*1024**2+2,deadline);inv,metadata=modules[5].independent(readback,g,deadline)
     check(hashlib.sha256(readback).hexdigest()==evidence['derivative_sha256'] and inv==plan['inventory']
           and metadata==plan['root_metadata_sha256'],'independent-stage-readback')
@@ -409,10 +410,9 @@ def prepare_existing(controller,writer,owner,operation_id):
         custody=dict(original=files[op/'original.arc'],restore=files[op/'restored-original.arc']),
         executable=False,native_grant=False,mutation_authority=False,adoption_authority=False,
         ordinary_source_admission=False,publication_acceptance=False,reader_preservation_verified=False)
-    binding['token']=digest(binding);data=compact(binding);write(op/'preparation.json',data,parent_identity)
+    binding['token']=digest(binding);data=compact(binding);files[op/'preparation.json']=write(op/'preparation.json',data,parent_identity)
     directory=signature(op)
     check([directory[i] for i in (0,1,5,6,7)]==[opidentity[i] for i in (0,1,5,6,7)],'owned-operation-incarnation')
-    files[op/'preparation.json']=fact(op/'preparation.json',512*1024**2+2,deadline)
     check(read_checked(op/'preparation.json',files[op/'preparation.json']['signature9'],512*1024**2+2,deadline)==data,'intended-preparation')
     check(files[op/'preparation.json']['sha256']==hashlib.sha256(data).hexdigest(),'intended-preparation-digest')
     check(set(os.listdir(op))=={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'},'closed-stage-census')

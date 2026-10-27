@@ -487,7 +487,7 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "d43dcd0b0920f77b6906e47a95019cec38d4a43700ec752a74ac67ed391b1c1f"
+      "sha256": "b2d7852d0f82c04802e48957052e53874d7661e307182aa445813bb933468edb"
     },
     "genuine_active_inputs.py": {
       "sha256": "28075c356a213a9ff1703e03af7731815fca59fb2b254802d1d21de9c93098da"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "25f304ac8dadea1754e6c0c84ae210d97654d8aeac8a39e659b42d9f692f5318"
+      "sha256": "340270e2f1dd21b1f8a1adb17d733f7c40d76d4f9db6d36cb5d70f0e14f5356f"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -607,7 +607,7 @@
       "sha256": "0821fc0a2973afc3cdad18906b62831c74c1b02940301af232a7ec52179604ee"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "89354c15964b9653f72d5c35a08680f964d5ece68b1dc00d5ecad80f146ea75c"
+      "sha256": "082280193b40ba212e5667c0f2b6f869356c464ac87701bff2914dc02252fb99"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "021aff2a4364d9d580745eb6d290ea676c54aa00e466df63e61b33dc242dedf6"

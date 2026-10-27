@@ -827,3 +827,11 @@ owns the diagnosis.
 PR [#529](https://github.com/bolens/homelab/pull/529) passed local and hosted checks, main publication, exact 180-module capture and required SDK103 joins. DP installed all 27 matching controls; DQ bootstrap and preflight passed. The forward run reached fixture transition and owning preparation, then held while copying `system.nfs4_acl` from NFS to a private local preservation file with `EOPNOTSUPP`. No terminal or resume was accepted. The selected fixture archive differs from genesis; its unrelated archive retains its full9/hash and all 24 native tables are unchanged. Native remains running, reader exited and worker Created. Preserve DP/DQ without replay.
 
 Local regressions retain the complete source ACL in existing sealed metadata, distinguish portable private-copy attributes and keep canonical ACL equality strict. An independent synthetic NFS-to-local benchmark reproduces the old refusal and verifies two corrected private copies, complete unchanged source evidence and the user attribute. A separate same-NFS copy verifies actual full ACL application/readback. These checks do not establish configured repair or reader acceptance. A new matching image/control installation and unused fixture remain required.
+
+The adjacent creation audit reproduced a separate identity gap before another
+fixture was consumed: corruption or same-byte inode replacement after private
+preservation could become a newly sampled baseline. The same pattern affected
+private derivative/receipt creation and the derivative's final attribute readback.
+PR [#531](https://github.com/bolens/homelab/pull/531) carries the original exclusive
+file-descriptor fact through these boundaries and rejects replacements. This
+source correction remains part of T012/T015; it supplies no runtime acceptance.

@@ -131,7 +131,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "fdfeadf00e856565a272e6608082795c8be90bdd8eaa71c68d6f1f4a9454810a",
+    "sha256": "f2d4c6f5097f7138157cafceec6a115bf5e06951f63ad2a17e735a393c5918db",
     "target": "fixtures/child/source/publication_archive_adoption.py"
   },
   {
@@ -146,7 +146,7 @@
   },
   {
     "path": "publication_archive_dispatch.py",
-    "sha256": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7",
+    "sha256": "45440d8e056f00a73bd9ff50535854e9a8b5ff49e87f90b54b3592e707cff966",
     "target": "fixtures/child/source/publication_archive_dispatch.py"
   },
   {
@@ -161,17 +161,17 @@
   },
   {
     "path": "publication_archive_owned.py",
-    "sha256": "1ee5a8eaed9e8f6b1fe3ba18ba500449dc4b948d9581c341e5ef1e29ca8e503a",
+    "sha256": "511d5b9828964187a88b0d028051917b7a1b40b47bed96c60265329f5fe9fed5",
     "target": "fixtures/child/source/publication_archive_owned.py"
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "250c6144a4e039cb6f0c6047788722db88784e5c19975a9cf6fc6ac05acc89f7",
+    "sha256": "499d8abffe6c91ec0e7c072865607325d41db4a115f6bb60bf919c0f041582df",
     "target": "fixtures/child/source/publication_archive_preparation_existing.py"
   },
   {
     "path": "publication_archive_prepare_routes.py",
-    "sha256": "6421f9ab44446990b5ab69c814cee4eb2cb8511b606a35a26cdc5f7c8e7ff1cf",
+    "sha256": "0e2956899e6fe25070c97208adce3f918303f1f07029f9a643d5bf1866dd4bc6",
     "target": "fixtures/child/source/publication_archive_prepare_routes.py"
   },
   {

@@ -30,7 +30,10 @@ PR [#529](https://github.com/bolens/homelab/pull/529) is delivered with matching
 180-module capture and SDK103 proof. Its DP/DQ attempt reaches owning preparation
 but holds on an NFS-only ACL copied to private local custody. The correction
 retains complete source attributes and exact portable-copy evidence; canonical
-NFS publication and reverse still require full ACL preservation. Deliver the
+NFS publication and reverse still require full ACL preservation. The adjacent
+creation audit also fixes baseline recapture after exclusive copy or receipt
+creation; checks retain the original descriptor identity, including same-byte
+replacement refusals. Deliver the
 matching source/image/control closure before another unused fixture. Forward
 and distinct rollback remain unaccepted. See the [original diagnosis and bounded
 NFS checks](evidence-history.md#nfs-acl-on-private-local-custody--2026-10-26).
