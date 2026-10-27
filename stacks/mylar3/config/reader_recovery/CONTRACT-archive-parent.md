@@ -254,3 +254,9 @@ adds neither enumeration nor write permission for other users; known names may
 be stat-visible. No existing directory or export is chmodded. A missing or
 inaccessible ancestor refuses; permission bits do not establish actual daemon
 bindability or configured acceptance. Local state and credentials stay private.
+
+The stopped reader maps the catalog-derived native source through its observed
+bind mounts, including canonical disposable destinations outside `/data/`.
+The deepest source bind must be unique, its destination must resolve back to
+the same host file without a shadow mount, and the exact stored BOOK URL must
+exist uniquely. A destination prefix alone supplies no mapping authority.

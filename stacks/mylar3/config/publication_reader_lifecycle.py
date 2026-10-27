@@ -342,7 +342,7 @@ class StoppedReaderCustody:
   root=Path(binding['roots'][0]);require(source==root or root in source.parents,'lifecycle-source-outside-native-library')
   host=Path(binding['host_scopes']['library'])/source.relative_to(root);matches=[]
   for mount in self.reader['runtime']['Mounts']:
-   if mount['Type']=='bind' and (host==Path(mount['Source']) or Path(mount['Source']) in host.parents) and mount['Destination'].startswith('/data/'):
+   if mount['Type']=='bind' and (host==Path(mount['Source']) or Path(mount['Source']) in host.parents):
     matches.append((len(Path(mount['Source']).parts),Path(mount['Destination'])/host.relative_to(Path(mount['Source']))))
   require(bool(matches),'lifecycle-native-reader-mapping');depth=max(item[0] for item in matches);selected=[item[1] for item in matches if item[0]==depth]
   require(len(selected)==1,'lifecycle-native-reader-mapping');mapped=str(selected[0]);destinations=[]

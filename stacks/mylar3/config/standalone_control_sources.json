@@ -516,7 +516,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "499d8abffe6c91ec0e7c072865607325d41db4a115f6bb60bf919c0f041582df",
+    "sha256": "adfefb7a6a91a460d96fad9c7da49faf6bfb2d8475e04174da52500d088c2e1e",
     "target": "publication_archive_preparation_existing.py"
   },
   {
@@ -666,7 +666,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "ff57be2b2b085209f8cb88f4ac477be768e7c56014bd9afe9eb6c3d208d9d823",
+    "sha256": "2bdc483dec44c9f3296dd9b2d36d71c6fc8079d264c1b548682dfa0d6d9ac771",
     "target": "publication_reader_admission.py"
   },
   {
@@ -676,7 +676,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "e21ed7d045876e44e02f53963372b9bd1e0c134bc5bb3eb6a47b704d7473a30a",
+    "sha256": "19a58d6847c40b98ac1152863ee7881fd216c6c32c2cd7cbfb09fb40dab2369f",
     "target": "publication_reader_lifecycle.py"
   },
   {
@@ -1696,12 +1696,12 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "d26f1978adb272ce78288b8fafe97822e764e214283119ac6fde51ae6eb5eb69",
+    "sha256": "419091a4a0efe38933f2e0b9baac9c1eefe738dc677a85db8d4c553d2a092f6a",
     "target": "test_publication_reader_admission.py"
   },
   {
     "path": "test_publication_reader_lifecycle.py",
-    "sha256": "a3c9ecad035389c7fd7531f1b65338ace292ed18ee6a4a2f389ca155344abd38",
+    "sha256": "91a24b7073ff8791526f7b525aecadd7d3aa9c6599b82560638c762dd8489274",
     "target": "test_publication_reader_lifecycle.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "b29fd518fe2f2a21b0538ebee3cadca0c45c67b5a9b2387e2e630f8a8af0914e",
+    "sha256": "d65b4449b51f5ca18ee23ae7e38410f372e303149a8a9b9f0829dc24a0f32eaa",
     "target": "tagging_stage_sources.json"
   },
   {

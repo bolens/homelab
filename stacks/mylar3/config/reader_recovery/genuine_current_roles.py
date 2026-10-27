@@ -26,7 +26,7 @@ HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
     'genuine_application_bootstrap.py': '98064a0b4d125cc026e0dd4a115abe3a8b4667918592e2f90d64afe1246b487f',
     'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_reader_lifecycle_parent.py': '7b6ef43fedb259ca561fb887c990a3b9b55247c33c4450bf079208ea738645bf',
+    'comic_reader_lifecycle_parent.py': '6507cd4eda9f8bb5430043ffcedb0bfd9068a2fe8e3a2fc870002995e69b295e',
     'publication_native_configured_scope.py': '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770',
 }
 PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'

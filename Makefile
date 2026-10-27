@@ -50,6 +50,7 @@ ci-local:
 
 mylar-source-check:
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/run_reader_recovery_controls.py
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_reader_lifecycle.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_owned.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py

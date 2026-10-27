@@ -26,17 +26,14 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-PR [#529](https://github.com/bolens/homelab/pull/529) is delivered with matching
-180-module capture and SDK103 proof. Its DP/DQ attempt reaches owning preparation
-but holds on an NFS-only ACL copied to private local custody. The correction
-retains complete source attributes and exact portable-copy evidence; canonical
-NFS publication and reverse still require full ACL preservation. The adjacent
-creation audit also fixes baseline recapture after exclusive copy or receipt
-creation; checks retain the original descriptor identity, including same-byte
-replacement refusals. Deliver the
-matching source/image/control closure before another unused fixture. Forward
-and distinct rollback remain unaccepted. See the [original diagnosis and bounded
-NFS checks](evidence-history.md#nfs-acl-on-private-local-custody--2026-10-26).
+PR [#531](https://github.com/bolens/homelab/pull/531) is delivered with matching
+180-module capture, SDK103 proof and 27 installed controls. DT/DU reaches the
+stopped-reader archive lease but holds because its canonical reader bind lies
+outside a hard-coded `/data/` prefix. The mapping correction retains unique
+mount projection, inverse shadow checks and the exact observed stored URL.
+Deliver its matching source/image/control closure before another unused fixture.
+Forward and distinct rollback remain unaccepted. See the
+[original diagnosis](evidence-history.md#canonical-reader-mount-projection--2026-10-26).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.
