@@ -55,7 +55,9 @@ class Connected(unittest.TestCase):
    fd=os.open(self.writer.lock,os.O_RDWR|os.O_NOFOLLOW)
    try:
     try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    except BlockingIOError:raise AssertionError('remote-under-Writer:'+name)
+    except BlockingIOError:
+     if name=='probe-native' or x not in p._ARCHIVE_COMPLETION_LOCKS:raise AssertionError('remote-under-Writer:'+name)
+     p.archive_completion_guard(x)
    finally:os.close(fd)
    self.remote.append(name)
   def continuous():remote('inspect-original-roles');return dict(reader=copy.deepcopy(self.f.c.state),held_native=copy.deepcopy(self.f.native),held_worker=copy.deepcopy(self.f.worker))
@@ -75,9 +77,15 @@ class Connected(unittest.TestCase):
   # Compile the complete byte-source owning nested callback, not a mirrored predicate.
   # This fixture begins at the established-running Writer boundary. Retain its
   # exact running static/epoch; first-start diagnostics have separate owning tests.
-  header=ast.parse("def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n started_static=encode(child_static)\n started_epoch=encode(lifecycle_state(original_running))\n started_at=original_running['State']['StartedAt']\n").body[0]
+  header=ast.parse("def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n completion_slot=[None]\n _definitions=completion_definitions_guard\n _definition_code=completion_definitions_guard.__code__\n _definition_defaults=completion_definitions_guard.__defaults__\n started_static=encode(child_static)\n started_epoch=encode(lifecycle_state(original_running))\n started_at=original_running['State']['StartedAt']\n").body[0]
   header.body.extend([nested,ast.Return(ast.Name('challenge',ast.Load()))]);program=ast.fix_missing_locations(ast.Module([header],type_ignores=[]));ns=dict(p.__dict__);exec(compile(program,str(Path(p.__file__)),'exec'),ns)
   self.callback=ns['factory'](x,'execute',self.f.c.input,[],self.row['Id'],p.static(self.row),copy.deepcopy(self.row))
+  def close_completion():
+   p._ARCHIVE_COMPLETION_LOCKS.pop(x,None)
+   cells=dict(zip(self.callback.__code__.co_freevars,self.callback.__closure__))
+   record=cells['completion_slot'].cell_contents[0]
+   if record is not None:record[-1](record[0])
+  self.addCleanup(close_completion)
   ri,wo=os.pipe();ro,wi=os.pipe();self.requests=ri;self.response_out=wi
   self.f.c.channel.input=ro;self.f.c.channel.output=wo;self.f.c.channel.facts=(tuple(fixtures.l.five(os.fstat(ro))),tuple(fixtures.l.five(os.fstat(wo))))
   fixtures.l._PIPE_SEALS[self.f.c.channel]=(ro,wo,self.f.c.channel.thread,self.f.c.channel.facts,self.f.c.channel.deadline)
@@ -214,6 +222,51 @@ class Connected(unittest.TestCase):
   state={name:cell.cell_contents for name,cell in zip(self.callback.__code__.co_freevars,self.callback.__closure__)}
   self.assertEqual(state['consumed_sequence'],self.seen_ack['conversation_sequence'])
   self.assertEqual(state['sequence'],state['consumed_sequence']+1);self.assertIsNone(state['writer_session'])
+  self.parent_module.archive_completion_guard(self.parent,state['completion_slot'][0])
+  self.assertIsNone(self.callback(None))
+  fd=os.open(self.writer.lock,os.O_RDWR)
+  try:
+   with self.assertRaises(BlockingIOError):fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  finally:os.close(fd)
+ def test_completion_callback_registry_loss_refuses_EOF(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module;p._ARCHIVE_COMPLETION_LOCKS.pop(self.parent)
+  with self.assertRaisesRegex(p.Held,'original-registry'):self.callback(None)
+ def test_completion_callback_unlock_refuses_EOF(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module;record=p._ARCHIVE_COMPLETION_LOCKS[self.parent]
+  fcntl.flock(record[1],fcntl.LOCK_UN)
+  with self.assertRaisesRegex(p.Held,'exclusive-lock-lost'):self.callback(None)
+  self.addCleanup(os.close,record[1]);self.addCleanup(os.close,record[6])
+ def test_completion_callback_extra_native_challenge_refuses(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module;before=len(self.remote)
+  with self.assertRaisesRegex(p.Held,'no-further-native-challenge'):self.callback({'type':'challenge'})
+  self.assertEqual(len(self.remote),before)
+ def test_completion_kernel_checker_substitution_refuses(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module
+  with patch.object(p,'completion_fd_locked',lambda *args:True):
+   with self.assertRaisesRegex(p.Held,'original-definitions'):self.callback(None)
+ def test_completion_guard_substitution_refuses(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module
+  with patch.object(p,'archive_completion_guard',lambda *args:None):
+   with self.assertRaisesRegex(p.Held,'original-definitions'):self.callback(None)
+ def test_completion_definition_default_rebase_refuses(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module;guard=p.completion_definitions_guard;original=guard.__defaults__
+  replacement=lambda *args:None;changed=list(original[0]);changed[6:9]=[replacement,replacement.__code__,replacement.__defaults__]
+  try:
+   guard.__defaults__=(tuple(changed),)
+   with patch.object(p,'archive_completion_guard',replacement):
+    with self.assertRaisesRegex(p.Held,'original-definition-check'):self.callback(None)
+  finally:guard.__defaults__=original
+ def test_completion_constructor_substitution_refuses(self):
+  self.test_pending_terminal_ACK_precedes_leave_and_independent_check()
+  p=self.parent_module
+  with patch.object(p,'ArchiveCompletionExclusion',lambda *args:None):
+   with self.assertRaisesRegex(p.Held,'original-definitions'):self.callback(None)
  def test_legacy_unannounced_writer_connected_RPC_is_refused(self):
   before=len(self.remote_attempts)
   with self.writer.hold(timeout=0),self.assertRaises(fixtures.l.Held):self.scope.revalidate()

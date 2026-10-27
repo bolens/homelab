@@ -1006,3 +1006,23 @@ unchanged-byte timestamp change before worker creation and failure of diagnostic
 output without replacing the original refusal. This is diagnostic coverage, not
 a correction of the Writer-release exposure or connected acceptance. Preserve
 EH/EI and use its original records; never replay or infer reader resume.
+
+
+## Failure-time native drift — 2026-10-27
+
+EJ/EK passes source preparation, then holds at `worker-parent-final-file` before
+worker creation. The bounded failure-time path hash matches the fixture's native
+`workflow.sqlite`; mtime/ctime changed while device, inode, size, mode, ownership
+and link count remained original. This establishes the offending file for EJ,
+not EH. The protected diagnosis confirms the observation worker was not created,
+the reader is stopped, the native fixture is running and the fixture worker
+remains Created. Independent target bytes, unrelated full9/hash and all 24
+native tables match their baselines. No owning return or resume was accepted.
+
+The source correction retains host exclusion on the original native Writer lock
+after both post-release native observations through worker validation, ACK, child
+exit and permitted resume. It neither refreshes terminal facts nor grants typed
+Writer authority. A competing write before acquisition still refuses. Real flock,
+owning leave-handler and resume/failure-cleanup controls exercise this boundary;
+configured forward and distinct rollback acceptance remain required. Preserve
+EJ/EK and prior held generations without replay.

@@ -26,7 +26,7 @@ The archive proof producer binds backup directories to the returned restore root
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1801 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1815 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route
@@ -336,3 +336,22 @@ to their physical host copies. Runtime, birth, challenge, Writer release and
 NFS readiness vectors check each reference's physical path and reject
 conflicting facts for the same file. A logical lookup key is never a substitute
 for the retained copy's path or original nine-field identity.
+
+
+EJ/EK's failure-time record identifies the native workflow database: its inode,
+size, mode, owner and link count remain original while mtime/ctime change before
+worker creation. This is evidence for the post-Writer concurrency exposure;
+it does not retrospectively identify EH's offending row.
+
+The Parent now acquires nonblocking host exclusion on the exact existing native
+Writer lock after both fresh unlocked native observations, before consuming the
+pending terminal. This grants no typed Writer, mutation or publication authority.
+All retained terminal facts must still pass after acquisition. A native writer
+winning the pre-acquisition gap still causes refusal; no baseline is refreshed.
+The same exclusive kernel lock remains checked through the observation worker,
+ACK, natural child exit and reader resume, then closes on success or failure.
+Additional native challenge requests after acquisition refuse. Scoped Docker
+inspection, observer and reader lifecycle calls retain their original guards.
+Local controls exercise actual flock contention/loss, the source-owning leave
+handler and resume/cleanup. Configured forward and distinct rollback acceptance
+remain open; preserve EJ/EK and every earlier held attempt without replay.

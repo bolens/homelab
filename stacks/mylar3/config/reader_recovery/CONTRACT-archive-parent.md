@@ -260,3 +260,23 @@ bind mounts, including canonical disposable destinations outside `/data/`.
 The deepest source bind must be unique, its destination must resolve back to
 the same host file without a shadow mount, and the exact stored BOOK URL must
 exist uniquely. A destination prefix alone supplies no mapping authority.
+
+
+## Same-child completion exclusion
+
+For a pending terminal announced under the genuine native Writer, finish both
+fresh native observations after its leave. Before the independent observation
+worker, acquire an exclusive nonblocking flock on the original native Writer
+file using its original directory identity, full file facts and protocol bytes.
+This host interlock supplies exclusion only. It grants no Controller, typed
+Writer, mutation, publication, replay or reader acceptance authority. Contention
+or any changed retained fact refuses without waiting, recapture or retry.
+
+Retain the original descriptor and exclusive kernel-lock custody through worker
+consumption, ACK, natural child exit and the permitted reader resume. Later
+native application/health requests refuse; scoped Docker inspection/events and
+owned worker/reader operations retain their existing source and lifecycle guards.
+Check original lock bindings after callbacks and immediately before resume.
+Release the owned lock on every return/refusal without replacing the primary
+failure or closing a foreign reused descriptor. The release-to-acquisition gap
+is not an atomic lock transfer: changes in that gap must still hold.

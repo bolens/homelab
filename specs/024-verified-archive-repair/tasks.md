@@ -34,14 +34,16 @@ comparison correction. PR [#541](https://github.com/bolens/homelab/pull/541)
 separates input/output budgets and corrects terminal-copy path and owner routing.
 EH/EI passes all 11 terminal copies, then holds at the worker's exact file guard.
 The read-only diagnosis and all 19 protected operation-file comparisons pass.
-Later native workflow/DATA timestamp changes cannot identify the historical
-failing row. Retain its path hash and original/current metadata at the guard
-before another connected attempt; do not refresh facts or weaken the guard.
-Audit the Writer-release boundary through worker observation, ACK and resume:
-terminal facts are captured under Writer but consumed after release. This is a
-known concurrency exposure, not yet proof of EH's particular failing file.
-Target bytes, unrelated full9/hash and all 24 native tables match their baselines;
-the reader stays stopped. Forward acceptance and distinct rollback remain open.
+EJ/EK's failure-time diagnostic identifies native workflow-database mtime/ctime
+changes before worker creation. The correction retains host exclusion on the
+original native Writer lock after the existing fresh observations through worker,
+ACK, child exit and resume; all original facts and refusal rules remain strict.
+Local real-lock and owning-handler checks cover ordering, contention, lost
+custody and cleanup. Verify the corrected configured forward and a distinct
+rollback before marking acceptance. EH's independent target/unrelated/native
+comparisons passed. EJ's protected diagnosis confirms the same pre-worker hold:
+native running, reader stopped, worker Created. Independent target bytes,
+unrelated full9/hash and all 24 native tables match their baselines.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
