@@ -50,6 +50,13 @@ FD/path facts, inode, process, exclusive whole-file lock and duplicate custody.
 Actual-host contention/release, device-alias and foreign-lock controls pass. EL/EM
 is preserved with reader stopped; target bytes, unrelated full9/hash and native24
 remain original. Forward and distinct rollback acceptance still remain open.
+EO/EP passed the Btrfs lock check, then held on workflow-database mtime/ctime
+changes. Periodic intake checks currently rewrite unchanged decisions. The
+correction persists initialization and admission transitions while returning
+fresh telemetry without no-op writes. Real-store tick and reload/hysteresis
+regressions cover this path. It changes native workflow bytes, so the next
+fixture requires a matching published image and SDK capture. Preserve EO/EP;
+its reader is stopped and no terminal result was accepted.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan

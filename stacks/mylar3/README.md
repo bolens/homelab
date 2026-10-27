@@ -211,8 +211,9 @@ probe into a long operation wait.
 
 For an initialized workflow store, health computes fresh intake status without
 saving an intake record or emitting an intake-transition event. Ordinary intake
-still persists its decision and hysteresis, including a transition first observed
-by health. Reading an already private workflow database preserves its permissions
+persists initialization and decision transitions, including a transition first
+observed by health. Unchanged decisions return current queue/storage samples
+without rewriting the durable record; pause/resume hysteresis survives restarts. Reading an already private workflow database preserves its permissions
 and modification/change timestamps; normal store access still corrects a nonprivate mode to `0600`.
 This does not change the existing startup initialization of a missing store.
 

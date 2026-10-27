@@ -566,7 +566,7 @@
   },
   {
     "path": "workflow.py",
-    "sha256": "93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365",
+    "sha256": "9d3998911a9f4e1da2a21e8daaa970566ab6b101589b8e0d541533e1460d41fb",
     "target": "fixtures/child/source/workflow.py"
   },
   {

@@ -116,6 +116,7 @@ class Installation(unittest.TestCase):
     def before_channel_deadline(self,raw):
         base=json.loads(raw)
         previous={
+            'workflow.py':'93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365',
             'publication_archive_dispatch.py':'8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7',
             'publication_archive_owned.py':'dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1',
             'publication_archive_prepare_routes.py':'3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02',
@@ -275,7 +276,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'99323a469fc34f379e24e850ef95b6dce1b137a6b95cf09b51481ba8d4bd50e0')
+        self.assertEqual(base['base_cohort_sha256'],'2c24622b5a2235dc323e013e22fe89bc22afa34338cb80f5ebcf074feb1d8657')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         parent=ast.parse((fixes/'reader_recovery/comic_reader_lifecycle_parent.py').read_bytes())

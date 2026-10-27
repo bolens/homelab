@@ -1044,3 +1044,22 @@ release pass. Synthetic mismatched-device acceptance and malformed/foreign-lock
 refusals join the existing descriptor reuse, unlock and cleanup controls.
 This remains T012/T015 implementation work; no held attempt has replay or reader
 resume authority, and configured forward/rollback acceptance remains pending.
+
+## Unchanged intake persistence — 2026-10-27
+
+EO/EP passed completion-lock acquisition, then held at the original workflow
+file guard before worker creation. Only mtime/ctime changed. Native remained
+running, reader stopped and worker Created; no owning return was accepted.
+Independent target bytes, unrelated full9/hash and all 24 native tables remain
+preserved. The exact historical writer is not proven by timing alone.
+
+Source audit identifies a periodic no-op writer: expired intake samples rewrite
+SQLite even when pause/reason are unchanged. The correction retains initial
+records and durable admission transitions, including queue/storage hysteresis,
+while returning fresh telemetry without rewriting unchanged decisions. Real
+Store regressions exercise eligible ticks, exact database/namespace preservation,
+changing free-space samples, reopen-based hysteresis and invalid pause refusal.
+`make ci-local` now includes the workflow suite directly. Strict original facts
+and refusal rules remain unchanged; legitimate writes in the handoff gap still
+hold. New native workflow bytes require matching image/SDK proof before another
+fixture. This is existing T012/T015 work, with no new task or runtime gate.

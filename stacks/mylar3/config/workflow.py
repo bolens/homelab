@@ -132,11 +132,14 @@ def set_policy(values):
 
 
 def intake(*,persist=True):
-    """Observe current admission; health leaves durable intake state untouched."""
+    """Observe admission; persist initialization and decision transitions only."""
     import mylar
     with LOCK:
         rules=policy(); now=time.time(); old=store().get('intake','current',{})
-        if now-old.get('checked_at',0)<10:return old
+        if 'paused' in old and type(old['paused']) is not bool:
+            raise ValueError('Invalid persisted intake pause state')
+        complete=set(('paused','reason','depth','free_bytes','checked_at'))<=old.keys()
+        if complete and now-old.get('checked_at',0)<10:return old
         depth=mylar.PP_QUEUE.qsize()+int(bool(mylar.APILOCK))
         roots=[]
         for key in ('DESTINATION_DIR','DDL_LOCATION','CACHE_DIR'):
@@ -160,8 +163,9 @@ def intake(*,persist=True):
         elif free<(rules['free_resume_gib'] if paused else rules['free_stop_gib'])*1024**3:paused=True;reason='Waiting for free storage'
         else:paused=False;reason='Accepting new searches and downloads'
         value={'paused':paused,'reason':reason,'depth':depth,'free_bytes':free,'checked_at':now}
-        if persist:
-            if paused!=old.get('paused') or reason!=old.get('reason'):emit('intake',reason)
+        changed=paused!=old.get('paused') or reason!=old.get('reason')
+        if persist and (not complete or changed):
+            if changed:emit('intake',reason)
             store().set('intake','current',value)
         return value
 

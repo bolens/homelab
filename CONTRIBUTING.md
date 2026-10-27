@@ -13,7 +13,8 @@ make ci-local JAVA_HOME_21=/path/to/jdk-21
 ```
 
 Install the locked npm tools in each checkout or worktree. `make ci-local` checks
-for its Markdown tooling before running the source suites.
+for its Markdown tooling before running the source suites. The Mylar checks include
+workflow intake regressions as well as the recovery and publication suites.
 
 Do not commit `stack.env`, `.env`, private keys, credentials, real hostnames,
 private addresses, or machine-specific paths. Update `stack.env.example`,
