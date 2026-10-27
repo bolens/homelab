@@ -1516,7 +1516,7 @@
   },
   {
     "path": "test_publication_archive_adoption.py",
-    "sha256": "9d7dc4cadbc869af54f415f75bd2f3a6915c7879e6aa0d21bfde278111cbb672",
+    "sha256": "0cfc688a6f0db16707d481d9ec31b90bec3a7942d4fac311aba8121412768fd2",
     "target": "test_publication_archive_adoption.py"
   },
   {

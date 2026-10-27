@@ -1,6 +1,7 @@
 """Real disposable catalog/Writer, SQLite reader pairs and Linux filesystem exchange.
 Host SDK/lifecycle origin substitution is explicit, not installed authority proof.
 """
+import errno
 import importlib.util
 import os
 from pathlib import Path
@@ -51,6 +52,17 @@ class Tests(unittest.TestCase):
   before=o.signature(self.c.source);raw=self.c.source.read_bytes()
   with native.nfs_acl(self.c.source),self.assertRaises(OSError):self.cap()
   self.assertEqual(o.signature(self.c.source),before);self.assertEqual(self.c.source.read_bytes(),raw)
+ def test_portable_private_custody_through_complete_adoption(self):
+  # Model the ACL transport boundary; this is not configured NFS acceptance.
+  def transport(fd):
+   return errno.EOPNOTSUPP if Path(os.readlink('/proc/self/fd/'+str(fd))).name in ('original.arc','restored-original.arc') else None
+  with native.nfs_acl(self.c.source,error=transport):
+   cap=self.cap();cap.install();cap.complete()
+   body=self.c.modules[2].decode_json((self.prep._operation/'preparation.json').read_text())
+   expected=body['source_attributes']['xattrs']['system.nfs4_acl']
+   self.assertEqual(o.attributes(self.c.source)['xattrs']['system.nfs4_acl'],expected)
+   copies=[o.attributes(Path(body['custody'][k]['path'])) for k in ('original','restore')]
+   self.assertEqual(copies[0],copies[1]);self.assertNotIn('system.nfs4_acl',copies[0]['xattrs'])
  def test_disjoint_fixture_transition_through_preparation_adoption_and_reverse(self):
   # Actual current modules and files; only installed/lifecycle origins are the
   # explicit host fixtures used throughout this suite, never a runtime grant.
