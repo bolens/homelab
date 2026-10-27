@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "58a90874a57d8707899ab784d73c99fd358b938c4cadf28d0bdfdb7999af2c66"
+      "sha256": "0af11e366b367038d08d1dac701b5b9b30dc37a15175522840712c3fb0fad224"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "6507cd4eda9f8bb5430043ffcedb0bfd9068a2fe8e3a2fc870002995e69b295e"
+      "sha256": "a95918cac18d817b4c009733f4c4d4984b658e2caf735d5c48c8b18636438622"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "12f1e3c3b7d7a662a0bc06c12b9d142c5c1fce96d4b234ac5e895a8bb779f62e"
@@ -511,7 +511,7 @@
       "sha256": "756b26bf25e3bf6e669ffdb5bc8eb682fda032a6b01c9c70916cce91f28d40f8"
     },
     "genuine_current_roles.py": {
-      "sha256": "d077d335209a3f8e32138df9992670a56908716ba3f98044685be4f1df752407"
+      "sha256": "ba87e0d807d1d26dbab4154f9eecbf956b6e53b3f4be4fdd0af1a9cee7403d45"
     },
     "genuine_native_catalog.py": {
       "sha256": "af76f96dad58721ba9b87cf90c2955384d9ad5f2307f9ae12719b4197406949e"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "1a42be2e9784b093640c41eaa40eb6645a9cc8697d47ca4f93eb30a43fafcfe6"
+      "sha256": "f36c44828f42fd07459801a80f2c2017a89e59c6a58a79671af2fa5ccf37d40e"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -583,7 +583,7 @@
       "sha256": "47e175ed23f78ead18ae6f12bc05d02a650d7000307116cff4ca0d0b922f34e7"
     },
     "test_archive_same_child_parent.py": {
-      "sha256": "d9a68cca716d066ae8a911cf9d802d4568f556ce74c3c57c405c57e8c20538c7"
+      "sha256": "d4821de333067525a7019fbfffe7bb9cdaa251a26a030b3107c8fb2b797a9a3d"
     },
     "test_archive_same_child_producer.py": {
       "sha256": "09bbf8aea1dad520fe1709dc4a4920199fbc27c5d14fc147652aeaee59f14cfe"
