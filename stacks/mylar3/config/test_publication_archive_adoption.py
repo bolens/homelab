@@ -1,6 +1,7 @@
 """Real disposable catalog/Writer, SQLite reader pairs and Linux filesystem exchange.
 Host SDK/lifecycle origin substitution is explicit, not installed authority proof.
 """
+import errno
 import importlib.util
 import os
 from pathlib import Path
@@ -47,6 +48,71 @@ class Tests(unittest.TestCase):
  def lease(self):return r.from_stopped(self.life,self.c.source,self.scratch)
  def cap(self):
   self.prep=self.c.prepare();self.reader=self.lease();return a.prepare_existing(self.prep,self.reader,self.retention)
+ def test_late_marker_replacement_is_held_and_retained(self):
+  for phase in ('pending','terminal','rollback-terminal'):
+   with self.subTest(phase=phase):
+    case=Tests('runTest');case.setUp()
+    try:
+     cap=case.cap()
+     if phase!='pending':cap.install()
+     if phase=='rollback-terminal':cap.reverse()
+     real=o.write;fired=[];name=a.PENDING if phase=='pending' else a.TERMINAL
+     def late(target,*args):
+      result=real(target,*args)
+      if target.name==name:
+       info=target.stat();temporary=target.with_name('replacement');temporary.write_bytes(target.read_bytes());temporary.chmod(info.st_mode&0o777);os.utime(temporary,ns=(info.st_atime_ns,info.st_mtime_ns));os.replace(temporary,target);fired.append(True)
+      return result
+     action=cap.install if phase=='pending' else cap.complete if phase=='terminal' else cap.complete_reversed
+     with patch.object(o,'write',side_effect=late),self.assertRaises(o.Held):action()
+     self.assertTrue(fired);self.assertTrue((case.c.writer.root/name).is_file());self.assertNotIn(cap._phase,('complete','rollback-complete'))
+    finally:case.doCleanups()
+ def test_worker_queue_intent_replacement_during_HTTP_is_held(self):
+  handoff=types.ModuleType('conversion_handoff');handoff.remote_unlocked=lambda worker:None
+  worker=types.SimpleNamespace(state=self.base/'worker-state');worker.state.mkdir(mode=0o700)
+  journal=worker.state/'archive-repair-requests';journal.mkdir(mode=0o700);key='a'*64;intent=journal/(key+'.json')
+  def answer(*args,**kwargs):
+   info=intent.stat();replacement=journal/'replacement';replacement.write_bytes(intent.read_bytes());os.utime(replacement,ns=(info.st_atime_ns,info.st_mtime_ns));replacement.chmod(info.st_mode&0o777);os.replace(replacement,intent)
+   return dict(outcome='queued-review',owner=self.c.owner,operation_id=key,mutation_authority=False)
+  handoff.api=answer
+  with patch.dict(sys.modules,conversion_handoff=handoff),self.assertRaisesRegex(o.Held,'queue-intent-CAS'):d.worker_request(worker,self.c.owner,key)
+  self.assertTrue(intent.is_file())
+ def test_late_created_evidence_replacement_is_held(self):
+  for name in ('swap.arc','native-before.sqlite','baseline.json'):
+   with self.subTest(name=name):
+    case=Tests('runTest');case.setUp()
+    try:
+     real=o.write;fired=[]
+     def late(target,*args):
+      result=real(target,*args)
+      if target.name==name:
+       info=target.stat();temporary=target.with_name('replacement');temporary.write_bytes(target.read_bytes());temporary.chmod(info.st_mode&0o777);os.utime(temporary,ns=(info.st_atime_ns,info.st_mtime_ns));os.replace(temporary,target);fired.append(True)
+      return result
+     with patch.object(o,'write',side_effect=late),self.assertRaises(o.Held):case.cap()
+     self.assertTrue(fired)
+    finally:case.doCleanups()
+ def test_derivative_final_readback_keeps_original_FD_identity(self):
+  real=o.fact;fired=[]
+  def late(target,*args):
+   if Path(target).name=='swap.arc' and not fired:
+    info=target.stat();temporary=target.with_name('replacement');temporary.write_bytes(target.read_bytes());temporary.chmod(info.st_mode&0o777);os.utime(temporary,ns=(info.st_atime_ns,info.st_mtime_ns));os.replace(temporary,target);fired.append(True)
+   return real(target,*args)
+  with patch.object(o,'fact',side_effect=late),self.assertRaises(o.Held):self.cap()
+  self.assertTrue(fired)
+ def test_portable_private_custody_does_not_allow_unsupported_canonical_acl(self):
+  before=o.signature(self.c.source);raw=self.c.source.read_bytes()
+  with native.nfs_acl(self.c.source),self.assertRaises(OSError):self.cap()
+  self.assertEqual(o.signature(self.c.source),before);self.assertEqual(self.c.source.read_bytes(),raw)
+ def test_portable_private_custody_through_complete_adoption(self):
+  # Model the ACL transport boundary; this is not configured NFS acceptance.
+  def transport(fd):
+   return errno.EOPNOTSUPP if Path(os.readlink('/proc/self/fd/'+str(fd))).name in ('original.arc','restored-original.arc') else None
+  with native.nfs_acl(self.c.source,error=transport):
+   cap=self.cap();cap.install();cap.complete()
+   body=self.c.modules[2].decode_json((self.prep._operation/'preparation.json').read_text())
+   expected=body['source_attributes']['xattrs']['system.nfs4_acl']
+   self.assertEqual(o.attributes(self.c.source)['xattrs']['system.nfs4_acl'],expected)
+   copies=[o.attributes(Path(body['custody'][k]['path'])) for k in ('original','restore')]
+   self.assertEqual(copies[0],copies[1]);self.assertNotIn('system.nfs4_acl',copies[0]['xattrs'])
  def test_disjoint_fixture_transition_through_preparation_adoption_and_reverse(self):
   # Actual current modules and files; only installed/lifecycle origins are the
   # explicit host fixtures used throughout this suite, never a runtime grant.

@@ -5,7 +5,7 @@
 **Organization**: Setup and foundations precede three independently testable user stories and final acceptance. Completed evidence is retained below; unchecked tasks require their full acceptance proof.
 **Format**: Sequential `TNNN` IDs; `[US1]`–`[US3]` label story tasks. `[P]` is reserved for independent implementation in different files, with no incomplete dependencies.
 
-**Current delivery requirement (2026-10-10)**: Hosted CI must pass before any further merge. The user has revoked the outage waiver; historical waivers in the linked evidence history do not authorize new exceptions. Fix failing checks while preserving their acceptance assertions.
+**Current delivery requirement (2026-10-26)**: Run hosted CI normally. The user permits skipping GitHub CI only for a confirmed monthly quota refusal; retain equivalent local checks and record the refused run. Historical outage waivers grant no other exception or branch-protection bypass.
 
 ## Current remaining work
 

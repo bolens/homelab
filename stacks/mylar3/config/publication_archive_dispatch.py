@@ -166,9 +166,10 @@ def worker_request(worker,owner,operation_id):
     journal=worker.state/'archive-repair-requests';o.canonical(journal)
     o.check(journal.stat().st_uid==os.geteuid() and (journal.stat().st_mode&0o777)==0o700,'repair-worker-private-journal')
     p=journal/(key+'.json');raw=o.compact({'version':1,'operation_id':key,'owner':owner,'phase':'dispatching-review','mutation_authority':False})
-    o.write(p,raw,o.stat5(os.lstat(journal)))
+    created=o.write(p,raw,o.stat5(os.lstat(journal)))
     # A timeout, HTTP success, or response body is never a mutation grant.
     answer=api(worker,'publicationControl',request=json.dumps({'version':1,'action':'request-archive-repair-adoption','owner':owner,'operation_id':key}))
+    o.check(o.fact(p,1024**2,time.monotonic()+30)==created,'repair-queue-intent-CAS')
     o.check(type(answer) is dict and answer.get('outcome')=='queued-review' and answer.get('owner')==owner and answer.get('operation_id')==key and answer.get('mutation_authority') is False,'repair-queue-HTTP-ack')
     return {'version':1,'operation_id':key,'outcome':'queued-review','mutation_authority':False,'publication_acceptance':False}
 

@@ -47,6 +47,13 @@ class Controls(unittest.TestCase):
         self.assertIs(type(value),o.RepairPreparation);self.assertIsNot(value,self.prep);self.assertEqual(value.binding,self.prep.binding)
         self.assertEqual(before,{p:(p.read_bytes(),o.signature(p)) for p in self.op.iterdir()})
         for key in ('mutation_authority','adoption_authority','ordinary_source_admission','publication_acceptance','reader_preservation_verified'):self.assertIs(value.binding[key],False)
+    def test_portable_copies_reconstruct_complete_original_acl_evidence(self):
+        self.c.operation_id='2'*64
+        with f.native.nfs_acl(self.c.source):
+            self.prep=self.c.prepare();self.op=self.prep._operation;self.custody=FixtureCustody(self.prep)
+            result=self.call();self.assertEqual(result.binding,self.prep.binding)
+            self.assertIn('system.nfs4_acl',result.binding['source_attributes']['xattrs'])
+            self.assertNotIn('system.nfs4_acl',o.attributes(self.op/'restored-original.arc')['xattrs'])
     def test_missing_completed_metadata_is_typed_held(self):
         (self.op/'preparation.json').unlink()
         with self.assertRaises(o.Held):self.call()

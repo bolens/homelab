@@ -116,6 +116,10 @@ class Installation(unittest.TestCase):
     def before_channel_deadline(self,raw):
         base=json.loads(raw)
         previous={
+            'publication_archive_dispatch.py':'8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7',
+            'publication_archive_owned.py':'dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1',
+            'publication_archive_prepare_routes.py':'3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02',
+            'publication_archive_verifier.py':'97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1',
             'publication_native_configured_scope.py':'43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed',
             'publication_reader_lifecycle.py':'b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2',
             'publication_native_scope_birth.py':'28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef',
@@ -271,7 +275,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'830f6542e4422c1a10d22cb4d7e7331eb9f5e77ff673a8d66a341996186f5ef3')
+        self.assertEqual(base['base_cohort_sha256'],'37280c2eb751c35c28538e70cac7006789ee01bd3291318b22859ba156d63f6f')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         parent=ast.parse((fixes/'reader_recovery/comic_reader_lifecycle_parent.py').read_bytes())

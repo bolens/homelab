@@ -4,7 +4,7 @@
 **Organization**: Setup → payload/state foundations → reviewed registration → all guarded publication paths → operational repeat reconciliation → final acceptance.
 **Format**: Sequential `TNNN`; `[US1]`–`[US3]` identify user-story tasks. Shared writers and delivery stay serialized. Privileged access was restored on 2026-10-04; live tasks still require their source, backup and acceptance prerequisites.
 
-**Current delivery requirement (2026-10-10)**: Hosted CI must pass before any further merge. The user has revoked the outage waiver; historical waivers in the linked evidence history do not authorize new exceptions. Fix failing checks while preserving their acceptance assertions.
+**Current delivery requirement (2026-10-26)**: Run hosted CI normally. The user permits skipping GitHub CI only for a confirmed monthly quota refusal; retain equivalent local checks and record the refused run. Historical outage waivers grant no other exception or branch-protection bypass.
 
 ## Current acceptance work
 

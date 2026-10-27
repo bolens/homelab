@@ -13,7 +13,7 @@ import stat
 import time
 import zipfile
 
-CORE_SHA='dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1'
+CORE_SHA='511d5b9828964187a88b0d028051917b7a1b40b47bed96c60265329f5fe9fed5'
 MAX_OPERATIONS=8
 MAX_STAGE_BYTES=4*1024**3
 NAMES={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'}

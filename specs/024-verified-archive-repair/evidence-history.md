@@ -751,3 +751,87 @@ companions and the actual rename/link algorithm on local files with explicit
 origin/transport substitutions; they supply no installed NFS or acceptance proof.
 Historical fixtures and held attempts remain unchanged. The native SDK correction
 requires a matching publication and actual capture before the next fresh fixture.
+
+
+## Superseded delivery queue through PR #529 — 2026-10-26
+
+PR [#515](https://github.com/bolens/homelab/pull/515) supplies the retained
+180-module native baseline and DATA precondition; the required SDK has 103
+entries after PR [#521](https://github.com/bolens/homelab/pull/521).
+PR [#522](https://github.com/bolens/homelab/pull/522) changes five installed native
+modules for the shared phase deadline. Require its matching published image and
+fresh module capture before the next isolated pair. That capture is now verified.
+PR [#524](https://github.com/bolens/homelab/pull/524) delivered copied-control
+roundtrips, original-provider references and the host-side selected-child mount
+check. Its fresh CX operation passed that host check, stopped only its disposable
+reader, then held in the installed Birth consumer: the SDK still applied its
+64-row native/worker parser to the complete 73-mount child vector. The retained
+child traceback identifies that exact boundary.
+
+PR [#525](https://github.com/bolens/homelab/pull/525) delivered the shared
+selected-child projection in SDK Scope, Birth and both host adapters. Its matching
+image capture verifies all 180 modules and the required 103-module SDK. Fresh
+checked controls and disposable bootstrap passed. A stale private readiness
+input was corrected from its exact Scope and Probe sources before DB passed
+SourceCohort and reached the owning Parent.
+
+PR [#526](https://github.com/bolens/homelab/pull/526) delivered strict integer
+versions 3/4 for the unchanged publication protocol. Local and hosted checks,
+main publication, actual 180-module capture and the required SDK103 joins pass.
+Fresh DC host controls verified all 27 outputs, and DD's disposable bootstrap
+passed. DC then reached the owning Parent and stopped only its disposable reader,
+but held in prebirth custody with `archive-producer-final-file`, before archive
+execution. The original transient vector was not retained, so the exact changed
+path in that attempt is unknown. Both archives' full9/hashes, all 24 native tables
+and the original native process/config remain unchanged. Preserve DC/DD and all
+prior holds without replay or inferred resume.
+
+PR [#527](https://github.com/bolens/homelab/pull/527) delivered the finite original
+DATA identity correction and bounded refusal metadata. Its real SQLite rollback
+regression, 1,767 recovery controls, local CI, independent review and all hosted
+checks pass. Fresh DG controls verified all 27 outputs and DH bootstrap passed.
+DG passed prebirth custody, real Birth and the execute child's Writer session,
+then held because archive history had not been initialized. Both archives'
+full9/hashes and all 24 native tables remain unchanged; its reader stays stopped.
+
+PR [#528](https://github.com/bolens/homelab/pull/528) adds the ordinary authenticated
+repair request before reader scan and backup/custody. Fresh DJ bootstrap records
+its actual queued-review/no-grant result and the original 0700 history directory.
+DI then passes history admission but holds at `fixture-same-owning-pair`: the
+transition calls the allocating Controller/Writer factory inside the original
+Writer session. Both archives' full9/hashes and all 24 native SQL tables remain
+unchanged; the reader stays stopped, native process/config are unchanged and
+worker remains inactive. Preserve DI/DJ without replay or inferred resume.
+
+PR [#529](https://github.com/bolens/homelab/pull/529) corrects original Writer
+pair reuse and the separate verifier's binding order. DM passes those boundaries
+but stops before the fixture write: its receipt writer receives the union of
+library and DATA ancestors instead of the receipt's own ancestry. Keep that union
+in retained custody and admit only the original DATA ancestry for receipt writes.
+The separate-branch regression now exposes this geometry directly.
+
+The connected current-source regression also exposes an unchanged-size SQL case:
+repair can restore the catalog's already recorded size, so SQLite has no journal.
+Skip the SQL UPDATE only for identical complete typed snapshots, retain original
+DB bytes/full9 and all companion absences, and require the owned journal for
+actual catalog changes. Forward/reverse and foreign-companion controls cover
+this boundary. This installed native correction requires a matching new image
+capture and checked host installation before another unused fixture. Preserve
+DM/DN and every earlier hold without replay; forward and distinct-fixture rollback
+remain unaccepted within T012/T015. [Retained failure history](evidence-history.md#disjoint-fixture-ancestry-and-unchanged-catalog--2026-10-26)
+owns the diagnosis.
+
+
+## NFS ACL on private local custody — 2026-10-26
+
+PR [#529](https://github.com/bolens/homelab/pull/529) passed local and hosted checks, main publication, exact 180-module capture and required SDK103 joins. DP installed all 27 matching controls; DQ bootstrap and preflight passed. The forward run reached fixture transition and owning preparation, then held while copying `system.nfs4_acl` from NFS to a private local preservation file with `EOPNOTSUPP`. No terminal or resume was accepted. The selected fixture archive differs from genesis; its unrelated archive retains its full9/hash and all 24 native tables are unchanged. Native remains running, reader exited and worker Created. Preserve DP/DQ without replay.
+
+Local regressions retain the complete source ACL in existing sealed metadata, distinguish portable private-copy attributes and keep canonical ACL equality strict. An independent synthetic NFS-to-local benchmark reproduces the old refusal and verifies two corrected private copies, complete unchanged source evidence and the user attribute. A separate same-NFS copy verifies actual full ACL application/readback. These checks do not establish configured repair or reader acceptance. A new matching image/control installation and unused fixture remain required.
+
+The adjacent creation audit reproduced a separate identity gap before another
+fixture was consumed: corruption or same-byte inode replacement after private
+preservation could become a newly sampled baseline. The same pattern affected
+private derivative/receipt creation and the derivative's final attribute readback.
+PR [#531](https://github.com/bolens/homelab/pull/531) carries the original exclusive
+file-descriptor fact through these boundaries and rejects replacements. This
+source correction remains part of T012/T015; it supplies no runtime acceptance.

@@ -9,7 +9,7 @@ import time
 from mylar import publication_archive_owned as o
 from mylar import publication_reader_lifecycle as lifecycle
 
-OWNED_SHA='dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1'
+OWNED_SHA='511d5b9828964187a88b0d028051917b7a1b40b47bed96c60265329f5fe9fed5'
 LIFECYCLE_SHA='e21ed7d045876e44e02f53963372b9bd1e0c134bc5bb3eb6a47b704d7473a30a'
 MAX=512*1024**2+2
 NAMES={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'}
@@ -85,8 +85,9 @@ def _from_existing(controller,writer,owner,operation_id,custody):
     attrs={source:source_attrs};custodians={}
     for name,key in (('original.arc','original'),('restored-original.arc','restore')):
         path=stage/name;value=o.fact(path,512*1024**2,deadline);files[path]=value;attrs[path]=o.attributes(path)
-        o.check(value['sha256']==source_fact['sha256'] and attrs[path]==source_attrs,'existing-preparation-independent-custody')
+        o.check(value['sha256']==source_fact['sha256'] and o.custody_attributes_match(attrs[path],source_attrs),'existing-preparation-independent-custody')
         custodians[key]=value
+    o.check(attrs[stage/'original.arc']==attrs[stage/'restored-original.arc'],'existing-preparation-restored-attributes')
     path=stage/'prepared.cbz';derivative=o.fact(path,MAX,deadline);files[path]=derivative
     staged=o.read_checked(path,derivative['signature9'],MAX,deadline)
     o.check(staged==repaired,'existing-preparation-recomputed-stage')

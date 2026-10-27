@@ -70,6 +70,13 @@ If complete typed catalog snapshots are identical, forward/reverse skip the SQL
 UPDATE and retain original database bytes/full9 and every companion absence.
 Actual catalog changes still require the live connection's owned journal.
 
+Private local preservation copies retain bytes and portable attributes; complete
+source ACL bytes remain in the sealed preparation. Only an unsupported
+destination `system.nfs4_acl` may be absent from those private copies. Both copies
+must have identical verified attributes, and canonical NFS publication/reverse
+still apply and verify the complete original ACL. Local tests model that transport
+boundary explicitly; they do not supply configured NFS acceptance.
+
 The six source-owned steps are retain-displaced (no-clobber hardlink),
 detach-source, publish (no-clobber hardlink), detach-stage, retain-original
 (no-clobber hardlink), and detach-displaced. Each has a durable intent and done
