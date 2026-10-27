@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build context: stacks/kavita/independent. Linux amd64 only.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2 AS source
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS source
 RUN apt-get update && apt-get install -y --no-install-recommends git python3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /source
