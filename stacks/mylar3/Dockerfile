@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS tagger-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:85f41065ad9f264f5f9000abcf17215a9b2b0cd207c954fb6b47c6dcf950389f AS tagger-build
 # Modern alone uses CPython 3.13, compiled against this same Jammy ABI/ICU.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -40,7 +40,7 @@ RUN rm -rf /tmp/tagger-python-source \
     && find /opt/tagger-python /opt/comictagger -type d -name __pycache__ -prune -exec rm -rf '{}' +
 COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS ddl-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:85f41065ad9f264f5f9000abcf17215a9b2b0cd207c954fb6b47c6dcf950389f AS ddl-build
 COPY requirements-ddl.txt /tmp/requirements-ddl.txt
 RUN python3 -m venv --without-pip /opt/ddl-transport \
     && python3 -m pip --python /opt/ddl-transport/bin/python install --no-cache-dir \
@@ -54,7 +54,7 @@ COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
 FROM ghcr.io/bolens/archiving-utils@sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c AS archive-verifier
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS libarchive-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:85f41065ad9f264f5f9000abcf17215a9b2b0cd207c954fb6b47c6dcf950389f AS libarchive-build
 # Release tarball digest is published by the official v3.8.9 release asset.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -79,7 +79,7 @@ RUN python3 -c "import hashlib,urllib.request; data=urllib.request.urlopen('http
     && rm -rf /opt/libarchive/include /opt/libarchive/lib/pkgconfig /opt/libarchive/share/man \
     && rm -f /opt/libarchive/lib/*.la
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:0b45139c69d8e79478ccf6e85a5cc9368a7e3bc3e4229fe338149f196430ef11 AS pdf-runtime
+FROM lscr.io/linuxserver/mylar3:latest@sha256:85f41065ad9f264f5f9000abcf17215a9b2b0cd207c954fb6b47c6dcf950389f AS pdf-runtime
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends poppler-utils libarchive13=3.6.0-1ubuntu1.9 \
