@@ -2,7 +2,7 @@ services:
   peanut:
     labels:
       logging: "true"
-    image: brandawg93/peanut:latest@sha256:6629dce915da8b313f08b2e73dd2e54b60e7c0f642c21a8ebc37fe0a820bf41e
+    image: brandawg93/peanut:latest@sha256:13e99d1fd1b599c41f18c51483c53a8ee4f5a1da64c1a67b6e66d6a265be111b
     container_name: peanut
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"

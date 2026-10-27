@@ -58,7 +58,7 @@ services:
       logging: "true"
     # :master is the upstream *dev* image (Node 24) and currently crashes on
     # createRequire(undefined). Use release tag for production.
-    image: jesec/flood:latest@sha256:cda0afbf900d625f9a01f11999c7f36ffa9bd7af93be058ab41e991105de75ec
+    image: jesec/flood:latest@sha256:241f172786fe958a09a55615cb4cd1b15d0aec9751f2d87dd8d7a67bcd24f0fa
     container_name: flood
     restart: unless-stopped
     cpus: 1.0

@@ -6,7 +6,7 @@ services:
   whisparr:
     labels:
       logging: "true"
-    image: ghcr.io/thespad/whisparr:latest@sha256:b5c06f18dd1a983453d47387ab0387fe06df8e008f244cf44a7271ef9bb1bcba
+    image: ghcr.io/thespad/whisparr:latest@sha256:a74aaf3a9a149c92406088aa740edcf65839e271e22a27165bbc08c525b6012c
     container_name: whisparr
     restart: unless-stopped
     cpus: 2.0
