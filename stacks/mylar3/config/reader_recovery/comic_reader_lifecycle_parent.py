@@ -3830,7 +3830,7 @@ class LifecycleParent:
         # Only an admitted plan11 ORIGINAL execute child can enter this dialogue.
         need(self.plan.get('version') in (11,12,13) and self.plan.get('terminal_mode')=='same-child-v1' and _PHASES.get(self,{}).get('execute',{}).get('accepted') is True and self not in _ARCHIVE_TERMINAL_ROUNDS,'archive-terminal-original-live-birth')
         if self.plan.get('version') in (12,13):self.worker_intent(current)
-        original_files=dict(self.files);original_nodes=dict(self.nodes)
+        original_files={path:tuple(value) for path,value in self.files.items()};original_nodes={path:tuple(value) for path,value in self.nodes.items()}
         for path,ref in self.generated.items():
             path=ref['path']
             value=tuple(ref['signature9']);need(path not in original_files or original_files[path]==value,'archive-terminal-control-conflict');original_files[path]=value

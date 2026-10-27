@@ -26,15 +26,16 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-PR [#533](https://github.com/bolens/homelab/pull/533) is delivered with matching
-180-module capture, SDK103 proof and 27 installed controls. DW/DX passes the
-corrected reader mapping, then holds during NFS detach-source: an open archive
-FD causes a hidden silly-rename alias instead of the expected unlink. The old
-archive and staged replacement are retained with verified hashes, members,
-compressed bytes and pages; unrelated full9/hash and all 24 native tables match.
-Deliver the close/unlink/reopen correction and matching source/image/control
-closure before another unused fixture. Forward and distinct rollback remain
-unaccepted. See the [NFS diagnosis](evidence-history.md#nfs-open-file-unlink--2026-10-27).
+PR [#537](https://github.com/bolens/homelab/pull/537) delivered the NFS descriptor
+correction with matching 180-module capture, SDK103 proof and 27 installed
+controls. The four installed-image discovery/import/lost-reply/rename cases pass.
+DY/DZ reconstructs the genesis archive and produces a child forward observation,
+then the host Parent refuses equal directory facts represented as lists and
+tuples. Correct the value comparison and refresh the checked host installation
+before a new fixture. Target bytes, unrelated full9/hash and all 24 native
+tables match their baselines. The reader stays stopped; forward acceptance and
+distinct rollback remain unaccepted. See the
+[terminal comparison diagnosis](evidence-history.md#terminal-directory-fact-comparison--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

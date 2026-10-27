@@ -44,6 +44,32 @@ class Tests(unittest.TestCase):
   x.files={self.source['path']:tuple(self.source['signature9'])};x.nodes={}
   self.parent=x
  def go(self):return self.parent.accept_archive_terminal(self.proof,[],self.message,self.current,copy.deepcopy(self.current),p.encode(self.message))
+ def overlapping_node(self,original_type=list):
+  self.setup();node=str(self.root);value=p.five(self.root.lstat())
+  self.parent.nodes[node]=original_type(value)
+  target=Path(self.terminal['path']);terminal=p.decode(target.read_bytes());terminal['original_vectors']['nodes'].append([node,value])
+  ref=old.fixture_ref(target,p.encode(terminal));self.message['terminal']['terminal_report']=ref
+  target=Path(self.refs['execution_report']['path']);execute=p.decode(target.read_bytes());execute['terminal_report']=ref
+  self.message['terminal']['execution_report']=old.fixture_ref(target,p.encode(execute))
+  return node,value
+ def test_equal_original_list_node_accepts_terminal_tuple(self):
+  self.overlapping_node();answer=p.decode(self.go());self.assertEqual(answer['type'],'terminal-release')
+ def test_equal_original_tuple_node_accepts_terminal_tuple(self):
+  self.overlapping_node(tuple);answer=p.decode(self.go());self.assertEqual(answer['type'],'terminal-release')
+ def test_equal_output_node_list_overlap_accepts(self):
+  self.setup();node=self.parent.op/'execute';self.parent.nodes[str(node)]=p.five(node.lstat())
+  self.assertEqual(p.decode(self.go())['type'],'terminal-release')
+ def test_equal_operation_node_list_overlap_accepts(self):
+  self.setup();node=self.parent.op;self.parent.nodes[str(node)]=p.five(node.lstat())
+  self.assertEqual(p.decode(self.go())['type'],'terminal-release')
+ def test_changed_original_node_values_still_refuse(self):
+  node,value=self.overlapping_node()
+  for index in range(5):
+   changed=list(value);changed[index]+=1;self.parent.nodes[node]=changed
+   with self.subTest(index=index),self.assertRaisesRegex(p.Held,'archive-terminal-original-node-conflict'):self.go()
+ def test_late_matching_node_mode_drift_still_refuses(self):
+  self.overlapping_node();self.parent.inspect=lambda _: (self.root.chmod(0o710) or copy.deepcopy(self.current))
+  with self.assertRaises(p.Held):self.go()
  def test_original_selected_child_fixed_reports_factual_release(self):
   self.setup();answer=p.decode(self.go());self.assertEqual(answer['type'],'terminal-release');self.assertTrue(all(v is False for v in answer['rights'].values()))
   r=p._ARCHIVE_TERMINAL_ROUNDS[self.parent];self.assertEqual(r['request_sha256'],hashlib.sha256(p.encode(self.message)+b'\n').hexdigest());self.assertEqual(r['response_sha256'],hashlib.sha256(p.encode(answer)+b'\n').hexdigest())

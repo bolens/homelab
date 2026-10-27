@@ -14,11 +14,14 @@ separate rollback described in [feature 024's current work](../024-verified-arch
 One accepted pair can satisfy the connected portions of T026/T029, isolated
 T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 
-PR #533 has matching publication, 180-module capture, SDK103 and startup-source proof.
-DW/DX passes the corrected reader mapping but holds during NFS open-file unlink;
-its old and staged archives remain preserved. Deliver the bounded descriptor
-correction and matching image/control closure before the next unused fixture;
-SDK103 remains the required selection. Reuse unchanged proofs
+PR #537 delivered the NFS descriptor correction with matching publication,
+180-module capture, SDK103 and startup-source proof. The four installed-image
+discovery/import/lost-reply/rename cases pass. DY/DZ reconstructs the original
+archive and produces a child forward observation, but the host Parent rejects
+equal directory facts represented as lists and tuples. Correct that comparison
+and refresh the checked host installation before a new fixture. The target's
+genesis bytes, unrelated full9/hash and all 24 native tables are preserved;
+the stopped reader remains held. SDK103 remains the required selection. Reuse unchanged proofs
 only for their exact image/source inputs. Changed host controls require fresh checked installation outputs;
 unchanged installations may serve distinct fixtures. Source delivery alone
 cannot establish accepted runtime terminals. The current shared work finishes

@@ -886,3 +886,38 @@ The corrected synthetic NFS algorithm passes forward/reverse, preservation and
 independent terminal verification with explicit component admission substitution.
 This does not establish installed factories or connected forward/rollback
 acceptance. T012/T015 and the shared feature 023 criteria remain open.
+
+## Terminal directory fact comparison — 2026-10-27
+
+PR [#537](https://github.com/bolens/homelab/pull/537) delivered the descriptor
+correction. Actual-image verification covers all 180 modules and SDK103; only
+the intended adoption module differs from the preceding capture. Startup sources
+are unchanged. Four new installed-image cases pass without skips: discovery,
+ordinary import, lost-reply reconciliation and rename/metadata continuity.
+These component results do not grant configured archive acceptance.
+
+DY verifies all 27 fresh installation outputs. DZ bootstrap, 58 packet checks,
+six original-Parent checks and independent archive/reader/native baselines pass.
+The one-shot forward run reaches an `observed-forward` child report, then holds
+at the host Parent's `archive-terminal-original-node-conflict`. The reader is
+stopped, native running and permanent worker unstarted. Do not replay or resume.
+Independent post-hold observations confirm byte-exact genesis reconstruction,
+unchanged unrelated archive full9/hash and all 24 native SQL tables unchanged.
+
+The Parent captures directory facts as lists. Terminal partitioning returns
+tuples, and their direct equality test refuses identical five scalar values.
+A regression through the actual terminal-acceptance method reproduces that
+same refusal. Compare canonical scalar tuples without replacing the original
+ledgers or weakening identity, late-change, namespace or final closure checks.
+The corrected focused suite covers matching list/tuple facts, changed values
+and late directory drift. Checked source delivery and fresh configured execution
+remain within T012/T015; no additional task or acceptance layer is introduced.
+
+The unused historical rollback comparison also assumed the valid genesis archive.
+Explicit rollback instead restores the retained malformed pre-repair successor,
+while native state must match its full preoperation baseline. Its independent
+comparison must bind the original causal receipt, candidate, preparation and
+terminal witnesses, preserving payload/compressed bytes/pages/XML and complete
+access attributes. Pure controls now verify the finite ZIP reconstruction and
+reject hidden header/envelope drift. Original-chain integration and actual
+distinct-fixture rollback remain outstanding.
