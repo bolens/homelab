@@ -20,7 +20,7 @@ encoding, hash, JSON, color, and QR-code tools.
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `it-tools:8080`) |
 | **Network** | `ingress-admin`, dedicated Caddy-to-service ingress |
-| **Image** | Maintained fork `ghcr.io/sharevb/it-tools:2026.7.11` |
+| **Image** | Maintained fork `ghcr.io/sharevb/it-tools`; release and digest are pinned in [docker-compose.yml](docker-compose.yml) |
 
 ## Features
 
