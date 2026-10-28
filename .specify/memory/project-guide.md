@@ -325,6 +325,11 @@ fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
 persistent lock owner. Preserve fresh authority and post-callback closure when
 removing repeated pure work.
+For guarded pipe timing, include encoded frame sizes, short writes, backpressure
+and the full closure count per response. A fixed loop of closure calls does not
+measure a multi-write protocol exchange. Keep the original deadline and repeat
+preservation checks before every write; validate nonblocking pipe state through
+the original primitive before sending bytes.
 For saved-evidence-only diagnostics, trace called functions as well as the entry
 point. The live library mapper resolves paths and checks directories; calling it
 would cross that boundary even when its input JSON was captured earlier. Validate

@@ -1716,6 +1716,7 @@ def library_helper_created_to_exited(original,current,cid,reader):
 
 
 _DIALOGUE_KERNELS=(os.fstat,time.monotonic)
+_WORKER_PIPE_KERNEL=(fcntl.fcntl,fcntl.F_GETFL,fcntl.F_GETPIPE_SZ,fcntl.F_SETPIPE_SZ,fcntl.F_SETFL,os.O_NONBLOCK)
 
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
@@ -1894,7 +1895,7 @@ class ScopedDocker:
   note('cleanup',dict(container_id=cid,owned_exited_cleanup_verified=True,publication_authority=False))
   return reply.stdout
 
- def worker_interactive(self,cid,protocol,seconds,guard,_kernel=_DIALOGUE_KERNELS):
+ def worker_interactive(self,cid,protocol,seconds,guard,_kernel=_DIALOGUE_KERNELS,_pipe=_WORKER_PIPE_KERNEL):
   definition=ScopedDocker.worker_interactive;definition_code=definition.__code__;definition_defaults=definition.__defaults__
   nfs_remote_guard(self)
   # A nested observer dialogue never replaces the live producer entry.
@@ -1902,6 +1903,27 @@ class ScopedDocker:
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('worker-start-ACK-unknown') from None
   original_pid=p.pid;streams=(p.stdin,p.stdout,p.stderr);fds=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
+  try:
+   need(_pipe is _WORKER_PIPE_KERNEL and type(_pipe) is tuple and len(_pipe)==6,'worker-original-pipe-kernel')
+   pipe_call=_pipe[0]
+   need(fcntl.fcntl is pipe_call and type(pipe_call) is type(len)
+        and pipe_call.__module__=='fcntl' and pipe_call.__name__=='fcntl','worker-original-pipe-kernel')
+   # A protocol response can exceed PIPE_BUF many times. Use bounded, nonblocking
+   # writes rather than paying a complete preservation closure per 4 KiB slice.
+   # A denied capacity increase keeps the original smaller pipe; never restart.
+   try:pipe_call(fds[0][0],_pipe[3],65536)
+   except OSError as error:
+    if error.errno not in (1,22):raise
+   pipe_capacity=pipe_call(fds[0][0],_pipe[2])
+   need(4096<=pipe_capacity<=65536,'worker-bounded-pipe-capacity')
+   pipe_flags=pipe_call(fds[0][0],_pipe[1])|_pipe[5]
+   pipe_call(fds[0][0],_pipe[4],pipe_flags)
+   need(pipe_call(fds[0][0],_pipe[1])==pipe_flags,'worker-nonblocking-pipe')
+  except BaseException:
+   for stream in streams:
+    try:stream.close()
+    except BaseException:pass
+   raise Held('worker-pipe-setup-held-no-replay') from None
   original_record=dialogue_register(self,cid,p,streams,fds,end,original_pid);original_seal=_DIALOGUE_SEALS[self][cid];outputs={streams[1]:'stdout',streams[2]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False;release_sent=False
   try:
    while outputs:
@@ -1932,7 +1954,7 @@ class ScopedDocker:
            or _kernel[1].__name__!='monotonic' or _kernel[1].__module__!='time'
            or os.fstat is not _kernel[0] or time.monotonic is not _kernel[1]
            or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults
-           or definition_defaults!=(_kernel,)):raise Held('original-dialogue-write-kernel-binding')
+           or definition_defaults!=(_kernel,_pipe)):raise Held('original-dialogue-write-kernel-binding')
        if (_DIALOGUES.get(self,{}).get(cid) is not original_record or _DIALOGUE_SEALS.get(self,{}).get(cid) is not original_seal
            or (p.stdin,p.stdout,p.stderr)!=streams or p.pid!=original_pid):raise Held('original-dialogue-write-registry')
        if (original_record.get('process') is not original_seal[0] or original_record.get('streams') is not original_seal[1]
@@ -1941,9 +1963,16 @@ class ScopedDocker:
        for fd,fact in fds:
         z=_kernel[0](fd)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('original-dialogue-write-FD')
+       if (_pipe is not _WORKER_PIPE_KERNEL or _pipe[0] is not pipe_call or fcntl.fcntl is not pipe_call
+           or type(pipe_call) is not type(len) or pipe_call.__module__!='fcntl' or pipe_call.__name__!='fcntl'):
+        raise Held('worker-original-pipe-kernel')
+       if (pipe_call(fds[0][0],_pipe[1])!=pipe_flags
+           or pipe_call(fds[0][0],_pipe[2])!=pipe_capacity):raise Held('worker-original-pipe-state')
        if os.fstat is not _kernel[0] or time.monotonic is not _kernel[1] or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults:raise Held('original-dialogue-write-kernel-binding')
        if _kernel[1]()>=end:raise Held('original-dialogue-write-deadline')
-       n=os.write(fds[0][0],pending[:4096]);need(n>0,'worker-response-unknown');pending=pending[n:]
+       try:n=os.write(fds[0][0],pending[:65536])
+       except BlockingIOError:continue
+       need(0<n<=min(len(pending),65536),'worker-response-unknown');pending=pending[n:]
       if protocol.step==3:release_sent=True
    need(done and not line and p.wait(timeout=max(.001,end-time.monotonic()))==0,'worker-final-ACK-unknown')
    dialogue_close(self,cid);guard();return protocol.result

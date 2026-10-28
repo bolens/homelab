@@ -180,6 +180,15 @@ mutable HOST relabeling, native grant, parent pin or ordinary admission.
 
 Default-disabled plan12 preserves the plan11 same-child contract and adds an original regular worker-source ref and an exact installed source-map ref. The worker image and read-only mounts come from the original held-worker profile. One disposable worker process uses its own inherited pipe, source entry and receiver birth; image-only ancestors remain receiver facts. The parent retains both process/pipe registries and the original execute capability’s archive, catalog, authority and marker roles through fresh observation and worker release before releasing the producer. No saved capability, worker report or receiver measurement replaces original shared source facts. Installed image/CLI, actual mount equality and NFS remain separate acceptance gates; the shipped flag remains false.
 
+## Nested worker response transport
+
+The nested observer's response transport retains its original 30-second ingress
+deadline. It writes at most 64 KiB through a nonblocking pipe, retaining a checked
+smaller capacity if the kernel refuses enlargement. Every readiness retry and
+partial write repeats full preservation checks; the detached write tail verifies
+the original descriptor, flags, capacity, primitive and deadline. An unknown
+setup or write outcome holds without restarting the helper or replaying a frame.
+
 ## Original Writer session on the existing pipe
 
 The source-owned `writer_session` extension of `reader-lifecycle-pipe-v1` carries version, stage (`enter`, `held`, `leave`), original session nonce, child process PID/start ticks, Writer identity and the complete prelease census. Enter completes before Writer acquisition. The held and idle branches retain that original unlocked observation and close local process, source and physical custody without Docker or API calls. The child independently proves its exact configured Controller paths and original ordinary Writer locally. Ready/verified and legacy startup-held observations require the same complete census; no fresh empty census or startup reset is admitted.

@@ -281,6 +281,16 @@ child guards. Source controls do not complete T012 or T015.
 
 ### Admission closure and diagnosis
 
+The nested worker exchange retains its original 30-second ingress deadline and
+all per-write preservation checks. Use bounded nonblocking writes of at most
+64 KiB, retain the exact remaining suffix after short writes, and repeat the
+guard after every readiness wait or no-progress retry. Bind the original pipe
+flags, capacity and kernel primitive before writing. A denied capacity increase
+may retain a checked smaller pipe; it does not restart the helper or deadline.
+Large actual four-round pipe fixtures verify transport behavior. Configured
+timing and acceptance still require a fresh owning run; component closure loops
+do not establish that proof.
+
 Deduplicate identical control metadata by exact path within each Tree check,
 refusing conflicting facts before callbacks. Preserve both closure passes,
 original seals and fresh validation on every call. Test duplicated file and node
