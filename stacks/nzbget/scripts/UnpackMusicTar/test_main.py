@@ -47,6 +47,75 @@ class UnpackMusicArchiveTest(unittest.TestCase):
                 self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
                 main.process_release(root)
 
+    def test_posting_tags_and_windows_text_are_cleaned_with_audio(self) -> None:
+        for tag in ("newzNZB", "WtFnZb", "wtfnzb"):
+            for encoding in ("utf-8", "utf-8-sig", "cp1252"):
+                for archive in (False, True):
+                    with self.subTest(tag=tag, encoding=encoding, archive=archive), tempfile.TemporaryDirectory() as temp:
+                        root = Path(temp)
+                        name = f"release.1234abcd___123456abcdef_ [{tag}] [3_16] - yEnc  903 (1_1)"
+                        info = "Artist: Fixture\r\nAlbum: 7800° Example\r\nSource: CD\r\nEncoder: FLAC\r\n01. Example Track\r\n"
+                        files = {name: info.encode(encoding),
+                                 name.replace("903", "553"): "01-artist’s-song.flac 1234abcd\r\n".encode(encoding),
+                                 "01-artist’s-song.flac": b"fLaC" + bytes(32)}
+                        if archive:
+                            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                                for filename, payload in files.items():
+                                    output.writestr(filename, payload)
+                        else:
+                            for filename, payload in files.items():
+                                (root / filename).write_bytes(payload)
+                        main.process_release(root)
+                        self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                         {"01-artist’s-song.flac": files["01-artist’s-song.flac"]})
+                        main.process_release(root)
+
+    def test_windows_posting_cleanup_keeps_cue_and_empty_output_guards(self) -> None:
+        for tag in ("newzNZB", "WtFnZb"):
+            with self.subTest(tag=tag), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                name = f"release.1234abcd___123456abcdef_ [{tag}] [3_16] - yEnc  903 (1_1)"
+                payload = "Artist: Fixture\nAlbum: 7800° Example\nSource: CD\nEncoder: FLAC\n01. Example\n".encode("cp1252")
+                (root / name).write_bytes(payload)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root)
+                self.assertEqual((root / name).read_bytes(), payload)
+                cue = f'FILE "{name}" BINARY\n'.encode()
+                (root / "album.cue").write_bytes(cue)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {name: payload, "album.cue": cue})
+
+    def test_windows_posting_cleanup_preserves_malformed_unknown_and_media(self) -> None:
+        name = "release.1234abcd___123456abcdef_ [WtFnZb] [3_16] - yEnc  903 (1_1)"
+        info = "Artist: Fixture\nAlbum: 7800° Example\nSource: CD\nEncoder: FLAC\n01. Example\n".encode("cp1252")
+        files = {name: info + b"\x00", name.replace("903", "904"): info + b"\x81",
+                 name.replace("903", "905"): info + b"x" * 65536,
+                 name.replace("903", "906"): b"unstructured text",
+                 name.replace("WtFnZb", "AnotherTag"): info,
+                 name.replace("903", "907"): "../artist’s-song.flac 1234abcd\n".encode("cp1252"),
+                 name.replace("903", "908"): b"fLaC" + bytes(32), "named.flac": info}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for filename, payload in files.items():
+                (root / filename).write_bytes(payload)
+            main.process_release(root)
+            expected = {(filename + ".flac" if filename == name.replace("903", "908") else filename): payload
+                        for filename, payload in files.items()}
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_windows_posting_duplicates_do_not_block_archive_tracks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            name = "release.1234abcd___123456abcdef_ [WtFnZb] [3_16] - yEnc  903 (1_1)"
+            info = "Artist: Fixture\nAlbum: 7800° Example\nSource: CD\nEncoder: FLAC\n01. Example\n".encode("cp1252")
+            (root / name).write_bytes(info)
+            audio = b"fLaC" + bytes(32)
+            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                output.writestr(name, info)
+                output.writestr("song.flac", audio)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
     def test_windows_nfo_accents_do_not_select_cp437_drawing_mode(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
