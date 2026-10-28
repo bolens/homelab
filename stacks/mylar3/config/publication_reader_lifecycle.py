@@ -96,6 +96,17 @@ class ParentPipe:
    z=os.fstat(descriptor)
    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('lifecycle-original-pipe-FD')
   return expected
+ def send(self,raw,original):
+  """Bounded write on the original inherited channel and absolute deadline."""
+  require(type(raw) is bytes and 0<len(raw)<=FRAME_MAX,'lifecycle-request-bound')
+  pending=memoryview(raw)
+  while pending:
+   require(self.binding()==original,'lifecycle-write-original-channel')
+   require(select.select([],[original[1]],[],max(0,original[4]-time.monotonic()))[1],'lifecycle-write-timeout')
+   require(self.binding()==original,'lifecycle-write-original-channel')
+   require(time.monotonic()<original[4],'lifecycle-write-timeout')
+   count=os.write(original[1],pending[:4096]);require(count>0,'lifecycle-write-no-progress');pending=pending[count:]
+  require(self.binding()==original,'lifecycle-write-original-channel')
  def challenge(self,nonce,input_sha,parent_sha,writer_session=None,*,archive_publication=None):
   original=self.binding();self.seq+=1;token=secrets.token_hex(32)
   message=dict(protocol='reader-lifecycle-pipe-v1',type='challenge',nonce=nonce,input_sha256=input_sha,parent_sha256=parent_sha,sequence=self.seq,challenge=token)
@@ -103,8 +114,7 @@ class ParentPipe:
   if writer_session is not None:message['writer_session']=copy.deepcopy(writer_session)
   if archive_publication is not None:message['archive_publication']=copy.deepcopy(archive_publication)
   raw=encoded(message)+b'\n'
-  count=0
-  while count<len(raw):count+=os.write(self.output,raw[count:])
+  self.send(raw,original)
   end=original[4];buf=bytearray()
   while not buf.endswith(b'\n'):
    require(time.monotonic()<end and len(buf)<FRAME_MAX,'lifecycle-pipe-bound')
@@ -870,9 +880,7 @@ def archive_terminal_release(custody,scope,cap,refs):
   request=encoded(frame)+b'\n';request_sha=hashlib.sha256(request).hexdigest();witness=ArchiveTerminalRelease(_KEY)
   record={'custody':weakref.ref(custody),'cap':weakref.ref(cap),'scope':scope,'registered':registered,'pipe':channel,'pipe_seal':channel_seal,'sequence':sequence,'conversation_sequence':sequence,'challenge':challenge,'refs':tuple((role,ref['path'],ref['sha256'],tuple(ref['signature9'])) for role,ref in reference_snapshot.items()),'nodes':tuple((str(p),v) for p,v in ref_nodes.items()),'operation':str(operation),'names':tuple(names.values()),'request_sha256':request_sha,'response_sha256':None,'consumed':False,'pid':os.getpid(),'thread':threading.get_ident()}
   _ARCHIVE_RELEASES[witness]=record;_ARCHIVE_ROUNDS[custody]=witness
-  count=0
-  while count<len(request):
-   written=os.write(channel.output,request[count:]);require(written>0,'archive-terminal-release-write');count+=written
+  channel.send(request,channel_seal)
   limit=min(deadline,time.monotonic()+90);buf=bytearray()
   while not buf.endswith(b'\n'):
    require(time.monotonic()<limit and len(buf)<FRAME_MAX,'archive-terminal-release-bound')

@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 import unittest
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
 import comic_nfs_parent_session as m
 
@@ -43,6 +44,13 @@ class Pump(unittest.TestCase):
         p,pump=self.start("import time;time.sleep(1)",guard);state['pump']=pump
         with self.assertRaisesRegex(m.Held,'callback-seal'):pump.check()
         self.assertIs(pump.process,p)
+    def test_guard_consumed_deadline_prevents_following_write(self):
+        ready=[];clock=m.time.monotonic
+        _,pump=self.start('import sys;sys.stdin.readline()',lambda:ready.append(True))
+        ready.clear()
+        with patch.object(m.time,'monotonic',side_effect=lambda:pump.deadline+1 if ready else clock()),patch.object(m.os,'write') as write:
+            with self.assertRaisesRegex(m.Held,'callback-deadline'):pump.write({'operation':'current'})
+        write.assert_not_called();self.assertTrue(pump.failed)
     def test_stderr_eof_does_not_spin_or_hide_stdout(self):
         _,pump=self.start("import os,time;os.close(2);time.sleep(.05);print('{\"value\":true}',flush=True)")
         self.assertEqual(pump.read(),{'value':True});pump.finish()

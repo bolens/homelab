@@ -142,6 +142,24 @@ class Tests(unittest.TestCase):
   x=self.setup_archive(fault='ACK');self.assertRaises(p.Held,x.execute);self.assertEqual([c[0] for c in self.calls],['stop']);self.assertEqual(x.phase,'uncertain')
  def test_last_source_never_resume(self):
   x=self.setup_archive(fault='source');self.assertRaises(p.Held,x.execute);self.assertEqual([c[0] for c in self.calls],['stop'])
+ def test_resume_claim_read_cannot_mutate_already_checked_source(self):
+  x=self.setup_archive();real=p.nfs_lstat;changed=[]
+  def late(path):
+   try:return real(path)
+   finally:
+    if (x.op/'resume-intent.json').exists() and Path(path)==self.claims/'late' and not changed:
+     Path(self.source['path']).chmod(0o640);changed.append(True)
+  with patch.object(p,'nfs_lstat',side_effect=late),self.assertRaises(p.Held):x.execute()
+  self.assertTrue(changed);self.assertEqual([c[0] for c in self.calls],['stop'])
+ def test_metadata_closure_cannot_resume_after_original_deadline(self):
+  x=self.setup_archive();real=p.nfs_lstat;clock=p.time.monotonic;changed=[]
+  def sample(path):
+   value=real(path)
+   if (x.op/'resume-intent.json').exists() and str(path)==self.source['path']:changed.append(True)
+   return value
+  with patch.object(p,'nfs_lstat',side_effect=sample),patch.object(p.time,'monotonic',side_effect=lambda:x.deadline+1 if changed else clock()):
+   with self.assertRaises(p.Held) as caught:x.execute()
+  self.assertEqual(str(caught.exception.__context__),'archive-resume-deadline');self.assertEqual([c[0] for c in self.calls],['stop'])
  def test_last_claim_never_resume(self):
   x=self.setup_archive(fault='claim');self.assertRaises(p.Held,x.execute);self.assertEqual([c[0] for c in self.calls],['stop'])
  def test_last_census_never_resume(self):

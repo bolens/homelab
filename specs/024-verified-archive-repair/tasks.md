@@ -64,6 +64,16 @@ native fixture, but Bootstrap refused the first returned writer-busy health
 payload. Preserve ES. Bounded startup health polling stays within the existing
 deadline and call budget and still requires fresh ready evidence before catalog
 checks. This host-only correction reuses the exact unchanged native/SDK proof.
+PR [#542](https://github.com/bolens/homelab/pull/542) is merged and mirrored
+with all PR checks passing. ET Bootstrap completed with exit 0. EU passed
+SourceCohort, then held during the nested worker dialogue when the original
+30-second ingress deadline expired. Its reader is stopped, native running and
+permanent worker Created. No owning return or resume is accepted. Preserve ET/EU.
+The complete ordering audit also corrected native/host pipe writes, original
+release deadlines and final reader-resume closure. Measure the revised complete
+exchange before another fixture, and use a matching rebuilt image/SDK for the
+changed native channels. These remain existing T012/T015 work; no deadline or
+acceptance criterion is relaxed.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan

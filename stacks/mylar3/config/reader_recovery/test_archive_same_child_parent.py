@@ -136,4 +136,38 @@ class Tests(unittest.TestCase):
   with patch.object(p.subprocess,'Popen',spawn):answer=p.ScopedDocker().interactive('4'*64,handler,5)
   self.assertEqual(answer,ack);self.assertIn(self.parent,p._ARCHIVE_TERMINAL_ROUNDS)
 
+ def test_terminal_closure_rejects_late_checker_substitution(self):
+  self.setup();original=self.parent.continuous;real=p.final;called=[]
+  def foreign(*args):called.append(True)
+  def changed():
+   value=original();p.final=foreign;return value
+  self.parent.continuous=changed
+  try:
+   with self.assertRaisesRegex(p.Held,'original-metadata-closure-binding'):self.go()
+  finally:p.final=real
+  self.assertFalse(called)
+
+ def test_terminal_closure_rejects_combined_need_and_checker_code_substitution(self):
+  self.setup();original=self.parent.continuous;real_need=p.need;real_code=p.final.__code__
+  def foreign(*args):raise AssertionError('foreign checker executed')
+  def changed():
+   value=original();p.need=lambda *args:None;p.final.__code__=foreign.__code__;return value
+  self.parent.continuous=changed
+  try:
+   with self.assertRaisesRegex(p.Held,'original-metadata-closure-binding'):self.go()
+  finally:p.final.__code__=real_code;p.need=real_need
+
+ def test_terminal_round_rejects_owner_change_during_metadata_callback(self):
+  self.setup();self.go();record=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]
+  selected=record['nodes'][0][0];real=p.nfs_lstat;changed=[]
+  def sample(path):
+   value=real(path)
+   if str(path)==selected and not changed:self.parent.owner_reads=object();changed.append(True)
+   return value
+  try:
+   with patch.object(p,'nfs_lstat',side_effect=sample),self.assertRaisesRegex(p.Held,'original-metadata-closure-binding'):
+    self.parent.close_archive_terminal_round(record)
+  finally:self.parent.owner_reads=None
+  self.assertTrue(changed)
+
 if __name__=='__main__':unittest.main()

@@ -82,7 +82,14 @@ class LeaseChannel:
         need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner)),'lease-original-logical')
         need(self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr)
              and ticks(self.pid)==self.start and tuple((s.fileno(),five(os.fstat(s.fileno()))) for s in self.streams)==self.fds,'lease-original-process-pipes')
-        need(time.monotonic()<self.deadline,'lease-deadline');self.raw()
+        need(time.monotonic()<self.deadline,'lease-deadline');self.raw();self.release_binding()
+    def release_binding(self):
+        """Original pipes/deadline, including a naturally exited release helper."""
+        need(not self.released and not self.aborted and threading.get_ident()==self.thread,'lease-release-lifetime')
+        need(self.seal==(self.pid,self.start,self.token,str(self.root),self.writer_sha,self.thread,self.fds,self.root5,self.files,self.nodes,self.deadline,id(self.owner)),'lease-original-logical')
+        need(self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr)
+             and tuple((stream.fileno(),five(os.fstat(stream.fileno()))) for stream in self.streams)==self.fds,'lease-release-original-process-pipes')
+        if time.monotonic()>=self.deadline:raise Held('lease-deadline')
     def receive(self,state):
         self.check()
         while b'\n' not in self.pending:
@@ -98,6 +105,7 @@ class LeaseChannel:
     def send(self,action,absent):
         self.check();raw=encode(dict(token=self.token,action=action,owned_absence_verified=absent))+b'\n'
         self.process.stdin.flush();self.check()
+        need(select.select([],[self.fds[0][0]],[],max(0,self.deadline-time.monotonic()))[1],'lease-write-timeout');self.check()
         need(os.write(self.fds[0][0],raw)==len(raw),'lease-write-unknown-no-replay');self.check()
     def pulse(self):
         self.send('pulse',False);return self.receive('held')
@@ -121,14 +129,29 @@ class LeaseChannel:
             except FileNotFoundError:continue
             raise Held('lease-release-owned-present')
         raw=encode(dict(token=self.token,action='release',owned_absence_verified=True))+b'\n'
+        self.check()
+        need(select.select([],[self.fds[0][0]],[],max(0,self.deadline-time.monotonic()))[1],'lease-release-write-timeout');self.release_binding()
         need(os.write(self.fds[0][0],raw)==len(raw),'lease-release-unknown-no-replay')
-        # Release ACK may coincide with normal process exit; do not require pollNone.
-        need(select.select([self.fds[1][0]],[],[],30)[0],'lease-release-ACK-timeout')
-        raw=self.process.stdout.readline(4097);need(0<len(raw)<=4096,'lease-release-ACK-bound');ack=decode(raw)
+        # Drain incrementally under the original deadline; ACK and exit may coincide.
+        need(not self.pending,'lease-release-trailing-ACK');buffer=bytearray();ack=None;stderr_size=0
+        readers={self.fds[1][0],self.fds[2][0]}
+        while readers:
+            self.release_binding()
+            ready=select.select(list(readers),[],[],max(0,self.deadline-time.monotonic()))[0]
+            need(bool(ready),'lease-release-ACK-timeout')
+            for fd in ready:
+                self.release_binding();block=os.read(fd,4096)
+                if not block:
+                    readers.remove(fd);continue
+                if fd==self.fds[2][0]:
+                    stderr_size+=len(block);need(stderr_size<=MAX,'lease-release-stderr-bound');continue
+                need(ack is None,'lease-release-trailing-ACK');buffer.extend(block);need(len(buffer)<=4096,'lease-release-ACK-bound')
+                if b'\n' in buffer:
+                    raw,_,rest=buffer.partition(b'\n');need(not rest,'lease-release-trailing-ACK');ack=decode(raw)
         expected=dict(version=1,kind='owned-nfs-existing-writer-lease',token=self.token,state='release-reviewed',writer_identity=list(self.root5[:2]),source_sha256=self.writer_sha,markers_unchanged=True,native_grant=False,publication_authority=False)
-        need(ack==expected and type(ack.get('version')) is int and not self.pending and self.process.wait(timeout=30)==0,'lease-release-ACK-exit')
-        need(self.process.pid==self.pid and self.streams==(self.process.stdin,self.process.stdout,self.process.stderr)
-             and tuple((stream.fileno(),five(os.fstat(stream.fileno()))) for stream in self.streams)==self.fds,'lease-release-original-process-pipes')
+        self.release_binding()
+        need(ack==expected and type(ack.get('version')) is int and self.process.wait(timeout=max(.001,self.deadline-time.monotonic()))==0,'lease-release-ACK-exit')
+        self.release_binding()
         for p in absent:
             try:self.release_stat(p)
             except FileNotFoundError:continue
@@ -145,7 +168,7 @@ class LeaseChannel:
             try:self.release_stat(p)
             except FileNotFoundError:continue
             raise Held('lease-final-release-absence')
-        self.released=True;return ack
+        self.release_binding();self.released=True;return ack
     def abort_original(self):
         """Failure resource release only. No successful release or cleanup ACK."""
         need(not self.released and not self.aborted and threading.get_ident()==self.thread

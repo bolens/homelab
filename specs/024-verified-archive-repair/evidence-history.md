@@ -1082,3 +1082,56 @@ source, role and catalog checks. Other holds remain immediate refusals. Owning
 regressions cover eventual readiness, persistent contention, other holds,
 unexpected census and deadline exhaustion with one restart. Native180/SDK103
 bytes remain unchanged. This is existing T012/T015 work.
+
+## Worker ingress deadline — 2026-10-28
+
+ET Bootstrap completed against PR #542's frozen source, reusing ER's unchanged
+27 installed outputs and the verified #541 native180/SDK103 proof. EU completed
+SourceCohort and reached the owning archive call. Its retained failure trace
+ends at `worker-original-ingress-deadline` after a worker protocol response was
+validated. This proves accumulated deadline exhaustion, not which individual
+stage consumed it. The read-only diagnosis confirms reader stopped, native
+running, permanent worker Created and no owning return. Preserve the attempt;
+there is no terminal acceptance, replay or resume grant.
+
+The worker's 30-second clock starts before terminal-document preparation.
+Each subsequent guard repeats physical closure, including scalar owner reads
+that each recheck geometry, source and ancestry. Compare the complete synthetic
+four-round exchange with actual Root/NFS metadata access before another fixture.
+The correction reuses the existing owner metadata batch, retains scalar fallback
+and repeats the same frozen batch after callbacks. Keep source bindings, exact
+facts, protocol state, ACK and the original deadline strict. Benchmark and source
+tests remain separate from configured forward/rollback acceptance.
+
+
+## Complete ordering audit — 2026-10-28
+
+The first synthetic Root/NFS comparison reproduced the original worker deadline:
+the scalar baseline held after 30.14 seconds with 27.95 seconds in guards. The
+batched candidate used 6.66 seconds in guards but held after 7.03 seconds because
+the worker exited with its final response buffered while the Parent was still at
+step three. Both cases preserved every source and synthetic NFS original. This
+is measured refusal evidence, not a successful benchmark or configured recovery.
+The worker now validates that bounded final frame before sealing the terminal
+exit profile. All other pending-frame guards remain active, including the
+original 30-second intent deadline.
+
+The user requested an audit of the complete ordering, beyond the immediate hold.
+The source review traces these boundaries and their owning controls:
+
+| Boundary | Required order and evidence |
+| --- | --- |
+| 022 rename and metadata | Original preservation, unchanged-hash rename, verified reader move, then metadata and final reader/payload proof. `test_combined_publication` covers missing moves and lost rename replies. |
+| 023 ordinary and retained delivery | Durable typed completion precedes cleanup; unknown replies reconcile original receipts without replay. `test_ordinary_import_continuity` and `test_publication_retained_finalize` cover lost replies, post-commit drift and unclosed terminals. |
+| NFS and reader stop | Preflight and original active canary precede owning stop; exact stopped epoch precedes handoff. `test_nfs_factual_successor` covers changed roles, unknown stop ACK and late source/cleanup changes. |
+| Backup and repair | Stopped reader, complete copy and isolated restore with database comparisons precede repair. `test_archive_backup_action` and `test_archive_parent_composition` cover late backup mutations and refusal before resume. |
+| Producer and worker pipes | Challenge/birth/terminal/ACK and the four worker rounds retain original sequence, FD custody and absolute deadlines. New real-pipe controls cover partial, zero-progress, blocked, substituted and naturally exited peers. |
+| Writer and terminal custody | The original Writer exclusion continues through terminal release, ACK, child exit and reader resume; failure releases only owned resources. Existing completion-lock controls retain this boundary. |
+| Final reader resume | Claims and absence precede frozen metadata closure; a final raw absolute-deadline check precedes start. New late-claim/absence and consumed-deadline controls prohibit resume. |
+
+The audit found and corrected post-callback FD/deadline write gaps, unbounded
+native writes, NFS release waits that reset the deadline, the NFS pump's missing
+post-guard deadline check, and the two resume ordering gaps. It does not grant
+runtime acceptance. A fresh complete Root/NFS benchmark, matching native image
+capture, accepted isolated forward and distinct rollback remain required under
+existing T012/T015. Preserve EU and the first benchmark without replay.

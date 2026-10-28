@@ -30,6 +30,7 @@ class Tests(unittest.TestCase):
         self.proof = fixture_ref(self.root / 'native.json', b'{}')
         self.parent = object.__new__(p.LifecycleParent)
         x = self.parent
+        x.owner_reads = None
         x.plan = dict(nonce='a' * 64, operation=str(self.operation), selected_image='sha256:' + 'b' * 64,
                       provider=self.provider, sdk_map=self.sdk, action_inputs={'prepare': self.action, 'execute': self.action},
                       native=dict(data='/data', roots=['/library']), bounds=dict(files=100, bytes=100000),
@@ -278,6 +279,37 @@ class Tests(unittest.TestCase):
         self.assertEqual(result['phase'], 'backup')
         self.assertNotIn('start', calls)
         self.assertTrue((self.operation/'backup-ack.json').exists())
+
+    def test_challenge_freezes_list_node_before_producer_callback(self):
+        x, inp, command, _ = self.child_fixture()
+        path=str(self.root);x.nodes[path]=p.five(self.root.lstat());original=x.produce
+        x.core=p.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,engine=id(x.engine),thread=x.thread,deadline=x.deadline));p._CORES[x]=x.core
+        def changed(*args):
+            value=original(*args);self.root.chmod(0o710)
+            x.nodes[path][:]=p.five(self.root.lstat())
+            return value
+        x.produce=changed
+        with self.assertRaisesRegex(p.Held,'challenge-ancestor-final'):
+            x.child_phase('backup', inp, command)
+
+    def test_pipe_final_rejects_foreign_row_without_iteration(self):
+        x, inp, command, _ = self.child_fixture()
+        path=str(self.root);x.nodes[path]=p.five(self.root.lstat())
+        engine=x.engine;x.engine=p.ScopedDocker();x.engine.run=engine.run;x.engine.interactive=engine.interactive;x.phase="backup"
+        x.core=p.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,engine=id(x.engine),thread=x.thread,deadline=x.deadline));p._CORES[x]=x.core
+        p._DIALOGUES[x.engine]={'4'*64:object()};self.addCleanup(p._DIALOGUES.pop,x.engine,None)
+        closed=[];called=[];real=p.nfs_lstat
+        class Foreign:
+            def __iter__(self):called.append(True);raise AssertionError('foreign row executed')
+        def close(*args):closed.append(True)
+        def sample(target):
+            value=real(target)
+            if closed and str(target)==path:x.nodes[path]=Foreign()
+            return value
+        with patch.object(p,'dialogue_close',side_effect=close),patch.object(p,'nfs_lstat',side_effect=sample):
+            with self.assertRaisesRegex(p.Held,'challenge-original-pipe-logical-final'):
+                x.child_phase('backup',inp,command)
+        self.assertTrue(closed);self.assertFalse(called)
 
     def test_last_producer_changed_child_holds(self):
         x, inp, command, _ = self.child_fixture(late=True)
@@ -778,6 +810,26 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual([a[0] for a in calls],['stop'])
         self.assertEqual(Path(self.source['path']).stat().st_mode & 0o777,0o640)
 
+    def test_resume_absence_read_cannot_mutate_already_checked_source(self):
+        x,calls,_,claims=self.schedule();real=p.nfs_lstat;changed=[]
+        def late(path):
+            try:return real(path)
+            finally:
+                if (x.op/'resume-intent.json').exists() and Path(path)==claims/'shadow' and not changed:
+                    Path(self.source['path']).chmod(0o640);changed.append(True)
+        with patch.object(p,'nfs_lstat',side_effect=late),self.assertRaises(p.Held):x.execute()
+        self.assertTrue(changed);self.assertEqual([c[0] for c in calls],['stop'])
+
+    def test_metadata_closure_cannot_resume_after_original_deadline(self):
+        x,calls,_,_=self.schedule();real=p.nfs_lstat;clock=p.time.monotonic;changed=[]
+        def sample(path):
+            value=real(path)
+            if (x.op/'resume-intent.json').exists() and str(path)==self.source['path']:changed.append(True)
+            return value
+        with patch.object(p,'nfs_lstat',side_effect=sample),patch.object(p.time,'monotonic',side_effect=lambda:x.deadline+1 if changed else clock()):
+            with self.assertRaises(p.Held) as caught:x.execute()
+        self.assertEqual(str(caught.exception.__context__),'resume-deadline');self.assertEqual([c[0] for c in calls],['stop'])
+
     def test_last_continuous_absent_claim_change_no_restart(self):
         x,calls,_,claims=self.schedule(fault='late-claim')
         with self.assertRaises(p.Held):x.execute()
@@ -883,6 +935,67 @@ class SchedulingTests(unittest.TestCase):
         x.inspect=inspect
         with self.assertRaises(p.Held):x.execute()
         self.assertEqual(x.phase,'uncertain');self.assertFalse((x.op/'complete.json').exists())
+
+class TransportOrdering(unittest.TestCase):
+    def run_transport(self,handler,body,seconds=1,write=None):
+        import subprocess,sys
+        real=subprocess.Popen;self.engine=p.ScopedDocker();self.processes=[]
+        def spawn(*args,**kwargs):
+            proc=real([sys.executable,'-I','-B','-u','-c',body],**kwargs);self.processes.append(proc);return proc
+        try:
+            with patch.object(p.subprocess,'Popen',side_effect=spawn):
+                if write is None:return self.engine.interactive('4'*64,handler,seconds)
+                with patch.object(p.os,'write',side_effect=write):return self.engine.interactive('4'*64,handler,seconds)
+        finally:
+            for proc in self.processes:
+                if proc.poll() is None:proc.kill()
+                proc.wait(timeout=3)
+    def test_partial_response_writes_keep_exact_frame(self):
+        write=p.os.write
+        body="import sys;print('{\"type\":\"challenge\"}',flush=True);assert sys.stdin.buffer.readline()==b'response\\n';print('{\"type\":\"ACK\",\"ack\":{}}',flush=True)"
+        self.assertEqual(self.run_transport(lambda *args:b'response\n',body,write=lambda fd,raw:write(fd,raw[:2])),{})
+    def test_handler_replaced_output_receives_no_response(self):
+        r,w=p.os.pipe();saved=[]
+        def handler(*args):
+            row=p._DIALOGUES[self.engine]['4'*64];fd=row['descriptors'][0][0];saved.append(p.os.dup(fd));p.os.dup2(w,fd);return b'response\n'
+        try:
+            with self.assertRaises(p.Held):self.run_transport(handler,"import sys;print('{\"type\":\"challenge\"}',flush=True);sys.stdin.readline()")
+            p.os.set_blocking(r,False)
+            with self.assertRaises(BlockingIOError):p.os.read(r,1)
+        finally:
+            for fd in saved:p.os.close(fd)
+            p.os.close(r);p.os.close(w)
+    def test_final_kernel_substitution_never_calls_foreign_function(self):
+        called=[];patcher=[]
+        def foreign(fd):called.append(True);raise AssertionError('foreign final fstat')
+        def handler(*args):
+            change=patch.object(p.os,'fstat',side_effect=foreign);change.start();patcher.append(change);return b'response\n'
+        try:
+            with self.assertRaises(p.Held):self.run_transport(handler,"print('{\"type\":\"challenge\"}',flush=True);input()")
+        finally:
+            for change in patcher:change.stop()
+        self.assertFalse(called)
+    def test_callback_cannot_rebase_original_kernel_defaults(self):
+        definition=p.ScopedDocker.interactive;original=definition.__defaults__;called=[]
+        def foreign(fd):called.append(True);raise AssertionError('foreign default fstat')
+        def handler(*args):definition.__defaults__=((foreign,p.time.monotonic),);return b'response\n'
+        try:
+            with self.assertRaises(p.Held):self.run_transport(handler,"print('{\"type\":\"challenge\"}',flush=True);input()")
+        finally:definition.__defaults__=original
+        self.assertFalse(called)
+    def test_handler_cannot_mutate_original_dialogue_record_before_response(self):
+        write=p.os.write
+        def handler(*args):p._DIALOGUES[self.engine]['4'*64]['deadline']+=1;return b'response\n'
+        with patch.object(p.os,'write',wraps=write) as send,self.assertRaises(p.Held):self.run_transport(handler,"print('{\"type\":\"challenge\"}',flush=True);input()")
+        send.assert_not_called()
+    def test_handler_expired_deadline_prevents_response_write(self):
+        def handler(*args):p.time.sleep(.08);return b'response\n'
+        with patch.object(p.os,'write') as write,self.assertRaises(p.Held):self.run_transport(handler,"print('{\"type\":\"challenge\"}',flush=True);input()",seconds=.05)
+        write.assert_not_called()
+    def test_nonreading_child_cannot_block_large_response_past_deadline(self):
+        start=p.time.monotonic()
+        with self.assertRaises(p.Held):self.run_transport(lambda *args:b'x'*1024**2+b'\n',"import time;print('{\"type\":\"challenge\"}',flush=True);time.sleep(2)",seconds=.1)
+        self.assertLess(p.time.monotonic()-start,1)
 
 if __name__ == '__main__':
     unittest.main()

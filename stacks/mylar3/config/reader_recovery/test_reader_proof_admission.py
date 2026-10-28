@@ -389,6 +389,6 @@ class GeometryControls(unittest.TestCase):
         self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
         self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
-        self.assertEqual(m.LIFECYCLE_SHA,'19a58d6847c40b98ac1152863ee7881fd216c6c32c2cd7cbfb09fb40dab2369f')
+        self.assertEqual(m.LIFECYCLE_SHA,'58dcc420ff49035acee2015392ce55815f24843f1a3661615fa1b2e15fc9b53c')
         self.assertIsNone(m.PARENT_SHA)
 if __name__=='__main__':unittest.main()
