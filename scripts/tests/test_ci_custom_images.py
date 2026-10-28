@@ -175,6 +175,30 @@ class MylarStagePreservationTests(unittest.TestCase):
                 self.assertEqual(rules.count(admission), 1, admission)
                 self.assertGreater(rules.index(admission), subtree_exclusion)
 
+    def test_every_nested_reader_manifest_source_has_context_admission(self):
+        manifest = json.loads((self.STACK / 'config/reader_recovery/source-manifest.json').read_text())
+        rules = [line.strip() for line in (self.STACK / '.dockerignore').read_text().splitlines()
+                 if line.strip() and not line.lstrip().startswith('#')]
+        for name in sorted(manifest['files']):
+            source = Path('config/reader_recovery') / name
+            if source.parent == Path('config/reader_recovery'):
+                continue
+            with self.subTest(source=name):
+                # Docker cannot re-include a leaf whose parent stays excluded.
+                # Every nested public fixture keeps its own deny-by-default tree.
+                parents = list(source.parents)
+                for parent in parents[:parents.index(Path('config/reader_recovery'))]:
+                    admitted = '!' + parent.as_posix() + '/'
+                    denied = parent.as_posix() + '/**'
+                    self.assertEqual(rules.count(admitted), 1, admitted)
+                    self.assertEqual(rules.count(denied), 1, denied)
+                    self.assertGreater(rules.index(denied), rules.index(admitted))
+                exact = '!' + source.as_posix()
+                python = '!' + source.parent.as_posix() + '/*.py'
+                admission = exact if exact in rules else python
+                self.assertTrue(exact in rules or (source.suffix == '.py' and python in rules), str(source))
+                self.assertGreater(rules.index(admission), rules.index(source.parent.as_posix() + '/**'))
+
     def copy_checked_artifact(self, body, checked, final, artifact):
         stage = body.rsplit("\nFROM ", 1)[1]
         for line in stage.splitlines():
