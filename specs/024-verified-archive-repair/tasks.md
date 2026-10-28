@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-27.** 17 of 22 tasks are complete. T019–T022 are delivered
+**Updated 2026-10-28.** 17 of 22 tasks are complete. T019–T022 are delivered
 implementation corrections, not additional runtime gates. Five tasks remain:
 T012/T015 share one isolated forward and one distinct-fixture rollback with
 feature 023 T026/T029 and the isolated portion of T027; T016–T018 own later
@@ -26,72 +26,21 @@ scoped live acceptance.
    acceptance. Disposable-fixture authorization supplies no production or
    permanent-worker activation permission.
 
-PR [#537](https://github.com/bolens/homelab/pull/537) delivered the NFS descriptor
-correction with matching 180-module capture, SDK103 proof and 27 installed
-controls. The four installed-image discovery/import/lost-reply/rename cases pass.
-PR [#540](https://github.com/bolens/homelab/pull/540) delivered the directory-fact
-comparison correction. PR [#541](https://github.com/bolens/homelab/pull/541)
-separates input/output budgets and corrects terminal-copy path and owner routing.
-EH/EI passes all 11 terminal copies, then holds at the worker's exact file guard.
-The read-only diagnosis and all 19 protected operation-file comparisons pass.
-EJ/EK's failure-time diagnostic identifies native workflow-database mtime/ctime
-changes before worker creation. The correction retains host exclusion on the
-original native Writer lock after the existing fresh observations through worker,
-ACK, child exit and resume; all original facts and refusal rules remain strict.
-Local real-lock and owning-handler checks cover ordering, contention, lost
-custody and cleanup. Verify the corrected configured forward and a distinct
-rollback before marking acceptance. EH's independent target/unrelated/native
-comparisons passed. EJ's protected diagnosis confirms the same pre-worker hold:
-native running, reader stopped, worker Created. Independent target bytes,
-unrelated full9/hash and all 24 native tables match their baselines.
-EL/EM then held at completion-lock acquisition because fdinfo's superblock
-device differs from Btrfs fstat's subvolume device. The correction retains exact
-FD/path facts, inode, process, exclusive whole-file lock and duplicate custody.
-Actual-host contention/release, device-alias and foreign-lock controls pass. EL/EM
-is preserved with reader stopped; target bytes, unrelated full9/hash and native24
-remain original. Forward and distinct rollback acceptance still remain open.
-EO/EP passed the Btrfs lock check, then held on workflow-database mtime/ctime
-changes. Periodic intake checks currently rewrite unchanged decisions. The
-correction persists initialization and admission transitions while returning
-fresh telemetry without no-op writes. Real-store tick and reload/hysteresis
-regressions cover this path. It changes native workflow bytes, so the next
-fixture requires a matching published image and SDK capture. Preserve EO/EP;
-its reader is stopped and no terminal result was accepted.
-PR [#541](https://github.com/bolens/homelab/pull/541) is merged and mirrored;
-main CI, publication, actual 180-module capture and four installed-image cases
-pass. ER verified all 27 new controls. ES then initialized and restarted its
-native fixture, but Bootstrap refused the first returned writer-busy health
-payload. Preserve ES. Bounded startup health polling stays within the existing
-deadline and call budget and still requires fresh ready evidence before catalog
-checks. This host-only correction reuses the exact unchanged native/SDK proof.
-PR [#542](https://github.com/bolens/homelab/pull/542) is merged and mirrored
-with all PR checks passing. ET Bootstrap completed with exit 0. EU passed
-SourceCohort, then held during the nested worker dialogue when the original
-30-second ingress deadline expired. Its reader is stopped, native running and
-permanent worker Created. No owning return or resume is accepted. Preserve ET/EU.
-PR [#543](https://github.com/bolens/homelab/pull/543) delivers the ordering
-corrections with passing hosted checks, publication, actual 180-module capture
-and four installed-image cases. EX/EY still held at the original worker deadline;
-preserve its stopped reader and all original evidence without replay. The earlier
-pipe benchmark replaced continuous Docker checks and did not prove configured
-timing. A read-only comparison measures the three future-second event queries
-at 2.93 seconds versus 0.047 seconds with exact current-nanosecond cutoffs.
-Correct that wait while retaining full original history, predicates and the
-30-second deadline. Measure actual guard costs, including directory9 fallbacks;
-keep omitted configured admission/closure work explicit. The next fresh checked
-installation can reuse unchanged image/SDK proof. Forward and distinct rollback
-acceptance remain existing T012/T015 work; no acceptance criterion is relaxed.
-PR [#544](https://github.com/bolens/homelab/pull/544) is merged and mirrored with
-all required checks passing. EZ/FA2 passes SourceCohort, then holds at the same
-worker ingress deadline; preserve its stopped reader and retained helpers.
-Read-only observer logs show birth and hello, followed by lost parent before
-the observation request arrives. The transport repeats the complete guard for
-each 4 KiB write, so the earlier fixed-count component benchmark omits work
-that scales with encoded response size. The corrective host transport uses
-bounded nonblocking writes, retaining every per-write guard and the original
-deadline. Wide actual Round, short-write, readiness-race and mutation controls
-are source evidence only. Configured forward and distinct rollback remain open.
-See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
+The latest configured attempt, FB/FC, remains held at the original worker
+30-second deadline. Its reader is stopped and no terminal result or resume is
+accepted. Preserve that fixture and all earlier attempts without replay.
+
+PR [#555](https://github.com/bolens/homelab/pull/555) contains the bounded pipe
+writes and combined original-role event query. The complete Root/NFS benchmark
+then exposed four child-control ancestor walks that bypassed the existing owner
+reader. The shared correction routes all four through that reader and adds
+remote-input, grouped-source and late-drift regressions. The benchmark stopped
+before Docker calls and preserved its originals. Verify the correction on the
+actual mount before another configured attempt. These are corrections within
+T012, not additional acceptance tasks. Source checks and synthetic timing do not
+close the forward or distinct-fixture rollback requirements.
+
+Historical diagnoses are retained in [evidence history](evidence-history.md#superseded-current-queue-notes-through-fa2--2026-10-28).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
 audit. Later source corrections remain work within T012, not new task plans.

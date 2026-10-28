@@ -623,6 +623,61 @@ class OwnerReadTests(unittest.TestCase):
             for fd in held:
                 with self.assertRaises(OSError):os.fstat(fd)
 
+    def test_tree_remote_input_ancestors_use_bound_owner_and_restore_root(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();path=self.root/'L'/'remote-source.json'
+        path.write_bytes(b'{"remote":true}');path.chmod(0o600)
+        ref=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+        tree.reserve_nfs_control(ref,public=True);original=p.os.lstat;denied=[]
+        def guarded(value,*args,**kwargs):
+            target=Path(value) if isinstance(value,(str,Path))else None
+            if self.uid==0 and target is not None and (target==self.root or self.root in target.parents):
+                denied.append(str(target));raise PermissionError('Root cannot traverse this synthetic export')
+            return original(value,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=guarded),mock.patch.object(p.os,'geteuid',return_value=os.getuid()):
+            result=tree.project(ref);tree.check()
+        self.assertEqual(Path(result['path']).read_bytes(),b'{"remote":true}')
+        self.assertEqual(self.uid,0);self.assertEqual(denied,[])
+
+    def test_archive_source_group_uses_owner_for_every_remote_ancestor(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();refs={}
+        names=('comic_archive_backup_action.py','comic_archive_repair_action.py','comic_archive_evidence_adapter.py',
+               'comic_archive_proof_producer.py','comic_reader_backup.py','comic_reader_backup_primitives.py',
+               'comic_reader_schema.py','publication_native_configured_scope.py','comic_native_process_probe.py')
+        for name in names:
+            path=self.root/'L'/name;path.write_bytes(name.encode());path.chmod(0o600)
+            refs[name]=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+            tree.reserve_nfs_control(refs[name],public=True)
+        original=p.os.lstat;denied=[]
+        def guarded(value,*args,**kwargs):
+            target=Path(value) if isinstance(value,(str,Path))else None
+            if self.uid==0 and target is not None and (target==self.root or self.root in target.parents):
+                denied.append(str(target));raise PermissionError('Root cannot traverse this synthetic export')
+            return original(value,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=guarded),mock.patch.object(p.os,'geteuid',return_value=os.getuid()):
+            result=tree.archive_sources(refs);tree.check()
+        self.assertEqual(set(result),set(names));self.assertEqual(denied,[]);self.assertEqual(self.uid,0)
+        for name,ref in result.items():self.assertEqual(Path(ref['path']).read_bytes(),name.encode())
+
+    def test_remote_input_ancestor_drift_still_refuses_before_pair_commit(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();path=self.root/'L'/'remote-source.json'
+        path.write_bytes(b'{"remote":true}');path.chmod(0o600)
+        ref=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+        tree.reserve_nfs_control(ref,public=True);original=p.os.stat;changed=[];pairs=tree.pairs
+        def drift(value,*args,**kwargs):
+            result=original(value,*args,**kwargs)
+            if self.uid==1000 and str(value)==path.name and not changed:
+                changed.append(True);path.parent.chmod(0o750)
+            return result
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=drift),mock.patch.object(p.os,'geteuid',return_value=os.getuid()),self.assertRaises((p.Held,projection.Held)):
+                tree.project(ref)
+            self.assertTrue(changed);self.assertEqual(tree.pairs,pairs);self.assertEqual(self.uid,0)
+            self.assertEqual(path.read_bytes(),b'{"remote":true}')
+        finally:path.parent.chmod(0o700)
+
     def control_tree(self):
         import hashlib
         from unittest import mock

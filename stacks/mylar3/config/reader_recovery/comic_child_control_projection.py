@@ -81,7 +81,7 @@ class Tree:
         need(self.root.is_absolute() and self.child_root.is_absolute() and self.original_operation.is_absolute() and not os.path.lexists(self.root),'child-tree-exclusive')
         need(type(uid) is int and type(gid) is int and uid>=0 and gid>=0 and (os.geteuid()==0 or (uid,gid)==(os.geteuid(),os.getegid())),'child-tree-owner')
         self.uid,self.gid=uid,gid;self.read_original=read_original
-        self.nodes=ancestors(self.root);self.directories=();self.pairs=();self.outputs=();self.scopes=();self.nfs_controls=()
+        self.nodes=ancestors(self.root,self.owner_reads);self.directories=();self.pairs=();self.outputs=();self.scopes=();self.nfs_controls=()
         self.identity=(str(self.root),str(self.child_root),str(self.original_operation),uid,gid,id(read_original),id(owner_reads),self.owner_vector)
         self._mkdir(self.root);self._seal()
     def stat(self,path):return owner_stat(self.owner_reads,path)
@@ -144,7 +144,7 @@ class Tree:
         need(target.parent in [Path(p) for p,_ in self.directories] and self.root in target.parents,
              'child-copy-owned-directory')
         expected=self._state()
-        original_nodes=ancestors(original[0])
+        original_nodes=ancestors(original[0],self.owner_reads)
         public=(original,True) in self.nfs_controls
         data=self.read_original(reference(original),private=False) if public else self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'child-root-original-hash')
         need(nine(self.stat(original[0]))==original[2],'child-root-original9')
@@ -158,7 +158,7 @@ class Tree:
             os.fchown(fd,self.uid,self.gid);stamp=nine(os.fstat(fd));need(stamp[:4]==written[:4] and stamp[5]==written[5] and stamp[6:]==(self.uid,self.gid,1),'child-copy-own-transition')
             os.lseek(fd,0,0);back=os.read(fd,len(data)+1);need(back==data and nine(os.fstat(fd))==stamp,'child-copy-readback')
         finally:os.close(fd)
-        child=(str(target),original[1],stamp);pair=(original,child,original_nodes,ancestors(target))
+        child=(str(target),original[1],stamp);pair=(original,child,original_nodes,ancestors(target,self.owner_reads))
         # Include immutable facts before checks; failed evidence is retained, never rebaselined.
         self._append('pairs',(pair,),expected);self.check()
         return reference(child)
@@ -312,7 +312,7 @@ class Tree:
             os.lseek(fd,0,0);need(os.read(fd,len(data)+1)==data and nine(os.fstat(fd))==stamp,'child-output-view-readback')
         finally:os.close(fd)
         viewref=(str(rootpath),child[1],stamp)
-        self._append('outputs',((host,child[1],hoststamp,viewref,child,role,nodes,ancestors(rootpath)),),expected);self.check()
+        self._append('outputs',((host,child[1],hoststamp,viewref,child,role,nodes,ancestors(rootpath,self.owner_reads)),),expected);self.check()
         return data,reference(viewref)
     def readonly_files(self):
         return tuple((p[1][0],self.child(p[1][0])) for p in self.pairs if not p[0][0].endswith('.lifecycle.json'))

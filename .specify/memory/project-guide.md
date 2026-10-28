@@ -108,6 +108,17 @@ failed parents unchanged and use a fresh generation. Bind generation names by
 explicit literals or AST fields; do not replace single-letter fragments across
 identifiers. Compare non-binding code before executing generated helpers.
 
+Before running a synthetic recovery constructor as Root, classify every created
+file and directory by its consuming contract. Child factual baseline,
+preparation and execute/terminal-history records and their preparation directory
+belong to UID1000. Apply those owners before capturing references, directory9
+or enclosing vectors. Request, SDK, generated native-scope, image metadata and
+Root custody controls retain their Root ownership. Check the complete derived
+factual-reference set before entering the dialogue. A UID1000-only preflight
+must assert its identity and cannot establish Root constructor correctness.
+Keep synthetic worker process/role ownership limitations explicit. Correct the
+current constructor, never mutate frozen attempts or weaken owner-read guards.
+
 For disposable multi-service recovery fixtures, preserve the failed creator's
 original journal and namespace before diagnosing a Docker allocation failure.
 Exhausted default address pools are a host prerequisite, not archive or import

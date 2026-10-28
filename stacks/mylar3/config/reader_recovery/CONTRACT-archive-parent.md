@@ -301,3 +301,8 @@ The original stopping phase alone permits reader kill/die events. The complete
 pre-command and post-event closures remain mandatory.
 The history start is frozen across the query and the enclosing continuous check,
 including their final callbacks. Advancing it during either check refuses.
+
+Input projection and grouped archive-source copies retain the bound owner reader
+for every original and destination ancestor walk. Root-owned local metadata stays
+under Root; admitted NFS metadata uses the same original owner scope and returns
+to Root before validation. Output-view and Tree-birth ancestry follow that rule.
