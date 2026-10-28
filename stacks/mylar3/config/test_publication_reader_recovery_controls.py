@@ -163,6 +163,12 @@ class Controls(unittest.TestCase):
   # A real isolated trivial suite mutates only this synthetic source.
   script=self.tree/'test_stub.py';script.write_text("from pathlib import Path\nimport unittest\nclass T(unittest.TestCase):\n def test_one(self):Path("+repr(str(self.source))+ ").write_bytes(b'foreign')\nif __name__=='__main__':unittest.main()\n");manifest=json.loads((self.tree/'source-manifest.json').read_text());manifest['files']['test_stub.py']={'sha256':digest(script)};(self.tree/'source-manifest.json').write_text(json.dumps(manifest))
   with patch.object(m,'SUITES',(('test_stub.py',1),)),self.assertRaisesRegex(m.Held,'Original source file drift'):m.run(self.fixes)
+ def test_standalone_cli_emits_owning_result_and_requires_no_bytecode(self):
+  value={'kind':'private-build-only-reader-recovery-controls','tests':sum(count for _,count in m.SUITES)};output=io.StringIO()
+  with patch.object(m.sys,'dont_write_bytecode',True),patch.object(m,'run',return_value=value) as run,contextlib.redirect_stdout(output):m.main()
+  run.assert_called_once_with(m.FIXES);self.assertEqual(json.loads(output.getvalue()),value)
+  with patch.object(m.sys,'dont_write_bytecode',False),patch.object(m,'run') as run,self.assertRaisesRegex(m.Held,'require -B'):m.main()
+  run.assert_not_called()
  def test_real588_public644_closure_passes_no_source_changes(self):
   # Exact current public files, no ignored config copied.
   actual=self.root/'actual';actual.mkdir();manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
@@ -208,10 +214,12 @@ class Controls(unittest.TestCase):
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()
-  self.assertEqual([name for name,_ in calls],list(parent.SUITES)+['run_reader_recovery_controls.py'])
+  self.assertEqual([name for name,_ in calls],list(parent.SUITES))
+  self.assertEqual([name for name,_ in calls].count('test_publication_reader_recovery_controls.py'),1)
+  self.assertNotIn('run_reader_recovery_controls.py',[name for name,_ in calls])
   for name,kw in calls:
    self.assertTrue(kw['check'])
-   if name in ('test_publication_reader_recovery_controls.py','run_reader_recovery_controls.py'):
+   if name=='test_publication_reader_recovery_controls.py':
     self.assertEqual(kw['timeout'],len(m.SUITES)*m.SUITE_TIMEOUT+60)
     self.assertGreaterEqual(kw['timeout'],sum(children)+60)
    else:self.assertEqual(kw['timeout'],90)

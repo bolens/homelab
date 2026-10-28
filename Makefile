@@ -51,7 +51,7 @@ ci-local:
 
 mylar-source-check:
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
-	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/run_reader_recovery_controls.py
+	# The wrapper runs every owning recovery control and checks source preservation.
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_reader_recovery_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_reader_lifecycle.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_native_scope_birth.py

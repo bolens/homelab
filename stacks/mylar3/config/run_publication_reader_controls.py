@@ -61,9 +61,9 @@ def main():
                 timeout=RECOVERY_AGGREGATE_TIMEOUT if suite == 'test_publication_reader_recovery_controls.py' else ORDINARY_SUITE_TIMEOUT,
                 preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
-        subprocess.run([sys.executable, '-I', '-B', str(controls / 'run_reader_recovery_controls.py')],
-            check=True, cwd=controls, timeout=RECOVERY_AGGREGATE_TIMEOUT,
-            preexec_fn=fixture_identity if os.geteuid() == 0 else None)
+        # The recovery wrapper above executes the complete owning suite and
+        # verifies original-source preservation through cleanup. Do not repeat
+        # that suite here after its accepted result.
 
 if __name__ == '__main__':
     main()
