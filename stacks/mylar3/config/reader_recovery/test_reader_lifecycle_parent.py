@@ -39,15 +39,17 @@ class EventTests(unittest.TestCase):
         return p.encode(dict(Actor=dict(ID=self.parent.plan[key]['id']), Action=action))
 
     def test_per_query_nanoseconds_keep_full_history_and_filters(self):
-        times = [1700000000123456789 + i for i in range(6)]
+        times = [1700000000123456789 + i for i in range(2)]
         with patch.object(p.time, 'time_ns', side_effect=times), patch.object(
                 p.time, 'time', side_effect=AssertionError('no float cutoff')):
             self.parent.events(); self.parent.events()
+        self.assertEqual(len(self.calls), 2)
         for i, (args, seconds) in enumerate(self.calls):
-            key = ('reader', 'held_native', 'held_worker')[i % 3]
             self.assertEqual(args, ['events', '--since', '1700000000', '--until',
                 '1700000000.' + str(123456789 + i), '--filter',
-                'container=' + self.parent.plan[key]['id'], '--format', '{{json .}}'])
+                'container=' + self.parent.plan['reader']['id'], '--filter',
+                'container=' + self.parent.plan['held_native']['id'], '--filter',
+                'container=' + self.parent.plan['held_worker']['id'], '--format', '{{json .}}'])
             self.assertEqual(seconds, 30)
         self.assertEqual(self.parent.event_start, '1700000000')
 
@@ -58,7 +60,7 @@ class EventTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_wrong_actor_refused(self):
-        self.reply = self.event('held_native', 'health_status: healthy')
+        self.reply = p.encode(dict(Actor=dict(ID='9' * 64), Action='health_status: healthy'))
         with self.assertRaisesRegex(p.Held, 'event-scope'): self.parent.events()
 
     def test_forbidden_actions_on_every_role(self):
@@ -68,14 +70,14 @@ class EventTests(unittest.TestCase):
                     self.parent.phase = 'stopped'
                     target = self.parent.plan[key]['id']
                     self.parent.engine.run = lambda args, seconds: (
-                        self.event(key, action) if args[6] == 'container=' + target else b'')
+                        self.event(key, action) if 'container=' + target in args else b'')
                     with self.assertRaisesRegex(p.Held, 'continuous-quiescence-event'):
                         self.parent.events()
 
     def test_only_reader_kill_and_die_allowed_while_stopping(self):
         for action in ('kill', 'die'):
             self.reply = self.event('reader', action)
-            self.parent.engine.run = lambda args, seconds: self.reply if args[6] == 'container=' + '1' * 64 else b''
+            self.parent.engine.run = lambda args, seconds: self.reply if 'container=' + '1' * 64 in args else b''
             self.parent.events()
             self.parent.phase = 'stopped'
             with self.assertRaisesRegex(p.Held, 'continuous-quiescence-event'): self.parent.events()
@@ -86,12 +88,78 @@ class EventTests(unittest.TestCase):
             self.calls.append(args)
             # A restart at .500 is later than the first .100 cutoff, but must
             # remain in the next query's original full history at .900.
-            return self.event('held_native') if args[6] == 'container=' + '2' * 64 and args[4] >= '1700000000.500000000' else b''
+            return self.event('held_native') if 'container=' + '2' * 64 in args and args[4] >= '1700000000.500000000' else b''
         self.parent.engine.run = run
-        with patch.object(p.time, 'time_ns', side_effect=[1700000000100000000] * 3 + [1700000000900000000] * 3):
+        with patch.object(p.time, 'time_ns', side_effect=[1700000000100000000, 1700000000900000000]):
             self.parent.events()
             with self.assertRaisesRegex(p.Held, 'continuous-quiescence-event'): self.parent.events()
         self.assertTrue(all(args[2] == '1700000000' for args in self.calls))
+
+    def test_combined_interleaved_roles_keep_reader_stop_exception(self):
+        frames = [self.event(key, 'health_status: healthy') for key in reversed(self.parent.plan)]
+        frames += [self.event('reader', action) for action in ('kill', 'die')]
+        self.reply = b'\n'.join(frames)
+        self.parent.events()
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0].count('--filter'), 3)
+
+    def test_duplicate_role_ids_refuse_before_transport(self):
+        self.parent.plan['held_native']['id'] = self.parent.plan['reader']['id']
+        with self.assertRaisesRegex(p.Held, 'event-original-distinct-roles'):
+            self.parent.events()
+        self.assertEqual(self.calls, [])
+
+    def test_readonly_event_callback_cannot_change_stop_phase(self):
+        def run(args, seconds):
+            self.parent.phase = 'stopping'
+            return self.event('reader', 'die')
+        self.parent.phase = 'stopped'; self.parent.engine.run = run
+        with self.assertRaisesRegex(p.Held, 'event-original-phase'):
+            self.parent.events()
+
+    def test_event_callback_cannot_advance_original_history(self):
+        def run(args, seconds):
+            self.parent.event_start = '1700000001'
+            return b''
+        self.parent.engine.run = run
+        with self.assertRaisesRegex(p.Held, 'event-original-history'):self.parent.events()
+
+    def test_event_foreign_history_equality_never_runs(self):
+        calls = []
+        class Foreign:
+            def __eq__(self, other):calls.append(True); return True
+        def run(args, seconds):
+            self.parent.event_start = Foreign()
+            return b''
+        self.parent.engine.run = run
+        with self.assertRaisesRegex(p.Held, 'event-original-history'):self.parent.events()
+        self.assertEqual(calls, [])
+
+    def test_event_foreign_phase_equality_never_runs(self):
+        calls = []
+        class Foreign:
+            def __eq__(self, other):calls.append(True); return True
+        def run(args, seconds):
+            self.parent.phase = Foreign()
+            return b''
+        self.parent.engine.run = run
+        with self.assertRaisesRegex(p.Held, 'event-original-phase'):self.parent.events()
+        self.assertEqual(calls, [])
+
+    def test_lifetime_callback_cannot_advance_history_before_transport(self):
+        def left():
+            self.parent.event_start = '1700000001'
+            return 30
+        self.parent.left = left
+        with self.assertRaisesRegex(p.Held, 'event-original-history'):self.parent.events()
+        self.assertEqual(self.calls, [])
+
+    def test_malformed_actor_refuses_without_foreign_lookup(self):
+        for actor in (None, [], {'ID': []}, {'ID': None}, {}):
+            with self.subTest(actor=actor):
+                self.reply = p.encode(dict(Actor=actor, Action='health_status: healthy'))
+                with self.assertRaisesRegex(p.Held, 'event-scope'):
+                    self.parent.events()
 
 
 class Tests(unittest.TestCase):
@@ -644,7 +712,7 @@ class Tests(unittest.TestCase):
         def run(args, seconds):
             self.assertEqual([kind for kind, _ in calls[:3]], ['inspect'] * 3)
             calls.append(('events', args[6]))
-            return p.encode(dict(Actor=dict(ID=values['held_native']['Id']), Action='restart')) if args[6] == 'container=' + values['held_native']['Id'] else b''
+            return p.encode(dict(Actor=dict(ID=values['held_native']['Id']), Action='restart')) if 'container=' + values['held_native']['Id'] in args else b''
         x.inspect = inspect; x.engine = types.SimpleNamespace(run=run)
         x.event_start = '1700000000'; x.phase = 'stopping'; del x.events
         x.core = p.encode(dict(plan=x.plan, files=x.files, nodes=x.nodes, source=x.source_ref,
@@ -652,6 +720,53 @@ class Tests(unittest.TestCase):
         p._CORES[x] = x.core
         with self.assertRaisesRegex(p.Held, 'continuous-quiescence-event'):
             p.LifecycleParent.continuous(x)
+
+    def continuous_event_mutation(self, change):
+        self.continuous_fixture(); x = self.parent; calls = []
+        x.files[self.source['path']] = tuple(self.source['signature9'])
+        def run(args, seconds):
+            calls.append(args); change()
+            return b''
+        x.engine = types.SimpleNamespace(run=run)
+        x.event_start = '1700000000'; x.phase = 'stopping'; del x.events
+        x.core = p.encode(dict(plan=x.plan, files=x.files, nodes=x.nodes, source=x.source_ref,
+                              input=x.plan_ref, engine=id(x.engine), thread=x.thread, deadline=x.deadline))
+        p._CORES[x] = x.core
+        with self.assertRaises(p.Held):p.LifecycleParent.continuous(x)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].count('--filter'), 3)
+
+    def test_combined_event_callback_cannot_advance_history(self):
+        self.continuous_event_mutation(lambda:setattr(self.parent, 'event_start', '1700000001'))
+
+    def test_continuous_final_callback_cannot_advance_event_history(self):
+        self.continuous_fixture(); x = self.parent
+        x.event_start = '1700000000'
+        x.events = lambda:setattr(x, 'event_start', '1700000001')
+        with self.assertRaisesRegex(p.Held, 'continuous-original-event-history'):
+            p.LifecycleParent.continuous(x)
+
+    def test_continuous_initial_completion_callback_cannot_advance_history(self):
+        self.continuous_fixture(); x = self.parent; x.event_start = '1700000000'
+        def changed(owner):owner.event_start = '1700000001'
+        def definitions():pass
+        with patch.object(p, 'archive_completion_guard', side_effect=changed), self.assertRaisesRegex(p.Held, 'continuous-original-event-history'):
+            p.LifecycleParent.continuous(x, _definitions=definitions, _definition_code=definitions.__code__, _definition_defaults=definitions.__defaults__)
+
+    def test_continuous_final_history_equality_never_runs(self):
+        self.continuous_fixture(); x = self.parent; x.event_start = '1700000000'; calls = []
+        class Foreign:
+            def __eq__(self, other):calls.append(True); return True
+        x.events = lambda:setattr(x, 'event_start', Foreign())
+        with self.assertRaisesRegex(p.Held, 'continuous-original-event-history'):
+            p.LifecycleParent.continuous(x)
+        self.assertEqual(calls, [])
+
+    def test_combined_event_callback_keeps_final_source_metadata_check(self):
+        self.continuous_event_mutation(lambda:Path(self.source['path']).chmod(0o640))
+
+    def test_combined_event_callback_keeps_final_parent_core_check(self):
+        self.continuous_event_mutation(lambda:self.parent.plan.update(selected_image='sha256:' + 'f' * 64))
 
     def projected_report(self):
         spec=importlib.util.spec_from_file_location('physical_report_tree',ROOT/'comic_child_control_projection.py')

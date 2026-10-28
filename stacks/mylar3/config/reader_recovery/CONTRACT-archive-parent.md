@@ -293,3 +293,11 @@ by Btrfs fstat. Original descriptor/path device and full file facts remain exact
 Release the owned lock on every return/refusal without replacing the primary
 failure or closing a foreign reused descriptor. The release-to-acquisition gap
 is not an atomic lock transfer: changes in that gap must still hold.
+
+Continuous event checks query all three distinct original container IDs together,
+using repeated container filters, the original history start and one fresh
+nanosecond cutoff. Every returned actor must belong to those original roles.
+The original stopping phase alone permits reader kill/die events. The complete
+pre-command and post-event closures remain mandatory.
+The history start is frozen across the query and the enclosing continuous check,
+including their final callbacks. Advancing it during either check refuses.

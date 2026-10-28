@@ -3417,6 +3417,8 @@ class LifecycleParent:
             os.close(directory)
 
     def continuous(self, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__):
+        event_start = getattr(self, 'event_start', None)
+        need(type(event_start) in (str, type(None)), 'continuous-original-event-history')
         need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
         archive_completion_guard(self)
         files = dict(self.files); nodes = dict(self.nodes)
@@ -3447,25 +3449,38 @@ class LifecycleParent:
         self.left(); final(files, nodes, ())
         need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
         archive_completion_guard(self)
+        history = getattr(self, 'event_start', None)
+        need(type(history) is type(event_start) and history == event_start, 'continuous-original-event-history')
         return values
 
     def events(self):
-        for key in ('reader', 'held_native', 'held_worker'):
-            # Query through the present instant. A future whole-second cutoff
-            # makes every guard wait, repeatedly consuming the worker's fixed
-            # deadline. Keep nanoseconds exact and retain the full original
-            # history on every query, including events after a prior cutoff.
-            now = time.time_ns()
-            need(now >= int(self.event_start) * 10**9, 'event-clock-before-original-history')
-            until = str(now // 10**9) + '.' + str(now % 10**9).zfill(9)
-            raw = self.engine.run(['events', '--since', self.event_start, '--until', until,
-                                   '--filter', 'container=' + self.plan[key]['id'], '--format', '{{json .}}'], self.left())
-            for line in raw.splitlines():
-                event = decode(line)
-                need(event.get('Actor', {}).get('ID') == self.plan[key]['id'], 'event-scope')
-                need(event.get('Action') not in ('start', 'restart', 'unpause', 'destroy', 'kill', 'die')
-                     or key == 'reader' and event.get('Action') in ('kill', 'die')
-                     and self.phase == 'stopping', 'continuous-quiescence-event')
+        roles = tuple((self.plan[key]['id'], key) for key in ('reader', 'held_native', 'held_worker'))
+        need(all(digest(cid) for cid, _ in roles) and len({cid for cid, _ in roles}) == 3,
+             'event-original-distinct-roles')
+        phase = self.phase; since = self.event_start
+        need(type(phase) is str and type(since) is str, 'event-original-primitives')
+        # Repeated container filters are ORed by Docker. One query retains the
+        # original history for all roles at the same fresh nanosecond cutoff,
+        # with one complete pre-command closure and continuous()'s final closure.
+        now = time.time_ns()
+        need(now >= int(since) * 10**9, 'event-clock-before-original-history')
+        until = str(now // 10**9) + '.' + str(now % 10**9).zfill(9)
+        args = ['events', '--since', since, '--until', until]
+        for cid, _ in roles:args.extend(['--filter', 'container=' + cid])
+        args.extend(['--format', '{{json .}}'])
+        seconds = self.left()
+        need(type(self.event_start) is str and self.event_start == since, 'event-original-history')
+        raw = self.engine.run(args, seconds)
+        need(type(self.event_start) is str and self.event_start == since, 'event-original-history')
+        need(type(self.phase) is str and self.phase == phase, 'event-original-phase')
+        by_id = dict(roles)
+        for line in raw.splitlines():
+            event = decode(line);actor = event.get('Actor', {})
+            need(type(actor) is dict and type(actor.get('ID')) is str and actor['ID'] in by_id, 'event-scope')
+            key = by_id[actor['ID']]
+            need(event.get('Action') not in ('start', 'restart', 'unpause', 'destroy', 'kill', 'die')
+                 or key == 'reader' and event.get('Action') in ('kill', 'die')
+                 and phase == 'stopping', 'continuous-quiescence-event')
 
     def produce(self, phase, context):
         need(phase in ('native-observation', 'backup-controls', 'phase-custody',

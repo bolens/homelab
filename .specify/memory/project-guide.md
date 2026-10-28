@@ -927,3 +927,9 @@ Root before validation and retain primary errors, descriptor custody and poison.
 Label projection wrapper counts as wrapper invocations, not kernel metadata
 operations or NFS RPCs. Only measured complete Root/NFS and fresh configured
 execution can establish latency or admission.
+
+Repeated Docker event filters for the same field use OR semantics. A combined
+query must retain distinct original role IDs, the original history start, a fresh
+cutoff, foreign-actor rejection and the final source/Parent closure. Do not remove
+a guard merely because a later guard checks the same facts. An intervening
+callback may use replaced OS functions before the later guard can reject them.
