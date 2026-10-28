@@ -324,7 +324,7 @@ def is_album_info_sidecar(path: Path) -> bool:
 
 def is_obfuscated_posting_sidecar(path: Path) -> bool:
     """Require both a posting filename and structured release metadata/checksums."""
-    if not re.search(r"\.[0-9a-f]{8}___[0-9a-f]{12}_ \[newzNZB\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+    if not re.search(r"\.[0-9a-f]{8}___[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
                      path.name, re.IGNORECASE):
         return False
     with path.open("rb") as stream:
@@ -334,7 +334,10 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
-        return False
+        try:
+            text = raw.decode("cp1252")
+        except UnicodeDecodeError:
+            return False
     if any(not char.isprintable() and char not in "\t\r\n\f" for char in text):
         return False
     lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith(";")]

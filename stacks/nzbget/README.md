@@ -96,12 +96,15 @@ bounded application header, including files with obfuscated names. Unknown or
 malformed binary files remain retained. Named audio/video and cue-referenced
 files remain protected.
 
-Obfuscated posting names ending in the scene hash and `newzNZB`/`yEnc` fields
-also support UTF-8 SFV checksum lists and release NFOs up to 64 KiB. Checksum
+Obfuscated posting names ending in the scene hash, a `newzNZB` or `WtFnZb` tag,
+and `yEnc` fields support UTF-8 and Windows-1252 SFV checksum lists and release
+NFOs up to 64 KiB. Checksum
 lists require local audio paths and eight-digit hexadecimal CRCs on every
 non-comment entry. Release NFOs require nonempty artist and album fields, at
 least two additional release fields and a numbered track entry. Unstructured
-text, unsafe checksum paths and unidentified binary files are retained.
+text, unsafe checksum paths and unidentified binary files are retained. Binary
+controls and undefined Windows-1252 bytes fail recognition. The empty-output
+guard still retains releases containing only disposable sidecars.
 
 Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
 filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
