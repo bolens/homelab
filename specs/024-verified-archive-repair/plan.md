@@ -281,8 +281,13 @@ child guards. Source controls do not complete T012 or T015.
 
 ### Admission closure and diagnosis
 
-The nested worker exchange retains its original 30-second ingress deadline and
-all per-write preservation checks. Use bounded nonblocking writes of at most
+The nested worker exchange mints one 90-second ingress deadline at intent
+creation, capped by the original Parent and producer deadlines, and retains
+all per-write preservation checks. Complete Root/NFS closure measurements
+exceeded the earlier 30-second cap before the exchange could finish. Aligning
+the cap with the existing worker channel permits these checks without removing
+them. Preparation consumes the same budget, and no wait or frame refreshes it.
+Fresh configured forward and rollback evidence remain required. Use bounded nonblocking writes of at most
 64 KiB, retain the exact remaining suffix after short writes, and repeat the
 guard after every readiness wait or no-progress retry. Bind the original pipe
 flags, capacity and kernel primitive before writing. A denied capacity increase

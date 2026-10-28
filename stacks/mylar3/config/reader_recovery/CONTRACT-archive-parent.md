@@ -182,8 +182,11 @@ Default-disabled plan12 preserves the plan11 same-child contract and adds an ori
 
 ## Nested worker response transport
 
-The nested observer's response transport retains its original 30-second ingress
-deadline. It writes at most 64 KiB through a nonblocking pipe, retaining a checked
+The nested observer's response transport mints one 90-second ingress deadline
+at original intent creation, capped by both original Parent and producer
+deadlines. Preparation consumes this same budget. No retry, guard or frame
+refreshes it. The cap matches the worker channel's existing bound and allows
+complete Root/NFS closure checks to finish without removing checks. It writes at most 64 KiB through a nonblocking pipe, retaining a checked
 smaller capacity if the kernel refuses enlargement. Every readiness retry and
 partial write repeats full preservation checks; the detached write tail verifies
 the original descriptor, flags, capacity, primitive and deadline. An unknown
@@ -306,3 +309,10 @@ Input projection and grouped archive-source copies retain the bound owner reader
 for every original and destination ancestor walk. Root-owned local metadata stays
 under Root; admitted NFS metadata uses the same original owner scope and returns
 to Root before validation. Output-view and Tree-birth ancestry follow that rule.
+
+Owner metadata batches may retain one initial ancestor descriptor chain for
+consecutive sibling paths within that single call. Each leaf still requires its
+own fresh no-follow path walk and held-ancestor comparison. Parent changes and
+failures close the chain before further sampling; all descriptors close before
+Root restoration. No chain or successful sample survives into another call or
+guard. The original independent metadata passes remain required.

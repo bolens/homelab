@@ -31,14 +31,14 @@ The latest configured attempt, FB/FC, remains held at the original worker
 accepted. Preserve that fixture and all earlier attempts without replay.
 
 PR [#555](https://github.com/bolens/homelab/pull/555) contains the bounded pipe
-writes and combined original-role event query. The complete Root/NFS benchmark
-then exposed four child-control ancestor walks that bypassed the existing owner
-reader. The shared correction routes all four through that reader and adds
-remote-input, grouped-source and late-drift regressions. The benchmark stopped
-before Docker calls and preserved its originals. Verify the correction on the
-actual mount before another configured attempt. These are corrections within
-T012, not additional acceptance tasks. Source checks and synthetic timing do not
-close the forward or distinct-fixture rollback requirements.
+writes, combined original-role event query and shared owner-reader corrections.
+The corrected complete Root/NFS component benchmark finishes in 40.61 seconds
+under a fixed 90-second intent cap, bounded by both original enclosing
+deadlines. Every per-leaf, per-write and final preservation check remains.
+See the [timing and ownership evidence](evidence-history.md#complete-owner-read-and-worker-timing-proof--2026-10-28).
+The next fresh configured operation must still prove the owning forward and a
+distinct-fixture rollback. These corrections remain within T012 and close no
+operational acceptance criterion.
 
 Historical diagnoses are retained in [evidence history](evidence-history.md#superseded-current-queue-notes-through-fa2--2026-10-28).
 

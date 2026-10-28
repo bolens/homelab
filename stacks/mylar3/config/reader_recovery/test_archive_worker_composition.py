@@ -94,6 +94,24 @@ class Tests(unittest.TestCase):
    if value is None:return None
    return self.parent.accept_archive_terminal(self.proof,[],value,copy.deepcopy(self.producer_row),copy.deepcopy(self.producer_row),raw)
   return self.engine.interactive('4'*64,handler,10)
+ def test_worker_intent_budget_is_fixed_once_at_creation(self):
+  self.unit5();x=self.parent;x.deadline=300;cid='4'*64
+  x.emit=lambda *args:copy.deepcopy(self.action)
+  p._DIALOGUE_SEALS.setdefault(self.engine,{})[cid]=(None,)*6+(250,)
+  with patch.object(p,'dialogue_close',return_value=object()),patch.object(p.time,'monotonic',return_value=100):
+   x.worker_intent(self.current)
+  intent=p._WORKER_INTENTS[x];self.assertEqual(intent[7],190)
+  with patch.object(p.time,'monotonic',return_value=210),self.assertRaises(p.Held):x.worker_intent(self.current)
+  self.assertIs(p._WORKER_INTENTS[x],intent);self.assertEqual(intent[7],190)
+ def test_worker_intent_keeps_both_earlier_enclosing_deadlines(self):
+  self.unit5();cid='4'*64
+  for parent_end,producer_end,expected in ((125,180,125),(180,125,125)):
+   x=copy.copy(self.parent);x.deadline=parent_end;x.emit=lambda *args:copy.deepcopy(self.action)
+   p._WORKER_MODULES[x]=p._WORKER_MODULES[self.parent]
+   self.addCleanup(p._WORKER_MODULES.pop,x,None);self.addCleanup(p._WORKER_INTENTS.pop,x,None)
+   p._DIALOGUE_SEALS.setdefault(self.engine,{})[cid]=(None,)*6+(producer_end,)
+   with patch.object(p,'dialogue_close',return_value=object()),patch.object(p.time,'monotonic',return_value=100):x.worker_intent(self.current)
+   self.assertEqual(p._WORKER_INTENTS[x][7],expected)
  def test_genuine_nested_original_pipes_worker_readback_before_producer_release(self):
   self.unit5();ack=self.run_nested();self.assertEqual(ack,{'fixture':'synthetic-parent-facts-only'});self.assertTrue(self.both);self.assertTrue(self.worker_final)
   result=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]['worker_result'];self.assertEqual(result['type'],'observed');self.assertTrue(all(v is False for v in result['rights'].values()))

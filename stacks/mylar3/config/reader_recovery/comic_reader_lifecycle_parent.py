@@ -603,14 +603,21 @@ class GeometryOwnerReads:
             os.setresuid(-1, 1000, -1)
             if os.getresuid() != (0, 1000, 0) or os.getresgid() != (0, 0, 0) or os.getgroups() != [0]:
                 raise Held('owner-read-switched-identity')
-            samples = []
+            samples = []; held_parent = None
             for path in paths:
                 path_error = None
                 try:
-                    fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
                     parts = path.split('/')[1:]
-                    for part in parts[:-1]:
-                        fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+                    parent = tuple(parts[:-1])
+                    if operation != 'stats' or held_parent != parent:
+                        # Reuse only this invocation's initial sibling chain.
+                        # Every leaf still gets the fresh complete walk below.
+                        while fds:os.close(fds.pop())
+                        fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
+                        for part in parent:
+                            fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+                        held_parent = parent
+                    else:fd = fds[-1]
                     ancestors = tuple(fds)
                     if operation in ('stat', 'stats'):
                         result = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False) if parts[-1] else os.fstat(fd)
@@ -652,19 +659,19 @@ class GeometryOwnerReads:
                 except BaseException as exc:
                     path_error = exc
                 finally:
-                    for fd in reversed(fds):
-                        try:os.close(fd)
-                        except BaseException as exc:
-                            if path_error is None:path_error = exc
-                    fds.clear()
+                    if operation != 'stats' or path_error is not None:
+                        while fds:
+                            try:os.close(fds.pop())
+                            except BaseException as exc:
+                                if path_error is None:path_error = exc
                 if path_error is not None:raise path_error
                 samples.append(result)
             if operation == 'stats':result = tuple(samples)
         except BaseException as exc:
             primary = exc
         finally:
-            for fd in reversed(fds):
-                try:os.close(fd)
+            while fds:
+                try:os.close(fds.pop())
                 except BaseException as exc:
                     if primary is None:primary = exc
             try:
@@ -4053,7 +4060,7 @@ class LifecycleParent:
     def worker_intent(self,current):
         need(self.plan.get('version') in (12,13) and WORKER_OBSERVATION_ENABLED is True and type(self.engine) is ScopedDocker and self in _WORKER_MODULES and self not in _WORKER_INTENTS,'worker-owning-original-intent')
         producer=current['Id'];dialogue_close(self.engine,producer)
-        original_deadline=min(time.monotonic()+30.0,self.deadline,_DIALOGUE_SEALS[self.engine][producer][6]);need(original_deadline>time.monotonic(),'worker-ingress-original-deadline')
+        original_deadline=min(time.monotonic()+90.0,self.deadline,_DIALOGUE_SEALS[self.engine][producer][6]);need(original_deadline>time.monotonic(),'worker-ingress-original-deadline')
         module=_WORKER_MODULES[self];held=self.baselines['held_worker'];mounts=copy.deepcopy(held['Mounts'])
         rows,_=module.mapping(mounts)
         roots=sorted(b for a,b in rows if any(Path(b)==Path(r) or Path(r) in Path(b).parents for r in module.READ_ROOTS))

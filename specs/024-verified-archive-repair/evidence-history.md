@@ -1205,3 +1205,32 @@ bounded nonblocking writes, retaining every per-write guard and the original
 deadline. Wide actual Round, short-write, readiness-race and mutation controls
 are source evidence only. Configured forward and distinct rollback remain open.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
+
+## Complete owner-read and worker timing proof — 2026-10-28
+
+The complete Root/NFS component benchmark first refused four Tree ancestor
+walks outside the bound owner reader. The shared correction routes all four
+through that reader. The next benchmark then refused four synthetic child
+factual records created by Root. Its constructor now assigns UID1000 ownership
+to baseline, preparation and execute/terminal-history records and their stage
+directory before capturing references or enclosing vectors. Root input controls
+retain their owners. Frozen failed attempts remain unchanged.
+
+With those setup boundaries corrected, the complete nested benchmark still
+expired at the original 30-second intent cap. Consecutive-sibling initial
+ancestor descriptors can be reused within one metadata call while retaining
+every leaf's fresh no-follow walk, both closure passes and Root restoration.
+That change alone did not establish sufficient timing margin. The prospective
+policy aligns the ingress cap with the existing worker channel's 90 seconds,
+while retaining the earlier original Parent/producer deadlines. The clock is
+minted once before preparation and never refreshed.
+
+A fresh benchmark under that policy completed in 40.61 seconds with 17 worker
+guards, 66 projected inputs and 11 terminal views. It used actual owner reads,
+read-only exact-role Docker observations, conditional source/retention/common-root
+closures and private original pipes. Final source, input and geometry
+preservation passed without secondary errors. Its genuine constructor/handoff
+admission, plan13 fixture transition and actual container UID/process/mount
+namespace remain omitted. This proves the measured component path, not an
+accepted configured forward or rollback. Existing held readers and helpers
+remain preserved without replay.
