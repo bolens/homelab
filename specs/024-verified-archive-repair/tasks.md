@@ -57,6 +57,13 @@ fresh telemetry without no-op writes. Real-store tick and reload/hysteresis
 regressions cover this path. It changes native workflow bytes, so the next
 fixture requires a matching published image and SDK capture. Preserve EO/EP;
 its reader is stopped and no terminal result was accepted.
+PR [#541](https://github.com/bolens/homelab/pull/541) is merged and mirrored;
+main CI, publication, actual 180-module capture and four installed-image cases
+pass. ER verified all 27 new controls. ES then initialized and restarted its
+native fixture, but Bootstrap refused the first returned writer-busy health
+payload. Preserve ES. Bounded startup health polling stays within the existing
+deadline and call budget and still requires fresh ready evidence before catalog
+checks. This host-only correction reuses the exact unchanged native/SDK proof.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
