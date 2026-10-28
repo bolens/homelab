@@ -119,7 +119,6 @@ class Tests(unittest.TestCase):
   result=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]['worker_result'];self.assertEqual(result['type'],'observed');self.assertTrue(all(v is False for v in result['rights'].values()))
  def test_current_parent_and_current_worker_complete_actual_pipes(self):
   self.worker_entry=HERE/'_current_worker_source/archive_terminal_observation.py'
-  if not self.worker_entry.exists():self.worker_entry=HERE.parents[2]/'komga/normalizer/archive_terminal_observation.py'
   self.unit5();self.assertEqual(self.run_nested(),{'fixture':'synthetic-parent-facts-only'})
   self.assertTrue(self.worker_final);self.assertTrue(self.both)
  def wide_worker_exchange(self):

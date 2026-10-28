@@ -42,7 +42,6 @@ class WorkerProfile(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
         fixture=HERE/'_current_worker_source/archive_terminal_observation.py'
-        if not fixture.exists():fixture=HERE.parents[2]/'komga/normalizer/archive_terminal_observation.py'
         # This exact private dependency is copied from the owning canonical worker.
         self.source=self.root/'archive_terminal_observation.py';self.source.write_bytes(fixture.read_bytes())
         self.mapping=self.root/'worker-image-map.json';self.mapping.write_text(json.dumps({'/app/archive_terminal_observation.py':installer.WORKER_OBSERVER_SOURCE_SHA}))

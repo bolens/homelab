@@ -1,5 +1,4 @@
 """Private isolated fixture copies; public source modes and bytes are preserved."""
-import ast
 import hashlib
 import json
 import os
@@ -30,7 +29,7 @@ SUITES=SUITES+(('test_genuine_current_roles.py',26),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',25),)
 SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
-MAX_FILES=258
+MAX_FILES=259
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
 def sig(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
@@ -78,16 +77,6 @@ def copy_fixtures(fixes,temporary):
   target=tree/name;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
   with os.fdopen(os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb') as f:f.write(raw)
   if target.read_bytes()!=raw:raise Held('Private fixture readback')
- if 'test_configured_parent_installation.py' in manifest['files']:
-  # The constructor fixture must use the current reviewed worker, while the
-  # historical dialogue worker remains an unchanged compatibility fixture.
-  installer=ast.parse(checked(root/'install_configured_reader_parent.py',manifest['files']['install_configured_reader_parent.py']['sha256'],files,nodes))
-  worker_pins=[ast.literal_eval(n.value)for n in installer.body if isinstance(n,ast.Assign)and any(isinstance(t,ast.Name)and t.id=='WORKER_OBSERVER_SOURCE_SHA'for t in n.targets)]
-  if len(worker_pins)!=1 or type(worker_pins[0])is not str or re.fullmatch('[a-f0-9]{64}',worker_pins[0])is None:raise Held('Explicit current worker pin required')
-  raw=checked(fixes.parents[1]/'komga/normalizer/archive_terminal_observation.py',worker_pins[0],files,nodes)
-  target=tree/'_current_worker_source/archive_terminal_observation.py';target.parent.mkdir(mode=0o700)
-  with os.fdopen(os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb')as f:f.write(raw)
-  if target.read_bytes()!=raw:raise Held('Private current worker readback')
  # Admission tests name the canonical module in the parent config directory.
  raw=checked(fixes/'publication_reader_admission.py',cohort['modules']['publication_reader_admission']['sha256'],files,nodes)
  with os.fdopen(os.open(private/'publication_reader_admission.py',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb') as f:f.write(raw)

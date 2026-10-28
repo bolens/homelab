@@ -94,14 +94,12 @@ class Controls(unittest.TestCase):
   with patch.object(m,'SUITES',(('test_stub.py',1),)),self.assertRaisesRegex(m.Held,'Original source file drift'):m.run(self.fixes)
  def test_real588_public644_closure_passes_no_source_changes(self):
   # Exact current public files, no ignored config copied.
-  actual=self.root/'stacks/mylar3/config';actual.mkdir(parents=True);manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
+  actual=self.root/'actual';actual.mkdir();manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
   rows=json.loads((PUBLIC/'standalone_control_sources.json').read_bytes())
   names={row['path']for row in rows}|{'reader_recovery/'+name for name in manifest['files']}|{'reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'}
   for name in names:
    dst=actual/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/name,dst);dst.chmod(0o644)
-  worker=self.root/'stacks/komga/normalizer/archive_terminal_observation.py';worker.parent.mkdir(parents=True);shutil.copyfile(PUBLIC.parents[1]/'komga/normalizer/archive_terminal_observation.py',worker);worker.chmod(0o644);worker_before=(digest(worker),worker.stat().st_mode,worker.stat().st_ino)
   before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1904);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
-  self.assertEqual((digest(worker),worker.stat().st_mode,worker.stat().st_ino),worker_before)
  def extra_source(self):
   p=self.fixes/'extra.py';p.write_bytes(b'# exact explicit source\n');p.chmod(0o644)
   index=self.fixes/'standalone_control_sources.json';rows=json.loads(index.read_bytes());row=dict(path='extra.py',target='alias.py',sha256=digest(p));rows.extend((row,dict(row,target='another-alias.py')));index.write_text(json.dumps(rows));return p,index,rows
