@@ -3422,7 +3422,14 @@ class LifecycleParent:
 
     def events(self):
         for key in ('reader', 'held_native', 'held_worker'):
-            raw = self.engine.run(['events', '--since', self.event_start, '--until', str(int(time.time()) + 1),
+            # Query through the present instant. A future whole-second cutoff
+            # makes every guard wait, repeatedly consuming the worker's fixed
+            # deadline. Keep nanoseconds exact and retain the full original
+            # history on every query, including events after a prior cutoff.
+            now = time.time_ns()
+            need(now >= int(self.event_start) * 10**9, 'event-clock-before-original-history')
+            until = str(now // 10**9) + '.' + str(now % 10**9).zfill(9)
+            raw = self.engine.run(['events', '--since', self.event_start, '--until', until,
                                    '--filter', 'container=' + self.plan[key]['id'], '--format', '{{json .}}'], self.left())
             for line in raw.splitlines():
                 event = decode(line)

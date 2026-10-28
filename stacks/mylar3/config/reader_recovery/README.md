@@ -20,6 +20,14 @@ closes the same frozen facts after scalar callbacks. Original helper bindings,
 caller facts, claims, censuses, absences and the worker's original 30-second
 deadline remain checked; observations are never cached across exchanges.
 
+Container event checks query each exact role through its current nanosecond
+timestamp, retaining the full original history on every guard. They do not wait
+for a future whole second or advance the history boundary. Events after one
+cutoff remain eligible for the next query; a clock before the original history
+refuses. Direct event controls exercise the cutoff, action predicates and
+inspect-before-events ordering. Synthetic pipe timing without these real
+continuous checks does not establish configured worker timing.
+
 The configured installer selects 103 required modules from the verified native
 source map. This includes `worker_health.py` and `native_writers.py`, whose exact
 pins both native evidence adapters pass to the process probe. Installer tests
@@ -33,7 +41,7 @@ The archive proof producer binds backup directories to the returned restore root
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1861 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1868 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route

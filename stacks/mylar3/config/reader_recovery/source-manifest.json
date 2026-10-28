@@ -31,7 +31,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "1011d9d4df03e43523416f336ee71867ab36ac44b959f08a3e87af092f7bc739"
+      "sha256": "993bf34d662bd7b3485781a79d3402165568abc68ef341d664a78e4043cf9bc7"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "96373c34843e89a63c7e198355c6c512e00310d369f71a0b81902eeb568b3697"
+      "sha256": "ccd6de37de648458bad46755b8d89c7fa0b6d7774479d9d88358ac5c5d27ee78"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "12f1e3c3b7d7a662a0bc06c12b9d142c5c1fce96d4b234ac5e895a8bb779f62e"
@@ -511,7 +511,7 @@
       "sha256": "756b26bf25e3bf6e669ffdb5bc8eb682fda032a6b01c9c70916cce91f28d40f8"
     },
     "genuine_current_roles.py": {
-      "sha256": "2c568492c63ab5f43928ec5bd04db55de6104ef473ab27ed81d7ee58dd52b309"
+      "sha256": "d759a786415628ebeca7db992f16eac755c48eaff416b2f17bc3a2a85aca4add"
     },
     "genuine_native_catalog.py": {
       "sha256": "af76f96dad58721ba9b87cf90c2955384d9ad5f2307f9ae12719b4197406949e"
@@ -532,7 +532,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "6b15d3b58485faf1a74a01cb583762fcca57dfea14338c0180e2303bc6297774"
+      "sha256": "c852d1fea41ddacde225a1b747ea89ce5a9dca5d6a7f37660fae6531baf22095"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -745,7 +745,7 @@
       "sha256": "3f47c7954b6481f1eb8f361bd397eee7df8de67857f2b73c3147c68e2cca80c6"
     },
     "test_reader_lifecycle_parent.py": {
-      "sha256": "eb390e0d0bd6633b2bc3664bd8cfc5b7a60032074bb24f9a70409c0a3af1e81b"
+      "sha256": "e5d07e17be763b7e1987a8f1b21fa11ad52547d95506fa5fbed6529887ac357d"
     },
     "test_reader_phase_custody.py": {
       "sha256": "a9ded69ac33b7de0ba130f62d51a75fe46dccabdadeea2678d0af1f8ed77433f"

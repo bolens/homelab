@@ -67,6 +67,12 @@ reusable checked flag, deleted lifetime check or new operational authority is
 permitted. Require hostile-callback and restoration regressions, actual bounded
 Root/NFS timing, delivery, a new checked installation and a fresh fixture before
 configured acceptance. Historical source and benchmark results remain partial.
+Timing evidence must include the owning continuous checks and actual engine
+transport, retain the original file-type/ownership distribution and directory9
+scalar fallbacks, and identify omitted configured registries, completion-lock
+checks and pre-observer work. A pipe-only benchmark cannot establish the
+complete configured deadline margin. Event queries retain their original full
+history and use precise current timestamps without waiting into the future.
 
 ## Delivered correction: original host operation and child namespaces
 
