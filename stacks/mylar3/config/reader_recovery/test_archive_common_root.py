@@ -648,6 +648,95 @@ class OwnerReadTests(unittest.TestCase):
         remote.write_bytes(b'changed')
         with self.assertRaises(p.Held):self.actor.control_vector(files,nodes)
 
+    def test_final_batches_remote_files_without_per_file_owner_checks(self):
+        files = {}
+        for index in range(64):
+            path = self.root/'L'/str(index);path.write_bytes(b'original')
+            files[str(path)] = tuple(p.nine(path.lstat()))
+        before = len(self.events)
+        p.final(files, {}, ())
+        self.assertLess(len(self.events)-before, 100)
+        self.assertEqual(self.uid, 0)
+
+    def test_final_batch_remains_fresh_on_every_call(self):
+        path=self.root/'L'/'original';path.write_bytes(b'original')
+        files={str(path):tuple(p.nine(path.lstat()))}
+        p.final(files, {}, ());path.write_bytes(b'changed')
+        with self.assertRaises(p.Held):p.final(files, {}, ())
+
+    def test_final_local_files_keep_scalar_full9(self):
+        path=self.root.parent/'local';path.write_bytes(b'original')
+        files={str(path):tuple(p.nine(path.lstat()))};path.write_bytes(b'changed')
+        with self.assertRaisesRegex(p.Held,'file-final'):p.final(files, {}, ())
+
+    def test_final_directory9_is_not_reduced_to_directory5(self):
+        path=self.root/'L';files={str(path):tuple(p.nine(path.lstat()))}
+        before=path.stat();os.utime(path,ns=(before.st_atime_ns,before.st_mtime_ns+1))
+        with self.assertRaisesRegex(p.Held,'file-final'):p.final(files, {}, ())
+
+    def test_final_batch_keeps_absence_checks(self):
+        path=self.root/'L'/'absent';p.final({}, {}, (str(path),));path.write_bytes(b'foreign')
+        with self.assertRaisesRegex(p.Held,'absence-final'):p.final({}, {}, (str(path),))
+
+    def test_remote_vector_over_bound_keeps_scalar_fallback(self):
+        path=self.root/'L'/'sample';path.write_bytes(b'original');fact=tuple(p.nine(path.lstat()))
+        rows=tuple((str(self.root/'L'/str(i)),fact)for i in range(513))
+        self.assertEqual(p.remote_control_vector(rows,()),(frozenset(),frozenset()))
+
+    def test_final_rejects_substituted_batch_helper_before_dispatch(self):
+        from unittest import mock
+        path=self.root/'L'/'sample';path.write_bytes(b'original');files={str(path):tuple(p.nine(path.lstat()))}
+        with mock.patch.object(p,'remote_control_vector',side_effect=AssertionError('must not dispatch')):
+            with self.assertRaises(p.Held):p.final(files,{},())
+
+    def test_remote_vector_rejects_substituted_contains_before_dispatch(self):
+        from unittest import mock
+        path=self.root/'L'/'sample';path.write_bytes(b'original');rows=((str(path),tuple(p.nine(path.lstat()))),)
+        with mock.patch.object(type(self.actor),'contains',side_effect=AssertionError('must not dispatch')):
+            with self.assertRaises(p.Held):p.remote_control_vector(rows,())
+
+    def test_final_rejects_late_caller_fact_change(self):
+        from unittest import mock
+        remote=self.root/'L'/'remote';remote.write_bytes(b'original')
+        local=self.root.parent/'local';local.write_bytes(b'local')
+        files={str(remote):tuple(p.nine(remote.lstat())),str(local):tuple(p.nine(local.lstat()))}
+        real=p.os.lstat;changed=[]
+        def sample(path,*args,**kwargs):
+            result=real(path,*args,**kwargs)
+            if str(path)==str(local) and not changed:
+                value=files[str(remote)];files[str(remote)]=(*value[:2],value[2]+1,*value[3:]);changed.append(True)
+            return result
+        with mock.patch.object(p.os,'lstat',side_effect=sample),self.assertRaisesRegex(p.Held,'final-original-primitive-vectors'):
+            p.final(files,{},())
+        self.assertTrue(changed)
+
+    def test_final_recloses_remote_file_after_local_callback(self):
+        from unittest import mock
+        remote=self.root/'L'/'remote';remote.write_bytes(b'original')
+        local=self.root.parent/'local';local.write_bytes(b'local')
+        files={str(remote):tuple(p.nine(remote.lstat())),str(local):tuple(p.nine(local.lstat()))}
+        real=p.os.lstat;changed=[]
+        def sample(path,*args,**kwargs):
+            result=real(path,*args,**kwargs)
+            if str(path)==str(local) and not changed:remote.write_bytes(b'changed');changed.append(True)
+            return result
+        with mock.patch.object(p.os,'lstat',side_effect=sample),self.assertRaises(p.Held):p.final(files,{},())
+        self.assertTrue(changed)
+
+    def test_final_rejects_foreign_late_row_without_iteration(self):
+        from unittest import mock
+        path=self.root.parent/'local';path.write_bytes(b'local')
+        files={str(path):tuple(p.nine(path.lstat()))};real=p.os.lstat;called=[]
+        class Foreign:
+            def __iter__(self):called.append(True);raise AssertionError('foreign row executed')
+        def sample(value,*args,**kwargs):
+            result=real(value,*args,**kwargs)
+            if str(value)==str(path):files[str(path)]=Foreign()
+            return result
+        with mock.patch.object(p.os,'lstat',side_effect=sample),self.assertRaisesRegex(p.Held,'final-original-primitive-vectors'):
+            p.final(files,{},())
+        self.assertFalse(called)
+
     def test_control_vector_primitive_conflicts_refuse_before_io(self):
         from unittest import mock
         path=str(self.root/'L');node=tuple(p.five((self.root/'L').lstat()));changed=(*node[:1],node[1]+1,*node[2:])

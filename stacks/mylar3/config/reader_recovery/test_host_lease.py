@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).parent
 spec=importlib.util.spec_from_file_location('hostlease',ROOT/'comic_nfs_host_lease.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -227,5 +228,40 @@ class RetainedProfileContract(unittest.TestCase):
                 with self.assertRaises(ValueError):close()
             finally:function.__code__=code
         run();close()
+
+@unittest.skipUnless(os.geteuid()==1000 and os.getegid()==1000,'genuine UID1000 Writer/helper required')
+class ReleaseOrdering(unittest.TestCase):
+    setUp=RealLease.setUp
+    cleanup=RealLease.cleanup
+    launch=RealLease.launch
+    def test_release_callback_deadline_prevents_release_write(self):
+        c=self.launch();clock=m.time.monotonic;changed=[];sent=[];write=m.os.write
+        def absent(path):changed.append(True);raise FileNotFoundError(path)
+        def send(fd,raw):
+            if b'"action":"release"' in raw:sent.append(True)
+            return write(fd,raw)
+        with patch.object(c,'release_stat',side_effect=absent),patch.object(m.time,'monotonic',side_effect=lambda:c.deadline+1 if changed else clock()),patch.object(m.os,'write',side_effect=send):
+            with self.assertRaisesRegex(m.Held,'lease-deadline'):c.release([self.root/'absent'])
+        self.assertFalse(sent);self.assertFalse(c.released)
+    def test_release_callback_replaced_pipe_receives_no_command(self):
+        c=self.launch();r,w=os.pipe();saved=os.dup(c.fds[0][0]);changed=[]
+        def absent(path):
+            if not changed:os.dup2(w,c.fds[0][0]);changed.append(True)
+            raise FileNotFoundError(path)
+        try:
+            with patch.object(c,'release_stat',side_effect=absent),self.assertRaises(m.Held):c.release([self.root/'absent'])
+            os.set_blocking(r,False)
+            with self.assertRaises(BlockingIOError):os.read(r,1)
+            self.assertFalse(c.released)
+        finally:os.dup2(saved,c.fds[0][0]);os.close(saved);os.close(r);os.close(w)
+    def test_partial_release_ack_stall_respects_original_deadline(self):
+        # Synthetic protocol peer; this tests transport timing, not Writer custody.
+        token='a'*64;root5,_=m.namespace(self.root)
+        held=dict(version=1,kind='owned-nfs-existing-writer-lease',token=token,state='held',writer_identity=list(root5[:2]),source_sha256=SHA,markers_unchanged=True,native_grant=False,publication_authority=False)
+        body="import json,os,sys,time;held=sys.argv[1];print(held,flush=True);a=json.loads(input());assert a['action']=='pulse';print(held,flush=True);a=json.loads(input());assert a['action']=='release';os.write(1,b'{');time.sleep(2)"
+        proc=subprocess.Popen([sys.executable,'-I','-B','-u','-c',body,m.encode(held).decode()],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE);self.processes.append(proc)
+        c=m.LeaseChannel(proc,token,self.root,SHA,.3);c.receive('held');start=m.time.monotonic()
+        with self.assertRaisesRegex(m.Held,'lease-release-ACK-timeout'):c.release([])
+        self.assertLess(m.time.monotonic()-start,1);self.assertFalse(c.released)
 
 if __name__=='__main__':unittest.main()

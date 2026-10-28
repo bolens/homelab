@@ -525,7 +525,7 @@ class GeometryOwnerReads:
         self.code = tuple((name, value, value.__code__) for name, value in type(self).__dict__.items() if hasattr(value, '__code__'))
         dependencies = tuple((name, globals()[name], globals()[name].__code__, globals()[name].__defaults__,
                               None if globals()[name].__kwdefaults__ is None else tuple(globals()[name].__kwdefaults__.items()), globals()) for name in
-                             ('_owner_dependencies_match', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'final', 'five', 'nine'))
+                             ('_owner_dependencies_match', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'remote_control_vector', 'final', 'five', 'nine'))
         dependencies += tuple((name, value, code, value.__defaults__, None if value.__kwdefaults__ is None
                                else tuple(value.__kwdefaults__.items()), type(self).__dict__) for name, value, code in self.code)
         self.seal = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code, dependencies, self.handles, self.nodes)
@@ -1002,13 +1002,64 @@ def read_cohort_stderr(cohort_ref, ref):
     return raw
 
 
+def remote_control_vector(files, nodes):
+    """Batch eligible owner metadata once per closure; other facts stay scalar."""
+    actor = _OWNER_READS
+    if actor is None:return frozenset(), frozenset()
+    seal = _OWNER_READ_SEALS.get(actor)
+    need(seal is not None and actor.registry is _OWNER_READ_SEALS and actor.seal is seal,
+         'remote-vector-original-registry')
+    dependency = seal[5][0]
+    if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+        raise Held('remote-vector-original-dependencies')
+    need(all(type(actor).__dict__.get(name) is value and value.__code__ is code for name,value,code in seal[4]),
+         'remote-vector-original-methods')
+    methods = {name:value for name,value,_ in seal[4]}
+    selected_files = tuple((path, tuple(value)) for path, value in files
+        if methods['contains'](actor,path) and stat.S_ISREG(value[5]) and value[8] == 1 and 0 <= value[2] <= MAX)
+    selected_nodes = tuple((path, tuple(value)) for path, value in nodes if methods['contains'](actor,path))
+    # Preserve the existing scalar route for vectors beyond the actor's bound.
+    if not (selected_files or selected_nodes) or len({path for path, _ in (*selected_files, *selected_nodes)}) > 512:
+        return frozenset(), frozenset()
+    if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+        raise Held('remote-vector-pre-read-dependencies')
+    need(_OWNER_READS is actor and _OWNER_READ_SEALS.get(actor) is seal
+         and actor.registry is _OWNER_READ_SEALS and actor.seal is seal
+         and all(type(actor).__dict__.get(name) is value and value.__code__ is code for name,value,code in seal[4]),
+         'remote-vector-pre-read-methods')
+    methods['control_vector'](actor,selected_files,selected_nodes)
+    return frozenset(path for path, _ in selected_files), frozenset(path for path, _ in selected_nodes)
+
+
 def final(files, nodes, absent):
     """Raw kernel closure; caller freezes tuples before semantic callbacks."""
-    for path, expected in nodes.items():
+    def primitive(rows,width):
+        if type(rows) is not dict or any(type(path) is not str or type(value) not in (list,tuple)
+                or len(value)!=width or any(type(item) is not int for item in value) for path,value in rows.items()):
+            raise Held('final-original-primitive-vectors')
+        return tuple((path,tuple(value)) for path,value in rows.items())
+    original_files = primitive(files,9)
+    original_nodes = primitive(nodes,5)
+    actor = _OWNER_READS
+    checked_files = checked_nodes = frozenset()
+    if actor is not None:
+        seal = _OWNER_READ_SEALS.get(actor);need(seal is not None,'final-original-owner-seal')
+        # Local source reads must not recurse into their own owner validation.
+        # Select only from the original primitive scope, never actor.contains.
+        root = seal[2];need(type(root) is str,'final-original-owner-scope')
+        if any(path==root or path.startswith(root+'/') for path,_ in (*original_files,*original_nodes)):
+            dependency = seal[5][0]
+            if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+                raise Held('final-original-owner-dependencies')
+            helper = next(value for name,value,*_ in seal[5] if name=='remote_control_vector')
+            checked_files, checked_nodes = helper(original_files,original_nodes)
+    for path, expected in original_nodes:
+        if path in checked_nodes:continue
         z = nfs_lstat(path)
         if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != tuple(expected):
             raise Held('ancestor-final')
-    for path, expected in files.items():
+    for path, expected in original_files:
+        if path in checked_files:continue
         z = nfs_lstat(path)
         if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                 z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != tuple(expected):
@@ -1019,6 +1070,18 @@ def final(files, nodes, absent):
         except FileNotFoundError:
             continue
         raise Held('absence-final')
+    # Scalar fallbacks can call owner/source checks. Reclose selected remote
+    # facts after those callbacks rather than treating the first batch as cached.
+    if actor is not None:
+        if (_OWNER_READS is not actor or _OWNER_READ_SEALS.get(actor) is not seal
+                or actor.registry is not _OWNER_READ_SEALS or actor.seal is not seal):
+            raise Held('final-original-owner-seal')
+        if checked_files or checked_nodes:
+            need(helper(original_files,original_nodes)==(checked_files,checked_nodes),'final-original-batch-selection')
+        if _OWNER_READ_SEALS.get(actor) is not seal or actor.registry is not _OWNER_READ_SEALS or actor.seal is not seal:
+            raise Held('final-original-owner-seal')
+    if (_OWNER_READS is not actor or primitive(files,9) != original_files or primitive(nodes,5) != original_nodes):
+        raise Held('final-original-primitive-vectors')
 
 
 def pinned_module(source):
@@ -1039,7 +1102,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '2bdc483dec44c9f3296dd9b2d36d71c6fc8079d264c1b548682dfa0d6d9ac771'
+BASE_ADMISSION_SHA = 'fe054b1a693af44d81f504904563764d30007c7a85e75093f1b885711b993b8e'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -1555,7 +1618,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '25d479d74dd343caa34e3481ea59b42bf42cb2e952cb5fa87c4ba66dbee551bb', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'ceb70bbfec9bb844c5b056672a709b7cfc9c9d786ccbc6399feefbc19a7f5996', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '8d419dd75e19a1c9bf412f27aa1fb03bbbd0f1ac09c970de783188d3b770e603', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
 NFS_ACTIVE_SOURCE_SHA='f175f7f7340a3854dbe42fffd8f593be1f4450e205a2fae2f47e442f9028bdb3'
 
 
@@ -1652,6 +1715,8 @@ def library_helper_created_to_exited(original,current,cid,reader):
     return current==expected
 
 
+_DIALOGUE_KERNELS=(os.fstat,time.monotonic)
+
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
@@ -1672,14 +1737,15 @@ class ScopedDocker:
   identity={'user':1000,'group':1000,'extra_groups':()} if args[:2]==['findmnt','--json'] else {}
   try:return subprocess.run(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},**identity,**kwargs)
   except (OSError,subprocess.TimeoutExpired):raise Held('nfs-engine-ACK-unknown') from None
- def interactive(self,cid,handler,seconds):
+ def interactive(self,cid,handler,seconds,_kernel=_DIALOGUE_KERNELS):
+  definition=ScopedDocker.interactive;definition_code=definition.__code__;definition_defaults=definition.__defaults__
   nfs_remote_guard(self)
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('child-start-ACK-unknown') from None
   original_streams=(p.stdin,p.stdout,p.stderr);original_pid=p.pid
   original_descriptors=tuple((stream.fileno(),tuple(five(os.fstat(stream.fileno())))) for stream in original_streams)
-  dialogue_register(self,cid,p,original_streams,original_descriptors,end,original_pid)
+  original_record=dialogue_register(self,cid,p,original_streams,original_descriptors,end,original_pid);original_seal=_DIALOGUE_SEALS[self][cid]
   streams={p.stdout:'stdout',p.stderr:'stderr'};out=bytearray();err=bytearray();line=bytearray();ack=None
   try:
    while streams:
@@ -1698,8 +1764,28 @@ class ScopedDocker:
        need(ack is None or message.get('type')=='challenge' and type(message.get('writer_session')) is dict and message['writer_session'].get('stage')=='leave','child-dialogue-after-final-ACK')
        response=handler(message,bytes(raw)) if message.get('type')=='terminal-observation' else handler(message)
        need(type(response) is bytes and response.endswith(b'\n') and len(response)<=MAX,'parent-fixed-response-bytes')
-       if (p.stdin,p.stdout,p.stderr)!=original_streams or p.pid!=original_pid:raise Held('parent-original-dialogue-process')
-       if os.write(original_descriptors[0][0],response)!=len(response):raise Held('parent-dialogue-release-partial-no-replay')
+       pending=memoryview(response)
+       while pending:
+        need(time.monotonic()<end and select.select([],[original_descriptors[0][0]],[],max(0,end-time.monotonic()))[1],'parent-dialogue-release-timeout')
+        if (_kernel is not _DIALOGUE_KERNELS or type(_kernel) is not tuple or len(_kernel)!=2
+            or any(type(fn) is not type(len) for fn in _kernel) or _kernel[0].__name__!='fstat' or _kernel[0].__module__!='posix'
+            or _kernel[1].__name__!='monotonic' or _kernel[1].__module__!='time'
+            or os.fstat is not _kernel[0] or time.monotonic is not _kernel[1]
+            or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults
+            or definition_defaults!=(_kernel,)):raise Held('original-dialogue-write-kernel-binding')
+        if (_DIALOGUES.get(self,{}).get(cid) is not original_record or _DIALOGUE_SEALS.get(self,{}).get(cid) is not original_seal
+            or (p.stdin,p.stdout,p.stderr)!=original_streams or p.pid!=original_pid):raise Held('original-dialogue-write-registry')
+        if (original_record.get('process') is not original_seal[0] or original_record.get('streams') is not original_seal[1]
+            or original_record.get('descriptors') is not original_seal[2]
+            or any(type(original_record.get(key)) is not type(value) or original_record[key]!=value for key,value in zip(('pid','owner_pid','thread','deadline'),original_seal[3:]))):raise Held('original-dialogue-write-registry')
+        for fd,fact in original_descriptors:
+         z=_kernel[0](fd)
+         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('original-dialogue-write-FD')
+        if os.fstat is not _kernel[0] or time.monotonic is not _kernel[1] or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults:raise Held('original-dialogue-write-kernel-binding')
+        if _kernel[1]()>=end:raise Held('original-dialogue-write-deadline')
+        count=os.write(original_descriptors[0][0],pending[:4096])
+        if count<=0:raise Held('parent-dialogue-release-partial-no-replay')
+        pending=pending[count:]
       else:need(message.get('type')=='ACK' and ack is None,'child-output-protocol');ack=message['ack']
    need(not line and p.wait(timeout=max(0.001,end-time.monotonic()))==0 and ack is not None,'child-ACK-unknown')
    return ack
@@ -1808,17 +1894,22 @@ class ScopedDocker:
   note('cleanup',dict(container_id=cid,owned_exited_cleanup_verified=True,publication_authority=False))
   return reply.stdout
 
- def worker_interactive(self,cid,protocol,seconds,guard):
+ def worker_interactive(self,cid,protocol,seconds,guard,_kernel=_DIALOGUE_KERNELS):
+  definition=ScopedDocker.worker_interactive;definition_code=definition.__code__;definition_defaults=definition.__defaults__
   nfs_remote_guard(self)
   # A nested observer dialogue never replaces the live producer entry.
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('worker-start-ACK-unknown') from None
   original_pid=p.pid;streams=(p.stdin,p.stdout,p.stderr);fds=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
-  dialogue_register(self,cid,p,streams,fds,end,original_pid);outputs={streams[1]:'stdout',streams[2]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False
+  original_record=dialogue_register(self,cid,p,streams,fds,end,original_pid);original_seal=_DIALOGUE_SEALS[self][cid];outputs={streams[1]:'stdout',streams[2]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False;release_sent=False
   try:
    while outputs:
-    need(time.monotonic()<end,'worker-dialogue-deadline');guard()
+    need(time.monotonic()<end,'worker-dialogue-deadline')
+    # A naturally exited worker may have its final frame buffered. Consume and
+    # validate that bounded frame before the strict step-4 exit profile guard.
+    if release_sent and protocol.step==3:guard(final_pending=True)
+    else:guard()
     ready=select.select(list(outputs),[],[],min(1,max(0,end-time.monotonic())))[0]
     for stream in ready:
      dialogue_close(self,cid);block=os.read(stream.fileno(),65536)
@@ -1831,11 +1922,29 @@ class ScopedDocker:
       response=protocol.accept(bytes(raw));guard();dialogue_close(self,cid);guard()
       if response is None:done=True;continue
       need(type(response) is bytes and 0<len(response)<=4*1024**2,'worker-response-encoded')
+      if protocol.step==3:need(response==protocol.release,'worker-original-release-response')
       pending=memoryview(response+b'\n')
       while pending:
        need(time.monotonic()<end and bool(select.select([],[fds[0][0]],[],max(0,end-time.monotonic()))[1]),'worker-response-timeout')
        dialogue_close(self,cid);guard()
+       if (_kernel is not _DIALOGUE_KERNELS or type(_kernel) is not tuple or len(_kernel)!=2
+           or any(type(fn) is not type(len) for fn in _kernel) or _kernel[0].__name__!='fstat' or _kernel[0].__module__!='posix'
+           or _kernel[1].__name__!='monotonic' or _kernel[1].__module__!='time'
+           or os.fstat is not _kernel[0] or time.monotonic is not _kernel[1]
+           or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults
+           or definition_defaults!=(_kernel,)):raise Held('original-dialogue-write-kernel-binding')
+       if (_DIALOGUES.get(self,{}).get(cid) is not original_record or _DIALOGUE_SEALS.get(self,{}).get(cid) is not original_seal
+           or (p.stdin,p.stdout,p.stderr)!=streams or p.pid!=original_pid):raise Held('original-dialogue-write-registry')
+       if (original_record.get('process') is not original_seal[0] or original_record.get('streams') is not original_seal[1]
+           or original_record.get('descriptors') is not original_seal[2]
+           or any(type(original_record.get(key)) is not type(value) or original_record[key]!=value for key,value in zip(('pid','owner_pid','thread','deadline'),original_seal[3:]))):raise Held('original-dialogue-write-registry')
+       for fd,fact in fds:
+        z=_kernel[0](fd)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('original-dialogue-write-FD')
+       if os.fstat is not _kernel[0] or time.monotonic is not _kernel[1] or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults:raise Held('original-dialogue-write-kernel-binding')
+       if _kernel[1]()>=end:raise Held('original-dialogue-write-deadline')
        n=os.write(fds[0][0],pending[:4096]);need(n>0,'worker-response-unknown');pending=pending[n:]
+      if protocol.step==3:release_sent=True
    need(done and not line and p.wait(timeout=max(.001,end-time.monotonic()))==0,'worker-final-ACK-unknown')
    dialogue_close(self,cid);guard();return protocol.result
   except BaseException:raise Held('worker-uncertain-retain-proof-no-replay') from None
@@ -3539,7 +3648,10 @@ class LifecycleParent:
     def phase_provider(self,phase):
         return self.plan['backup_provider'] if self.plan.get('action')=='archive-one' and phase=='backup' else self.plan['provider']
 
-    def child_phase(self, phase, input_ref, actual, completion_slot=None, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__):
+    def child_phase(self, phase, input_ref, actual, completion_slot=None, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__, _final=final, _final_code=final.__code__, _final_defaults=final.__defaults__):
+        _close_actor = self.owner_reads
+        _close_seal = _OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None
+        _close_dependency = _close_seal[5][0] if _close_seal is not None else None
         self.continuous(); name = 'reader-' + phase + '-' + self.plan['nonce'][:16]
         command = actual[1:]
         mounts = copy.deepcopy(self.plan['mounts'])
@@ -3583,11 +3695,11 @@ class LifecycleParent:
         self.emit(phase + '-start-intent.json', dict(id=cid, automatic_replay=False))
         def challenge(message,raw=None):
             nonlocal sequence,original_running,writer_session,writer_confirmed,pending_terminal,consumed_sequence,started_static,started_epoch,started_at
-            original_files = dict(self.files)
+            original_files = {path:tuple(value) for path,value in self.files.items()}
             for ref in self.generated.values():
                 path=ref['path'];value=tuple(ref['signature9'])
                 need(path not in original_files or tuple(original_files[path])==value,'challenge-original-generated-conflict');original_files[path]=value
-            original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
+            original_nodes = {path:tuple(value) for path,value in self.nodes.items()}; original_nodes[str(self.op)] = tuple(self.op_fact)
             leaving=False;completion_frames=None
             need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
             archive_completion_guard(self,None if completion_slot is None else completion_slot[0])
@@ -3734,25 +3846,70 @@ class LifecycleParent:
                                'child_image': self.plan['selected_image'], **fresh, **publication}) + b'\n'
             need(len(response) <= MAX, 'challenge-response-bound')
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'challenge-final-child')
-            for path, expected in original_nodes.items():
-                z = nfs_lstat(path)
-                if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != tuple(expected):
-                    raise Held('challenge-ancestor-final')
-            for path, expected in original_files.items():
-                z = nfs_lstat(path)
-                if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
-                        z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != tuple(expected):
-                    raise Held('challenge-file-final')
+            _metadata_files = {}; _metadata_nodes = {}
+            for _rows, _target in ((original_files.items(),_metadata_files),(original_nodes.items(),_metadata_nodes)):
+                for _path,_value in _rows:
+                    if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                    _target[_path]=tuple(_value)
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+            try:_final(_metadata_files,_metadata_nodes,())
+            except Held as _error:
+                if str(_error)=='ancestor-final':raise Held('challenge-ancestor-final') from None
+                if str(_error)=='file-final':raise Held('challenge-file-final') from None
+                raise
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
             if type(self.engine) is ScopedDocker and cid in _DIALOGUES.get(self.engine,{}):
-                pipe_files=tuple(self.files.items());pipe_nodes=tuple(self.nodes.items());pipe_plan=copy.deepcopy(self.plan);pipe_core=_CORES.get(self);pipe_phase=self.phase;pipe_thread=self.thread;pipe_deadline=self.deadline
+                pipe_files=tuple((path,tuple(value)) for path,value in self.files.items());pipe_nodes=tuple((path,tuple(value)) for path,value in self.nodes.items());pipe_plan=copy.deepcopy(self.plan);pipe_core=_CORES.get(self);pipe_phase=self.phase;pipe_thread=self.thread;pipe_deadline=self.deadline
                 dialogue_close(self.engine,cid)
-                for path,value in pipe_nodes:
-                    z=nfs_lstat(path)
-                    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('challenge-original-pipe-node-final')
-                for path,value in pipe_files:
-                    z=nfs_lstat(path)
-                    if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('challenge-original-pipe-file-final')
-                if tuple(self.files.items())!=pipe_files or tuple(self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
+                _metadata_files = {}; _metadata_nodes = {}
+                for _rows, _target in ((pipe_files,_metadata_files),(pipe_nodes,_metadata_nodes)):
+                    for _path,_value in _rows:
+                        if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                        _target[_path]=tuple(_value)
+                if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                    and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                    and (_close_actor is None or (_close_seal is not None
+                        and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                        and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                        and globals().get(_close_dependency[0]) is _close_dependency[1]
+                        and _close_dependency[1].__code__ is _close_dependency[2]
+                        and _close_dependency[1](_close_seal[5])
+                        and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+                try:_final(_metadata_files,_metadata_nodes,())
+                except Held as _error:
+                    if str(_error)=='ancestor-final':raise Held('challenge-original-pipe-node-final') from None
+                    if str(_error)=='file-final':raise Held('challenge-original-pipe-file-final') from None
+                    raise
+                if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                    and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                    and (_close_actor is None or (_close_seal is not None
+                        and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                        and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                        and globals().get(_close_dependency[0]) is _close_dependency[1]
+                        and _close_dependency[1].__code__ is _close_dependency[2]
+                        and _close_dependency[1](_close_seal[5])
+                        and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+                for _live_rows,_width in ((self.files,9),(self.nodes,5)):
+                    if type(_live_rows) is not dict or any(type(_path) is not str or type(_value) not in (list,tuple)
+                            or len(_value)!=_width or any(type(_item) is not int for _item in _value) for _path,_value in _live_rows.items()):
+                        raise Held('challenge-original-pipe-logical-final')
+                if tuple((path,tuple(value)) for path,value in self.files.items())!=pipe_files or tuple((path,tuple(value)) for path,value in self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
             need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
             archive_completion_guard(self,None if completion_slot is None else completion_slot[0])
             return response
@@ -3897,13 +4054,14 @@ class LifecycleParent:
         constants=(module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))
         files=tuple(original_files);nodes=tuple(original_nodes);claims=tuple(vectors['claims'].items());names=tuple(vectors['censuses'].items());absent=tuple(vectors['absent'])
         cid=None;running=None;started_static=None;terminal_static=None;created_static=None;created_projection=None;owned_record=None
-        def child_profile(row):
+        def child_profile(row,final_pending=False):
             nonlocal running,started_static,terminal_static
+            released=protocol.step==4 or (final_pending and protocol.step==3)
             state=row['State']['Status']
             if state=='running' and running is None:
                 need(encode(static(row))==encode(created_static) or checked_none_network_started_static(created_static,static(row),cid),'worker-created-to-started-profile')
             elif state=='exited' and terminal_static is None:
-                need(running is not None and protocol.step==4 and (encode(static(row))==started_static or checked_none_network_exited_static(decode(started_static),static(row),cid)),'worker-started-to-exited-profile')
+                need(running is not None and released and (encode(static(row))==started_static or checked_none_network_exited_static(decode(started_static),static(row),cid)),'worker-started-to-exited-profile')
             elif state=='created':need(encode(static(row))==encode(created_static),'worker-original-static-through-dialogue')
             else:need(encode(static(row))==(terminal_static if state=='exited' else started_static),'worker-original-static-through-dialogue')
             self.worker_profile(row,cid,intent,state)
@@ -3912,15 +4070,15 @@ class LifecycleParent:
                 else:need(same_runtime(row,running),'worker-original-running-lifetime')
             elif state=='created':need(running is None and protocol.step==0,'worker-created-before-birth-only')
             else:
-                need(state=='exited' and running is not None and protocol.step==4 and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
-                if terminal_static is None:terminal_static=encode(static(row))
-        def guard():
+                need(state=='exited' and running is not None and released and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
+                if protocol.step==4 and terminal_static is None:terminal_static=encode(static(row))
+        def guard(final_pending=False):
             protocol_state=module._ROUND_STATES.get(protocol)
             need(time.monotonic()<intent[7],'worker-original-ingress-deadline')
             self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'worker-live-original-producer')
             dialogue_close(self.engine,current['Id'])
             if cid is not None:
-                child_profile(self.inspect(cid))
+                child_profile(self.inspect(cid),final_pending=final_pending)
             if cid in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,cid)
             # No FD/process/time/inspect/encoding helper after this complete closure.
             for path,entries in names:
@@ -3935,10 +4093,20 @@ class LifecycleParent:
                 try:nfs_lstat(path)
                 except FileNotFoundError:continue
                 raise Held('worker-parent-final-absence')
+            actor = _OWNER_READS;checked_files = checked_nodes = frozenset()
+            if actor is not None:
+                seal = _OWNER_READ_SEALS.get(actor);need(seal is not None,'worker-original-owner-seal')
+                dependency = seal[5][0]
+                if globals().get(dependency[0]) is not dependency[1] or dependency[1].__code__ is not dependency[2] or not dependency[1](seal[5]):
+                    raise Held('worker-original-owner-dependencies')
+                helper = next(value for name,value,*_ in seal[5] if name=='remote_control_vector')
+                checked_files, checked_nodes = helper(files,nodes)
             for path,value in nodes:
+                if path in checked_nodes:continue
                 z=nfs_lstat(path)
                 if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('worker-parent-final-node')
             for path,value in files:
+                if path in checked_files:continue
                 z=nfs_lstat(path)
                 actual9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
                 if actual9!=tuple(value):
@@ -3949,6 +4117,13 @@ class LifecycleParent:
                             original9=list(value),current9=list(actual9),changed_fields=[i for i in range(9) if value[i]!=actual9[i]])).decode(),file=sys.stderr,flush=True)
                     except BaseException:pass
                     raise Held('worker-parent-final-file')
+            if actor is not None:
+                need(_OWNER_READS is actor and _OWNER_READ_SEALS.get(actor) is seal
+                     and actor.registry is _OWNER_READ_SEALS and actor.seal is seal,'worker-original-owner-seal')
+                if checked_files or checked_nodes:
+                    need(helper(files,nodes)==(checked_files,checked_nodes),'worker-original-batch-selection')
+                need(_OWNER_READS is actor and _OWNER_READ_SEALS.get(actor) is seal
+                     and actor.registry is _OWNER_READ_SEALS and actor.seal is seal,'worker-original-owner-seal')
             if (module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))!=constants:raise Held('worker-parent-final-protocol-constants')
             if module.__dict__.get('Round') is not functions[1] or type(protocol) is not functions[1] or type(protocol).__getattribute__ is not object.__getattribute__ or len(functions[1].__dict__)!=len(functions[2]) or any(functions[1].__dict__.get(name) is not value for name,value in functions[2]) or functions[1].__init__.__code__ is not functions[3] or functions[1].accept.__code__ is not functions[4]:raise Held('worker-parent-final-protocol-implementation')
             for name,function,code in functions[0]:
@@ -3973,6 +4148,7 @@ class LifecycleParent:
                     else:raise Held('worker-parent-created-state-type')
                 if tuple(projection)!=created_projection or cid is not None and _OBSERVER_OWNED.get(self.engine,{}).get(cid) is not owned_record:raise Held('worker-parent-original-created-profile-registry')
             if _WORKER_FUNCTIONS.get(self) is not functions or _WORKER_INTENTS.get(self) is not intent or _WORKER_MODULES.get(self) is not module or _DIALOGUES.get(self.engine,{}).get(current['Id']) is not producer_dialogue or _DIALOGUE_SEALS.get(self.engine,{}).get(current['Id']) is not producer_seal or tuple((k,getattr(protocol,k)) for k in immutable_fields)!=immutable:raise Held('worker-parent-final-live-registry')
+            if time.monotonic()>=intent[7]:raise Held('worker-original-ingress-deadline')
         guard();cid=self.engine.run(list(intent[0]),min(budget,self.left())).decode().strip();need(digest(cid),'worker-create-ACK')
         created=self.inspect(cid);self.worker_profile(created,cid,intent,'created');created_static=static(created);created_projection=module.freeze(created_static)
         owned_record=(intent[3],copy.deepcopy(created_static));_OBSERVER_OWNED.setdefault(self.engine,{})[cid]=owned_record
@@ -3984,7 +4160,10 @@ class LifecycleParent:
         # After exact owned removal, only the original producer remains live.
         cid=None;guard();return copy.deepcopy(result)
 
-    def accept_archive_terminal(self,input_ref,actual,message,current,original_running,raw):
+    def accept_archive_terminal(self,input_ref,actual,message,current,original_running,raw, _final=final, _final_code=final.__code__, _final_defaults=final.__defaults__):
+        _close_actor = self.owner_reads
+        _close_seal = _OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None
+        _close_dependency = _close_seal[5][0] if _close_seal is not None else None
         # Only an admitted plan11 ORIGINAL execute child can enter this dialogue.
         need(self.plan.get('version') in (11,12,13) and self.plan.get('terminal_mode')=='same-child-v1' and _PHASES.get(self,{}).get('execute',{}).get('accepted') is True and self not in _ARCHIVE_TERMINAL_ROUNDS,'archive-terminal-original-live-birth')
         if self.plan.get('version') in (12,13):self.worker_intent(current)
@@ -4084,12 +4263,34 @@ class LifecycleParent:
             try:nfs_lstat(path)
             except FileNotFoundError:continue
             raise Held('archive-terminal-final-absence')
-        for path,value in original_nodes:
-            z=nfs_lstat(path)
-            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
-        for path,value in original_files:
-            z=nfs_lstat(path)
-            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+        _metadata_files = {}; _metadata_nodes = {}
+        for _rows, _target in ((original_files,_metadata_files),(original_nodes,_metadata_nodes)):
+            for _path,_value in _rows:
+                if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                _target[_path]=tuple(_value)
+        if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+            and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+            and (_close_actor is None or (_close_seal is not None
+                and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                and globals().get(_close_dependency[0]) is _close_dependency[1]
+                and _close_dependency[1].__code__ is _close_dependency[2]
+                and _close_dependency[1](_close_seal[5])
+                and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+        try:_final(_metadata_files,_metadata_nodes,())
+        except Held as _error:
+            if str(_error)=='ancestor-final':raise Held('archive-terminal-final-node') from None
+            if str(_error)=='file-final':raise Held('archive-terminal-final-file') from None
+            raise
+        if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+            and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+            and (_close_actor is None or (_close_seal is not None
+                and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                and globals().get(_close_dependency[0]) is _close_dependency[1]
+                and _close_dependency[1].__code__ is _close_dependency[2]
+                and _close_dependency[1](_close_seal[5])
+                and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
         logical=dict(plan=self.plan,files=self.files,nodes=self.nodes,source=self.source_ref,input=self.plan_ref,engine=id(self.engine),thread=self.thread,deadline=self.deadline,core=self.core,generated=self.generated,op=str(self.op),op_fact=self.op_fact,outputs=_OUTPUT_NODES.get(self,{}),phases=_PHASES.get(self,{}))
         pending=[logical];projection=[]
         while pending:
@@ -4112,7 +4313,10 @@ class LifecycleParent:
         if tuple(record_projection)!=original_record_projection or tuple(projection)!=original_projection or _CORES.get(self)!=original_core or _GENERATED.get(self)!=original_generated or _PHASES.get(self,{}).get('execute') is not original_phase or _ARCHIVE_TERMINAL_ROUNDS.get(self) is not record or _ARCHIVE_TERMINAL_SEALS.get(self) is not original_record_projection:raise Held('archive-terminal-final-original-parent-registry')
         return response
 
-    def close_archive_terminal_round(self,record):
+    def close_archive_terminal_round(self,record, _final=final, _final_code=final.__code__, _final_defaults=final.__defaults__):
+        _close_actor = self.owner_reads
+        _close_seal = _OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None
+        _close_dependency = _close_seal[5][0] if _close_seal is not None else None
         need(_ARCHIVE_TERMINAL_ROUNDS.get(self) is record,'archive-terminal-original-round-registry')
         original_seal=_ARCHIVE_TERMINAL_SEALS.get(self)
         pending=[record];projection=[]
@@ -4138,12 +4342,34 @@ class LifecycleParent:
             try:nfs_lstat(path)
             except FileNotFoundError:continue
             raise Held('archive-terminal-final-absence')
-        for path,value in original_nodes:
-            z=nfs_lstat(path)
-            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
-        for path,value in original_files:
-            z=nfs_lstat(path)
-            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+        _metadata_files = {}; _metadata_nodes = {}
+        for _rows, _target in ((original_files,_metadata_files),(original_nodes,_metadata_nodes)):
+            for _path,_value in _rows:
+                if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                _target[_path]=tuple(_value)
+        if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+            and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+            and (_close_actor is None or (_close_seal is not None
+                and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                and globals().get(_close_dependency[0]) is _close_dependency[1]
+                and _close_dependency[1].__code__ is _close_dependency[2]
+                and _close_dependency[1](_close_seal[5])
+                and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+        try:_final(_metadata_files,_metadata_nodes,())
+        except Held as _error:
+            if str(_error)=='ancestor-final':raise Held('archive-terminal-final-node') from None
+            if str(_error)=='file-final':raise Held('archive-terminal-final-file') from None
+            raise
+        if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+            and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+            and (_close_actor is None or (_close_seal is not None
+                and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                and globals().get(_close_dependency[0]) is _close_dependency[1]
+                and _close_dependency[1].__code__ is _close_dependency[2]
+                and _close_dependency[1](_close_seal[5])
+                and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
         pending=[record];projection=[]
         while pending:
             value=pending.pop();kind=type(value)
@@ -4220,7 +4446,10 @@ class LifecycleParent:
         check_common_root(geometry)
         _ARCHIVE_PUBLICATION_REQUESTS[self]=encode(result);return result
 
-    def execute_archive(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__, _kernel=completion_fd_locked, _kernel_code=completion_fd_locked.__code__):
+    def execute_archive(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__, _kernel=completion_fd_locked, _kernel_code=completion_fd_locked.__code__, _final=final, _final_code=final.__code__, _final_defaults=final.__defaults__):
+        _close_actor = self.owner_reads
+        _close_seal = _OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None
+        _close_dependency = _close_seal[5][0] if _close_seal is not None else None
         completion_slot=[None]
         try:
             nfs=_NFS_ADAPTERS.get(self);need(nfs is not None,'archive-NFS-owner-required')
@@ -4296,12 +4525,6 @@ class LifecycleParent:
             # Last semantic, source, engine and mapping callbacks have finished.
             for path,expected_names in names:
                 if tuple(sorted(nfs_names(path)))!=expected_names:raise Held('archive-resume-census')
-            for path,value in nodes.items():
-                z=nfs_lstat(path)
-                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-resume-node')
-            for path,value in files.items():
-                z=nfs_lstat(path)
-                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-resume-file')
             for path,value in claims:
                 try:z=nfs_lstat(path)
                 except FileNotFoundError:
@@ -4313,8 +4536,37 @@ class LifecycleParent:
                 try:nfs_lstat(path)
                 except FileNotFoundError:continue
                 raise Held('archive-resume-absence')
+            _metadata_files = {}; _metadata_nodes = {}
+            for _rows, _target in ((files.items(),_metadata_files),(nodes.items(),_metadata_nodes)):
+                for _path,_value in _rows:
+                    if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                    _target[_path]=tuple(_value)
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+            try:_final(_metadata_files,_metadata_nodes,())
+            except Held as _error:
+                if str(_error)=='ancestor-final':raise Held('archive-resume-node') from None
+                if str(_error)=='file-final':raise Held('archive-resume-file') from None
+                raise
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
             need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
             archive_completion_guard(self,completion_slot[0])
+            if time.monotonic()>=self.deadline:raise Held('archive-resume-deadline')
             resumed=self.engine.run(['start',self.plan['reader']['id']],seconds).decode().strip();need(resumed==self.plan['reader']['id'],'archive-resume-ACK-unknown')
             current=self.inspect(resumed);need(_resume.__code__ is _resume_code and _resume(self.baselines['reader'],current,self.plan['reader']['id']) and _resume.__code__ is _resume_code,'archive-compatible-reader-resume')
             need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
@@ -4339,7 +4591,10 @@ class LifecycleParent:
                         if error is None:error=current
                 if error is not None and not primary:raise error
 
-    def execute(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__):
+    def execute(self, _resume=checked_reader_resumed_profile, _resume_code=checked_reader_resumed_profile.__code__, _final=final, _final_code=final.__code__, _final_defaults=final.__defaults__):
+        _close_actor = self.owner_reads
+        _close_seal = _OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None
+        _close_dependency = _close_seal[5][0] if _close_seal is not None else None
         if self.plan.get('action')=='archive-one':return self.execute_archive()
         operation_path = str(self.op); operation_original = tuple(self.op_fact)
         try:
@@ -4432,22 +4687,42 @@ class LifecycleParent:
             for path, expected in censuses:
                 if tuple(sorted(nfs_names(path))) != expected:
                     raise Held('resume-namespace-final')
-            for path, expected in nodes.items():
-                z = nfs_lstat(path)
-                if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != expected:
-                    raise Held('resume-ancestor-final')
-            for path, expected in files.items():
-                z = nfs_lstat(path)
-                if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
-                        z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != expected:
-                    raise Held('resume-file-final')
             for path in absent:
                 try:
                     nfs_lstat(path)
                 except FileNotFoundError:
                     continue
                 raise Held('resume-absence-final')
+            _metadata_files = {}; _metadata_nodes = {}
+            for _rows, _target in ((files.items(),_metadata_files),(nodes.items(),_metadata_nodes)):
+                for _path,_value in _rows:
+                    if _path in _target and _target[_path]!=tuple(_value):raise Held('original-metadata-vector-conflict')
+                    _target[_path]=tuple(_value)
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
+            try:_final(_metadata_files,_metadata_nodes,())
+            except Held as _error:
+                if str(_error)=='ancestor-final':raise Held('resume-ancestor-final') from None
+                if str(_error)=='file-final':raise Held('resume-file-final') from None
+                raise
+            if not (_final is final and _final.__code__ is _final_code and _final.__defaults__ is _final_defaults
+                and self.owner_reads is _close_actor and _OWNER_READS is _close_actor
+                and (_close_actor is None or (_close_seal is not None
+                    and _OWNER_READ_SEALS.get(_close_actor) is _close_seal
+                    and _close_actor.registry is _OWNER_READ_SEALS and _close_actor.seal is _close_seal
+                    and globals().get(_close_dependency[0]) is _close_dependency[1]
+                    and _close_dependency[1].__code__ is _close_dependency[2]
+                    and _close_dependency[1](_close_seal[5])
+                    and any(row[0]=='final' and row[1] is _final and row[2] is _final_code for row in _close_seal[5])))):raise Held('original-metadata-closure-binding')
             # Root still supplies real fresh producer/image/NFS acceptance before invocation.
+            if time.monotonic()>=self.deadline:raise Held('resume-deadline')
             resumed = self.engine.run(['start', self.plan['reader']['id']], seconds).decode().strip()
             need(resumed == self.plan['reader']['id'], 'resume-ACK-unknown')
             current = self.inspect(resumed)

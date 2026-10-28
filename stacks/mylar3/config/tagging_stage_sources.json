@@ -130,7 +130,7 @@
     },
     {
       "path": "publication_archive_preparation_existing.py",
-      "sha256": "adfefb7a6a91a460d96fad9c7da49faf6bfb2d8475e04174da52500d088c2e1e"
+      "sha256": "69ac7f89a7f0c978374be27006ae23a18369537575388801bc6546c8e13be108"
     },
     {
       "path": "publication_archive_prepare_routes.py",
@@ -202,7 +202,7 @@
     },
     {
       "path": "publication_reader_lifecycle.py",
-      "sha256": "19a58d6847c40b98ac1152863ee7881fd216c6c32c2cd7cbfb09fb40dab2369f"
+      "sha256": "58dcc420ff49035acee2015392ce55815f24843f1a3661615fa1b2e15fc9b53c"
     },
     {
       "path": "publication_reconcile.py",

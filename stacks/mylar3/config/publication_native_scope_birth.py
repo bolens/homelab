@@ -61,7 +61,7 @@ def commit(channel, binding, birth):
         parent_sha256=binding['parent_sha256'], sequence=channel.seq, challenge=token,
         birth=copy.deepcopy(birth))
     raw = life.encoded(request) + b'\n'
-    check(os.write(channel.output, raw) == len(raw), 'birth-pipe-short-write')
+    channel.send(raw, original)
     end = original[4]
     buffer = bytearray()
     while not buffer.endswith(b'\n'):

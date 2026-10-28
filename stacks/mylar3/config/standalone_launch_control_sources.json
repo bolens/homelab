@@ -166,7 +166,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "adfefb7a6a91a460d96fad9c7da49faf6bfb2d8475e04174da52500d088c2e1e",
+    "sha256": "69ac7f89a7f0c978374be27006ae23a18369537575388801bc6546c8e13be108",
     "target": "fixtures/child/source/publication_archive_preparation_existing.py"
   },
   {
@@ -251,12 +251,12 @@
   },
   {
     "path": "publication_native_scope_birth.py",
-    "sha256": "347fb1315d7814b539ee21eef4ff37f61b0bc1e16463dc23e6e0d5f61f0e535f",
+    "sha256": "2ebd1a707f482c0db2df2b0c880b42dbae22432e715e712c999cb10b1001335e",
     "target": "fixtures/child/source/publication_native_scope_birth.py"
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "19a58d6847c40b98ac1152863ee7881fd216c6c32c2cd7cbfb09fb40dab2369f",
+    "sha256": "58dcc420ff49035acee2015392ce55815f24843f1a3661615fa1b2e15fc9b53c",
     "target": "fixtures/child/source/publication_reader_lifecycle.py"
   },
   {

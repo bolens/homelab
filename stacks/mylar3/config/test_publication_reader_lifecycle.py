@@ -44,6 +44,29 @@ class Tests(unittest.TestCase):
  def pairs(self,root):
   return {name:{'':{'sha256':hashlib.sha256((root/name).read_bytes()).hexdigest(),'signature9':m.nine((root/name).lstat())}} for name in ('database.sqlite','tasks.sqlite')}
  def make(self):return m.StoppedReaderCustody(m._KEY,self.input['path'],self.input['sha256'],self.nonce,self.parent['sha256'],['fixture'],self.channel)
+ def test_original_channel_send_handles_partial_writes(self):
+  original=self.channel.binding();write=m.os.write
+  with patch.object(m.os,'write',side_effect=lambda fd,raw:write(fd,raw[:2])):self.channel.send(b'bounded-frame\n',original)
+  self.assertEqual(os.read(self.channel.input,100),b'bounded-frame\n')
+ def test_original_channel_send_rejects_zero_progress(self):
+  with patch.object(m.os,'write',return_value=0),self.assertRaisesRegex(m.Held,'write-no-progress'):
+   self.channel.send(b'frame\n',self.channel.binding())
+ def test_original_channel_send_rejects_replaced_output_before_write(self):
+  original=self.channel.binding();r,w=os.pipe();self.addCleanup(os.close,r);self.addCleanup(os.close,w)
+  os.dup2(w,self.channel.output)
+  with patch.object(m.os,'write') as write,self.assertRaisesRegex(m.Held,'original-pipe-FD'):self.channel.send(b'frame\n',original)
+  write.assert_not_called()
+ def test_original_channel_send_full_pipe_is_bounded_by_original_deadline(self):
+  os.set_blocking(self.channel.output,False)
+  try:
+   while True:os.write(self.channel.output,b'x'*4096)
+  except BlockingIOError:pass
+  finally:os.set_blocking(self.channel.output,True)
+  self.channel.deadline=m.time.monotonic()+.05
+  m._PIPE_SEALS[self.channel]=(self.channel.input,self.channel.output,self.channel.thread,self.channel.facts,self.channel.deadline)
+  started=m.time.monotonic()
+  with self.assertRaisesRegex(m.Held,'write-timeout'):self.channel.send(b'frame\n',self.channel.binding())
+  self.assertLess(m.time.monotonic()-started,1)
  def test_positive_control_and_original_vectors(self):
   c=self.make();files,nodes,absent=c.vectors();self.assertIn(self.config/'database.sqlite',files);self.assertEqual(len(absent),12);self.assertIn(self.config,nodes)
  def test_custody_deadline_never_extends_original_channel(self):

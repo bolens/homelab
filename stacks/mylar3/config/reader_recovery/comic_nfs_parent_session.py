@@ -54,6 +54,7 @@ class OriginalPump:
         for fd,v in seal[2]:
             z=os.fstat(fd)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('nfs-pump-callback-descriptor')
+        if time.monotonic()>=self.deadline:raise Held('nfs-pump-callback-deadline')
     def read(self):
         try:
             while b'\n' not in self.pending:

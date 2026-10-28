@@ -47,6 +47,7 @@ class Connected(unittest.TestCase):
   self.parent=object.__new__(p.LifecycleParent);x=self.parent
   x.plan=dict(version=12,nonce=self.f.c.nonce,selected_image=self.f.c.reader['child_image'],native=dict(data=str(self.f.data)))
   x.op=self.f.root;x.op_fact=tuple(p.five(self.f.root.lstat()));x.files={str(k):tuple(v) for k,v in self.scope._files.items()};x.nodes={str(k):tuple(v) for k,v in self.scope._nodes.items()};x.generated={};x.source_ref=self.f.c.parent;x.engine=object()
+  x.owner_reads=None
   x.mapping=types.SimpleNamespace(host=lambda path:path)
   self.row=dict(Id='e'*64,Image=x.plan['selected_image'],Name='/disposable-child',Path='python',Args=[],Config={},HostConfig={},Mounts=copy.deepcopy(self.f.native['Mounts']),NetworkSettings={},State=dict(Status='running',Running=True,Paused=False,Pid=os.getpid(),StartedAt='original',ExitCode=0,Error='',FinishedAt='',Restarting=False,Dead=False,OOMKilled=False))
   self.remote=[];self.remote_attempts=[];self.errors=[];self.drifts=None;self.drop_stage=None;self.response_closed=False;self.seen_ack=None;self.terminal_checks=[]
@@ -77,7 +78,7 @@ class Connected(unittest.TestCase):
   # Compile the complete byte-source owning nested callback, not a mirrored predicate.
   # This fixture begins at the established-running Writer boundary. Retain its
   # exact running static/epoch; first-start diagnostics have separate owning tests.
-  header=ast.parse("def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n completion_slot=[None]\n _definitions=completion_definitions_guard\n _definition_code=completion_definitions_guard.__code__\n _definition_defaults=completion_definitions_guard.__defaults__\n started_static=encode(child_static)\n started_epoch=encode(lifecycle_state(original_running))\n started_at=original_running['State']['StartedAt']\n").body[0]
+  header=ast.parse("def factory(self,phase,input_ref,actual,cid,child_static,original_running):\n _final=final\n _final_code=final.__code__\n _final_defaults=final.__defaults__\n _close_actor=self.owner_reads\n _close_seal=_OWNER_READ_SEALS.get(_close_actor) if _close_actor is not None else None\n _close_dependency=_close_seal[5][0] if _close_seal is not None else None\n sequence=0\n writer_session=None\n writer_confirmed=False\n pending_terminal=None\n consumed_sequence=None\n completion_slot=[None]\n _definitions=completion_definitions_guard\n _definition_code=completion_definitions_guard.__code__\n _definition_defaults=completion_definitions_guard.__defaults__\n started_static=encode(child_static)\n started_epoch=encode(lifecycle_state(original_running))\n started_at=original_running['State']['StartedAt']\n").body[0]
   header.body.extend([nested,ast.Return(ast.Name('challenge',ast.Load()))]);program=ast.fix_missing_locations(ast.Module([header],type_ignores=[]));ns=dict(p.__dict__);exec(compile(program,str(Path(p.__file__)),'exec'),ns)
   self.callback=ns['factory'](x,'execute',self.f.c.input,[],self.row['Id'],p.static(self.row),copy.deepcopy(self.row))
   def close_completion():
