@@ -17,8 +17,8 @@ from PIL import Image
 
 class RuntimeCompatibilityTests(unittest.TestCase):
     def test_reviewed_installed_versions(self):
-        expected = {"ghunt": "2.3.4+homelab.1", "alive-progress": "3.3.0+homelab.1",
-                    "httpx": "0.28.1", "jsonpickle": "4.1.2",
+        expected = {"ghunt": "2.3.4+homelab.2", "alive-progress": "3.3.0+homelab.1",
+                    "httpx": "0.28.1", "jsonpickle": "4.1.4",
                     "graphemeu": "0.11.0", "pillow": "13.0.0"}
         for name, wanted in expected.items():
             self.assertEqual(version(name), wanted)

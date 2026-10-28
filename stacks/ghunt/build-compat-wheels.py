@@ -14,10 +14,10 @@ import zipfile
 RECIPES = {
     "ghunt-2.3.4-py3-none-any.whl": (
         "7b880072131b7a064e6500b9db2f64bd33eb3b396702825330c507243b617f4d",
-        "ghunt-2.3.4", "ghunt-2.3.4+homelab.1", {
-            "Version: 2.3.4": "Version: 2.3.4+homelab.1",
+        "ghunt-2.3.4", "ghunt-2.3.4+homelab.2", {
+            "Version: 2.3.4": "Version: 2.3.4+homelab.2",
             "Requires-Dist: httpx[http2] (>=0.27.2,<0.28.0)": "Requires-Dist: httpx[http2] (==0.28.1)",
-            "Requires-Dist: jsonpickle (>=3.3.0,<4.0.0)": "Requires-Dist: jsonpickle (==4.1.2)",
+            "Requires-Dist: jsonpickle (>=3.3.0,<4.0.0)": "Requires-Dist: jsonpickle (==4.1.4)",
             "Requires-Dist: pillow (>=10.4.0,<11.0.0)": "Requires-Dist: pillow (==13.0.0)",
         }),
     "alive_progress-3.3.0-py3-none-any.whl": (
