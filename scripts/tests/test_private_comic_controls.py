@@ -18,6 +18,9 @@ SPEC.loader.exec_module(m)
 
 class Controls(unittest.TestCase):
     def setUp(self):
+        self.git_environment = {key: value for key, value in os.environ.items()
+                                if not key.startswith('GIT_')}
+        self.git_environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
         self.t = tempfile.TemporaryDirectory()
         self.addCleanup(self.t.cleanup)
         self.root = Path(self.t.name)
@@ -106,14 +109,19 @@ class Controls(unittest.TestCase):
         source.mkdir(parents=True)
         (source / 'public.py').write_text('# public\n')
         (source / 'ignored.ini').write_text('synthetic ignored')
-        subprocess.run(['git', 'init', '-q', str(repo)], check=True)
-        subprocess.run(['git', '-C', str(repo), 'add', 'stacks/komga/normalizer/public.py'], check=True)
+        subprocess.run(['git', 'init', '-q', str(repo)], check=True, env=self.git_environment)
+        subprocess.run(['git', '-C', str(repo), 'add', 'stacks/komga/normalizer/public.py'], check=True, env=self.git_environment)
         output = self.root / 'inventory.json'
-        with patch.object(m, '__file__', str(scripts / 'run-private-comic-controls.py')):
+        foreign = self.root / 'foreign.git'
+        with patch.object(m, '__file__', str(scripts / 'run-private-comic-controls.py')), \
+                patch.dict(os.environ, GIT_DIR=str(foreign), GIT_WORK_TREE=str(self.root / 'foreign-tree'),
+                           GIT_INDEX_FILE=str(self.root / 'foreign-index')):
             m.inventory('worker', output)
             with self.assertRaises(FileExistsError):
                 m.inventory('worker', output)
         self.assertEqual(set(json.loads(output.read_bytes())['files']), {'public.py'})
+        self.assertFalse(foreign.exists())
+        self.assertFalse((self.root / 'foreign-index').exists())
 
     def runtime(self, failing=False):
         test = self.source / 'test_actor.py'
@@ -135,6 +143,80 @@ class Controls(unittest.TestCase):
 
     def test_real_fixed_worker_failure_propagates(self):
         self.runtime(failing=True)
+
+    def cleanup_runtime(self, primary=None, cleanup=None):
+        manifest = self.root / 'manifest.json'
+        manifest.write_text(json.dumps(self.document))
+        real = m.tempfile.TemporaryDirectory
+
+        class LateCleanup:
+            def __init__(inner, **kw):
+                inner.value = real(**kw)
+            def __enter__(inner):
+                return inner.value.__enter__()
+            def __exit__(inner, *args):
+                result = inner.value.__exit__(*args)
+                self.file.chmod(0o640)
+                if cleanup is not None:
+                    raise cleanup
+                return result
+
+        def child(*args, **kw):
+            if primary is not None:
+                raise primary
+            return subprocess.CompletedProcess(args, 0)
+
+        with patch.object(m, 'MANIFEST', manifest), patch.dict(m.MOUNTS, worker=self.source), \
+                patch.object(m.tempfile, 'TemporaryDirectory', LateCleanup), \
+                patch.object(m.subprocess, 'run', side_effect=child):
+            m.run('worker')
+
+    def test_originals_close_after_temporary_cleanup(self):
+        with self.assertRaisesRegex(ValueError, 'Original public source file changed'):
+            self.cleanup_runtime()
+
+    def test_primary_child_failure_survives_late_cleanup_drift(self):
+        primary = subprocess.CalledProcessError(13, ['fixture'])
+        with self.assertRaises(subprocess.CalledProcessError) as caught:
+            self.cleanup_runtime(primary)
+        self.assertIs(caught.exception, primary)
+        self.assertIsInstance(caught.exception.__cause__, ValueError)
+
+    def test_child_failure_survives_raising_cleanup_and_final_drift(self):
+        primary = subprocess.CalledProcessError(13, ['fixture'])
+        cleanup = OSError('cleanup failure')
+        with self.assertRaises(subprocess.CalledProcessError) as caught:
+            self.cleanup_runtime(primary, cleanup)
+        self.assertIs(caught.exception, primary)
+        self.assertIs(primary.__cause__, cleanup)
+        self.assertIsInstance(cleanup.__cause__, ValueError)
+
+    def test_inventory_closes_after_output_callback(self):
+        repo = self.root / 'repo'
+        scripts = repo / 'scripts'
+        scripts.mkdir(parents=True)
+        source = repo / m.SCOPES['worker']
+        source.mkdir(parents=True)
+        file = source / 'public.py'
+        file.write_text('# public\n')
+        subprocess.run(['git', 'init', '-q', str(repo)], check=True, env=self.git_environment)
+        subprocess.run(['git', '-C', str(repo), 'add', 'stacks/komga/normalizer/public.py'], check=True, env=self.git_environment)
+        real = open
+        primary = OSError('output close failure')
+        class Output:
+            def __init__(inner, *args):
+                inner.file = real(*args)
+            def __enter__(inner):
+                return inner.file.__enter__()
+            def __exit__(inner, *args):
+                inner.file.__exit__(*args)
+                file.chmod(0o640)
+                raise primary
+        with patch.object(m, '__file__', str(scripts / 'run-private-comic-controls.py')), \
+                patch.object(m, 'open', Output, create=True), self.assertRaises(OSError) as caught:
+            m.inventory('worker', self.root / 'output.json')
+        self.assertIs(caught.exception, primary)
+        self.assertIsInstance(primary.__cause__, ValueError)
 
     def test_workflow_keeps_readonly_inputs_and_fixed_modes(self):
         workflow = (ROOT / '.github/workflows/repository-validation.yml').read_text()
