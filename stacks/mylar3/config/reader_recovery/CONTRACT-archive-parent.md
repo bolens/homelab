@@ -185,12 +185,22 @@ Default-disabled plan12 preserves the plan11 same-child contract and adds an ori
 The nested observer's response transport mints one 90-second ingress deadline
 at original intent creation, capped by both original Parent and producer
 deadlines. Preparation consumes this same budget. No retry, guard or frame
-refreshes it. The cap matches the worker channel's existing bound and allows
-complete Root/NFS closure checks to finish without removing checks. It writes at most 64 KiB through a nonblocking pipe, retaining a checked
-smaller capacity if the kernel refuses enlargement. Every readiness retry and
-partial write repeats full preservation checks; the detached write tail verifies
-the original descriptor, flags, capacity, primitive and deadline. An unknown
-setup or write outcome holds without restarting the helper or replaying a frame.
+refreshes it. This deadline detects stalled I/O and never grants acceptance.
+
+Both senders transfer immutable payload bytes without the newline delimiter.
+The parent's writes are nonblocking and bounded to 64 KiB, retaining a checked
+smaller pipe capacity if enlargement is refused. Every I/O attempt and readiness
+retry checks original descriptors, process, registries, kernel primitives and
+the unchanged deadline. Full preservation guards run before and after each
+incoming frame, before each outgoing newline commit, and after final EOF.
+The parent therefore performs exactly 12 full transport guards for the four
+frames, independent of fragmentation or backpressure. The worker closes its
+full preservation vectors once per outgoing frame before committing its newline.
+
+Neither receiver parses or acts on an incomplete frame. Embedded delimiters,
+extra pipelined frames and unknown setup or commit outcomes hold without
+restarting the helper or replaying a frame. Fresh configured forward and
+distinct-fixture rollback evidence remain required with the new worker image.
 
 ## Original Writer session on the existing pipe
 

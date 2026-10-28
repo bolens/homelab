@@ -282,19 +282,20 @@ child guards. Source controls do not complete T012 or T015.
 ### Admission closure and diagnosis
 
 The nested worker exchange mints one 90-second ingress deadline at intent
-creation, capped by the original Parent and producer deadlines, and retains
-all per-write preservation checks. Complete Root/NFS closure measurements
-exceeded the earlier 30-second cap before the exchange could finish. Aligning
-the cap with the existing worker channel permits these checks without removing
-them. Preparation consumes the same budget, and no wait or frame refreshes it.
-Fresh configured forward and rollback evidence remain required. Use bounded nonblocking writes of at most
-64 KiB, retain the exact remaining suffix after short writes, and repeat the
-guard after every readiness wait or no-progress retry. Bind the original pipe
-flags, capacity and kernel primitive before writing. A denied capacity increase
-may retain a checked smaller pipe; it does not restart the helper or deadline.
-Large actual four-round pipe fixtures verify transport behavior. Configured
-timing and acceptance still require a fresh owning run; component closure loops
-do not establish that proof.
+creation, capped by the original Parent and producer deadlines. Preparation
+consumes that same absolute budget. The deadline detects stalls and never grants
+acceptance or refreshes after progress.
+
+Transfer each immutable payload without its delimiter, retaining exact unsent
+suffixes after bounded nonblocking writes. Check original descriptors, process,
+registry, pipe state and kernel bindings on every I/O retry. Close full
+preservation vectors before committing the separate newline. Receivers wait for
+that delimiter before accepting a frame. The parent performs full guards before
+and after each of four incoming frames, before its three outgoing commits, and
+at final EOF: exactly 12 transport guards independent of fragmentation. The
+worker closes its full vectors once per outgoing frame. Unknown commit outcomes
+hold without replay. These source controls still require a fresh configured
+forward and distinct-fixture rollback, with matching installed worker bytes.
 
 Deduplicate identical control metadata by exact path within each Tree check,
 refusing conflicting facts before callbacks. Preserve both closure passes,

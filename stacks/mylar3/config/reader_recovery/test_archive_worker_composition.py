@@ -13,6 +13,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import tempfile
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parent))
@@ -27,6 +28,7 @@ class Tests(unittest.TestCase):
  setup=prior.Tests.setup
  go=prior.Tests.go
  def unit5(self):
+  worker_entry=getattr(self,'worker_entry',WORKER)
   self.setup();x=self.parent;x.plan.update(version=12,native={'data':str(self.root),'roots':[str(self.root)]})
   self.archive=self.root/'Comic.cbz';self.archive.write_bytes(b'preserved fixture archive bytes')
   self.catalog=self.root/'mylar.db';self.authority=self.root/'workflow.sqlite';writer=self.root/'media-writer';writer.mkdir(mode=0o700);self.marker=writer/'publication-v1.json';self.marker.write_bytes(b'{}')
@@ -36,10 +38,10 @@ class Tests(unittest.TestCase):
   with closing(sqlite3.connect(self.authority)) as db,db:db.execute('CREATE TABLE records(k TEXT,v TEXT)')
   spec=importlib.util.spec_from_file_location('unit5_actual_pure_vectors',HERE/'comic_archive_worker_vectors.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   # Source-owned host fixture selectors; neither __file__ nor SDK types change.
-  module.READ_ROOTS=(str(self.root),);module.SOURCE_ENTRY=str(WORKER)
+  module.READ_ROOTS=(str(self.root),);module.SOURCE_ENTRY=str(worker_entry)
   p._WORKER_MODULES[x]=module
   p._WORKER_FUNCTIONS[x]=(tuple((n,module.__dict__[n],module.__dict__[n].__code__) for n in ('need','encode','decode','digest','path','put','frame','pack','mapping','freeze','response')),module.Round,tuple(module.Round.__dict__.items()),module.Round.__init__.__code__,module.Round.accept.__code__)
-  sha=hashlib.sha256(WORKER.read_bytes()).hexdigest();x.plan['worker_observation']={'mode':'original-pipes-v1','source':{'path':str(WORKER),'sha256':sha,'signature9':p.nine(WORKER.lstat())},'image_sources':{}}
+  sha=hashlib.sha256(worker_entry.read_bytes()).hexdigest();x.plan['worker_observation']={'mode':'original-pipes-v1','source':{'path':str(worker_entry),'sha256':sha,'signature9':p.nine(worker_entry.lstat())},'image_sources':{}}
   x.baselines={'held_worker':{'Image':'sha256:'+'7'*64}};x.baselines['held_worker']['Mounts']=[dict(Type='bind',Source=str(self.root),Destination=str(self.root),RW=True)]
   rolepaths={'archive':self.archive,'catalog':self.catalog,'authority':self.authority,'marker':self.marker};roles={k:dict(path=str(v),signature9=p.nine(v.lstat()),sha256=hashlib.sha256(v.read_bytes()).hexdigest()) for k,v in rolepaths.items()};roles['catalog_native_target']=str(self.archive)
   terminal=p.decode(Path(self.terminal['path']).read_bytes());terminal['worker_roles']=roles;terminal['independent_observation']['source_sha256']=roles['archive']['sha256']
@@ -61,7 +63,7 @@ class Tests(unittest.TestCase):
    if cid=='4'*64:
     proc=real([sys.executable,'-I','-B','-c',producer_script,p.encode(self.message).decode()],**kw);self.producer_row['State']['Pid']=proc.pid
    else:
-    intent=p._WORKER_INTENTS[x];cmd=list(intent[1]);proc=real([sys.executable,'-I','-B','-c',worker_script,str(WORKER),str(self.root),*cmd[3:]],**kw);self.worker_process=proc
+    intent=p._WORKER_INTENTS[x];cmd=list(intent[1]);proc=real([sys.executable,'-I','-B','-c',worker_script,str(worker_entry),str(self.root),*cmd[3:]],**kw);self.worker_process=proc
    self.processes.append(proc);return proc
   def run(args,seconds):
    self.assertEqual(args[0],'create');self.worker_row=self.worker_profile('created');return ('5'*64).encode()
@@ -115,6 +117,11 @@ class Tests(unittest.TestCase):
  def test_genuine_nested_original_pipes_worker_readback_before_producer_release(self):
   self.unit5();ack=self.run_nested();self.assertEqual(ack,{'fixture':'synthetic-parent-facts-only'});self.assertTrue(self.both);self.assertTrue(self.worker_final)
   result=p._ARCHIVE_TERMINAL_ROUNDS[self.parent]['worker_result'];self.assertEqual(result['type'],'observed');self.assertTrue(all(v is False for v in result['rights'].values()))
+ def test_current_parent_and_current_worker_complete_actual_pipes(self):
+  self.worker_entry=HERE/'_current_worker_source/archive_terminal_observation.py'
+  if not self.worker_entry.exists():self.worker_entry=HERE.parents[2]/'komga/normalizer/archive_terminal_observation.py'
+  self.unit5();self.assertEqual(self.run_nested(),{'fixture':'synthetic-parent-facts-only'})
+  self.assertTrue(self.worker_final);self.assertTrue(self.both)
  def wide_worker_exchange(self):
   self.unit5()
   terminal=p.decode(Path(self.terminal['path']).read_bytes())
@@ -126,71 +133,92 @@ class Tests(unittest.TestCase):
   self.terminal=fixture_ref(Path(self.terminal['path']),p.encode(terminal));self.refs['terminal_report']=self.terminal;self.message['terminal']['terminal_report']=self.terminal
   er=Path(self.refs['execution_report']['path']);execute=p.decode(er.read_bytes());execute['terminal_report']=self.terminal
   self.refs['execution_report']=fixture_ref(er,p.encode(execute));self.message['terminal']['execution_report']=self.refs['execution_report']
- def test_wide_actual_round_uses_bounded_nonblocking_writes(self):
-  self.wide_worker_exchange();write=p.os.write;chunks=[];flags=[];original=self.engine.worker_interactive
-  def transport(cid,protocol,seconds,guard):
+ def test_wide_actual_round_has_fixed_full_closure_boundaries(self):
+  self.wide_worker_exchange();flags=[];boundaries=[];original=self.engine.worker_interactive
+  def transport(cid,protocol,seconds,guard,**options):
    def checked(**kwargs):
-    result=guard(**kwargs)
-    record=p._DIALOGUES.get(self.engine,{}).get(cid)
-    if record is not None:flags.append(p.fcntl.fcntl(record['descriptors'][0][0],p.fcntl.F_GETFL))
-    return result
-   return original(cid,protocol,seconds,checked)
-  def send(fd,data):
-   if self.worker_process is not None and not self.worker_process.stdin.closed and fd==self.worker_process.stdin.fileno():chunks.append(len(data))
-   return write(fd,data)
-  with patch.object(self.engine,'worker_interactive',side_effect=transport),patch.object(p.os,'write',side_effect=send):
+    result=guard(**kwargs);boundaries.append(kwargs['boundary'])
+    fd=p._DIALOGUES[self.engine][cid]['descriptors'][0][0]
+    flags.append(p.fcntl.fcntl(fd,p.fcntl.F_GETFL));return result
+   return original(cid,protocol,seconds,checked,**options)
+  with patch.object(self.engine,'worker_interactive',side_effect=transport):
    self.assertEqual(self.run_nested(),{'fixture':'synthetic-parent-facts-only'})
-  self.assertTrue(self.worker_final);self.assertGreater(max(chunks),4096);self.assertLessEqual(max(chunks),65536)
-  self.assertTrue(flags);self.assertTrue(all(value&os.O_NONBLOCK for value in flags))
- def test_wide_round_preserves_suffix_after_short_write_and_eagain(self):
-  self.wide_worker_exchange();write=p.os.write;attempts=[]
-  def send(fd,data):
-   if self.worker_process is not None and not self.worker_process.stdin.closed and fd==self.worker_process.stdin.fileno():
-    attempts.append(len(data))
-    if len(attempts)==1:raise BlockingIOError(11,'synthetic readiness race')
-    return write(fd,data[:997])
-   return write(fd,data)
-  with patch.object(p.os,'write',side_effect=send):self.assertEqual(self.run_nested(),{'fixture':'synthetic-parent-facts-only'})
-  self.assertGreater(len(attempts),10);self.assertTrue(self.worker_final)
- def test_worker_guard_cannot_restore_blocking_pipe_before_write(self):
-  self.unit5();original=self.engine.worker_interactive;changed=[];write=p.os.write;sent=[]
-  def transport(cid,protocol,seconds,guard):
+  self.assertEqual(boundaries,['incoming','parsed','commit']*3+['incoming','parsed','complete'])
+  self.assertTrue(self.worker_final);self.assertTrue(all(value&os.O_NONBLOCK for value in flags))
+ def test_small_round_has_same_full_closure_boundaries(self):
+  self.unit5();boundaries=[];original=self.engine.worker_interactive
+  def transport(cid,protocol,seconds,guard,**options):
+   def checked(**kwargs):
+    result=guard(**kwargs);boundaries.append(kwargs['boundary']);return result
+   return original(cid,protocol,seconds,checked,**options)
+  with patch.object(self.engine,'worker_interactive',side_effect=transport):self.run_nested()
+  self.assertEqual(boundaries,['incoming','parsed','commit']*3+['incoming','parsed','complete'])
+ def test_commit_tail_refuses_hostile_pid_without_equality(self):
+  self.unit5();called=[];original=self.engine.worker_interactive
+  class Foreign:
+   def __eq__(self,other):called.append(True);return True
+   def __ne__(self,other):called.append(True);return False
+  def transport(cid,protocol,seconds,guard,**options):
+   saved=[]
    def checked(**kwargs):
     result=guard(**kwargs)
-    if protocol.step==1 and not changed:
+    if protocol.step==1 and kwargs.get('boundary')=='commit':
+     saved.append(self.worker_process.pid);self.worker_process.pid=Foreign()
+    return result
+   try:return original(cid,protocol,seconds,checked,**options)
+   finally:
+    if saved:self.worker_process.pid=saved[0]
+  with patch.object(self.engine,'worker_interactive',side_effect=transport),self.assertRaises(p.Held):self.run_nested()
+  self.assertFalse(called);self.assertFalse(self.worker_final)
+ def test_payload_preserves_suffix_after_short_write_and_eagain(self):
+  raw=b'x'*150000;sent=bytearray();attempts=[];checks=[]
+  def write(fd,data):
+   attempts.append(len(data))
+   if len(attempts)==1:raise BlockingIOError(11,'synthetic readiness race')
+   count=min(len(data),997);sent.extend(data[:count]);return count
+  p._worker_payload(4,raw,10,lambda:checks.append(True),write,lambda r,w,e,t:([],w,[]),lambda:0)
+  self.assertEqual(bytes(sent),raw);self.assertNotIn(10,sent)
+  self.assertLessEqual(max(attempts),65536);self.assertGreater(len(attempts),100)
+  self.assertEqual(len(checks),2*len(attempts))
+ def test_payload_rejects_delimiter_no_progress_and_expired_wait(self):
+  for raw,count,clock in ((b'x\ny',1,0),(b'abc',0,0),(b'abc',1,10)):
+   with self.subTest(raw=raw,count=count,clock=clock),self.assertRaises(p.Held):
+    p._worker_payload(4,raw,10,lambda:None,lambda fd,data:count,lambda r,w,e,t:([],w,[]),lambda:clock)
+ def test_worker_guard_cannot_restore_blocking_pipe_before_write(self):
+  self.unit5();original=self.engine.worker_interactive;changed=[]
+  def transport(cid,protocol,seconds,guard,**transport_options):
+   def checked(**kwargs):
+    result=guard(**kwargs)
+    if protocol.step==1 and kwargs.get('boundary')=='commit' and not changed:
      fd=p._DIALOGUES[self.engine][cid]['descriptors'][0][0]
      p.fcntl.fcntl(fd,p.fcntl.F_SETFL,p.fcntl.fcntl(fd,p.fcntl.F_GETFL)&~os.O_NONBLOCK);changed.append(fd)
     return result
-   return original(cid,protocol,seconds,checked)
-  def send(fd,data):
-   if fd in changed:sent.append(True)
-   return write(fd,data)
-  with patch.object(self.engine,'worker_interactive',side_effect=transport),patch.object(p.os,'write',side_effect=send),self.assertRaises(p.Held):self.run_nested()
-  self.assertTrue(changed);self.assertFalse(sent);self.assertFalse(self.worker_final)
+   return original(cid,protocol,seconds,checked,**transport_options)
+  with patch.object(self.engine,'worker_interactive',side_effect=transport),self.assertRaises(p.Held):self.run_nested()
+  self.assertTrue(changed);self.assertFalse(self.worker_final)
  def test_worker_pipe_kernel_substitution_is_refused_before_write(self):
   self.unit5();original=self.engine.worker_interactive;primitive=p.fcntl.fcntl;changed=[];called=[]
   def foreign(*args):called.append(True);raise AssertionError('foreign pipe kernel')
-  def transport(cid,protocol,seconds,guard):
+  def transport(cid,protocol,seconds,guard,**transport_options):
    def checked(**kwargs):
     result=guard(**kwargs)
     if protocol.step==1 and not changed:p.fcntl.fcntl=foreign;changed.append(True)
     return result
-   return original(cid,protocol,seconds,checked)
+   return original(cid,protocol,seconds,checked,**transport_options)
   try:
    with patch.object(self.engine,'worker_interactive',side_effect=transport),self.assertRaises(p.Held):self.run_nested()
   finally:p.fcntl.fcntl=primitive
   self.assertTrue(changed);self.assertFalse(called);self.assertFalse(self.worker_final)
- def test_partial_worker_request_rechecks_metadata_before_next_write(self):
-  self.wide_worker_exchange();write=p.os.write;changed=[];sent_after=[]
-  def send(fd,data):
-   if self.worker_process is not None and not self.worker_process.stdin.closed and fd==self.worker_process.stdin.fileno():
-    if changed:sent_after.append(True)
-    count=write(fd,data[:997])
-    if not changed:self.marker.chmod(0o640);changed.append(True)
-    return count
-   return write(fd,data)
-  with patch.object(p.os,'write',side_effect=send),self.assertRaises(p.Held):self.run_nested()
-  self.assertTrue(changed);self.assertFalse(sent_after);self.assertFalse(self.worker_final)
+ def test_payload_metadata_change_is_refused_before_delimiter_commit(self):
+  self.wide_worker_exchange();changed=[];original=self.engine.worker_interactive
+  def transport(cid,protocol,seconds,guard,**options):
+   def checked(**kwargs):
+    if protocol.step==1 and kwargs.get('boundary')=='commit' and not changed:
+     self.marker.chmod(0o640);changed.append(True)
+    return guard(**kwargs)
+   return original(cid,protocol,seconds,checked,**options)
+  with patch.object(self.engine,'worker_interactive',side_effect=transport),self.assertRaises(p.Held):self.run_nested()
+  self.assertTrue(changed);self.assertFalse(self.worker_final)
  def test_pipe_setup_failure_attempts_every_stream_close(self):
   self.unit5();spawn=p.subprocess.Popen;primitive=p.fcntl.fcntl;closed=[]
   class Closing:
@@ -211,55 +239,37 @@ class Tests(unittest.TestCase):
   finally:p.fcntl.fcntl=primitive
   self.assertEqual(closed[:3],[0,1,2]);self.assertFalse(self.worker_final)
  def final_frame_after_process_exit(self,corrupt=None):
-  self.unit5();real_write=p.os.write;real_read=p.os.read;released=[];changed=[];read_late=[];real_clock=time.monotonic;real_stat=p.nfs_lstat
-  if corrupt in ('expired','metadata-expired'):
-   def long_producer():
-    def handler(value,raw=None):
-     if value is None:return None
-     return self.parent.accept_archive_terminal(self.proof,[],value,copy.deepcopy(self.producer_row),copy.deepcopy(self.producer_row),raw)
-    return self.engine.interactive('4'*64,handler,100)
-   self.run_nested=long_producer
-  def write(fd,data):
-   count=real_write(fd,data)
-   if self.worker_process is not None and not self.worker_process.stdin.closed and fd==self.worker_process.stdin.fileno() and b'"type":"release"' in bytes(data):
-    self.assertEqual(count,len(data));self.worker_process.wait(timeout=3);released.append(True)
-   return count
-  def read(fd,size):
-   if corrupt=='metadata-expired' and changed and self.worker_process is not None and not self.worker_process.stdout.closed and fd==self.worker_process.stdout.fileno():read_late.append(True)
-   raw=real_read(fd,size)
-   if corrupt in ('foreign','missing') and self.worker_process is not None and not self.worker_process.stdout.closed and fd==self.worker_process.stdout.fileno() and b'"type":"released"' in raw:
-    changed.append(True)
-    return b'' if corrupt=='missing' else raw.replace(b'"type":"released"',b'"type":"foreign"')
-   return raw
-  def clock():
-   if released and (corrupt=='expired' or corrupt=='metadata-expired' and changed):
-    deadline=p._WORKER_INTENTS[self.parent][7];transport=p._DIALOGUES[self.engine]['5'*64]['deadline']
-    self.assertGreater(transport,deadline)
-    return deadline+(transport-deadline)/2
-   return real_clock()
+  if corrupt in ('foreign','missing'):
+   temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
+   self.worker_entry=Path(temp.name)/'archive_terminal_observation.py'
+   source=WORKER.read_text();old="final = encode(dict(release, type='released'))"
+   new="final = encode(dict(release, type='foreign'))" if corrupt=='foreign' else "return None  # Synthetic missing final reply."
+   self.assertEqual(source.count(old),1);self.worker_entry.write_text(source.replace(old,new))
+  self.unit5();released=[];changed=[];original=self.engine.worker_interactive;real_stat=p.nfs_lstat
   def sample(path):
    value=real_stat(path)
-   if corrupt=='metadata-expired' and released and str(path)==self.source['path']:changed.append(True)
+   if corrupt=='metadata-expired' and released and str(path)==self.source['path'] and not changed:
+    changed.append(True);end=p._DIALOGUES[self.engine]['5'*64]['deadline']
+    while time.monotonic()<end:time.sleep(max(0,min(.01,end-time.monotonic())))
    return value
-  original_transport=self.engine.worker_interactive
-  def transport(cid,protocol,seconds,guard):
+  def transport(cid,protocol,seconds,guard,**options):
+   if corrupt in ('expired','metadata-expired'):options['_deadline']=min(options['_deadline'],time.monotonic()+1)
    def checked(**kwargs):
-    if corrupt in ('expired','metadata-expired'):
-     with patch.object(p.time,'monotonic',side_effect=clock):return guard(**kwargs)
+    if protocol.step==3 and kwargs.get('boundary')=='incoming' and not released:
+     self.worker_process.wait(timeout=3);released.append(True)
+     if corrupt=='expired':
+      end=p._DIALOGUES[self.engine][cid]['deadline']
+      while time.monotonic()<end:time.sleep(max(0,min(.01,end-time.monotonic())))
     return guard(**kwargs)
-   return original_transport(cid,protocol,seconds,checked)
-  with patch.object(p.os,'write',side_effect=write),patch.object(p.os,'read',side_effect=read),patch.object(p,'nfs_lstat',side_effect=sample),patch.object(self.engine,'worker_interactive',side_effect=transport):
+   return original(cid,protocol,seconds,checked,**options)
+  with patch.object(p,'nfs_lstat',side_effect=sample),patch.object(self.engine,'worker_interactive',side_effect=transport):
    if corrupt:
-    with self.assertRaises(p.Held) as caught:self.run_nested()
-    if corrupt in ('expired','metadata-expired'):
-     reasons=[];error=caught.exception
-     while error is not None:reasons.append(str(error));error=error.__context__
-     self.assertIn('worker-original-ingress-deadline',reasons)
-    else:self.assertTrue(changed)
+    with self.assertRaises(p.Held):self.run_nested()
     self.assertFalse(self.worker_final)
    else:
     self.assertEqual(self.run_nested(),{'fixture':'synthetic-parent-facts-only'});self.assertTrue(self.worker_final)
-  self.assertTrue(released);self.assertFalse(read_late)
+  if corrupt!='missing':self.assertTrue(released)
+  if corrupt=='metadata-expired':self.assertTrue(changed)
  def test_worker_final_buffered_frame_accepts_original_natural_exit(self):
   self.final_frame_after_process_exit()
  def test_worker_exited_with_foreign_final_frame_refuses(self):
@@ -274,15 +284,15 @@ class Tests(unittest.TestCase):
   self.final_frame_after_process_exit('metadata-expired')
  def test_worker_last_write_guard_cannot_replace_original_response_fd(self):
   self.unit5();r,w=os.pipe();saved=[];counts=[];original=self.engine.worker_interactive
-  def interactive(cid,protocol,seconds,guard):
+  def interactive(cid,protocol,seconds,guard,**transport_options):
    def changed(**kwargs):
     result=guard(**kwargs)
-    if protocol.step==1:
+    if protocol.step==1 and kwargs.get('boundary')=='commit':
      counts.append(True)
-     if len(counts)==3:
+     if len(counts)==1:
       fd=p._DIALOGUES[self.engine][cid]['descriptors'][0][0];saved.append(os.dup(fd));os.dup2(w,fd)
     return result
-   return original(cid,protocol,seconds,changed)
+   return original(cid,protocol,seconds,changed,**transport_options)
   try:
    with patch.object(self.engine,'worker_interactive',side_effect=interactive),self.assertRaises(p.Held):self.run_nested()
    self.assertTrue(saved);os.set_blocking(r,False)
@@ -295,34 +305,31 @@ class Tests(unittest.TestCase):
  def test_worker_final_kernel_substitution_never_runs_foreign_callback(self):
   self.unit5();original=self.engine.worker_interactive;fstat=p.os.fstat;called=[];counts=[]
   def foreign(fd):called.append(True);raise AssertionError('foreign final fstat')
-  def interactive(cid,protocol,seconds,guard):
+  def interactive(cid,protocol,seconds,guard,**transport_options):
    def changed(**kwargs):
     result=guard(**kwargs)
-    if protocol.step==1:
+    if protocol.step==1 and kwargs.get('boundary')=='commit':
      counts.append(True)
-     if len(counts)==3:p.os.fstat=foreign
+     if len(counts)==1:p.os.fstat=foreign
     return result
-   return original(cid,protocol,seconds,changed)
+   return original(cid,protocol,seconds,changed,**transport_options)
   try:
    with patch.object(self.engine,'worker_interactive',side_effect=interactive),self.assertRaises(p.Held):self.run_nested()
   finally:p.os.fstat=fstat
-  self.assertEqual(len(counts),3);self.assertFalse(called);self.assertFalse(self.worker_final)
+  self.assertEqual(len(counts),1);self.assertFalse(called);self.assertFalse(self.worker_final)
 
  def test_worker_last_write_guard_cannot_mutate_original_dialogue_record(self):
-  self.unit5();original=self.engine.worker_interactive;write=p.os.write;counts=[];changed=[];sent=[]
-  def interactive(cid,protocol,seconds,guard):
+  self.unit5();original=self.engine.worker_interactive;counts=[];changed=[]
+  def interactive(cid,protocol,seconds,guard,**transport_options):
    def callback(**kwargs):
     result=guard(**kwargs)
-    if protocol.step==1:
+    if protocol.step==1 and kwargs.get('boundary')=='commit':
      counts.append(True)
-     if len(counts)==3:p._DIALOGUES[self.engine][cid]['deadline']+=1;changed.append(True)
+     if len(counts)==1:p._DIALOGUES[self.engine][cid]['deadline']+=1;changed.append(True)
     return result
-   return original(cid,protocol,seconds,callback)
-  def send(fd,raw):
-   if changed and self.worker_process is not None and not self.worker_process.stdin.closed and fd==self.worker_process.stdin.fileno():sent.append(True)
-   return write(fd,raw)
-  with patch.object(self.engine,'worker_interactive',side_effect=interactive),patch.object(p.os,'write',side_effect=send),self.assertRaises(p.Held):self.run_nested()
-  self.assertTrue(changed);self.assertFalse(sent);self.assertFalse(self.worker_final)
+   return original(cid,protocol,seconds,callback,**transport_options)
+  with patch.object(self.engine,'worker_interactive',side_effect=interactive),self.assertRaises(p.Held):self.run_nested()
+  self.assertTrue(changed);self.assertFalse(self.worker_final)
 
  def change_authority_before_worker_guard(self):
   self.unit5();original=self.parent.continuous;module=p._WORKER_MODULES[self.parent];fired=[]
@@ -501,7 +508,7 @@ class Tests(unittest.TestCase):
     fired.append(True);Path(self.source['path']).chmod(0o640)
    return z
   with patch.object(p.os,'fstat',callback),self.assertRaises(p.Held):self.run_nested()
-  self.assertTrue(fired);self.assertFalse(self.worker_final)
+  self.assertFalse(fired);self.assertFalse(self.worker_final)
  def test_worker_original_pipe_swap_holds(self):
   self.unit5();fired=[]
   def change(state):

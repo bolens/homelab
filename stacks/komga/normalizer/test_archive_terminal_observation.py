@@ -284,7 +284,7 @@ class Dialogue(unittest.TestCase):
             return z
         with patch.object(h.os,'fstat',late):
             messages,errors,_=self.run_dialogue(release_mutate=lambda r,c:armed.append(c.write_fd))
-        self.assertTrue(fired);self.assertIsNone(messages[-1]);self.assertIsInstance(errors[0],h.Held)
+        self.assertFalse(fired);self.assertTrue(errors);self.assertIsInstance(errors[0],h.Held)
 
     def test_final_absence_callback_wal_change_no_final_ack(self):
         real=h.os.lstat;armed=[];fired=[];watched=str(self.authority)+'-shm'
@@ -310,7 +310,78 @@ class Dialogue(unittest.TestCase):
             with patch.object(h.os,'fstat',late):
                 messages,errors,_=self.run_dialogue(release_mutate=lambda r,c:armed.append(c.write_fd))
         finally:source.chmod(mode)
-        self.assertTrue(fired);self.assertIsNone(messages[-1]);self.assertIsInstance(errors[0],h.Held)
+        self.assertFalse(fired);self.assertTrue(errors);self.assertIsInstance(errors[0],h.Held)
+
+    def test_payload_short_writes_and_eagain_never_commit_delimiter(self):
+        raw=b'x'*10000;sent=bytearray();attempts=[]
+        def write(fd,data):
+            attempts.append(len(data))
+            if len(attempts)==1:raise BlockingIOError(11,'synthetic readiness race')
+            count=min(len(data),113);sent.extend(data[:count]);return count
+        h._frame_payload(7,raw,10,lambda:None,write,lambda r,w,e,t:([],w,[]),lambda:0)
+        self.assertEqual(bytes(sent),raw);self.assertLessEqual(max(attempts),4096)
+        self.assertNotIn(10,sent)
+
+    def test_payload_rejects_embedded_delimiter_and_zero_progress(self):
+        for raw,count in ((b'x\ny',1),(b'abc',0)):
+            with self.subTest(raw=raw),self.assertRaises(h.Held):
+                h._frame_payload(7,raw,10,lambda:None,lambda fd,data:count,lambda r,w,e,t:([],w,[]),lambda:0)
+
+    def test_incoming_pipelined_frames_are_refused(self):
+        source_r,parent_w=os.pipe();parent_r,source_w=os.pipe()
+        try:
+            channel=h.ParentChannel(source_r,source_w);channel.used=True;h._SPENT.add(channel)
+            os.write(parent_w,b'{}\n{}\n')
+            with self.assertRaisesRegex(h.Held,'unexpected-frame-tail'):channel.read()
+        finally:
+            for fd in (source_r,parent_w,parent_r,source_w):os.close(fd)
+
+    def test_replaced_frame_helpers_never_receive_dispatch(self):
+        for name in ('_frame_tail','_frame_payload'):
+            original=getattr(h,name);called=[]
+            def foreign(*args,**kwargs):called.append(True);raise AssertionError('foreign frame helper')
+            def mutate(release,channel):setattr(h,name,foreign)
+            try:
+                with self.subTest(name=name):
+                    messages,errors,_=self.run_dialogue(release_mutate=mutate)
+                    self.assertTrue(errors);self.assertIsNone(messages[-1]);self.assertFalse(called)
+            finally:setattr(h,name,original)
+
+    def test_mutated_frame_helper_code_never_executes(self):
+        for name in ('_frame_tail','_frame_payload'):
+            function=getattr(h,name);code=function.__code__
+            def foreign(*args,**kwargs):raise AssertionError('foreign frame code executed')
+            def mutate(release,channel):function.__code__=foreign.__code__
+            try:
+                with self.subTest(name=name):
+                    messages,errors,_=self.run_dialogue(release_mutate=mutate)
+                    self.assertTrue(errors);self.assertIsInstance(errors[0],h.Held);self.assertIsNone(messages[-1])
+            finally:function.__code__=code
+
+    def test_late_metadata_cannot_clear_spent_or_used_before_commit(self):
+        for field in ('used','spent'):
+            armed=[];fired=[];real=h.os.lstat
+            def late(path,*args,**kwargs):
+                value=real(path,*args,**kwargs)
+                if armed and not fired and Path(path)==self.marker:
+                    channel=armed[0];fired.append(True)
+                    if field=='used':channel.used=False
+                    else:h._SPENT.discard(channel)
+                return value
+            with self.subTest(field=field),patch.object(h.os,'lstat',side_effect=late):
+                messages,errors,_=self.run_dialogue(release_mutate=lambda r,c:armed.append(c))
+                self.assertTrue(fired);self.assertTrue(errors);self.assertIsNone(messages[-1])
+
+    def test_hostile_channel_values_never_invoke_equality(self):
+        for field in ('deadline','facts','source'):
+            called=[]
+            class Foreign:
+                def __eq__(self,other):called.append('eq');return True
+                def __iter__(self):called.append('iter');return iter(())
+            def mutate(release,channel):setattr(channel,field,Foreign())
+            with self.subTest(field=field):
+                messages,errors,_=self.run_dialogue(release_mutate=mutate)
+                self.assertTrue(errors);self.assertIsNone(messages[-1]);self.assertFalse(called)
 
     def test_parser_duplicate_deep_bool_and_nonfinite_refuse(self):
         for raw in (b'{"a":1,"a":2}',b'{"a":'+b'['*25+b'0'+b']'*25+b'}',b'{"a":NaN}'):
@@ -393,6 +464,6 @@ class FinalUnit5(unittest.TestCase):
             if w and not fired:fired.append(True);self.archive.chmod(0o640)
             return ready
         with patch.object(h.select,'select',callback):_,errors,_=self.run_dialogue(reviewed=True)
-        self.assertTrue(fired);self.assertTrue(errors)
+        self.assertFalse(fired);self.assertTrue(errors)
 
 if __name__=='__main__':unittest.main()

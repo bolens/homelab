@@ -30,13 +30,18 @@ refuses. Direct event controls exercise the cutoff, action predicates and
 inspect-before-events ordering. Synthetic pipe timing without these real
 continuous checks does not establish configured worker timing.
 
-Worker response pipes use nonblocking writes bounded to 64 KiB. The parent
-requests a 64 KiB pipe and retains a smaller original pipe if the kernel refuses
-the increase. Every partial write and readiness retry still repeats the full
-preservation guard, then checks the original descriptor, pipe flags, capacity
-and deadline before writing. Short writes retain the exact remaining suffix;
-no timeout or helper restart is added. Large four-round pipe fixtures exercise
-this path separately from configured recovery acceptance.
+Worker frames use a separate newline commit. Payload writes retain exact unsent
+suffixes under nonblocking I/O, with original descriptor, process, kernel and
+deadline checks on each retry. The parent checks the full preservation vectors
+before and after accepting each incoming frame, before committing each outgoing
+frame, and after final EOF. The four-frame exchange therefore performs exactly
+12 full transport guards regardless of payload fragmentation or backpressure.
+The worker sender also closes its full vectors once before each outgoing delimiter.
+Neither receiver parses or acts on an incomplete frame. Extra pipelined frames,
+embedded delimiters, unknown commit writes and expired original deadlines refuse
+without replay. The deadline detects stalled I/O and never grants acceptance.
+Small and wide real-pipe tests verify the same guard order. Configured forward
+and distinct-fixture rollback acceptance remain separate requirements.
 
 The configured installer selects 103 required modules from the verified native
 source map. This includes `worker_health.py` and `native_writers.py`, whose exact
@@ -51,7 +56,7 @@ The archive proof producer binds backup directories to the returned restore root
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 1900 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
+The private-copy runner executes 1904 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Fourteen owning runner controls check collection and original-source preservation. The child projection separately limits ordinary inputs to 32, declared NFS inputs to 48 and factual output views to 16, with an unchanged shared limit of 80. The complete plan13 terminal path uses 77 records. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not authorize configured recovery operations.
 
 The disposable Creator's explicit request v4 adds an operator-selected RFC1918
 IPv4 `/28` for hosts whose automatic Docker pools are exhausted. Its route

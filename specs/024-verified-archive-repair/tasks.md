@@ -34,7 +34,10 @@ PR [#555](https://github.com/bolens/homelab/pull/555) contains the bounded pipe
 writes, combined original-role event query and shared owner-reader corrections.
 The corrected complete Root/NFS component benchmark finishes in 40.61 seconds
 under a fixed 90-second intent cap, bounded by both original enclosing
-deadlines. Every per-leaf, per-write and final preservation check remains.
+deadlines. That benchmark covers the earlier per-write guard implementation. The current
+framed implementation makes full transport guards depend on protocol boundaries,
+with descriptor and deadline checks on each I/O retry. It needs fresh image and
+configured execution proof.
 See the [timing and ownership evidence](evidence-history.md#complete-owner-read-and-worker-timing-proof--2026-10-28).
 The next fresh configured operation must still prove the owning forward and a
 distinct-fixture rollback. These corrections remain within T012 and close no

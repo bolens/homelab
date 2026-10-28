@@ -61,6 +61,7 @@ mylar-source-check:
 
 komga-source-check:
 	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_archive_terminal_observation.py
 	python3 -I -B stacks/komga/effective_scope/run_source_tests.py --java-home "$(JAVA_HOME_21)"
 
 hooks-install:
