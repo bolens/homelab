@@ -1668,3 +1668,21 @@ reproduction establishes the source defect, but M's suppressed historical
 exception cannot prove that it caused M's exit. The six new controls increase
 the exact owning collection to 1,466 across the same 75 suites. No operational
 acceptance follows from this prospective correction.
+
+## Superseded current-queue notes through EE/EF — 2026-10-28
+
+PR #537 delivered the NFS descriptor correction with matching publication,
+180-module capture, SDK103 and startup-source proof. The four installed-image
+discovery/import/lost-reply/rename cases pass. PR #540 delivered the equal-directory
+fact comparison correction. PR #541 separates the input/output budgets. EE/EF
+passes that boundary and reconstructs the genesis archive, then holds on an
+external terminal-record path. Correct its mapping and route NFS reads through
+the existing UID1000 owner reader before refreshing host controls and using a
+new fixture. Target genesis bytes, unrelated full9/hash and all 24 native tables
+remain preserved; the stopped reader remains held. SDK103 remains the required selection. Reuse unchanged proofs
+only for their exact image/source inputs. Changed host controls require fresh checked installation outputs;
+unchanged installations may serve distinct fixtures. Source delivery alone
+cannot establish accepted runtime terminals. The current shared work finishes
+the stopped-reader handoff and owning terminal path. Ordinary native
+preservation, T030 cache guard, T031 identity recovery and T032 control-state
+adoption retain their recorded acceptance.

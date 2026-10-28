@@ -603,14 +603,21 @@ class GeometryOwnerReads:
             os.setresuid(-1, 1000, -1)
             if os.getresuid() != (0, 1000, 0) or os.getresgid() != (0, 0, 0) or os.getgroups() != [0]:
                 raise Held('owner-read-switched-identity')
-            samples = []
+            samples = []; held_parent = None
             for path in paths:
                 path_error = None
                 try:
-                    fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
                     parts = path.split('/')[1:]
-                    for part in parts[:-1]:
-                        fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+                    parent = tuple(parts[:-1])
+                    if operation != 'stats' or held_parent != parent:
+                        # Reuse only this invocation's initial sibling chain.
+                        # Every leaf still gets the fresh complete walk below.
+                        while fds:os.close(fds.pop())
+                        fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC); fds.append(fd)
+                        for part in parent:
+                            fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd); fds.append(fd)
+                        held_parent = parent
+                    else:fd = fds[-1]
                     ancestors = tuple(fds)
                     if operation in ('stat', 'stats'):
                         result = os.stat(parts[-1], dir_fd=fd, follow_symlinks=False) if parts[-1] else os.fstat(fd)
@@ -652,19 +659,19 @@ class GeometryOwnerReads:
                 except BaseException as exc:
                     path_error = exc
                 finally:
-                    for fd in reversed(fds):
-                        try:os.close(fd)
-                        except BaseException as exc:
-                            if path_error is None:path_error = exc
-                    fds.clear()
+                    if operation != 'stats' or path_error is not None:
+                        while fds:
+                            try:os.close(fds.pop())
+                            except BaseException as exc:
+                                if path_error is None:path_error = exc
                 if path_error is not None:raise path_error
                 samples.append(result)
             if operation == 'stats':result = tuple(samples)
         except BaseException as exc:
             primary = exc
         finally:
-            for fd in reversed(fds):
-                try:os.close(fd)
+            while fds:
+                try:os.close(fds.pop())
                 except BaseException as exc:
                     if primary is None:primary = exc
             try:
@@ -1715,7 +1722,23 @@ def library_helper_created_to_exited(original,current,cid,reader):
     return current==expected
 
 
+def _worker_payload(fd, raw, end, check, write, ready, clock):
+    """Transfer opaque payload only. This helper cannot commit a framed reply."""
+    need(type(raw) is bytes and 0<len(raw)<=4*1024**2 and b'\n' not in raw,'worker-payload-framing')
+    pending=memoryview(raw)
+    while pending:
+        check();remaining=end-clock()
+        need(remaining>0 and bool(ready([],[fd],[],remaining)[1]),'worker-response-timeout')
+        check()
+        try:n=write(fd,pending[:65536])
+        except BlockingIOError:continue
+        need(type(n) is int and 0<n<=min(len(pending),65536),'worker-response-unknown')
+        pending=pending[n:]
+
+
 _DIALOGUE_KERNELS=(os.fstat,time.monotonic)
+_WORKER_PIPE_KERNEL=(fcntl.fcntl,fcntl.F_GETFL,fcntl.F_GETPIPE_SZ,fcntl.F_SETPIPE_SZ,fcntl.F_SETFL,os.O_NONBLOCK)
+_WORKER_IO_KERNEL=(os.read,os.write,select.select,os.getpid,threading.get_ident)
 
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
@@ -1894,63 +1917,107 @@ class ScopedDocker:
   note('cleanup',dict(container_id=cid,owned_exited_cleanup_verified=True,publication_authority=False))
   return reply.stdout
 
- def worker_interactive(self,cid,protocol,seconds,guard,_kernel=_DIALOGUE_KERNELS):
+ def worker_interactive(self,cid,protocol,seconds,guard,_kernel=_DIALOGUE_KERNELS,_pipe=_WORKER_PIPE_KERNEL,_io=_WORKER_IO_KERNEL,_payload=_worker_payload,_payload_code=_worker_payload.__code__,_deadline=None):
   definition=ScopedDocker.worker_interactive;definition_code=definition.__code__;definition_defaults=definition.__defaults__
-  nfs_remote_guard(self)
-  # A nested observer dialogue never replaces the live producer entry.
-  end=time.monotonic()+seconds
+  def kernels():
+   if (_kernel is not _DIALOGUE_KERNELS or type(_kernel) is not tuple or len(_kernel)!=2
+       or any(type(fn) is not type(len) for fn in _kernel) or _kernel[0].__name__!='fstat' or _kernel[0].__module__!='posix'
+       or _kernel[1].__name__!='monotonic' or _kernel[1].__module__!='time'
+       or os.fstat is not _kernel[0] or time.monotonic is not _kernel[1]
+       or _io is not _WORKER_IO_KERNEL or type(_io) is not tuple or len(_io)!=5
+       or any(type(fn) is not type(len) for fn in _io)
+       or any(current is not bound for current,bound in zip((os.read,os.write,select.select,os.getpid,threading.get_ident),_io))
+       or tuple((fn.__module__,fn.__name__)for fn in _io)!=(('posix','read'),('posix','write'),('select','select'),('posix','getpid'),('_thread','get_ident'))
+       or _pipe is not _WORKER_PIPE_KERNEL or type(_pipe) is not tuple or len(_pipe)!=6
+       or type(_pipe[0]) is not type(len) or _pipe[0].__module__!='fcntl' or _pipe[0].__name__!='fcntl' or fcntl.fcntl is not _pipe[0]
+       or _payload is not _worker_payload or _payload.__code__ is not _payload_code
+       or ScopedDocker.worker_interactive is not definition or definition.__code__ is not definition_code
+       or definition.__defaults__ is not definition_defaults or type(definition_defaults) is not tuple or len(definition_defaults)!=6
+       or any(current is not expected for current,expected in zip(definition_defaults,(_kernel,_pipe,_io,_payload,_payload_code,None)))):
+    raise Held('original-dialogue-write-kernel-binding')
+  kernels();nfs_remote_guard(self)
+  need(type(_deadline) in (int,float) and _deadline==_deadline and 0<_deadline<float('inf'),'worker-original-absolute-deadline')
+  end=min(_kernel[1]()+seconds,_deadline)
+  need(_kernel[1]()<end,'worker-original-ingress-deadline')
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('worker-start-ACK-unknown') from None
-  original_pid=p.pid;streams=(p.stdin,p.stdout,p.stderr);fds=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
-  original_record=dialogue_register(self,cid,p,streams,fds,end,original_pid);original_seal=_DIALOGUE_SEALS[self][cid];outputs={streams[1]:'stdout',streams[2]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False;release_sent=False
+  streams=(p.stdin,p.stdout,p.stderr)
+  try:
+   kernels();original_pid=p.pid;need(type(original_pid) is int and original_pid>0,'worker-original-process');captured=[]
+   for stream in streams:
+    fd=stream.fileno();kernels();need(type(fd) is int and fd>=0,'worker-original-descriptor')
+    captured.append((fd,tuple(five(_kernel[0](fd)))))
+   fds=tuple(captured);need(len({fd for fd,_ in fds})==3,'worker-original-distinct-descriptors')
+   pipe_call=_pipe[0]
+   try:pipe_call(fds[0][0],_pipe[3],65536)
+   except OSError as error:
+    if error.errno not in (1,22):raise
+   pipe_capacity=pipe_call(fds[0][0],_pipe[2]);need(4096<=pipe_capacity<=65536,'worker-bounded-pipe-capacity')
+   pipe_flags=pipe_call(fds[0][0],_pipe[1])|_pipe[5];pipe_call(fds[0][0],_pipe[4],pipe_flags)
+   need(pipe_call(fds[0][0],_pipe[1])==pipe_flags,'worker-nonblocking-pipe')
+  except BaseException:
+   for stream in streams:
+    try:stream.close()
+    except BaseException:pass
+   raise Held('worker-pipe-setup-held-no-replay') from None
+  original_record=dialogue_register(self,cid,p,streams,fds,end,original_pid);original_seal=_DIALOGUE_SEALS[self][cid]
+  def tail():
+   kernels()
+   if (_DIALOGUES.get(self,{}).get(cid) is not original_record or _DIALOGUE_SEALS.get(self,{}).get(cid) is not original_seal
+       or type(original_record) is not dict or type(p.pid) is not int or p.pid!=original_pid
+       or p.stdin is not streams[0] or p.stdout is not streams[1] or p.stderr is not streams[2]
+       or original_record.get('process') is not original_seal[0] or original_record.get('streams') is not original_seal[1]
+       or original_record.get('descriptors') is not original_seal[2]
+       or any(type(original_record.get(key)) is not type(value) or original_record[key]!=value for key,value in zip(('pid','owner_pid','thread','deadline'),original_seal[3:]))):
+    raise Held('original-dialogue-write-registry')
+   if _io[3]()!=original_seal[4] or _io[4]()!=original_seal[5]:raise Held('original-dialogue-write-process')
+   for fd,fact in fds:
+    z=_kernel[0](fd)
+    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('original-dialogue-write-FD')
+   if pipe_call(fds[0][0],_pipe[1])!=pipe_flags or pipe_call(fds[0][0],_pipe[2])!=pipe_capacity:raise Held('worker-original-pipe-state')
+   kernels()
+   if _kernel[1]()>=end:raise Held('worker-original-ingress-deadline')
+  outputs={fds[1][0]:'stdout',fds[2][0]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False;release_sent=False;frames=0
+  def boundary(stage):
+   tail()
+   if release_sent and protocol.step==3:guard(final_pending=True,boundary=stage)
+   else:guard(boundary=stage)
+   tail()
   try:
    while outputs:
-    need(time.monotonic()<end,'worker-dialogue-deadline')
-    # A naturally exited worker may have its final frame buffered. Consume and
-    # validate that bounded frame before the strict step-4 exit profile guard.
-    if release_sent and protocol.step==3:guard(final_pending=True)
-    else:guard()
-    ready=select.select(list(outputs),[],[],min(1,max(0,end-time.monotonic())))[0]
-    for stream in ready:
-     dialogue_close(self,cid);block=os.read(stream.fileno(),65536)
-     if not block:del outputs[stream];continue
-     kind=outputs[stream];sizes[kind]+=len(block);need(sizes[kind]<=4*1024**2,'worker-output-bound')
+    tail();ready=_io[2](list(outputs),[],[],max(0,end-_kernel[1]()))[0];tail()
+    need(bool(ready),'worker-dialogue-deadline')
+    for fd in ready:
+     tail();block=_io[0](fd,65536);tail()
+     if not block:del outputs[fd];continue
+     kind=outputs[fd];sizes[kind]+=len(block);need(sizes[kind]<=4*1024**2,'worker-output-bound')
      if kind=='stderr':continue
      line.extend(block);need(len(line)<=4*1024**2+1,'worker-frame-bound')
-     while b'\n' in line:
-      raw,_,remainder=line.partition(b'\n');line=bytearray(remainder);need(not done,'worker-output-after-release')
-      response=protocol.accept(bytes(raw));guard();dialogue_close(self,cid);guard()
-      if response is None:done=True;continue
-      need(type(response) is bytes and 0<len(response)<=4*1024**2,'worker-response-encoded')
-      if protocol.step==3:need(response==protocol.release,'worker-original-release-response')
-      pending=memoryview(response+b'\n')
-      while pending:
-       need(time.monotonic()<end and bool(select.select([],[fds[0][0]],[],max(0,end-time.monotonic()))[1]),'worker-response-timeout')
-       dialogue_close(self,cid);guard()
-       if (_kernel is not _DIALOGUE_KERNELS or type(_kernel) is not tuple or len(_kernel)!=2
-           or any(type(fn) is not type(len) for fn in _kernel) or _kernel[0].__name__!='fstat' or _kernel[0].__module__!='posix'
-           or _kernel[1].__name__!='monotonic' or _kernel[1].__module__!='time'
-           or os.fstat is not _kernel[0] or time.monotonic is not _kernel[1]
-           or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults
-           or definition_defaults!=(_kernel,)):raise Held('original-dialogue-write-kernel-binding')
-       if (_DIALOGUES.get(self,{}).get(cid) is not original_record or _DIALOGUE_SEALS.get(self,{}).get(cid) is not original_seal
-           or (p.stdin,p.stdout,p.stderr)!=streams or p.pid!=original_pid):raise Held('original-dialogue-write-registry')
-       if (original_record.get('process') is not original_seal[0] or original_record.get('streams') is not original_seal[1]
-           or original_record.get('descriptors') is not original_seal[2]
-           or any(type(original_record.get(key)) is not type(value) or original_record[key]!=value for key,value in zip(('pid','owner_pid','thread','deadline'),original_seal[3:]))):raise Held('original-dialogue-write-registry')
-       for fd,fact in fds:
-        z=_kernel[0](fd)
-        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('original-dialogue-write-FD')
-       if os.fstat is not _kernel[0] or time.monotonic is not _kernel[1] or definition.__code__ is not definition_code or definition.__defaults__ is not definition_defaults:raise Held('original-dialogue-write-kernel-binding')
-       if _kernel[1]()>=end:raise Held('original-dialogue-write-deadline')
-       n=os.write(fds[0][0],pending[:4096]);need(n>0,'worker-response-unknown');pending=pending[n:]
-      if protocol.step==3:release_sent=True
-   need(done and not line and p.wait(timeout=max(.001,end-time.monotonic()))==0,'worker-final-ACK-unknown')
-   dialogue_close(self,cid);guard();return protocol.result
+     if b'\n' not in line:continue
+     raw,_,remainder=line.partition(b'\n');line.clear();frames+=1
+     need(not done and frames<=4 and not remainder,'worker-unexpected-frame-tail')
+     boundary('incoming');response=protocol.accept(bytes(raw));boundary('parsed')
+     if response is None:done=True;continue
+     need(type(response) is bytes and 0<len(response)<=4*1024**2 and b'\n' not in response,'worker-response-encoded')
+     if protocol.step==3:need(response==protocol.release,'worker-original-release-response')
+     _payload(fds[0][0],response,end,tail,_io[1],_io[2],_kernel[1])
+     tail();need(bool(_io[2]([],[fds[0][0]],[],max(0,end-_kernel[1]()))[1]),'worker-response-timeout')
+     # The receiver cannot act on payload before this single commit byte.
+     boundary('commit')
+     try:n=_io[1](fds[0][0],b'\n')
+     except BlockingIOError:raise Held('worker-commit-unknown-no-replay') from None
+     need(type(n) is int and n==1,'worker-commit-unknown-no-replay')
+     if protocol.step==3:release_sent=True
+   tail();need(done and not line and p.wait(timeout=max(.001,end-_kernel[1]()))==0,'worker-final-ACK-unknown')
+   boundary('complete');return protocol.result
   except BaseException:raise Held('worker-uncertain-retain-proof-no-replay') from None
   finally:
-   for stream in streams:stream.close()
+   primary=sys.exc_info()[1];cleanup=[]
+   for stream in streams:
+    try:stream.close()
+    except BaseException as error:cleanup.append(error)
    _DIALOGUES.get(self,{}).pop(cid,None);_DIALOGUE_SEALS.get(self,{}).pop(cid,None)
+   if cleanup and primary is None:raise Held('worker-stream-cleanup-uncertain') from cleanup[0]
  def remove_observer(self,cid,original):
   nfs_remote_guard(self)
   # Only the parent can pass an actual freshly inspected exited owned profile.
@@ -3388,6 +3455,8 @@ class LifecycleParent:
             os.close(directory)
 
     def continuous(self, _definitions=completion_definitions_guard, _definition_code=completion_definitions_guard.__code__, _definition_defaults=completion_definitions_guard.__defaults__):
+        event_start = getattr(self, 'event_start', None)
+        need(type(event_start) in (str, type(None)), 'continuous-original-event-history')
         need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
         archive_completion_guard(self)
         files = dict(self.files); nodes = dict(self.nodes)
@@ -3418,25 +3487,38 @@ class LifecycleParent:
         self.left(); final(files, nodes, ())
         need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
         archive_completion_guard(self)
+        history = getattr(self, 'event_start', None)
+        need(type(history) is type(event_start) and history == event_start, 'continuous-original-event-history')
         return values
 
     def events(self):
-        for key in ('reader', 'held_native', 'held_worker'):
-            # Query through the present instant. A future whole-second cutoff
-            # makes every guard wait, repeatedly consuming the worker's fixed
-            # deadline. Keep nanoseconds exact and retain the full original
-            # history on every query, including events after a prior cutoff.
-            now = time.time_ns()
-            need(now >= int(self.event_start) * 10**9, 'event-clock-before-original-history')
-            until = str(now // 10**9) + '.' + str(now % 10**9).zfill(9)
-            raw = self.engine.run(['events', '--since', self.event_start, '--until', until,
-                                   '--filter', 'container=' + self.plan[key]['id'], '--format', '{{json .}}'], self.left())
-            for line in raw.splitlines():
-                event = decode(line)
-                need(event.get('Actor', {}).get('ID') == self.plan[key]['id'], 'event-scope')
-                need(event.get('Action') not in ('start', 'restart', 'unpause', 'destroy', 'kill', 'die')
-                     or key == 'reader' and event.get('Action') in ('kill', 'die')
-                     and self.phase == 'stopping', 'continuous-quiescence-event')
+        roles = tuple((self.plan[key]['id'], key) for key in ('reader', 'held_native', 'held_worker'))
+        need(all(digest(cid) for cid, _ in roles) and len({cid for cid, _ in roles}) == 3,
+             'event-original-distinct-roles')
+        phase = self.phase; since = self.event_start
+        need(type(phase) is str and type(since) is str, 'event-original-primitives')
+        # Repeated container filters are ORed by Docker. One query retains the
+        # original history for all roles at the same fresh nanosecond cutoff,
+        # with one complete pre-command closure and continuous()'s final closure.
+        now = time.time_ns()
+        need(now >= int(since) * 10**9, 'event-clock-before-original-history')
+        until = str(now // 10**9) + '.' + str(now % 10**9).zfill(9)
+        args = ['events', '--since', since, '--until', until]
+        for cid, _ in roles:args.extend(['--filter', 'container=' + cid])
+        args.extend(['--format', '{{json .}}'])
+        seconds = self.left()
+        need(type(self.event_start) is str and self.event_start == since, 'event-original-history')
+        raw = self.engine.run(args, seconds)
+        need(type(self.event_start) is str and self.event_start == since, 'event-original-history')
+        need(type(self.phase) is str and self.phase == phase, 'event-original-phase')
+        by_id = dict(roles)
+        for line in raw.splitlines():
+            event = decode(line);actor = event.get('Actor', {})
+            need(type(actor) is dict and type(actor.get('ID')) is str and actor['ID'] in by_id, 'event-scope')
+            key = by_id[actor['ID']]
+            need(event.get('Action') not in ('start', 'restart', 'unpause', 'destroy', 'kill', 'die')
+                 or key == 'reader' and event.get('Action') in ('kill', 'die')
+                 and phase == 'stopping', 'continuous-quiescence-event')
 
     def produce(self, phase, context):
         need(phase in ('native-observation', 'backup-controls', 'phase-custody',
@@ -4009,7 +4091,7 @@ class LifecycleParent:
     def worker_intent(self,current):
         need(self.plan.get('version') in (12,13) and WORKER_OBSERVATION_ENABLED is True and type(self.engine) is ScopedDocker and self in _WORKER_MODULES and self not in _WORKER_INTENTS,'worker-owning-original-intent')
         producer=current['Id'];dialogue_close(self.engine,producer)
-        original_deadline=min(time.monotonic()+30.0,self.deadline,_DIALOGUE_SEALS[self.engine][producer][6]);need(original_deadline>time.monotonic(),'worker-ingress-original-deadline')
+        original_deadline=min(time.monotonic()+90.0,self.deadline,_DIALOGUE_SEALS[self.engine][producer][6]);need(original_deadline>time.monotonic(),'worker-ingress-original-deadline')
         module=_WORKER_MODULES[self];held=self.baselines['held_worker'];mounts=copy.deepcopy(held['Mounts'])
         rows,_=module.mapping(mounts)
         roots=sorted(b for a,b in rows if any(Path(b)==Path(r) or Path(r) in Path(b).parents for r in module.READ_ROOTS))
@@ -4079,7 +4161,8 @@ class LifecycleParent:
             else:
                 need(state=='exited' and running is not None and released and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
                 if protocol.step==4 and terminal_static is None:terminal_static=encode(static(row))
-        def guard(final_pending=False):
+        def guard(final_pending=False,boundary=None):
+            need(boundary is None or type(boundary) is str and boundary in ('incoming','parsed','commit','complete'),'worker-original-boundary')
             protocol_state=module._ROUND_STATES.get(protocol)
             need(time.monotonic()<intent[7],'worker-original-ingress-deadline')
             self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'worker-live-original-producer')
@@ -4159,7 +4242,7 @@ class LifecycleParent:
         guard();cid=self.engine.run(list(intent[0]),min(budget,self.left())).decode().strip();need(digest(cid),'worker-create-ACK')
         created=self.inspect(cid);self.worker_profile(created,cid,intent,'created');created_static=static(created);created_projection=module.freeze(created_static)
         owned_record=(intent[3],copy.deepcopy(created_static));_OBSERVER_OWNED.setdefault(self.engine,{})[cid]=owned_record
-        result=self.engine.worker_interactive(cid,protocol,min(budget,self.left()),guard)
+        result=self.engine.worker_interactive(cid,protocol,min(budget,self.left()),guard,_deadline=intent[7])
         need(protocol.step==4 and result is not None,'worker-complete-original-dialogue')
         exited=self.inspect(cid);child_profile(exited);need(terminal_static is not None and encode(static(exited))==terminal_static and running is not None and exited['State']['StartedAt']==running['State']['StartedAt'],'worker-original-exit-profile')
         _OBSERVER_RELEASED.setdefault(self.engine,{})[cid]=(producer_dialogue,result,terminal_static)

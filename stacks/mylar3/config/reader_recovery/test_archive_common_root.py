@@ -623,6 +623,172 @@ class OwnerReadTests(unittest.TestCase):
             for fd in held:
                 with self.assertRaises(OSError):os.fstat(fd)
 
+    def test_tree_remote_input_ancestors_use_bound_owner_and_restore_root(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();path=self.root/'L'/'remote-source.json'
+        path.write_bytes(b'{"remote":true}');path.chmod(0o600)
+        ref=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+        tree.reserve_nfs_control(ref,public=True);original=p.os.lstat;denied=[]
+        def guarded(value,*args,**kwargs):
+            target=Path(value) if isinstance(value,(str,Path))else None
+            if self.uid==0 and target is not None and (target==self.root or self.root in target.parents):
+                denied.append(str(target));raise PermissionError('Root cannot traverse this synthetic export')
+            return original(value,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=guarded),mock.patch.object(p.os,'geteuid',return_value=os.getuid()):
+            result=tree.project(ref);tree.check()
+        self.assertEqual(Path(result['path']).read_bytes(),b'{"remote":true}')
+        self.assertEqual(self.uid,0);self.assertEqual(denied,[])
+
+    def test_archive_source_group_uses_owner_for_every_remote_ancestor(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();refs={}
+        names=('comic_archive_backup_action.py','comic_archive_repair_action.py','comic_archive_evidence_adapter.py',
+               'comic_archive_proof_producer.py','comic_reader_backup.py','comic_reader_backup_primitives.py',
+               'comic_reader_schema.py','publication_native_configured_scope.py','comic_native_process_probe.py')
+        for name in names:
+            path=self.root/'L'/name;path.write_bytes(name.encode());path.chmod(0o600)
+            refs[name]=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+            tree.reserve_nfs_control(refs[name],public=True)
+        original=p.os.lstat;denied=[]
+        def guarded(value,*args,**kwargs):
+            target=Path(value) if isinstance(value,(str,Path))else None
+            if self.uid==0 and target is not None and (target==self.root or self.root in target.parents):
+                denied.append(str(target));raise PermissionError('Root cannot traverse this synthetic export')
+            return original(value,*args,**kwargs)
+        with mock.patch.object(p.os,'lstat',side_effect=guarded),mock.patch.object(p.os,'geteuid',return_value=os.getuid()):
+            result=tree.archive_sources(refs);tree.check()
+        self.assertEqual(set(result),set(names));self.assertEqual(denied,[]);self.assertEqual(self.uid,0)
+        for name,ref in result.items():self.assertEqual(Path(ref['path']).read_bytes(),name.encode())
+
+    def test_remote_input_ancestor_drift_still_refuses_before_pair_commit(self):
+        from unittest import mock
+        projection,tree,_,_=self.control_tree();path=self.root/'L'/'remote-source.json'
+        path.write_bytes(b'{"remote":true}');path.chmod(0o600)
+        ref=dict(path=str(path),sha256=p.hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+        tree.reserve_nfs_control(ref,public=True);original=p.os.stat;changed=[];pairs=tree.pairs
+        def drift(value,*args,**kwargs):
+            result=original(value,*args,**kwargs)
+            if self.uid==1000 and str(value)==path.name and not changed:
+                changed.append(True);path.parent.chmod(0o750)
+            return result
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=drift),mock.patch.object(p.os,'geteuid',return_value=os.getuid()),self.assertRaises((p.Held,projection.Held)):
+                tree.project(ref)
+            self.assertTrue(changed);self.assertEqual(tree.pairs,pairs);self.assertEqual(self.uid,0)
+            self.assertEqual(path.read_bytes(),b'{"remote":true}')
+        finally:path.parent.chmod(0o700)
+
+    def test_stats_siblings_keep_one_initial_and_each_fresh_walk(self):
+        from unittest import mock
+        paths=tuple(str(self.root/'L'/str(i))for i in range(4))
+        for path in paths:Path(path).write_bytes(b'original')
+        original=p.os.open;roots=[];opened=[]
+        def observed(path,*args,**kwargs):
+            fd=original(path,*args,**kwargs)
+            if self.uid==1000:opened.append(fd)
+            if self.uid==1000 and path=='/':roots.append(fd)
+            return fd
+        with mock.patch.object(p.os,'open',side_effect=observed):values=self.actor._run('stats',paths)
+        self.assertEqual([p.nine(v)for v in values],[p.nine(Path(path).lstat())for path in paths])
+        self.assertEqual(len(roots),len(paths)+1);self.assertEqual(self.uid,0)
+        for fd in set(opened):
+            with self.assertRaises(OSError):os.fstat(fd)
+
+    def test_stats_parent_change_and_next_call_open_new_chains(self):
+        from unittest import mock
+        paths=tuple(str(self.root/name/leaf)for name,leaf in (('L','a'),('L','b'),('R','c'),('L','d')))
+        for path in paths:Path(path).write_bytes(b'original')
+        original=p.os.open;roots=[]
+        def observed(path,*args,**kwargs):
+            fd=original(path,*args,**kwargs)
+            if self.uid==1000 and path=='/':roots.append(fd)
+            return fd
+        with mock.patch.object(p.os,'open',side_effect=observed):
+            values=self.actor._run('stats',paths);first=len(roots);self.actor._run('stats',paths[:2])
+        self.assertEqual(first,7);self.assertEqual(len(roots)-first,3)
+        self.assertEqual([p.nine(v)for v in values],[p.nine(Path(path).lstat())for path in paths]);self.assertEqual(self.uid,0)
+
+    def test_stats_sibling_parent_replacement_refuses_before_next_sample(self):
+        from unittest import mock
+        folder=self.root/'L'/'siblings';folder.mkdir(mode=0o700)
+        paths=tuple(str(folder/name)for name in ('first','second','third'))
+        for path in paths:Path(path).write_bytes(b'original')
+        original=p.os.stat;seen=[];saved=folder.with_name('saved')
+        def changed(name,*args,**kwargs):
+            value=original(name,*args,**kwargs)
+            if name in ('first','second','third'):seen.append(name)
+            if name=='second':folder.rename(saved);folder.mkdir(mode=0o700)
+            return value
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=changed),self.assertRaises(p.Held):self.actor._run('stats',paths)
+            self.assertEqual(seen,['first','second']);self.assertEqual(self.uid,0)
+        finally:
+            if saved.exists():folder.rmdir();saved.rename(folder)
+
+    def test_stats_sibling_symlink_substitution_refuses(self):
+        from unittest import mock
+        folder=self.root/'L'/'siblings';folder.mkdir(mode=0o700)
+        for name in ('first','second'):(folder/name).write_bytes(b'original')
+        original=p.os.stat;saved=folder.with_name('saved')
+        def changed(name,*args,**kwargs):
+            value=original(name,*args,**kwargs)
+            if name=='second':folder.rename(saved);folder.symlink_to(saved,target_is_directory=True)
+            return value
+        try:
+            with mock.patch.object(p.os,'stat',side_effect=changed),self.assertRaises(OSError):self.actor._run('stats',tuple(str(folder/name)for name in ('first','second')))
+            self.assertEqual(self.uid,0)
+        finally:
+            if saved.exists():folder.unlink();saved.rename(folder)
+
+    def test_stats_missing_leaf_keeps_primary_through_close_failure(self):
+        from unittest import mock
+        path=self.root/'L'/'present';path.write_bytes(b'original')
+        original_open=p.os.open;original_close=p.os.close;opened=[];failed=[]
+        def opened_fd(*args,**kwargs):
+            fd=original_open(*args,**kwargs)
+            if self.uid==1000:opened.append(fd)
+            return fd
+        def close(fd):
+            original_close(fd)
+            if self.uid==1000 and opened and fd==opened[0] and not failed:failed.append(fd);raise RuntimeError('synthetic close after dispatch')
+        with mock.patch.object(p.os,'open',side_effect=opened_fd),mock.patch.object(p.os,'close',side_effect=close),self.assertRaises(FileNotFoundError):
+            self.actor._run('stats',(str(path),str(path.with_name('missing'))))
+        self.assertTrue(failed);self.assertEqual(self.uid,0)
+        for fd in set(opened):
+            with self.assertRaises(OSError):os.fstat(fd)
+
+    def test_stats_root_and_single_stat_keep_original_samples(self):
+        paths=('/',str(Path(str(self.root)).parents[-2]))
+        values=self.actor._run('stats',paths,ancestor=True)
+        self.assertEqual([p.five(v)for v in values],[p.five(Path(path).lstat())for path in paths])
+        self.assertEqual(p.five(self.actor._run('stat',str(self.root))),p.five(self.root.lstat()));self.assertEqual(self.uid,0)
+
+    def test_stats_parent_change_close_failure_never_opens_next_chain(self):
+        from unittest import mock
+        paths=(str(self.root/'L'/'left'),str(self.root/'R'/'right'))
+        for path in paths:Path(path).write_bytes(b'original')
+        original_open=p.os.open;original_close=p.os.close;original_stat=p.os.stat
+        chain=[];opened=[];sampled=[];failed=[];roots=[]
+        def opened_fd(path,*args,**kwargs):
+            fd=original_open(path,*args,**kwargs)
+            if self.uid==1000:
+                opened.append(fd)
+                if path=='L' and not chain:chain.append(fd)
+                if path=='/':roots.append(fd)
+            return fd
+        def close(fd):
+            original_close(fd)
+            if self.uid==1000 and chain and fd==chain[0] and not failed:
+                failed.append(fd);raise RuntimeError('synthetic parent-change close')
+        def sample(name,*args,**kwargs):
+            if name in ('left','right'):sampled.append(name)
+            return original_stat(name,*args,**kwargs)
+        with mock.patch.object(p.os,'open',side_effect=opened_fd),mock.patch.object(p.os,'close',side_effect=close),mock.patch.object(p.os,'stat',side_effect=sample),self.assertRaisesRegex(RuntimeError,'synthetic parent-change close'):
+            self.actor._run('stats',paths)
+        self.assertEqual(sampled,['left']);self.assertEqual(len(roots),2);self.assertEqual(self.uid,0)
+        for fd in set(opened):
+            with self.assertRaises(OSError):os.fstat(fd)
+
     def control_tree(self):
         import hashlib
         from unittest import mock

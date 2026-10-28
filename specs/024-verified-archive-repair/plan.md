@@ -281,6 +281,22 @@ child guards. Source controls do not complete T012 or T015.
 
 ### Admission closure and diagnosis
 
+The nested worker exchange mints one 90-second ingress deadline at intent
+creation, capped by the original Parent and producer deadlines. Preparation
+consumes that same absolute budget. The deadline detects stalls and never grants
+acceptance or refreshes after progress.
+
+Transfer each immutable payload without its delimiter, retaining exact unsent
+suffixes after bounded nonblocking writes. Check original descriptors, process,
+registry, pipe state and kernel bindings on every I/O retry. Close full
+preservation vectors before committing the separate newline. Receivers wait for
+that delimiter before accepting a frame. The parent performs full guards before
+and after each of four incoming frames, before its three outgoing commits, and
+at final EOF: exactly 12 transport guards independent of fragmentation. The
+worker closes its full vectors once per outgoing frame. Unknown commit outcomes
+hold without replay. These source controls still require a fresh configured
+forward and distinct-fixture rollback, with matching installed worker bytes.
+
 Deduplicate identical control metadata by exact path within each Tree check,
 refusing conflicting facts before callbacks. Preserve both closure passes,
 original seals and fresh validation on every call. Test duplicated file and node

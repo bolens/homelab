@@ -155,12 +155,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    for name, content in outputs().items():
-        path = WORKER / name
+    targets = {WORKER / name: content for name, content in outputs().items()}
+    # Current installer controls must be self-contained in Mylar's Docker context.
+    # Keep the historical worker separate and preserve exact canonical bytes.
+    targets[NATIVE / 'reader_recovery/_current_worker_source/archive_terminal_observation.py'] = (WORKER / 'archive_terminal_observation.py').read_text()
+    for path, content in targets.items():
         if args.check:
             if not path.is_file() or path.read_text() != content:
                 raise SystemExit('Stale publication reader: ' + str(path.relative_to(ROOT)))
         else:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
 
 

@@ -267,6 +267,67 @@ def catalog_owner(snapshot, selected, native_target):
             'releasecomicid': selected['releasecomicid'], 'status': row['Status'], 'native_path': native_target}
 
 
+_FRAME_KERNELS = (os.write, os.fstat, os.getpid, threading.get_ident, time.monotonic, select.select, os.read)
+
+
+def _frame_tail(channel, original, _kernel=_FRAME_KERNELS):
+    if (_kernel is not _FRAME_KERNELS or type(_kernel) is not tuple or len(_kernel) != 7
+            or any(type(fn) is not type(len) for fn in _kernel)
+            or any(current is not bound for current, bound in zip((os.write, os.fstat, os.getpid, threading.get_ident, time.monotonic, select.select, os.read), _kernel))
+            or tuple((fn.__module__, fn.__name__) for fn in _kernel) != (('posix', 'write'), ('posix', 'fstat'), ('posix', 'getpid'), ('_thread', 'get_ident'), ('time', 'monotonic'), ('select', 'select'), ('posix', 'read'))):
+        raise Held('frame-original-kernel')
+    if type(channel) is not ParentChannel or _CHANNEL_ORIGINALS.get(channel) is not original or channel.used is not True or channel not in _SPENT:
+        raise Held('original-channel-registry')
+    for name, function, code, defaults in original[8]:
+        current = _Launch.__init__ if name == 'launch_init' else getattr(ParentChannel, '__init__' if name == 'init' else name) if name in ('init', 'read', 'send') else globals().get(name)
+        if current is not function or function.__code__ is not code or function.__defaults__ is not defaults: raise Held('implementation-drift')
+    for value, expected in zip((channel.read_fd, channel.write_fd, channel.pid, channel.thread, channel.deadline),
+                               (original[0], original[1], original[3], original[4], original[5])):
+        if type(value) is not type(expected) or value != expected: raise Held('original-channel-drift')
+    if (channel.facts is not original[2] or channel.roots is not original[6]
+            or channel.implementation is not original[8] or channel.constants is not original[9]
+            or channel.launch is not original[10] or channel.birth is not original[11]
+            or type(channel.source) is not dict or len(channel.source) != len(original[7])
+            or any(type(key) is not str for key in channel.source)
+            or any(channel.source.get(key) is not value for key, value in original[7])):
+        raise Held('original-channel-drift')
+    constants = original[9]
+    for value, expected in zip((ENABLED, PROTOCOL, WIRE2, LIMIT, COUNT, STREAM, __file__), (*constants[:6], constants[9])):
+        if type(value) is not type(expected) or value != expected: raise Held('original-constant-drift')
+    if READ_ROOTS is not original[6] or VECTORS is not constants[7] or type(RIGHTS) is not dict or len(RIGHTS) != len(constants[8]):
+        raise Held('original-constant-drift')
+    if any(type(key) is not str for key in RIGHTS) or any(type(RIGHTS.get(key)) is not bool or RIGHTS.get(key) is not value for key, value in constants[8]):
+        raise Held('original-constant-drift')
+    launch = original[10]
+    if launch is not None:
+        if type(launch) is not _Launch or _LAUNCHES.get(launch) is not original[12]: raise Held('original-launch-registry')
+        for value, expected in zip((launch.nonce, launch.operation, launch.pid, launch.thread), (original[12][0], original[12][1], original[12][4], original[12][5])):
+            if type(value) is not type(expected) or value != expected: raise Held('original-launch-registry')
+        if launch.bind_roots is not original[12][2] or launch.argv is not original[12][3] or launch.orig_argv is not original[12][6]: raise Held('original-launch-registry')
+        for value, expected in ((sys.argv, launch.argv), (sys.orig_argv, launch.orig_argv)):
+            if type(value) not in (list, tuple) or any(type(part) is not str for part in value) or tuple(value) != expected: raise Held('original-launch-registry')
+    if _kernel[2]() != original[3] or _kernel[3]() != original[4]: raise Held('original-process-or-config-drift')
+    for fd, expected in zip(original[:2], original[2]):
+        value = _kernel[1](fd)
+        if (value.st_dev, value.st_ino, value.st_mode, value.st_uid, value.st_gid) != expected: raise Held('original-channel-FD')
+    if _kernel[4]() >= original[5]: raise Held('deadline')
+    return _kernel
+
+
+def _frame_payload(fd, raw, end, check, write, ready, clock):
+    """Transfer only payload. The owning sender commits the delimiter separately."""
+    need(type(raw) is bytes and 0 < len(raw) <= LIMIT and b'\n' not in raw, 'reply-framing')
+    pending = memoryview(raw)
+    while pending:
+        check(); remaining = end - clock()
+        need(remaining > 0 and bool(ready([], [fd], [], remaining)[1]), 'reply-timeout')
+        check()
+        try: count = write(fd, pending[:4096])
+        except BlockingIOError: continue
+        need(type(count) is int and 0 < count <= min(len(pending), 4096), 'reply-lost')
+        pending = pending[count:]
+
+
 class ParentChannel:
     """Actual inherited pipe; a caller packet cannot construct a closed observation."""
     __slots__ = ('read_fd', 'write_fd', 'facts', 'pid', 'thread', 'deadline', 'source',
@@ -302,19 +363,35 @@ class ParentChannel:
             self.deadline, self.roots, tuple((k, self.source[k]) for k in sorted(VECTORS)), self.implementation, self.constants, self.launch, self.birth, None if launch is None else _LAUNCHES.get(launch))
 
     def read(self):
+        original = _CHANNEL_ORIGINALS.get(self)
+        need(original is not None, 'read-original-channel')
+        _, tail, tail_code, tail_defaults = next(row for row in original[8] if row[0] == '_frame_tail')
+        def checked_tail():
+            if tail.__code__ is not tail_code or tail.__defaults__ is not tail_defaults: raise Held('implementation-drift')
+            return tail(self, original)
         data = bytearray()
-        while not data.endswith(b'\n'):
-            need(time.monotonic() < self.deadline and len(data) <= LIMIT, 'pipe-bound')
-            ready = select.select([self.read_fd], [], [], max(0, self.deadline - time.monotonic()))[0]
-            need(bool(ready), 'parent-timeout')
-            b = os.read(self.read_fd, 1); need(bool(b), 'parent-lost'); data.extend(b)
-        need(len(data) <= LIMIT + 1, 'pipe-bound')
-        return bytes(data[:-1])
+        while True:
+            kernel = checked_tail()
+            ready = kernel[5]([original[0]], [], [], max(0, original[5] - kernel[4]()))[0]
+            checked_tail(); need(bool(ready), 'parent-timeout')
+            block = kernel[6](original[0], 65536)
+            checked_tail(); need(bool(block), 'parent-lost')
+            data.extend(block); need(len(data) <= LIMIT + 1, 'pipe-bound')
+            if b'\n' in data:
+                raw, _, remainder = data.partition(b'\n')
+                need(not remainder, 'parent-unexpected-frame-tail')
+                checked_tail()
+                return bytes(raw)
 
     def send(self, raw, *, local=None):
-        need(type(raw) is bytes and 0 < len(raw) <= LIMIT, 'reply-size')
+        need(type(raw) is bytes and 0 < len(raw) <= LIMIT and b'\n' not in raw, 'reply-size')
         original=_CHANNEL_ORIGINALS.get(self);need(original is not None,'send-original-channel')
         channel=self
+        _, tail, tail_code, tail_defaults = next(row for row in original[8] if row[0] == '_frame_tail')
+        def checked_tail():
+            if tail.__code__ is not tail_code or tail.__defaults__ is not tail_defaults: raise Held('implementation-drift')
+            return tail(self, original)
+        _, payload, payload_code, payload_defaults = next(row for row in original[8] if row[0] == '_frame_payload')
         combined={k:tuple(v) for k,v in (local or {k:() for k in VECTORS}).items()}
         for key in ('files9','nodes5'):
             rows=dict(combined[key])
@@ -323,53 +400,41 @@ class ParentChannel:
             if key=='nodes5' and original[10] is not None:
                 for p,v in original[11]:need(p not in rows or rows[p]==v,'send-original-birth-conflict');rows[p]=v
             combined[key]=tuple(rows.items())
-        pending=memoryview(raw+b'\n')
-        while pending:
-            remaining=original[5]-time.monotonic()
-            need(remaining>0 and bool(select.select([],[original[1]],[],remaining)[1]),'reply-timeout')
-            close_originals(channel,original,combined)
-            # Helper/FD/time callbacks have finished BEFORE the inline closure.
-            observed_pid=os.getpid();observed_thread=threading.get_ident();observed_time=time.monotonic()
-            # Complete helper work precedes the final inline primitive closure. It uses
-            # the same detached originals, never newly observed replacement vectors.
-            for p, names in combined['namespaces']:
-                if tuple(sorted(os.listdir(p))) != names: raise Held('final-namespace-drift')
-            for p, v in combined['claims']:
-                try: z = os.lstat(p)
-                except FileNotFoundError:
-                    if v is None: continue
-                    raise Held('final-claim-drift')
-                got = (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid,
-                       None if z.st_mode & 0o170000 == 0o040000 else z.st_nlink)
-                if got != v: raise Held('final-claim-drift')
-            for p in combined['absent']:
-                try: os.lstat(p)
-                except FileNotFoundError: continue
-                raise Held('final-absence-drift')
-            for p, v in combined['nodes5']:
-                z = os.lstat(p)
-                if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != v: raise Held('final-node-drift')
-            for p, v in combined['files9']:
-                z = os.lstat(p)
-                if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns, z.st_mode,
-                        z.st_uid, z.st_gid, z.st_nlink) != v: raise Held('final-file-drift')
-            # No parser/hash/SQL/serializer/config/helper closure follows these loops.
-            if (channel.read_fd, channel.write_fd, channel.facts, channel.pid, channel.thread,
-                channel.deadline, channel.roots, tuple((k, channel.source[k]) for k in sorted(VECTORS)), channel.implementation, channel.constants, channel.launch, channel.birth, original[12]) != original:
-                raise Held('original-channel-drift')
-            if observed_pid != original[3] or observed_thread != original[4] or tuple(READ_ROOTS) != original[6]:
-                raise Held('original-process-or-config-drift')
-            if observed_time >= original[5]: raise Held('deadline')
-            if _CHANNEL_ORIGINALS.get(channel) is not original or channel not in _SPENT: raise Held('original-channel-registry')
-            if not channel.used or (original[10] is None and ENABLED is not True) or (ENABLED, PROTOCOL, WIRE2, LIMIT, COUNT, STREAM, tuple(READ_ROOTS),
-                    frozenset(VECTORS), tuple(sorted(RIGHTS.items())), str(__file__)) != original[9]: raise Held('original-constant-drift')
-            launch=original[10]
-            if launch is not None and (type(launch) is not _Launch or _LAUNCHES.get(launch) is not original[12] or (launch.nonce,launch.operation,launch.bind_roots,launch.argv,launch.pid,launch.thread,launch.orig_argv)!=original[12]
-                    or tuple(sys.argv)!=launch.argv or tuple(sys.orig_argv)!=launch.orig_argv or launch.pid!=observed_pid or launch.thread!=observed_thread):raise Held('original-launch-registry')
-            for n, function, code in original[8]:
-                got = _Launch.__init__ if n=='launch_init' else getattr(ParentChannel, '__init__' if n == 'init' else n) if n in ('init', 'read', 'send') else globals().get(n)
-                if got is not function or got.__code__ is not code: raise Held('implementation-drift')
-            n=os.write(original[1],pending[:4096]);need(n>0,'reply-lost');pending=pending[n:]
+        kernel = checked_tail()
+        if payload.__code__ is not payload_code or payload.__defaults__ is not payload_defaults: raise Held('implementation-drift')
+        payload(original[1], raw, original[5], checked_tail, kernel[0], kernel[5], kernel[4])
+        # Finish all wait callbacks before the sole full preservation closure.
+        need(bool(kernel[5]([], [original[1]], [], max(0, original[5] - kernel[4]()))[1]), 'reply-timeout')
+        close_originals(channel,original,combined)
+        # Helper/FD/time callbacks have finished BEFORE the inline closure.
+        # Complete helper work precedes the final inline primitive closure. It uses
+        # the same detached originals, never newly observed replacement vectors.
+        if channel.used is not True or channel not in _SPENT: raise Held('original-channel-registry')
+        for p, names in combined['namespaces']:
+            if tuple(sorted(os.listdir(p))) != names: raise Held('final-namespace-drift')
+        for p, v in combined['claims']:
+            try: z = os.lstat(p)
+            except FileNotFoundError:
+                if v is None: continue
+                raise Held('final-claim-drift')
+            got = (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid,
+                   None if z.st_mode & 0o170000 == 0o040000 else z.st_nlink)
+            if got != v: raise Held('final-claim-drift')
+        for p in combined['absent']:
+            try: os.lstat(p)
+            except FileNotFoundError: continue
+            raise Held('final-absence-drift')
+        for p, v in combined['nodes5']:
+            z = os.lstat(p)
+            if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != v: raise Held('final-node-drift')
+        for p, v in combined['files9']:
+            z = os.lstat(p)
+            if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns, z.st_mode,
+                    z.st_uid, z.st_gid, z.st_nlink) != v: raise Held('final-file-drift')
+        checked_tail()
+        try: count = kernel[0](original[1], b'\n')
+        except BlockingIOError: raise Held('reply-commit-unknown-no-replay') from None
+        need(type(count) is int and count == 1, 'reply-commit-unknown-no-replay')
 
 
 def _source_original():
@@ -384,19 +449,20 @@ def _source_original():
 def _implementation():
     names = ('need', 'nine', 'five', 'encode', 'decode', 'path', 'vector', 'digest', 'owner', 'frame', 'raw_close',
              'read_file', 'sql_snapshot', 'catalog_owner', 'exchange', '_source_original',
-             'close_originals', '_implementation', 'reviewed_launch')
-    return tuple((n, globals()[n], globals()[n].__code__) for n in names) + (
+             'close_originals', '_implementation', 'reviewed_launch', '_frame_tail', '_frame_payload')
+    rows = tuple((n, globals()[n], globals()[n].__code__) for n in names) + (
         ('init', ParentChannel.__init__, ParentChannel.__init__.__code__),
         ('launch_init', _Launch.__init__, _Launch.__init__.__code__),
         ('read', ParentChannel.read, ParentChannel.read.__code__),
         ('send', ParentChannel.send, ParentChannel.send.__code__))
+    return tuple((name, function, code, function.__defaults__) for name, function, code in rows)
 
 
 def close_originals(channel, original, local):
     # Original channel/implementation tuple was retained BEFORE any callbacks.
-    for n, function, code in channel.implementation:
+    for n, function, code, defaults in channel.implementation:
         got = _Launch.__init__ if n=='launch_init' else getattr(ParentChannel, '__init__' if n == 'init' else n) if n in ('init', 'read', 'send') else globals().get(n)
-        if got is not function or got.__code__ is not code: raise Held('implementation-drift')
+        if got is not function or got.__code__ is not code or got.__defaults__ is not defaults: raise Held('implementation-drift')
     combined = {k: tuple(v) for k, v in local.items()}
     original_source = dict(original[7])
     for key in ('files9', 'nodes5'):
@@ -415,7 +481,6 @@ def close_originals(channel, original, local):
     for fd, expected in zip(original[:2], original[2]):
         z = os.fstat(fd)
         if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != expected: raise Held('pipe-FD-drift')
-    observed_pid = os.getpid(); observed_thread = threading.get_ident(); observed_time = time.monotonic()
     # Complete helper work precedes the final inline primitive closure. It uses
     # the same detached originals, never newly observed replacement vectors.
     for p, names in combined['namespaces']:
@@ -439,22 +504,10 @@ def close_originals(channel, original, local):
         z = os.lstat(p)
         if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns, z.st_mode,
                 z.st_uid, z.st_gid, z.st_nlink) != v: raise Held('final-file-drift')
-    # No parser/hash/SQL/serializer/config/helper closure follows these loops.
-    if (channel.read_fd, channel.write_fd, channel.facts, channel.pid, channel.thread,
-        channel.deadline, channel.roots, tuple((k, channel.source[k]) for k in sorted(VECTORS)), channel.implementation, channel.constants, channel.launch, channel.birth, original[12]) != original:
-        raise Held('original-channel-drift')
-    if observed_pid != original[3] or observed_thread != original[4] or tuple(READ_ROOTS) != original[6]:
-        raise Held('original-process-or-config-drift')
-    if observed_time >= original[5]: raise Held('deadline')
-    if _CHANNEL_ORIGINALS.get(channel) is not original or channel not in _SPENT: raise Held('original-channel-registry')
-    if not channel.used or (original[10] is None and ENABLED is not True) or (ENABLED, PROTOCOL, WIRE2, LIMIT, COUNT, STREAM, tuple(READ_ROOTS),
-            frozenset(VECTORS), tuple(sorted(RIGHTS.items())), str(__file__)) != original[9]: raise Held('original-constant-drift')
-    launch=original[10]
-    if launch is not None and (type(launch) is not _Launch or _LAUNCHES.get(launch) is not original[12] or (launch.nonce,launch.operation,launch.bind_roots,launch.argv,launch.pid,launch.thread,launch.orig_argv)!=original[12]
-            or tuple(sys.argv)!=launch.argv or tuple(sys.orig_argv)!=launch.orig_argv or launch.pid!=observed_pid or launch.thread!=observed_thread):raise Held('original-launch-registry')
-    for n, function, code in original[8]:
-        got = _Launch.__init__ if n=='launch_init' else getattr(ParentChannel, '__init__' if n == 'init' else n) if n in ('init', 'read', 'send') else globals().get(n)
-        if got is not function or got.__code__ is not code: raise Held('implementation-drift')
+    _, tail, code, defaults = next(row for row in original[8] if row[0] == '_frame_tail')
+    if tail.__code__ is not code or tail.__defaults__ is not defaults: raise Held('implementation-drift')
+    tail(channel, original)
+    if channel.used is not True or channel not in _SPENT: raise Held('original-channel-registry')
 
 
 def exchange(channel):

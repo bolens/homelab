@@ -15,6 +15,11 @@ make ci-local JAVA_HOME_21=/path/to/jdk-21
 Install the locked npm tools in each checkout or worktree. `make ci-local` checks
 for its Markdown tooling before running the source suites. The Mylar checks include
 workflow intake regressions as well as the recovery and publication suites.
+The Komga gate includes the canonical worker pipe protocol tests before its
+compiled observer checks.
+The final secret scan covers the complete history reachable from `HEAD`.
+Staged secrets remain checked by the commit hook. Use `make secrets` to audit
+all local refs, including unrelated branches and snapshots.
 
 Do not commit `stack.env`, `.env`, private keys, credentials, real hostnames,
 private addresses, or machine-specific paths. Update `stack.env.example`,

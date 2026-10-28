@@ -9,7 +9,7 @@ help:
 	@echo "  validate           Python, Compose YAML, and shell validation"
 	@echo "  validate-strict    Validate and require every lint dependency"
 	@echo "  validate-changed   Validate changed stacks; requires BASE=<git revision>"
-	@echo "  ci-local           Run Mylar/Komga source, pre-commit and history secret checks"
+	@echo "  ci-local           Run source, pre-commit and candidate-history secret checks"
 	@echo "  mylar-source-check Run Mylar recovery/archive source controls without Docker"
 	@echo "  komga-source-check Run the Komga source/compile gate; requires JAVA_HOME_21"
 	@echo "  hooks-install      Install repository pre-commit hooks"
@@ -47,7 +47,7 @@ ci-local:
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-source-check
 	pre-commit run --all-files
-	bash scripts/scan-secrets-gitleaks.sh git
+	bash scripts/scan-secrets-gitleaks.sh git --log-opts=HEAD
 
 mylar-source-check:
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
@@ -61,6 +61,7 @@ mylar-source-check:
 
 komga-source-check:
 	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_archive_terminal_observation.py
 	python3 -I -B stacks/komga/effective_scope/run_source_tests.py --java-home "$(JAVA_HOME_21)"
 
 hooks-install:

@@ -108,6 +108,17 @@ failed parents unchanged and use a fresh generation. Bind generation names by
 explicit literals or AST fields; do not replace single-letter fragments across
 identifiers. Compare non-binding code before executing generated helpers.
 
+Before running a synthetic recovery constructor as Root, classify every created
+file and directory by its consuming contract. Child factual baseline,
+preparation and execute/terminal-history records and their preparation directory
+belong to UID1000. Apply those owners before capturing references, directory9
+or enclosing vectors. Request, SDK, generated native-scope, image metadata and
+Root custody controls retain their Root ownership. Check the complete derived
+factual-reference set before entering the dialogue. A UID1000-only preflight
+must assert its identity and cannot establish Root constructor correctness.
+Keep synthetic worker process/role ownership limitations explicit. Correct the
+current constructor, never mutate frozen attempts or weaken owner-read guards.
+
 For disposable multi-service recovery fixtures, preserve the failed creator's
 original journal and namespace before diagnosing a Docker allocation failure.
 Exhausted default address pools are a host prerequisite, not archive or import
@@ -325,6 +336,11 @@ fixture before publishing another image. Fewer callbacks can leave total latency
 unchanged. A stack sample identifies work in progress; it does not prove a
 persistent lock owner. Preserve fresh authority and post-callback closure when
 removing repeated pure work.
+For guarded pipe timing, include encoded frame sizes, short writes, backpressure
+and the full closure count per response. A fixed loop of closure calls does not
+measure a multi-write protocol exchange. Keep the original deadline and repeat
+preservation checks before every write; validate nonblocking pipe state through
+the original primitive before sending bytes.
 For saved-evidence-only diagnostics, trace called functions as well as the entry
 point. The live library mapper resolves paths and checks directories; calling it
 would cross that boundary even when its input JSON was captured earlier. Validate
@@ -922,3 +938,9 @@ Root before validation and retain primary errors, descriptor custody and poison.
 Label projection wrapper counts as wrapper invocations, not kernel metadata
 operations or NFS RPCs. Only measured complete Root/NFS and fresh configured
 execution can establish latency or admission.
+
+Repeated Docker event filters for the same field use OR semantics. A combined
+query must retain distinct original role IDs, the original history start, a fresh
+cutoff, foreign-actor rejection and the final source/Parent closure. Do not remove
+a guard merely because a later guard checks the same facts. An intervening
+callback may use replaced OS functions before the later guard can reject them.

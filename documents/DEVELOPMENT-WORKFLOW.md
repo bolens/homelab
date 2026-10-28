@@ -123,6 +123,11 @@ After the Mylar controls, `ci-local` runs the Komga source/compile gate through
 `JAVA_HOME_21_X64` when available. A missing JDK or failed gate stops the command;
 the gate runs without Docker and does not observe or change service state.
 
+The final secret scan checks every commit reachable from candidate `HEAD`. It
+does not include unrelated local branch or snapshot histories. The staged-file
+secret hook still checks new changes before commit. `make secrets` retains the
+repository-wide scan across all refs.
+
 Repository validation ShellChecks every tracked `*.sh` file, including
 stack-local entrypoints and preparation helpers. GitHub pull requests render
 only changed stacks when all changes are under `stacks/` or `portainer/`;

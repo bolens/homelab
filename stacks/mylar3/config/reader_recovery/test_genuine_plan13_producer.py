@@ -54,8 +54,9 @@ class Fixture:
         source_paths.update({name: HERE / name for name in g.installer.EXPECTED_NFS})
         sources = {key: path.read_bytes() for key, path in source_paths.items()}
         source_refs = {key: dict(path=str(path), sha256=g.installer.sha(sources[key]), signature9=g.p.nine(path.stat())) for key, path in source_paths.items()}
+        worker_entry=HERE/'_current_worker_source/archive_terminal_observation.py'
         worker = dict(mode='original-pipes-v1',
-            source=self.raw(self.facts / 'archive_terminal_observation.py', (HERE / '_archive_worker_fixtures/archive_terminal_observation.py').read_bytes()),
+            source=self.raw(self.facts / 'archive_terminal_observation.py', worker_entry.read_bytes()),
             image_sources=self.put({'/app/archive_terminal_observation.py': g.installer.WORKER_OBSERVER_SOURCE_SHA}),
             image_metadata=self.put([dict(Id=self.worker_image, Os='linux', Architecture='amd64')]))
         base_path = HERE / 'configured_reader_parent_base_sources.json'

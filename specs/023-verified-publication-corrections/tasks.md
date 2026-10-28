@@ -8,27 +8,24 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-27.** Eight tasks retain integration or operational criteria.
+**Updated 2026-10-28.** Eight tasks retain integration or operational criteria.
 The immediate work is the shared isolated forward and
 separate rollback described in [feature 024's current work](../024-verified-archive-repair/tasks.md#current-remaining-work).
 One accepted pair can satisfy the connected portions of T026/T029, isolated
 T027 and feature 024 T012/T015; record each evidence item once and reuse it.
 
-PR #537 delivered the NFS descriptor correction with matching publication,
-180-module capture, SDK103 and startup-source proof. The four installed-image
-discovery/import/lost-reply/rename cases pass. PR #540 delivered the equal-directory
-fact comparison correction. PR #541 separates the input/output budgets. EE/EF
-passes that boundary and reconstructs the genesis archive, then holds on an
-external terminal-record path. Correct its mapping and route NFS reads through
-the existing UID1000 owner reader before refreshing host controls and using a
-new fixture. Target genesis bytes, unrelated full9/hash and all 24 native tables
-remain preserved; the stopped reader remains held. SDK103 remains the required selection. Reuse unchanged proofs
-only for their exact image/source inputs. Changed host controls require fresh checked installation outputs;
-unchanged installations may serve distinct fixtures. Source delivery alone
-cannot establish accepted runtime terminals. The current shared work finishes
-the stopped-reader handoff and owning terminal path. Ordinary native
-preservation, T030 cache guard, T031 identity recovery and T032 control-state
-adoption retain their recorded acceptance.
+The current shared attempt and its next proof are recorded in feature 024's
+current work. FB/FC remains held without an accepted terminal or resume. Preserve
+its stopped reader and all earlier attempts. The shared ancestor-read correction
+and complete Root/NFS benchmark are implementation verification within T026/T029,
+not accepted forward or rollback evidence.
+
+SDK103 remains the required selection. Reuse unchanged image/source proofs only
+for their exact original inputs. Changed host controls require fresh checked
+installation outputs. An unchanged installation may serve distinct fixtures.
+Ordinary native preservation, T030 cache guard, T031 identity recovery and T032
+control-state adoption retain their recorded acceptance. Source delivery alone
+cannot establish accepted runtime terminals.
 
 T028 retained-pack recovery and T033 recurring packs have their own live ACK
 criteria; neither needs a duplicate archive run. Production reconciliation,

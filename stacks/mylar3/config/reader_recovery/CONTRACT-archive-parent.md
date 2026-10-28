@@ -180,6 +180,28 @@ mutable HOST relabeling, native grant, parent pin or ordinary admission.
 
 Default-disabled plan12 preserves the plan11 same-child contract and adds an original regular worker-source ref and an exact installed source-map ref. The worker image and read-only mounts come from the original held-worker profile. One disposable worker process uses its own inherited pipe, source entry and receiver birth; image-only ancestors remain receiver facts. The parent retains both process/pipe registries and the original execute capability’s archive, catalog, authority and marker roles through fresh observation and worker release before releasing the producer. No saved capability, worker report or receiver measurement replaces original shared source facts. Installed image/CLI, actual mount equality and NFS remain separate acceptance gates; the shipped flag remains false.
 
+## Nested worker response transport
+
+The nested observer's response transport mints one 90-second ingress deadline
+at original intent creation, capped by both original Parent and producer
+deadlines. Preparation consumes this same budget. No retry, guard or frame
+refreshes it. This deadline detects stalled I/O and never grants acceptance.
+
+Both senders transfer immutable payload bytes without the newline delimiter.
+The parent's writes are nonblocking and bounded to 64 KiB, retaining a checked
+smaller pipe capacity if enlargement is refused. Every I/O attempt and readiness
+retry checks original descriptors, process, registries, kernel primitives and
+the unchanged deadline. Full preservation guards run before and after each
+incoming frame, before each outgoing newline commit, and after final EOF.
+The parent therefore performs exactly 12 full transport guards for the four
+frames, independent of fragmentation or backpressure. The worker closes its
+full preservation vectors once per outgoing frame before committing its newline.
+
+Neither receiver parses or acts on an incomplete frame. Embedded delimiters,
+extra pipelined frames and unknown setup or commit outcomes hold without
+restarting the helper or replaying a frame. Fresh configured forward and
+distinct-fixture rollback evidence remain required with the new worker image.
+
 ## Original Writer session on the existing pipe
 
 The source-owned `writer_session` extension of `reader-lifecycle-pipe-v1` carries version, stage (`enter`, `held`, `leave`), original session nonce, child process PID/start ticks, Writer identity and the complete prelease census. Enter completes before Writer acquisition. The held and idle branches retain that original unlocked observation and close local process, source and physical custody without Docker or API calls. The child independently proves its exact configured Controller paths and original ordinary Writer locally. Ready/verified and legacy startup-held observations require the same complete census; no fresh empty census or startup reset is admitted.
@@ -284,3 +306,23 @@ by Btrfs fstat. Original descriptor/path device and full file facts remain exact
 Release the owned lock on every return/refusal without replacing the primary
 failure or closing a foreign reused descriptor. The release-to-acquisition gap
 is not an atomic lock transfer: changes in that gap must still hold.
+
+Continuous event checks query all three distinct original container IDs together,
+using repeated container filters, the original history start and one fresh
+nanosecond cutoff. Every returned actor must belong to those original roles.
+The original stopping phase alone permits reader kill/die events. The complete
+pre-command and post-event closures remain mandatory.
+The history start is frozen across the query and the enclosing continuous check,
+including their final callbacks. Advancing it during either check refuses.
+
+Input projection and grouped archive-source copies retain the bound owner reader
+for every original and destination ancestor walk. Root-owned local metadata stays
+under Root; admitted NFS metadata uses the same original owner scope and returns
+to Root before validation. Output-view and Tree-birth ancestry follow that rule.
+
+Owner metadata batches may retain one initial ancestor descriptor chain for
+consecutive sibling paths within that single call. Each leaf still requires its
+own fresh no-follow path walk and held-ancestor comparison. Parent changes and
+failures close the chain before further sampling; all descriptors close before
+Root restoration. No chain or successful sample survives into another call or
+guard. The original independent metadata passes remain required.
