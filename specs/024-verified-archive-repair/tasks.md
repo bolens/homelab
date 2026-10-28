@@ -69,11 +69,18 @@ with all PR checks passing. ET Bootstrap completed with exit 0. EU passed
 SourceCohort, then held during the nested worker dialogue when the original
 30-second ingress deadline expired. Its reader is stopped, native running and
 permanent worker Created. No owning return or resume is accepted. Preserve ET/EU.
-The complete ordering audit also corrected native/host pipe writes, original
-release deadlines and final reader-resume closure. Measure the revised complete
-exchange before another fixture, and use a matching rebuilt image/SDK for the
-changed native channels. These remain existing T012/T015 work; no deadline or
-acceptance criterion is relaxed.
+PR [#543](https://github.com/bolens/homelab/pull/543) delivers the ordering
+corrections with passing hosted checks, publication, actual 180-module capture
+and four installed-image cases. EX/EY still held at the original worker deadline;
+preserve its stopped reader and all original evidence without replay. The earlier
+pipe benchmark replaced continuous Docker checks and did not prove configured
+timing. A read-only comparison measures the three future-second event queries
+at 2.93 seconds versus 0.047 seconds with exact current-nanosecond cutoffs.
+Correct that wait while retaining full original history, predicates and the
+30-second deadline. Measure actual guard costs, including directory9 fallbacks;
+keep omitted configured admission/closure work explicit. The next fresh checked
+installation can reuse unchanged image/SDK proof. Forward and distinct rollback
+acceptance remain existing T012/T015 work; no acceptance criterion is relaxed.
 See the [terminal-copy diagnosis](evidence-history.md#terminal-record-path-and-owner-routing--2026-10-27).
 
 PR [#512](https://github.com/bolens/homelab/pull/512) delivered the earlier plan
