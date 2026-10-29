@@ -994,6 +994,23 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual([a[0] for a in calls],['stop','start'])
         self.assertEqual(set(x.plan['action_inputs']),{'prepare','execute'})
 
+    def test_ordinary_resume_consumer_accepts_captured_internal_profile(self):
+        x,calls,_,_=self.schedule()
+        # Ordinary backup requires canonical host paths in its child mapping.
+        x.plan['mounts'][0]['child']=str(self.root)
+        x.mapping=p.Paths(x.plan['mounts'])
+        x.core=p.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,
+                             engine=id(x.engine),thread=x.thread,deadline=x.deadline));p._CORES[x]=x.core
+        fixture_spec=importlib.util.spec_from_file_location('resume_profile_fixture',ROOT/'test_nfs_current_roles.py')
+        fixtures=importlib.util.module_from_spec(fixture_spec);fixture_spec.loader.exec_module(fixtures)
+        rows=fixtures.reader_restart_profiles(self.root)
+        x.baselines['reader']=rows['before']
+        x.continuous=lambda:dict(reader=copy.deepcopy(rows['stopped']))
+        x.inspect=lambda cid:copy.deepcopy(rows['resumed'])
+        x.execute()
+        self.assertEqual([a[0]for a in calls],['stop','start'])
+        self.assertEqual(x.phase,'complete')
+
     def test_schedule_rollback_same_original_execute_input(self):
         x,calls,_,_=self.schedule('observed-rollback');x.execute();self.assertEqual(calls[-1][0],'start')
 

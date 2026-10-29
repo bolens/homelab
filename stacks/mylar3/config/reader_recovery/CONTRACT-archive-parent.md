@@ -105,6 +105,12 @@ report, output and phase-directory tuples close with inline kernel operations
 AFTER the final emit/watch/engine/deadline/helper callbacks before reader start.
 Lost ACKs or any uncertain state retain holds, with no replay or automatic repair.
 
+Archive and ordinary recovery share the same reader restart comparison. An
+internal bridge may retain an empty gateway string across stop and restart.
+Missing, malformed or changed gateway values still refuse. The comparison keeps
+the original network, subnet, immutable profile and fresh running epoch checks;
+nonempty gateways must remain canonical IPv4 addresses within the original subnet.
+
 ## Source-bound disposable plan13 mapping
 
 Only exact plan13 selects the finite disposable successor. It rereads original

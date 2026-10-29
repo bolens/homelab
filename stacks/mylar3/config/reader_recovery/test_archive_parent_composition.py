@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
-from test_nfs_current_roles import bridge_profile,release_bridge,row as role_row,resumed_bridge_profile as resumed_row
+from test_nfs_current_roles import bridge_profile,release_bridge,row as role_row,resumed_bridge_profile as resumed_row,reader_restart_profiles
 import test_reader_lifecycle_parent as old
 p=old.p
 import comic_archive_terminal_vectors as vector_module
@@ -194,6 +194,40 @@ class Tests(unittest.TestCase):
   for key,value in (('StartedAt',x.baselines['reader']['State']['StartedAt']),('Pid',0),('Restarting',True),('Dead',True),('ExitCode',1)):
    changed=copy.deepcopy(row);changed['State'][key]=value
    with self.subTest(key=key):self.assertFalse(p.checked_reader_resumed_profile(x.baselines['reader'],changed,x.plan['reader']['id']))
+ def test_resume_internal_bridge_without_gateway(self):
+  x=self.setup_archive();original=x.baselines['reader']
+  original['NetworkSettings']['Networks']['fixture']['Gateway']=''
+  current=resumed_row(original)
+  self.assertTrue(p.checked_reader_resumed_profile(original,current,x.plan['reader']['id']))
+ def test_captured_gatewayless_reader_lifecycle(self):
+  rows=reader_restart_profiles();before,stopped,resumed=(rows[k]for k in ('before','stopped','resumed'));cid=before['Id']
+  self.assertTrue(p.checked_reader_stopped_static(p.static(before),p.static(stopped),cid))
+  self.assertTrue(p.checked_reader_resumed_profile(before,resumed,cid))
+  self.assertFalse(p.checked_reader_resumed_profile(before,before,cid))
+ def test_archive_resume_consumer_accepts_captured_internal_profile(self):
+  x=self.setup_archive();rows=reader_restart_profiles(self.root);x.baselines['reader']=rows['before']
+  x.continuous=lambda:dict(reader=copy.deepcopy(rows['stopped']))
+  x.inspect=lambda cid:copy.deepcopy(rows['resumed'])
+  x.execute()
+  self.assertEqual([c[0]for c in self.calls],['stop','start']);self.assertEqual(x.phase,'complete')
+ def test_resume_missing_malformed_or_changed_gateway_refuses(self):
+  x=self.setup_archive();original=x.baselines['reader']
+  for gateway in (None,False,0,[],{},'invalid','192.0.2.1'):
+   with self.subTest(gateway=gateway):
+    before=copy.deepcopy(original);before['NetworkSettings']['Networks']['fixture']['Gateway']=gateway
+    self.assertFalse(p.checked_reader_resumed_profile(before,resumed_row(before),x.plan['reader']['id']))
+  before=copy.deepcopy(original);del before['NetworkSettings']['Networks']['fixture']['Gateway']
+  self.assertFalse(p.checked_reader_resumed_profile(before,resumed_row(before),x.plan['reader']['id']))
+  for before_gateway,after_gateway in (('',original['NetworkSettings']['Networks']['fixture']['Gateway']),(original['NetworkSettings']['Networks']['fixture']['Gateway'],'')):
+   before=copy.deepcopy(original);before['NetworkSettings']['Networks']['fixture']['Gateway']=before_gateway
+   after=resumed_row(before);after['NetworkSettings']['Networks']['fixture']['Gateway']=after_gateway
+   self.assertFalse(p.checked_reader_resumed_profile(before,after,x.plan['reader']['id']))
+ def test_resume_without_gateway_keeps_address_and_mac_boundaries(self):
+  x=self.setup_archive();original=x.baselines['reader'];original['NetworkSettings']['Networks']['fixture']['Gateway']=''
+  for key,value in (('IPAddress','10.251.242.96'),('IPAddress','10.251.242.111'),('IPAddress','10.251.243.99'),('IPAddress','010.251.242.99'),('MacAddress','00:00:00:00:00:00'),('MacAddress','01:00:00:00:00:01'),('NetworkID','f'*64)):
+   with self.subTest(key=key,value=value):
+    current=resumed_row(original);current['NetworkSettings']['Networks']['fixture'][key]=value
+    self.assertFalse(p.checked_reader_resumed_profile(original,current,x.plan['reader']['id']))
  def test_resume_network_and_immutable_drift_refuse(self):
   x=self.setup_archive();row=resumed_row(x.baselines['reader'])
   for key,value in (('NetworkID','f'*64),('Gateway','10.251.242.100'),('Aliases',['foreign']),('IPAddress','10.251.243.99'),('IPPrefixLen',24),('IPAddress','10.251.242.97'),('IPAddress','10.251.242.111'),('MacAddress','01:00:00:00:00:01')):

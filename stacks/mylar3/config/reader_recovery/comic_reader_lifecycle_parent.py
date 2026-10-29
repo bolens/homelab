@@ -229,8 +229,14 @@ def reader_resumed_static(original, current, cid):
             return sum(int(p)<<(24-8*i) for i,p in enumerate(parts))
         before=ipv4(endpoint['IPAddress']);after=ipv4(resumed['IPAddress'])
         mask=((1<<32)-1)^((1<<(32-prefix))-1);subnet=before&mask
-        gateway=ipv4(endpoint['Gateway'])
-        if after&mask!=subnet or gateway&mask!=subnet or after in (subnet,subnet|(~mask&0xffffffff),gateway):return False
+        if after&mask!=subnet or after in (subnet,subnet|(~mask&0xffffffff)):return False
+        gateway=endpoint['Gateway']
+        if type(gateway) is not str:return False
+        # An internal bridge may have no gateway. The paired stop comparison
+        # above still requires the exact original gateway value after restart.
+        if gateway!='':
+            gateway=ipv4(gateway)
+            if gateway&mask!=subnet or after==gateway:return False
         if any(endpoint.get(k) for k in ('GlobalIPv6Address','GlobalIPv6PrefixLen','IPv6Gateway')):return False
         configured=(endpoint.get('IPAMConfig') or {}).get('IPv4Address')
         if configured and (endpoint['IPAddress']!=configured or resumed['IPAddress']!=configured):return False

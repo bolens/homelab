@@ -54,6 +54,7 @@ config/reader_proof_install_fixtures/**
 config/reader_recovery/**
 !config/reader_recovery/*.py
 !config/reader_recovery/source-manifest.json
+!config/reader_recovery/reader_restart_profiles.json
 !config/reader_recovery/_archive_repair_fixtures/
 config/reader_recovery/_archive_repair_fixtures/**
 !config/reader_recovery/_archive_repair_fixtures/*.py
