@@ -29,7 +29,10 @@ SUITES=SUITES+(('test_genuine_current_roles.py',26),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',25),)
 SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
-MAX_FILES=259
+# Resource ceiling shared with the complete owning source union. This is not
+# the current manifest census: membership comes from the checked source maps.
+SUITE_TIMEOUT=120
+MAX_SOURCE_FILES=1024
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
 def sig(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
@@ -65,7 +68,7 @@ def copy_fixtures(fixes,temporary):
  fixes=Path(fixes);root=fixes/'reader_recovery';files={};nodes={}
  manifest_raw=checked(root/'source-manifest.json',None,files,nodes);manifest=json.loads(manifest_raw)
  cohort=json.loads(checked(fixes/'publication_reader_cohort.json',None,files,nodes))
- if manifest['version']!=1 or type(manifest['files']) is not dict or not 1<=len(manifest['files'])<=MAX_FILES:raise Held('Explicit fixture manifest required')
+ if manifest['version']!=1 or type(manifest['files']) is not dict or not 1<=len(manifest['files'])<=MAX_SOURCE_FILES:raise Held('Explicit fixture manifest required')
  private=Path(temporary)/'config';private.mkdir(mode=0o700);tree=private/'reader_recovery';tree.mkdir(mode=0o700);total=0
  # Only declared files are copied. Ignored configuration and extra entries are
  # never walked or adopted into the private fixture tree.
@@ -120,11 +123,11 @@ def copy_fixtures(fixes,temporary):
  admit('publication_reader_admission.py',cohort['modules']['publication_reader_admission']['sha256'])
  admit('media_writer.py',cohort['existing_sdk_closure']['media_writer']['tracked_source_sha256'])
  admit('publication_native_configured_scope.py',scope_pin)
- if type(native_rows)is not list or not 1<=len(native_rows)<=1024:raise Held('Finite owning source map required')
+ if type(native_rows)is not list or not 1<=len(native_rows)<=MAX_SOURCE_FILES:raise Held('Finite owning source map required')
  for row in native_rows:
   if type(row)is not dict or not {'path','sha256'}<=set(row):raise Held('Explicit owning source row required')
   admit(row['path'],row['sha256'])
- if len(pins)>1024:raise Held('Owning source union bound')
+ if len(pins)>MAX_SOURCE_FILES:raise Held('Owning source union bound')
  union_bytes=0
  for name,pin in pins.items():
   raw=checked(fixes/name,pin,files,nodes);union_bytes+=len(raw)
@@ -138,18 +141,54 @@ def copy_fixtures(fixes,temporary):
   if target.read_bytes()!=raw:raise Held('Private owning source readback')
  close_original(files,nodes);return tree,files,nodes
 
+def finish_originals(files,nodes,primary,cleanup=None):
+ secondary=None
+ try:
+  if files is not None:close_original(files,nodes)
+ except BaseException as error:secondary=error
+ if cleanup is not None:
+  cleanup.__cause__=secondary;secondary=cleanup
+ if primary is not None:raise primary from secondary
+ if secondary is not None:raise secondary
+
+def source_inventory(fixes):
+ """Derive closed declared membership without executing controls or factories."""
+ fixes=Path(fixes);rows={};files=None;nodes=None;value=None;primary=None;cleanup=None
+ try:
+  with tempfile.TemporaryDirectory(prefix='reader-source-inventory-') as temporary:
+   try:
+    _,files,nodes=copy_fixtures(fixes,temporary)
+    for path,before in files.items():
+     raw=checked(path,None,files,nodes)
+     rows[str(path.relative_to(fixes))]=dict(path=str(path),sha256=digest(raw),signature9=list(before))
+    value=dict(files=rows,nodes={str(p):list(row) for p,row in nodes.items()},
+               suites=[list(row) for row in SUITES],tests=sum(count for _,count in SUITES),
+               controls_executed=False,installed_factory_verified=False)
+   except BaseException as error:primary=error
+ except BaseException as error:cleanup=error
+ # Temporary cleanup and result construction are callbacks too. The last
+ # original closure follows both, and never hides their primary failure.
+ finish_originals(files,nodes,primary,cleanup)
+ return value
+
 def run(fixes):
- results=[]
- with tempfile.TemporaryDirectory(prefix='reader-recovery-private-') as temporary:
-  root,files,nodes=copy_fixtures(fixes,temporary)
-  for name,count in SUITES:
-   result=subprocess.run([sys.executable,'-I','-B',str(root/name)],capture_output=True,timeout=120)
-   output=result.stderr.decode('utf-8','strict');counts=re.findall(r'^Ran ([0-9]+) tests? in ',output,re.MULTILINE)
-   if result.returncode or counts!=[str(count)] or '\nOK\n' not in output or re.search(r'\bskipped\b',output,re.I):
-    sys.stderr.buffer.write(result.stderr);raise Held('Recovery control collection/result')
-   results.append(dict(suite=name,count=count,skips=0,stdout_sha256=digest(result.stdout),stderr_sha256=digest(result.stderr)))
-  close_original(files,nodes)
- return dict(kind='private-build-only-reader-recovery-controls',tests=sum(x['count'] for x in results),suites=results,original_source_unchanged=True,installed_factory_verified=False,publication_acceptance=False,reader_resume_authority=False)
+ results=[];files=None;nodes=None;value=None;primary=None;cleanup=None
+ try:
+  with tempfile.TemporaryDirectory(prefix='reader-recovery-private-') as temporary:
+   try:
+    root,files,nodes=copy_fixtures(fixes,temporary)
+    for name,count in SUITES:
+     result=subprocess.run([sys.executable,'-I','-B',str(root/name)],capture_output=True,timeout=SUITE_TIMEOUT)
+     output=result.stderr.decode('utf-8','strict');counts=re.findall(r'^Ran ([0-9]+) tests? in ',output,re.MULTILINE)
+     if result.returncode or counts!=[str(count)] or '\nOK\n' not in output or re.search(r'\bskipped\b',output,re.I):
+      sys.stderr.buffer.write(result.stderr);raise Held('Recovery control collection/result')
+     results.append(dict(suite=name,count=count,skips=0,stdout_sha256=digest(result.stdout),stderr_sha256=digest(result.stderr)))
+    value=dict(kind='private-build-only-reader-recovery-controls',tests=sum(x['count'] for x in results),suites=results,original_source_unchanged=True,installed_factory_verified=False,publication_acceptance=False,reader_resume_authority=False)
+   except BaseException as error:primary=error
+ except BaseException as error:cleanup=error
+ finish_originals(files,nodes,primary,cleanup)
+ return value
+
 def main():
  if not sys.dont_write_bytecode:raise Held('Build controls require -B')
  print(json.dumps(run(FIXES),sort_keys=True))

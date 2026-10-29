@@ -29,6 +29,77 @@ class Controls(unittest.TestCase):
    path=self.fixes/name;path.write_text('# fixture native health '+name+'\n');path.chmod(0o644)
   (self.fixes/'standalone_control_sources.json').write_text(json.dumps([dict(path=name,sha256=digest(self.fixes/name)) for name in ('queue_control.py','worker_health.py')]))
  def copy(self):return m.copy_fixtures(self.fixes,self.stage)
+ def test_inventory_derives_original_files_modes_ancestors_and_suite_total(self):
+  value=m.source_inventory(self.fixes)
+  expected={'reader_recovery/fixture.py','reader_recovery/source-manifest.json',
+   'publication_reader_admission.py','media_writer.py','publication_native_configured_scope.py',
+   'publication_reader_cohort.json','queue_control.py','worker_health.py','standalone_control_sources.json'}
+  self.assertEqual(set(value['files']),expected)
+  for name,ref in value['files'].items():
+   self.assertEqual(ref,dict(path=str(self.fixes/name),sha256=digest(self.fixes/name),signature9=list(m.sig((self.fixes/name).lstat()))))
+  self.assertEqual(set(value['nodes']),{str(q) for name in expected for q in (self.fixes/name).parents})
+  self.assertEqual(value['tests'],sum(count for _,count in m.SUITES))
+  self.assertEqual(value['suites'],[list(row) for row in m.SUITES])
+  self.assertFalse(value['controls_executed']);self.assertFalse(value['installed_factory_verified'])
+ def test_manifest_growth_is_declared_and_resource_ceiling_is_separate(self):
+  size=len(json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes())['files'])+1
+  manifest=dict(version=1,files={})
+  for i in range(size):
+   name='fixture_'+str(i)+'.py';path=self.tree/name;path.write_bytes(b'# public fixture\n')
+   manifest['files'][name]=dict(sha256=digest(path))
+  (self.tree/'source-manifest.json').write_text(json.dumps(manifest))
+  value=m.source_inventory(self.fixes)
+  self.assertEqual({n.removeprefix('reader_recovery/') for n in value['files'] if n.startswith('reader_recovery/') and n.endswith('.py')},set(manifest['files']))
+  with patch.object(m,'MAX_SOURCE_FILES',size-1),self.assertRaisesRegex(m.Held,'Explicit fixture manifest required'):m.source_inventory(self.fixes)
+ def test_inventory_final_hash_callback_drift_refuses(self):
+  real=m.digest;copy=m.copy_fixtures;fired=[];copied=[]
+  def initial(*args):
+   value=copy(*args);copied.append(True);return value
+  def changed(raw):
+   result=real(raw)
+   if copied and raw==b'# fixture bytes\n' and not fired:self.source.chmod(0o640);fired.append(True)
+   return result
+  with patch.object(m,'copy_fixtures',side_effect=initial),patch.object(m,'digest',side_effect=changed),self.assertRaises(m.Held):m.source_inventory(self.fixes)
+  self.assertTrue(fired)
+ def test_inventory_cleanup_callback_drift_refuses_after_temporary_removal(self):
+  real=m.tempfile.TemporaryDirectory
+  class LateCleanup:
+   def __init__(inner,**kw):inner.value=real(**kw)
+   def __enter__(inner):return inner.value.__enter__()
+   def __exit__(inner,*args):
+    result=inner.value.__exit__(*args);self.source.chmod(0o640);return result
+  with patch.object(m.tempfile,'TemporaryDirectory',LateCleanup),self.assertRaisesRegex(m.Held,'Original source file drift'):m.source_inventory(self.fixes)
+ def cleanup_run(self,primary=None,cleanup=None):
+  real=m.tempfile.TemporaryDirectory
+  class LateCleanup:
+   def __init__(inner,**kw):inner.value=real(**kw)
+   def __enter__(inner):return inner.value.__enter__()
+   def __exit__(inner,*args):
+    result=inner.value.__exit__(*args);self.source.chmod(0o640)
+    if cleanup is not None:raise cleanup
+    return result
+  def child(*args,**kw):
+   if primary is not None:raise primary
+   return subprocess.CompletedProcess(args,0,b'',b'Ran 1 test in 0.01s\n\nOK\n')
+  with patch.object(m,'SUITES',(('fixture.py',1),)),patch.object(m.tempfile,'TemporaryDirectory',LateCleanup),patch.object(m.subprocess,'run',side_effect=child):m.run(self.fixes)
+ def test_control_run_closes_originals_after_temporary_cleanup(self):
+  with self.assertRaisesRegex(m.Held,'Original source file drift'):self.cleanup_run()
+ def test_control_run_keeps_primary_failure_when_cleanup_also_drifts(self):
+  primary=subprocess.TimeoutExpired(['fixture'],1)
+  with self.assertRaises(subprocess.TimeoutExpired) as caught:self.cleanup_run(primary)
+  self.assertIs(caught.exception,primary);self.assertIsInstance(caught.exception.__cause__,m.Held)
+ def test_child_failure_survives_raising_cleanup_and_final_drift(self):
+  primary=subprocess.TimeoutExpired(['fixture'],1);cleanup=OSError('cleanup failure')
+  with self.assertRaises(subprocess.TimeoutExpired) as caught:self.cleanup_run(primary,cleanup)
+  self.assertIs(caught.exception,primary);self.assertIs(primary.__cause__,cleanup);self.assertIsInstance(cleanup.__cause__,m.Held)
+ def test_inventory_read_failure_survives_raising_cleanup(self):
+  real=m.tempfile.TemporaryDirectory;primary=OSError('source read failure');cleanup=OSError('cleanup failure')
+  class FailedCleanup:
+   def __init__(inner,**kw):inner.value=real(**kw)
+   def __enter__(inner):return inner.value.__enter__()
+   def __exit__(inner,*args):inner.value.__exit__(*args);raise cleanup
+  with patch.object(m.tempfile,'TemporaryDirectory',FailedCleanup),patch.object(m,'copy_fixtures',side_effect=primary),self.assertRaises(OSError) as caught:m.source_inventory(self.fixes)
+  self.assertIs(caught.exception,primary);self.assertIs(primary.__cause__,cleanup)
  def test_current_operational_semantic_pins_match_actual_sources(self):
   import ast
   root=PUBLIC/'reader_recovery'
@@ -92,6 +163,12 @@ class Controls(unittest.TestCase):
   # A real isolated trivial suite mutates only this synthetic source.
   script=self.tree/'test_stub.py';script.write_text("from pathlib import Path\nimport unittest\nclass T(unittest.TestCase):\n def test_one(self):Path("+repr(str(self.source))+ ").write_bytes(b'foreign')\nif __name__=='__main__':unittest.main()\n");manifest=json.loads((self.tree/'source-manifest.json').read_text());manifest['files']['test_stub.py']={'sha256':digest(script)};(self.tree/'source-manifest.json').write_text(json.dumps(manifest))
   with patch.object(m,'SUITES',(('test_stub.py',1),)),self.assertRaisesRegex(m.Held,'Original source file drift'):m.run(self.fixes)
+ def test_standalone_cli_emits_owning_result_and_requires_no_bytecode(self):
+  value={'kind':'private-build-only-reader-recovery-controls','tests':sum(count for _,count in m.SUITES)};output=io.StringIO()
+  with patch.object(m.sys,'dont_write_bytecode',True),patch.object(m,'run',return_value=value) as run,contextlib.redirect_stdout(output):m.main()
+  run.assert_called_once_with(m.FIXES);self.assertEqual(json.loads(output.getvalue()),value)
+  with patch.object(m.sys,'dont_write_bytecode',False),patch.object(m,'run') as run,self.assertRaisesRegex(m.Held,'require -B'):m.main()
+  run.assert_not_called()
  def test_real588_public644_closure_passes_no_source_changes(self):
   # Exact current public files, no ignored config copied.
   actual=self.root/'actual';actual.mkdir();manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
@@ -99,7 +176,7 @@ class Controls(unittest.TestCase):
   names={row['path']for row in rows}|{'reader_recovery/'+name for name in manifest['files']}|{'reader_recovery/source-manifest.json','publication_reader_cohort.json','standalone_control_sources.json'}
   for name in names:
    dst=actual/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/name,dst);dst.chmod(0o644)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],1904);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],sum(count for _,count in m.SUITES));self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
  def extra_source(self):
   p=self.fixes/'extra.py';p.write_bytes(b'# exact explicit source\n');p.chmod(0o644)
   index=self.fixes/'standalone_control_sources.json';rows=json.loads(index.read_bytes());row=dict(path='extra.py',target='alias.py',sha256=digest(p));rows.extend((row,dict(row,target='another-alias.py')));index.write_text(json.dumps(rows));return p,index,rows
@@ -133,17 +210,29 @@ class Controls(unittest.TestCase):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],1904);self.assertEqual(len(children),len(m.SUITES));self.assertEqual(len(m.SUITES),75);self.assertEqual(m.SUITES[-1],('test_transition_consumers.py',9))
+  self.assertEqual(value['tests'],sum(count for _,count in m.SUITES));self.assertEqual(len(children),len(m.SUITES));self.assertEqual(m.SUITES[-1],('test_transition_consumers.py',9))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()
-  self.assertEqual([name for name,_ in calls],list(parent.SUITES)+['run_reader_recovery_controls.py'])
+  self.assertEqual([name for name,_ in calls],list(parent.SUITES))
+  self.assertEqual([name for name,_ in calls].count('test_publication_reader_recovery_controls.py'),1)
+  self.assertNotIn('run_reader_recovery_controls.py',[name for name,_ in calls])
   for name,kw in calls:
    self.assertTrue(kw['check'])
-   if name in ('test_publication_reader_recovery_controls.py','run_reader_recovery_controls.py'):
-    self.assertEqual(kw['timeout'],9060)
+   if name=='test_publication_reader_recovery_controls.py':
+    self.assertEqual(kw['timeout'],len(m.SUITES)*m.SUITE_TIMEOUT+60)
     self.assertGreaterEqual(kw['timeout'],sum(children)+60)
    else:self.assertEqual(kw['timeout'],90)
+ def test_aggregate_budget_tracks_declared_schedule_growth(self):
+  import runpy
+  original=runpy.run_path
+  def expanded(path,*args,**kw):
+   value=original(path,*args,**kw)
+   value['SUITES']+=(('test_added.py',1),)
+   value['SUITE_TIMEOUT']=137
+   return value
+  with patch.object(runpy,'run_path',side_effect=expanded):parent=self.parent()
+  self.assertEqual(parent.RECOVERY_AGGREGATE_TIMEOUT,(len(m.SUITES)+1)*137+60)
  def test_aggregate_timeout_still_propagates_before_following_proof(self):
   parent=self.parent();calls=[]
   def scheduled(command,**kw):

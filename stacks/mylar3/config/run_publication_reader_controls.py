@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import shutil
+import runpy
 import tempfile
 
 FIXES = Path(__file__).parent
@@ -23,9 +24,10 @@ SUITES = (
 )
 
 ORDINARY_SUITE_TIMEOUT = 90
-# The aggregate has 75 serial children with existing 120-second deadlines.
-# This fixed cap encloses those deadlines plus 60 seconds for fixture overhead.
-RECOVERY_AGGREGATE_TIMEOUT = 9060
+# Derive this enclosing watchdog from the owning serial schedule. It does not
+# establish success: every declared child must return its exact accepted result.
+_recovery = runpy.run_path(str(FIXES / 'run_reader_recovery_controls.py'))
+RECOVERY_AGGREGATE_TIMEOUT = len(_recovery['SUITES']) * _recovery['SUITE_TIMEOUT'] + 60
 
 
 def fixture_identity():
@@ -59,9 +61,9 @@ def main():
                 timeout=RECOVERY_AGGREGATE_TIMEOUT if suite == 'test_publication_reader_recovery_controls.py' else ORDINARY_SUITE_TIMEOUT,
                 preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
-        subprocess.run([sys.executable, '-I', '-B', str(controls / 'run_reader_recovery_controls.py')],
-            check=True, cwd=controls, timeout=RECOVERY_AGGREGATE_TIMEOUT,
-            preexec_fn=fixture_identity if os.geteuid() == 0 else None)
+        # The recovery wrapper above executes the complete owning suite and
+        # verifies original-source preservation through cleanup. Do not repeat
+        # that suite here after its accepted result.
 
 if __name__ == '__main__':
     main()

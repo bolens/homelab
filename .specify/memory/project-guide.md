@@ -38,6 +38,13 @@ still gates merge, and final source, delivery and runtime evidence must join
 before acceptance is complete. Reuse an unchanged immutable installation across
 distinct fixtures when its contract permits. Preserve each attempt separately.
 
+Derive preparation cardinalities from one closed inventory of the frozen source
+maps, original file modes, ancestor paths and declared suite inventory. Bind that
+same inventory into every supplier, wrapper, continuation and test. Compare exact
+names, hashes and original signatures, rather than copying current file totals
+between templates. Keep resource ceilings separate from census values. A changed
+inventory requires a fresh binding, not adaptation of an already armed attempt.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

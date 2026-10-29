@@ -62,7 +62,12 @@ def close_originals(files, nodes):
 def inventory(mode, output):
     root = Path(__file__).resolve().parents[1]
     scope = SCOPES[mode]
-    names = subprocess.check_output(['git', '-C', str(root), 'ls-files', '-z', '--', scope])
+    # An explicit -C does not override hook-supplied GIT_DIR or index state.
+    # Select this source repository independently of the invoking Git process.
+    git_environment = {key: value for key, value in os.environ.items()
+                       if not key.startswith('GIT_')}
+    names = subprocess.check_output(['git', '-C', str(root), 'ls-files', '-z', '--', scope],
+                                    env=git_environment)
     paths = [Path(os.fsdecode(n)) for n in names.split(b'\0') if n]
     relative = [p.relative_to(scope).as_posix() for p in paths]
     source = root / scope
@@ -73,9 +78,20 @@ def inventory(mode, output):
         rows[name] = {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
                       'mode': stat.S_IMODE(files[p][5])}
     raw = json.dumps({'version': 1, 'mode': mode, 'files': rows}, sort_keys=True).encode()
-    close_originals(files, nodes)
-    with open(output, 'xb') as f:
-        f.write(raw)
+    primary = None
+    try:
+        with open(output, 'xb') as f:
+            f.write(raw)
+    except BaseException as error:
+        primary = error
+    try:
+        close_originals(files, nodes)
+    except BaseException as error:
+        if primary is not None:
+            raise primary from error
+        raise
+    if primary is not None:
+        raise primary
 
 
 def copy_public(source, document, destination):
@@ -122,15 +138,36 @@ def run(mode):
     document = json.loads(raw)
     if document.get('mode') != mode:
         raise ValueError('Wrong fixed source mode')
-    with tempfile.TemporaryDirectory(prefix='comic-controls-private-') as temp:
-        private = Path(temp) / 'source'
-        files, nodes = copy_public(MOUNTS[mode], document, private)
+    files, nodes = {}, {}
+    primary = None
+    secondary = None
+    cleanup = None
+    try:
+        with tempfile.TemporaryDirectory(prefix='comic-controls-private-') as temp:
+            try:
+                private = Path(temp) / 'source'
+                files, nodes = copy_public(MOUNTS[mode], document, private)
+                subprocess.run(command(mode, private), cwd=private, check=True,
+                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+            except BaseException as error:
+                primary = error
+    except BaseException as error:
+        cleanup = error
+    # Cleanup precedes final preservation. Attempt both closures and preserve
+    # the original child or cleanup failure if preservation also refuses.
+    for originals in ((files, nodes), (mf, mn)):
         try:
-            subprocess.run(command(mode, private), cwd=private, check=True,
-                           env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
-        finally:
-            close_originals(files, nodes)
-            close_originals(mf, mn)
+            close_originals(*originals)
+        except BaseException as error:
+            if secondary is None:
+                secondary = error
+    if cleanup is not None:
+        cleanup.__cause__ = secondary
+        secondary = cleanup
+    if primary is not None:
+        raise primary from secondary
+    if secondary is not None:
+        raise secondary
 
 
 def main():
