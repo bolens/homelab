@@ -3,11 +3,25 @@ import ast
 import copy
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 ROOT=Path(__file__).parent
+def reader_restart_profiles(host_root=None):
+ rows=json.loads((ROOT/'reader_restart_profiles.json').read_bytes())
+ if host_root is not None:
+  # Preserve the captured Docker shapes while mapping fixture bind sources into
+  # the scheduling test's declared host mount. No engine path is dereferenced.
+  def project(value):
+   if isinstance(value,str) and value.startswith('/fixture/mount-'):
+    return str(host_root)+value[len('/fixture'):]
+   if isinstance(value,list):return [project(v)for v in value]
+   if isinstance(value,dict):return {k:project(v)for k,v in value.items()}
+   return value
+  rows=project(rows)
+ return rows
 spec=importlib.util.spec_from_file_location('current_nfs',ROOT/'comic_negative_nfs_active_parent.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 def image(n):return 'sha256:'+str(n)*64
@@ -38,6 +52,14 @@ def resumed_bridge_profile(original):
  return value
 
 class Controls(unittest.TestCase):
+ def test_captured_internal_reader_stop_uses_original_gateway(self):
+  rows=reader_restart_profiles();before=rows['before'];stopped=rows['stopped']
+  keys=('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')
+  original={k:before[k]for k in keys};current={k:stopped[k]for k in keys}
+  self.assertTrue(m.reader_stopped_static(original,current,before['Id']))
+  for gateway in ('192.0.2.1',None,False):
+   changed=copy.deepcopy(current);changed['NetworkSettings']['Networks']['fixture-internal']['Gateway']=gateway
+   with self.subTest(gateway=gateway):self.assertFalse(m.reader_stopped_static(original,changed,before['Id']))
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
   self.rows=[row(1,'unique-native','running'),row(2,'unique-worker','created'),row(3,'unique-reader','running')]
