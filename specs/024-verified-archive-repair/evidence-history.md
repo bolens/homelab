@@ -1234,3 +1234,59 @@ admission, plan13 fixture transition and actual container UID/process/mount
 namespace remain omitted. This proves the measured component path, not an
 accepted configured forward or rollback. Existing held readers and helpers
 remain preserved without replay.
+
+## Shared isolated forward and rollback — 2026-10-29
+
+FH completes the genuine owning forward path against its fresh FI fixture.
+The controller calls the Parent once, preserves its original completion reference
+and returns `parent-complete`. The owning archive execute and independent terminal
+both report `observed-forward`. The Parent verifies the selected worker observer
+before terminal release and permitted reader resume. The permanent worker remains
+inactive. Original custody, backup/isolated restore and NFS evidence are retained.
+
+PR [#558](https://github.com/bolens/homelab/pull/558) corrects the shared reader
+resume comparator for an unchanged empty gateway on an internal bridge. Both
+consumers retain the original network, address, configuration and runtime checks.
+All 1,911 recovery controls, local delivery checks, required hosted checks and
+main publication pass. The frozen tested source is `a9ed4dcc`; merged
+`ec16f636` has the same tree and is mirrored. The checked installation verifies
+27 outputs and SDK103. Unchanged native #543 and worker #555 proofs bind all
+180 native modules and 42 worker modules. The native image also passes genuine
+discovery, first-import, lost-reply and rename-metadata cases.
+
+Independent verification preserves both archive payloads, ZIP metadata and
+compressed members, both reader records including references and progress,
+six page hashes and the unrelated archive's full physical identity. The repaired
+target matches the accepted terminal's exact signature and hash, including its
+declared replacement timestamp. Repair intentionally changes that timestamp.
+The original Writer-held preimage equals all 24 tables in the early independent
+baseline. Applying only the selected size assignment reproduces the exact native
+after-model digest verified by the genuine terminal and retained histories.
+
+A delayed native sample differs in `jobhistory`. Its recorded scheduler runs
+occur nearly twelve hours after owning completion, during the later authentication
+gap. Retain that mismatch and its causal receipt. No table is exempted and no
+claim of delayed database equality is made. The completion-boundary native proof
+and archive/reader comparisons pass independent review.
+
+The separate FJ fixture reuses the unchanged FH installation. Its explicit owning
+rollback completes with `parent-complete` and `observed-rollback`, followed
+immediately by protected original-record export. Strict native comparison proves
+all 24 tables equal the original baseline. Independent causal verification proves
+the exact 908-byte malformed pre-repair successor is restored, with its original
+inode, access attributes and complete NFS ACL. Its pure inverse reconstructs the
+complete 910-byte genesis and preserves member/compressed/page/XML inventories.
+The unrelated archive's full signature/hash and both reader records, progress,
+references and six pages remain unchanged. Independent review accepts the pair.
+
+The first read-only rollback verifier stopped on a child `/config` reference.
+The corrected verifier maps preparation, transition, genesis and candidate refs
+through the exact original native bind, preserving every declared signature/hash.
+The failed verifier and log remain retained; recovery was not replayed.
+
+This closes feature 024 T012/T015 and feature 023 T026/T029, plus only the isolated
+portion of T027. Live repair, retained-delivery ACK, whole-library/bulk and cleanup
+acceptance remain open. Joined private acceptance receipt SHA256:
+`4299406be2182f952170b58d847cdcb84378284fb9e276d4cec8019dd6a477fb`.
+FH completion-boundary receipt SHA256:
+`65e92d1403d6010b2667ae266da4d427b58083fff93f021866f76ba8f34cabb4`.

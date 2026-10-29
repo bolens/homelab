@@ -801,6 +801,11 @@ runtime and outputs, exact owned cleanup, and the existing UID requirements.
 Use a per-invocation transport only. Do not grant lasting Docker access or relay
 arbitrary commands. A timeout or lost mutation reply requires retained evidence
 and a state check before any fresh attempt; batching does not permit replay.
+Include the protected completion export and required independent observations in
+that finite command when possible. Keep transaction-bound verification separate
+from later samples: background jobs can legitimately change a running database
+after completion. Retain any delayed mismatch and its causal evidence, without
+excluding tables or claiming that the delayed database equals its preimage.
 Follow the current [delivery rules](../../RELEASING.md), including any revocation
 of a temporary CI exception.
 
@@ -912,6 +917,15 @@ its physical backing path, so applying it to the original host path can refuse
 before child creation. Exercise the complete outer-input projection with real
 `Paths`, distinct host/child mounts and original/physical/virtual output paths.
 Identity-mapping fixtures do not verify that direction.
+Completion records can likewise retain child paths such as `/_operation` or
+`/config`. Map only through the exact owning operation directory or original
+role's bind mount. Retain the declared reference and require the mapped host
+file to match its complete signature and hash. A shared basename is insufficient.
+
+Verify archive metadata against the owning transition. Forward repair deliberately
+assigns the replacement timestamp, while rollback restores its original attributes.
+Require the accepted terminal's exact target signature/hash and declared attributes;
+ordinary rename timestamp expectations cannot substitute for that contract.
 
 When the NFS cohort retains the installation receipt's original Parent source,
 its path differs from the installed Parent copy. Preserve that original binding

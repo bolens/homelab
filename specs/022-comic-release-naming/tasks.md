@@ -9,15 +9,16 @@
 
 ## Current remaining work
 
-**Updated 2026-10-24.** 21 of 24 tasks are complete. T019/T023 require configured
+**Updated 2026-10-29.** 21 of 24 tasks are complete. T019/T023 require configured
 recovery and current-library acceptance before the combined naming/metadata
 passes; T024 proves final idempotence, preservation and cleanup afterward.
 Preserve dotted fields and the hyphen before the verified release group.
 
 The immediate shared recovery work is owned by [feature 024's current
 work](../024-verified-archive-repair/tasks.md#current-remaining-work). Reuse its
-accepted evidence where applicable; this feature requires no additional archive
-fixture or repeated source-delivery gate. Installed naming/metadata component
+accepted [isolated forward/rollback evidence](../024-verified-archive-repair/evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
+where applicable; this feature requires no additional archive fixture or repeated
+source-delivery gate. Its three configured/bulk/final tasks remain open. Installed naming/metadata component
 proof and the accepted ordinary native baseline retain their recorded scope.
 The permanent worker and combined bulk pass stay inactive. The separate
 reading-progress audit remains deferred.
