@@ -8,30 +8,25 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-28.** Eight tasks retain integration or operational criteria.
-The immediate work is the shared isolated forward and
-separate rollback described in [feature 024's current work](../024-verified-archive-repair/tasks.md#current-remaining-work).
-One accepted pair can satisfy the connected portions of T026/T029, isolated
-T027 and feature 024 T012/T015; record each evidence item once and reuse it.
+**Updated 2026-10-29.** Six tasks retain live acceptance criteria.
+T026/T029 are complete: FH's genuine owning forward and the separate FJ rollback
+pass with exact installation, image, terminal-consumption and independent
+archive/reader/native preservation proof. The four installed ordinary-pipeline
+cases also pass. Reuse the [shared acceptance record](../024-verified-archive-repair/evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
+for feature 024 T012/T015 and the isolated portion of T027.
 
-The current shared attempt and its next proof are recorded in feature 024's
-current work. FB/FC remains held without an accepted terminal or resume. Preserve
-its stopped reader and all earlier attempts. The shared ancestor-read correction
-and complete Root/NFS benchmark are implementation verification within T026/T029,
-not accepted forward or rollback evidence.
+T027 still requires its live rollout, scope, restore/NFS and aggregate terminal
+proof. T017 then completes production registration and retained-repeat
+reconciliation. T028 retained-pack recovery and T033 recurring packs have their
+own actual ACK/restart criteria. T018 current-library/bulk acceptance precedes
+T019 cleanup. These are the remaining tasks; no duplicate isolated archive run
+is required. The permanent worker remains inactive and all unresolved originals
+and failed attempts remain preserved.
 
-SDK103 remains the required selection. Reuse unchanged image/source proofs only
-for their exact original inputs. Changed host controls require fresh checked
-installation outputs. An unchanged installation may serve distinct fixtures.
-Ordinary native preservation, T030 cache guard, T031 identity recovery and T032
-control-state adoption retain their recorded acceptance. Source delivery alone
-cannot establish accepted runtime terminals.
-
-T028 retained-pack recovery and T033 recurring packs have their own live ACK
-criteria; neither needs a duplicate archive run. Production reconciliation,
-whole-library/bulk acceptance and final cleanup remain later milestones. The
-permanent worker stays inactive. Preserve all unresolved originals and failed
-attempts in [evidence history](evidence-history.md).
+SDK103 remains the required selection. Reuse unchanged image/source and
+installation proofs only for exact original inputs. Ordinary native preservation,
+T030 cache guard, T031 identity recovery and T032 control-state adoption retain
+their recorded acceptance. Isolated repair does not establish live import or ACK.
 
 ## Remaining execution order
 
@@ -41,8 +36,6 @@ to create a second receipt. Each checkbox still requires all its criteria.
 
 | Track / milestone | Tasks | Exit condition |
 | --- | --- | --- |
-| 1 | T028 source review; T026 source/install delivery | Reviewed contracts, matching selected-image/module proof and passing delivery gates for changed bytes |
-| 2 | Shared isolated T026/T029 and feature 024 T012/T015 proof; T027 prerequisite controls | Genuine factories, archive terminal/consumption, complete preservation and actual isolated NFS/reader/restore evidence |
 | 3 | T017 rollout milestone only | Current affected baseline, verified consistent backup/restore and matching generation running; T017 remains unchecked |
 | 4 | T027 live proof, then finish T017 | Fresh complete physical/reader/NFS/terminal/resume proof followed by exact registration and retained-repeat acceptance |
 | Pack A | T028 retained-existing-target recovery | Configured retained-parent/worker custody, authenticated finalization, fresh catalog-to-ACK and independent terminal/reader acceptance; no archive NFS prerequisite |
@@ -108,8 +101,8 @@ These tasks preserve earlier implementation and rollout history and retain their
 - [x] T024 [US3] Implement finite precommit alias rollback and postcommit exact SQL reversal followed by precise no-overwrite source restoration. Preserve foreign entries, source/custody proof and unresolved crash or lost-response evidence without automatic replay.
 - [x] T025 [US3] Implement aggregate terminal verification and exact pending-marker clearance only under its existing held Writer; require all five retired originals, committed reader state, preserved proper owners, complete current census/catalog and durable matching phase receipts. Create a durable root-owned terminal successor hold before removing the aggregate marker; prove ordinary/startup refusal through crashes and lost acknowledgements until exact terminal completion.
 - [ ] T028 [US3] Finish the retained-delivery route in `stacks/komga/normalizer/import_recovery.py`, `pack_recovery.py` and native `ordinary_import_history.py`: bind one exact retained capture/member and preserved current target, activate only the reviewed configured retained route, and verify its fresh catalog-to-ACK provenance plus independent terminal/reader acceptance. Preserve Wanted intent, rejected owners, original sources and all failed histories. Require the replacement, overlapping-generation, annual, crash/lost-response and no-ACK/no-cleanup controls plus matching installed images; source review precedes T026, while selected live acceptance remains separate.
-- [ ] T026 [US3] Finish coherent source/install delivery in `stacks/mylar3/config/reader_recovery/genuine_active_inputs.py` and the native/worker image gates, then prove exact installed SDK types, passive hooks and connected Parent/Birth/configured factories. Preserve interruption, late source/claim/journal and SQL/reversal controls. Use the shared isolated execution below with T029 and feature 024 T012/T015; require independent review, local/hosted checks and publication of changed installed bytes. Reuse unchanged image proofs only for matching original inputs; component tests alone do not complete this task.
-- [ ] T029 [US3] Run `stacks/mylar3/config/reader_recovery/genuine_plan13_producer.py` through genuine configured factories with fresh original roles/scope/cohort/assembly/intents; prove actual NFS/reader custody, causal archive forward/rollback terminal production and intended native/worker consumption. Complete installed discovery, ordinary import success/lost-response and import-to-rename metadata continuity in `stacks/mylar3/config/verify_image.py` and owning worker gates. Retain source/namespace/journal vectors and independent terminal/ACK evidence; unknown outcomes prohibit replay. Resolve namespace gaps within the existing mount/privilege contract and pass delivery gates before T017 selects changed images.
+- [x] T026 [US3] Finish coherent source/install delivery in `stacks/mylar3/config/reader_recovery/genuine_active_inputs.py` and the native/worker image gates, then prove exact installed SDK types, passive hooks and connected Parent/Birth/configured factories. Preserve interruption, late source/claim/journal and SQL/reversal controls. Use the shared isolated execution below with T029 and feature 024 T012/T015; require independent review, local/hosted checks and publication of changed installed bytes. Reuse unchanged image proofs only for matching original inputs; component tests alone do not complete this task.
+- [x] T029 [US3] Run `stacks/mylar3/config/reader_recovery/genuine_plan13_producer.py` through genuine configured factories with fresh original roles/scope/cohort/assembly/intents; prove actual NFS/reader custody, causal archive forward/rollback terminal production and intended native/worker consumption. Complete installed discovery, ordinary import success/lost-response and import-to-rename metadata continuity in `stacks/mylar3/config/verify_image.py` and owning worker gates. Retain source/namespace/journal vectors and independent terminal/ACK evidence; unknown outcomes prohibit replay. Resolve namespace gaps within the existing mount/privilege contract and pass delivery gates before T017 selects changed images.
 - [ ] T027 [US3] Use `stacks/mylar3/config/reader_recovery/CONTRACT-nfs-factual.md` and the owning lifecycle/proof tools for actual NFS hardlink/fsync, exact cleanup and reader preservation. Share isolated controls with T026/T029, then after the rollout milestone of T017 capture fresh complete live scope, optional fonts/aliases/protected roots and consistent backup/isolated restore. Require actual stopped-reader, forward/rollback, independent terminal and guarded-resume proof before T017 reconciliation or T018/T019 release; prepared/local evidence is insufficient.
 
 ## Phase 8: Independent DDL cache capacity guard
@@ -132,7 +125,7 @@ T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 re
 
 Ordinary post-reboot recovery follows T031 → the scoped native recovery portion of T017, independently of experimental Parent, NFS and bulk acceptance. Its consistent backup and selected-image checks remain mandatory. T033 restricted ongoing ordinary pack recovery follows the selected-path delivery and T032 control-state acceptance, with its own matching-image, backup and live ACK proof. T032 gates subsequent experimental worker activation separately; it does not hold ordinary native availability.
 
-T020, T021 and T023–T025 are complete as implementation milestones: independent review confirms admission exclusion, five-owner staging, exact SQL transitions, reversal, terminal succession and crash/lost-response refusal. Evidence includes the merged PR #293 full-image gates, installed native source/type parity and the actual Btrfs 191 standalone/132 authenticated controls, with no skips. The earlier blanket note incorrectly kept these implementation tasks open until live acceptance. Their completion does not authorize execution: configured stopped-reader/parent admission, matching worker acceptance, consistent restore and live terminal proof remain under the unchecked T026–T029 and T017–T019. T028 still needs authenticated operational launch.
+T020, T021 and T023–T025 are complete as implementation milestones: independent review confirms admission exclusion, five-owner staging, exact SQL transitions, reversal, terminal succession and crash/lost-response refusal. Evidence includes the merged PR #293 full-image gates, installed native source/type parity and the actual Btrfs 191 standalone/132 authenticated controls, with no skips. The earlier blanket note incorrectly kept these implementation tasks open until live acceptance. The shared isolated pair now also verifies connected factories, selected-worker consumption and isolated restore/NFS/terminal/resume behavior. Live scope and terminal proof remain under T027 and T017–T019. T028 still requires its separate authenticated retained-delivery acceptance.
 
 T017 retains the verified 12-scope outer backup and isolated restore with all 72 database checks, bootstrap authority and 13 correction-family registrations. An earlier ordinary repair verified its native-only backup, rollout, queue health and catalog preservation; those historical results do not establish current post-reboot recovery. Failed backup attempts remain in evidence history. T017–T019 remain open for configured archive/ownership recovery, aggregate terminal proof and experimental/bulk acceptance. T018 supplies the current-library acceptance shared with feature 024 T018; feature 022 T024 separately proves post-bulk idempotence and final data acceptance.
 
@@ -140,8 +133,6 @@ T017 retains the verified 12-scope outer backup and isolated restore with all 72
 
 | Task | Next bounded action and inputs | Evidence required to mark complete |
 | --- | --- | --- |
-| T026 | Use the current checked installation and matching source/image evidence in the shared isolated pair. Capture the matching published native image with every changed required module before binding fresh controls. | Exact installed SDK/factory joins, accepted original terminal/consumption and final source/namespace closure; reuse unchanged image proof only for exact original inputs. |
-| T029 | Complete the shared isolated forward and distinct rollback using the delivered host controls, fresh roles/scope and an independently verified backup/restore for each fixture. Preserve held attempts without replay and retain the separate freshness guard and original runtime custody. | Original execute/terminal chain, actual NFS and causal archive transition, independent physical/native/reader comparisons and factual native/worker consumption. Installed ordinary import/lost-response/naming component proof remains required. |
 | T017 | Coordinate writers and follow the owning rollout route. For registration/reconciliation use `scripts/prepare-publication-corrections.py`, native registration preparation/acceptance, a fresh retained-repeat plan, `commitRetainedRepeat` and passive `retainedRepeatStatus`. | Verified backup/restore, exact image/config/data baseline, accepted registration/token/status, wrong repeat outside the scanned library, correct owners/bytes/readers and database integrity unchanged. Complete only after T027 and the required retained paths succeed. |
 | T027 | Use the maintained NFS factual/reader-proof contracts with original operational geometry and mount/source refs. Retain custody through canary cleanup, Writer release, reader stop, backup/restore and independent terminal verification. | Actual readiness and owned cleanup; checked factual owner; stopped-reader and database-restore controls; terminal/reader resume proof and complete final physical coverage. Disposable Btrfs helper tests do not prove actual NFS or lease behavior. |
 | T028 | Bind reviewed configured source/pins for `publication_retained_api.py`, `publication_retained_finalize.py`, `reader_recovery/comic_retained_pack_parent.py` and worker `retained_pack_handoff.py`; portable defaults stay disabled. Verify fixed image anchors, UID1000 original refs, the same-live worker pipes, measured two-copy backup capacity and actual restore before one retained member action. Use authenticated finalize/status and the owning independent terminal/restart contracts. | Exact current capture/member/source/target/owner and catalog event, fresh ACK, terminal SQL/reader preservation and compatible restart. The parent prefix returns no completed custody/resume grant. Generic `--pack-capture` refuses `retained-accepted` members and cannot substitute for this route. Preserve all failed histories and uncertain replies; never manufacture historical ACK or retire a source before fresh acceptance. |
@@ -159,6 +150,10 @@ Build the immutable reviewed-registration MVP first, then prove every publicatio
 
 ## Evidence
 
+The [shared isolated pair](../024-verified-archive-repair/evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
+completes T026/T029. The following earlier component checkpoints retain their
+original scope; live, retained-delivery and bulk acceptance remain separate.
+
 The build-warning follow-up preserves parsing and transaction behavior while
 fixing deprecated calls and resource leaks. Its accepted native capture and
 matching installer are recorded below; the source correction alone does not
@@ -168,26 +163,27 @@ T001–T016 authority foundations and guarded publication paths are accepted.
 T022's portable lifecycle/checked installation, T031 identity recovery, T032
 control-state adoption and T030 configured cache guard are complete. Published
 ordinary import/rename/metadata and worker component proofs remain in
-[evidence history](evidence-history.md); they do not complete current connected,
-retained-download or bulk acceptance.
+[evidence history](evidence-history.md); component proof alone does not establish connected, retained-download or bulk
+acceptance. The later shared pair supplies the connected proof.
 
 The accepted native405 preservation baseline and published449 component proofs
 remain valid for their recorded versions. The PR #462 native180/startup capture
 and matching 27-output supplier pass. Current source checks are summarized below;
 original installation outputs and failed generations remain retained.
 
-## Convergence assessment and evidence
+## Historical convergence checkpoint — 2026-10-21
 
 PR #463 scheduling and PR #464 cacheable stages are merged. The tagging stage's
 117 tests pass without skips, and an unrelated reader edit reuses that layer.
 See [cacheable stages](evidence-history.md#cacheable-image-verification-stages--2026-10-21).
-PR #471 delivers the current 1,302-control/73-suite source proof after passing
+PR #471 delivered the 1,302-control/73-suite source proof after passing
 hosted CI. The ninth isolated bootstrap also completes genuine processing,
-reader and restart checks; [the current bootstrap record](evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21) preserves
+reader and restart checks; [the historical bootstrap record](evidence-history.md#genuine-isolated-bootstrap-completed---2026-10-21) preserves
 the distinction from still-open connected and live acceptance.
 
-T017–T019 retain their aggregate rollout/library/final gates. T026/T029 require
-genuine connected factories and archive terminal consumption, T027 physical and
+At that checkpoint, T026/T029 still required genuine connected factories and
+archive terminal consumption; the accepted shared pair now supplies them.
+T017–T019 retain their live rollout/library/final gates, T027 live physical and
 reader acceptance, and T028/T033 selected import, fresh ACK and later automatic
 capture consumption. All selected histories remain retained; the permanent
 worker remains inactive. Component source tests do not complete these tasks.

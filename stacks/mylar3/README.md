@@ -1549,8 +1549,10 @@ virtual destinations so protected host ancestry cannot block UID1000 reads.
 Physical sources remain readonly with their original hash and identity checks.
 The probe and native adoption also recognize the exact NFS source-suffix
 namespace representation while retaining device, identity, access and mount
-checks. The changed native module requires matching image/SDK proof. Connected
-forward and rollback acceptance remain open.
+checks. The changed native module requires matching image/SDK proof. The
+[shared isolated forward/rollback pair](../../specs/024-verified-archive-repair/evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
+now passes with connected factories, NFS and native/worker terminal consumption.
+Live repair and complete-library acceptance remain open.
 
 Control-tree checks avoid repeated metadata reads for identical original paths
 within each closure pass. Conflicting facts and changes after callbacks still
@@ -1563,8 +1565,9 @@ reads remain Root-owned, while original G/L/R paths retain their bounded
 no-follow owner-principal reads. Constructor-sealed code, defaults and actor
 identities are checked after namespace callbacks; Root restoration, source and
 geometry custody remain mandatory. No result is cached between passes or calls.
-The held U attempt identified effective-runtime expiry before reader stop;
-fresh installation and configured forward/rollback acceptance remain required.
+The held U attempt identified effective-runtime expiry before reader stop and
+remains preserved. The later shared isolated pair uses a fresh verified
+installation; live configured execution still requires its own admission.
 
 The prospective archive plan13 path uses an explicit NFS rename/link protocol,
 selected before any pending marker. Its transient child binds one nonce-scoped common
@@ -1593,15 +1596,17 @@ bindability through private NFS ancestors. Explicit disposable Creator v3 uses
 new searchable `0711` scratch/common ancestors with private `0700` library and
 retention leaves; local state remains `0700`. Legacy and production geometry
 checks remain unchanged. Never change existing library, failed-fixture or export
-permissions to bypass a refusal. Matching published source, a fresh configured
-supplier generation and connected runtime evidence remain required. The worker
-stays Created, and actual runtime acceptance remains open. An explicit native-catalog helper can seed finite distinct fixture
+permissions to bypass a refusal. Every operation requires matching published
+source, checked supplier inputs and connected runtime evidence. The shared
+isolated pair satisfies those gates for its exact fixtures; the permanent worker
+stays Created. An explicit native-catalog helper can seed finite distinct fixture
 identities into the real startup-created empty schema under the installed
 Writer, then queue native processing. It requires actual completed catalog/file
 observations before the reader scans those outputs. This is disposable fixture
-seeding, not provider metadata import or ordinary import acknowledgement. No configured runtime acceptance is implied. The
-remaining full producer, installed connected factories and NFS/native/worker
-terminal acceptance remain unfinished. See the
+seeding, not provider metadata import or ordinary import acknowledgement. Bootstrap
+alone implies no connected acceptance. The shared isolated pair now verifies the
+full producer, installed connected factories and NFS/native/worker terminals;
+production and ordinary-import acceptance remain separate. See the
 [owning protocol](../../specs/024-verified-archive-repair/contracts/archive-repair.md#prospective-nfs-renamelink-purpose)
 and [source checkpoint](config/reader_recovery/GENUINE-ARCHIVE-SCENARIO.md).
 
