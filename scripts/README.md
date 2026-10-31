@@ -14,7 +14,8 @@ containers or files require an explicit action or clearly describe the change.
 Run `make hooks-install` to enable staged secret scanning, actionlint, zizmor,
 Hadolint, dependency configuration, repository validation, and whitespace
 checks. Run `make ci-local` for the all-files hooks plus a full-history
-Gitleaks scan.
+Gitleaks scan, with the shared lint checkout prepared as described in
+[local CI setup](../documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).
 
 ## Onboarding and validation
 
@@ -23,6 +24,7 @@ Gitleaks scan.
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, sensitive-file tracking, and Compose YAML. Add repeatable `--network NAME` / `--mount PATH` checks, or set `HOMELAB_EXPECTED_NETWORKS` / `HOMELAB_MOUNT_PATHS`. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links and anchors, generated docs, and tracked-file integrity; then runs YAML, Markdown, and shell lint when available. Pass `--strict` to require every lint tool. |
 | `validate-dependency-config.py` | Parses Dependabot and Renovate configuration and catches unsupported ecosystem options before GitHub parses them. |
+| `source-lint-local.py` | Runs the hosted source lint from an explicitly prepared checkout matching the workflow's immutable tooling revision and Ruff version; refuses changed tooling and ignores inherited Git routing variables. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
 | `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |
 | `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |

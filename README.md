@@ -123,7 +123,7 @@ Before contributing:
 
 ```bash
 make hooks-install
-make ci-local
+make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
 The [scripts reference](scripts/README.md) explains the available helpers.
