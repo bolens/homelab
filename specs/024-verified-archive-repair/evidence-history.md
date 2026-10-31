@@ -1290,3 +1290,85 @@ acceptance remain open. Joined private acceptance receipt SHA256:
 `4299406be2182f952170b58d847cdcb84378284fb9e276d4cec8019dd6a477fb`.
 FH completion-boundary receipt SHA256:
 `65e92d1403d6010b2667ae266da4d427b58083fff93f021866f76ba8f34cabb4`.
+
+
+## Verified live rollout and data preservation — 2026-10-31
+
+The production native instance now runs the reviewed #543 image at
+`sha256:73b97153418f534850135eeaf1175e29a570c244d69bc0fa0a721441a53c37ea`.
+A fresh coordinated affected-state backup and independent isolated restore
+verify 12,343 files and all four databases before recreation. The operation
+keeps Mylar stopped between that baseline and recreation, avoiding the prior
+old-image restart and intervening data changes. Komga remains available, and
+the permanent normalizer remains inactive.
+
+The first created-container check held before startup because Compose's version
+label changed from 5.6.0 to the installed 5.6.1. Its original failure and custody
+records remain retained. A separately reviewed continuation binds that label to
+the independently queried CLI version, rechecks the backup, source inventories,
+all database models and the exact created container, then starts that same
+container. It repeats neither backup nor recreation. All other configuration,
+mount, command and runtime checks remain strict. The external deployment Writer
+is released before ordinary native startup.
+
+Docker health, publication readiness, workflow validity and all four enabled
+queues pass. The installed UID1000 process uses Python 3.10.12. All 180 actual
+native source modules match the published source map. The actual scheduler
+source matches the reviewed job-management implementation.
+
+Independent preservation accounts for all 27 affected scopes and all four
+databases. Every business catalog table is exact, including 2,747 series,
+16,473 issues and 145 annuals. Legacy tagger and maintenance database models
+are exact. Native differences are limited to coherently paired scheduler-time
+fields, with job names, multiplicity and stable fields preserved. Workflow
+keysets and protected payloads are preserved. Its classified changes are 65
+queued handoff/exhaustion timestamp refreshes, one advancing library-scan cursor
+and the bounded 5,000-event log's 65-row oldest-prefix rollover. This is not raw
+workflow-row or whole-database equality. Original rows remain in the verified
+backup, and all differences are retained in the private comparison.
+
+INI bytes are exact, with a startup timestamp change. The image selector differs
+only at the intended assignment. Health telemetry changes only its check time
+and two empty-queue observation times. All retained archive, target, import,
+receipt, worker configuration and other affected non-log scopes preserve their
+recorded content and access attributes. Original logs remain in the verified
+backup. Every captured database and companion closes against its recorded full
+physical signature and SHA256 before and after detached-copy SQL comparison.
+Independent review accepts the native preservation conclusions.
+
+The matching #555 worker image is bound at
+`sha256:2f29b7ca0318d7d4098115546689b1f65d1c0c00180aed72cce7b8660ff6aa43`.
+Its unchanged publication and actual 42-module proof remain valid. The worker
+selector has a durable verified backup and independent restore. Exactly one
+no-start, no-dependency recreation leaves the worker Created, PID0 and never
+started. Mylar and Komga retain their exact runtime and network identities.
+No worker process accesses or changes its bind-mounted application state.
+
+The initial worker profile comparison held on Compose bookkeeping. Read-only
+verification binds the unchanged replacement label to the original exact
+project/service/instance labels, compares complete mount entries independent of
+list order, and treats empty/null DNS arrays as equivalent only when the
+corresponding Compose setting is absent. All other configuration and access
+checks remain exact. The original held records remain retained. Neither worker
+recreation nor startup is repeated. Fifteen private helper controls pass,
+including complete-flow backup failure, peer restart and primary-error
+preservation checks. Additional negative metadata controls reject foreign
+service/instance/project identities, custom DNS, duplicate mount targets and
+changed mount access. Independent review accepts the scoped result.
+
+This closes T016. Configured repair, import ACK, current-library and bulk
+acceptance remain under the existing T017/T018 gates. The permanent worker
+stays inactive. No new archive fixture is needed to repeat the accepted isolated
+pair.
+
+Private native source/health receipt SHA256:
+`756c50827d44a05153d36b5d7834c97d9b527dcfc89de5f951d8eaa91c445ca3`.
+Independent postrollout observation SHA256:
+`d2a7244c78d2d58093e58deff27610a66d8cea5b6d6f4c460f3d254701e18c05`.
+Closed four-database reconciliation SHA256:
+`89b3d79a86602342d2e24eb2eb8935665cea83a8235a7d639422b560dd4e18ef`.
+
+Read-only worker binding verification SHA256:
+`109b983a9bf03b33d19488382dfff52f82aab30842eb730408b8c11193694618`.
+Joined T016 acceptance receipt SHA256:
+`c5c07067c2f360ee33a349da0f5294c3f6f65bc7bae70c7d4b9b09d6dcf6a001`.

@@ -8,15 +8,16 @@
 
 ## Current acceptance work
 
-**Updated 2026-10-29.** Six tasks retain live acceptance criteria.
+**Updated 2026-10-31.** Six tasks retain live acceptance criteria.
 T026/T029 are complete: FH's genuine owning forward and the separate FJ rollback
 pass with exact installation, image, terminal-consumption and independent
 archive/reader/native preservation proof. The four installed ordinary-pipeline
 cases also pass. Reuse the [shared acceptance record](../024-verified-archive-repair/evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
 for feature 024 T012/T015 and the isolated portion of T027.
 
-T027 still requires its live rollout, scope, restore/NFS and aggregate terminal
-proof. T017 then completes production registration and retained-repeat
+The fresh native rollout, matching inactive worker binding, affected-state
+backup/restore and complete data preservation pass under [feature 024 T016](../024-verified-archive-repair/evidence-history.md#verified-live-rollout-and-data-preservation--2026-10-31).
+T027 still requires current scope/NFS and aggregate terminal proof. T017 then completes production registration and retained-repeat
 reconciliation. T028 retained-pack recovery and T033 recurring packs have their
 own actual ACK/restart criteria. T018 current-library/bulk acceptance precedes
 T019 cleanup. These are the remaining tasks; no duplicate isolated archive run

@@ -4,18 +4,20 @@
 
 ## Current remaining work
 
-**Updated 2026-10-29.** 19 of 22 tasks are complete. T012/T015 pass with
+**Updated 2026-10-31.** 20 of 22 tasks are complete. T012/T015 pass with
 FH's accepted isolated forward and the separate FJ rollback, matching checked
 installation/image proofs and independent review. The same evidence completes
 feature 023 T026/T029 and its isolated T027 prerequisites. See the
 [shared acceptance record](evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29).
 
-Three tasks remain, in their existing order:
+T016 now passes fresh live backup/restore, native rollout, complete data
+preservation and matching inactive worker binding. See the
+[live rollout record](evidence-history.md#verified-live-rollout-and-data-preservation--2026-10-31).
 
-1. T016 captures fresh live scope and verifies the affected-state backup/restore
-   and matching rollout bindings.
-2. T017 performs the supported selected repair and actual import/ACK checks.
-3. T018 verifies restart and current-library preservation before any experimental
+Two tasks remain, in their existing order:
+
+1. T017 performs the supported selected repair and actual import/ACK checks.
+2. T018 verifies restart and current-library preservation before experimental
    bulk resumption or conclusively accepted cleanup.
 
 The isolated pair grants no production, retained-delivery ACK, whole-library,
@@ -76,7 +78,7 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 
 ## Phase 7: Scoped live acceptance
 
-- [ ] T016 After T012 connected readiness and T015 matching-source/image delivery, coordinate the affected writers and validate or create a measured application-consistent backup with independently verified isolated restore for the exact live operation. Capture fresh affected archive/owner/catalog/reader state and actual image/process/configuration bindings; retain a compatible rollback image. Follow `stacks/mylar3/README.md` and `stacks/komga/README.md` for any necessary scoped rollout, normal Mylar startup and brief per-operation exclusion. Reuse an existing verified backup only while its original scopes/state still cover this operation; otherwise refresh through the owning backup route. Record private evidence digests without starting the experimental bulk worker.
+- [x] T016 After T012 connected readiness and T015 matching-source/image delivery, coordinate the affected writers and validate or create a measured application-consistent backup with independently verified isolated restore for the exact live operation. Capture fresh affected archive/owner/catalog/reader state and actual image/process/configuration bindings; retain a compatible rollback image. Follow `stacks/mylar3/README.md` and `stacks/komga/README.md` for any necessary scoped rollout, normal Mylar startup and brief per-operation exclusion. Reuse an existing verified backup only while its original scopes/state still cover this operation; otherwise refresh through the owning backup route. Record private evidence digests without starting the experimental bulk worker.
 - [ ] T017 [US3] With T016 backup/restore and fresh owning admission, execute the selected supported retained-original repair through the dedicated configured `archive-one` route in `stacks/mylar3/config/publication_archive_owned.py`, not the disposable fixture transition or generic import. Compare exact original/repaired members, pages, compressed bytes, metadata, native owner/catalog/census and affected reader records; require genuine terminal vectors and intended native/worker factual consumption. Preserve the four failed selected histories; reconcile a current DDL capture only from actual ordinary import and a fresh matching catalog-to-ACK event; prove guarded repeat handling without replay or manufactured historical ACKs. Record feature 022/023 joins and retain originals on uncertainty; do not release general writers prematurely.
 - [ ] T018 [US3] After T017 scoped repair/import acceptance, verify restart reconciliation and the supported rollback/lost-response refusal evidence, then complete the protected current-library archive/owner/catalog/reader comparisons shared with feature 023 T018 before experimental bulk resumption. Feature 022 T024 separately supplies final post-bulk/idempotence acceptance. Record results in `specs/024-verified-archive-repair/tasks.md`; ordinary Mylar stays available under existing per-operation checks. Prune only conclusively accepted operation-owned copies after these gates, retaining one independently verified current backup, every unresolved original and durable failure history; do not treat a healthy service or successful Parent return as whole-library acceptance.
 
@@ -125,7 +127,8 @@ Retain the accepted isolated connected capability and its original evidence; com
 ## Evidence
 
 The [shared isolated pair](evidence-history.md#shared-isolated-forward-and-rollback--2026-10-29)
-completes T012/T015. T016–T018 remain open for live acceptance.
+completes T012/T015. The [verified live rollout](evidence-history.md#verified-live-rollout-and-data-preservation--2026-10-31)
+completes T016. T017/T018 remain open for configured repair and final acceptance.
 
 ### Historical source and bootstrap checkpoint — 2026-10-21
 
