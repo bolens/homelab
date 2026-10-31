@@ -290,6 +290,40 @@ the same host file without a shadow mount, and the exact stored BOOK URL must
 exist uniquely. A destination prefix alone supplies no mapping authority.
 
 
+## Configured original geometry
+
+Production composition uses `configured_plan13_producer.py`, separately from
+the disposable constructor. Plan13 geometry v3, `configured-common-root-nfs`,
+binds the exact original native writable mount source G and its configured
+CHILD destination. L is the whole configured library; R is a distinct private
+direct child outside every library root. G/L retain their actual owners, groups
+and modes. R remains UID/GID1000 mode0700. All three share one filesystem.
+Original FDs, G full9, the complete original G namespace and every direct child
+identity, canonical ancestry, mount/export/device joins and late closure remain
+mandatory. Existing inspected native and inactive-worker media binds may
+overlap G; no additional ancestor or service bind gains authority.
+
+The child receives projected CHILD paths with original physical facts. Its
+geometry retains the original HOST mount for the export join; probe birth,
+inspection and cleanup use the original HOST retention binding. Backup input
+v2 explicitly joins the stopped reader's original config mount, projected CHILD
+path and directory9, without rewriting its runtime DTO. Legacy backup input v1
+continues to require the original canonical path.
+
+The private owner request is v2 with explicit `terminal=forward|rollback` and
+no source selector. Plan13 retains `configured_original`; action input v5 carries
+its exact CHILD full9/SHA projection. Under the existing Writer, the action
+resolves the primary-key owner through the actual catalog and compares that
+source before preparation. The owning preparation must retain the identical
+source before adoption. A captured reference cannot select another catalog
+owner. Public requests remain primary-key-only.
+
+The existing writable G exposes unrelated siblings to the restricted child.
+Namespace sealing detects drift but does not provide kernel write confinement;
+noncooperating writers must be excluded throughout the operation. The six
+mutation steps, same-child terminal protocol and no-replay rules are unchanged.
+
+
 ## Same-child completion exclusion
 
 For a pending terminal announced under the genuine native Writer, finish both

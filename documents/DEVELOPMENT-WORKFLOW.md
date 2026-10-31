@@ -111,10 +111,16 @@ make hooks-install
 Each commit checks staged secrets, whitespace, dependency configuration,
 GitHub workflow syntax/security, changed Dockerfiles, Compose rendering,
 metadata, preparation scripts, and generated documentation. Run the full
-all-files and Git-history suite on demand:
+all-files and Git-history suite on demand. Prepare a separate checkout of
+`bolens/.github` at the exact `tooling-ref` in
+`.github/workflows/source-lint.yml`, install its locked tools with
+`npm ci --ignore-scripts --prefix /path/to/shared/tools/source-lint`, and provide
+Ruff 0.15.20. The shared source lint runs first, using the hosted configuration
+and rules. Missing tools, a different checkout revision or changed tooling stop
+the gate; validation does not clone or install tools automatically.
 
 ```bash
-make ci-local JAVA_HOME_21=/path/to/jdk-21
+make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
 After the Mylar controls, `ci-local` runs the Komga source/compile gate through

@@ -28,6 +28,23 @@ class Controls(fixture.Controls):
         result,vectors=self.call();self.assertEqual(set(result),{'manifest','restore_root','backup_helper_ack','full_backup_restore_observed','mutation_authority','publication_acceptance','application_quiescence_authority'})
         self.assertFalse(result['publication_acceptance']);self.assertFalse(result['application_quiescence_authority'])
         manifest=json.loads(Path(result['manifest']['path']).read_bytes());self.assertEqual(manifest['databases']['config:database.sqlite']['tables']['BOOK']['rows'],2);self.assertTrue(vectors[0])
+    def test_backup_projected_config_uses_exact_child_path_without_rewriting_original_runtime(self):
+        self.plan.update(version=2,config_binding=dict(host='/configured/reader-state',child=str(self.config),signature9=list(b.a.nine(self.config.lstat()))))
+        self.plan['runtime']['Mounts'][0]['Source']='/configured/reader-state'
+        before=json.loads(json.dumps(self.plan['runtime']))
+        result,_=self.call()
+        self.assertTrue(result['full_backup_restore_observed'])
+        self.assertEqual(self.plan['runtime'],before)
+
+    def test_backup_projected_config_refuses_wrong_host_or_original_identity_before_backup(self):
+        for fault in ('host','signature9'):
+            value=dict(host=self.plan['runtime']['Mounts'][0]['Source'],child=str(self.config),signature9=list(b.a.nine(self.config.lstat())))
+            if fault=='host':value['host']='/foreign'
+            else:value['signature9'][1]+=1
+            self.plan.update(version=2,config_binding=value)
+            with self.subTest(fault=fault),self.assertRaises(b.a.Held):self.call()
+            self.assertFalse((self.work/'reader-backup').exists())
+
     def test_backup_first_watch_original_mode_roundtrip(self):
         fired=[];path=self.config/'database.sqlite'
         def watch():
@@ -110,4 +127,4 @@ class Controls(fixture.Controls):
 if __name__=='__main__':
     names=[name for name in Controls.__dict__ if name.startswith('test_backup_')]
     result=unittest.TextTestRunner().run(unittest.TestSuite(Controls(name) for name in names))
-    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=11)
+    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=13)

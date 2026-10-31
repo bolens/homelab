@@ -486,6 +486,102 @@ def absolute(value):
     return Path(value)
 
 
+def configured_geometry(value, library, retention):
+    """Validate captured production facts without reading or changing a path.
+
+    This is a schema check, never filesystem or mutation admission. The owning
+    Parent separately binds the original native mount and closes retained FDs.
+    """
+    need(type(value) is dict and set(value) == {'version', 'kind', 'common_root',
+         'library', 'retention', 'source_mount', 'namespace'}
+         and type(value['version']) is int and value['version'] == 3
+         and value['kind'] == 'configured-common-root-nfs', 'archive-configured-schema')
+    paths = {}
+    for role in ('common_root', 'library', 'retention'):
+        ref = value[role]
+        need(type(ref) is dict and set(ref) == {'path', 'signature9'}, 'archive-configured-ref')
+        paths[role] = absolute(ref['path']); stamp = ref['signature9']
+        need(type(stamp) is list and len(stamp) == 9 and all(type(x) is int for x in stamp)
+             and stat.S_ISDIR(stamp[5]), 'archive-configured-directory9')
+    root, left, right = (paths[k] for k in ('common_root', 'library', 'retention'))
+    need(str(left) == library and str(right) == retention and left.parent == root
+         and right.parent == root and left != right
+         and len({tuple(value[k]['signature9'][:2]) for k in paths}) == 3
+         and len({value[k]['signature9'][0] for k in paths}) == 1,
+         'archive-configured-direct-same-device')
+    stamp = value['retention']['signature9']
+    need(stat.S_IMODE(stamp[5]) == 0o700 and stamp[6:8] == [1000, 1000],
+         'archive-configured-private-retention')
+    mount = value['source_mount']
+    need(type(mount) is dict and set(mount) == {'host', 'child', 'write'}
+         and type(mount['write']) is bool and mount['write'] is True
+         and mount['host'] == str(root), 'archive-configured-source-mount')
+    absolute(mount['child'])
+    names = value['namespace']
+    need(type(names) is dict and 2 <= len(names) <= 4096, 'archive-configured-namespace-bound')
+    for name, fact in names.items():
+        need(type(name) is str and name not in ('', '.', '..') and '/' not in name
+             and not any(c in name for c in ('\x00', '\n', '\r', '\\'))
+             and type(fact) is list and len(fact) == 5 and all(type(x) is int for x in fact),
+             'archive-configured-namespace-entry')
+    for role in ('library', 'retention'):
+        stamp = value[role]['signature9']
+        need(names.get(paths[role].name) == [stamp[i] for i in (0, 1, 5, 6, 7)],
+             'archive-configured-selected-namespace')
+
+
+def configured_common_root(value, mounts, native_profile, library, retention):
+    """Bind production geometry to existing native and helper mount authority."""
+    configured_geometry(value, library, retention)
+    mount = value['source_mount']; root = Path(mount['host']); child = Path(mount['child'])
+    need(type(native_profile) is dict and type(native_profile.get('Mounts')) is list,
+         'archive-configured-native-mounts')
+    native = [row for row in native_profile['Mounts'] if row.get('Type') == 'bind'
+              and row.get('Source') == str(root)]
+    need(len(native) == 1 and native[0].get('Destination') == str(child)
+         and native[0].get('RW') is True, 'archive-configured-existing-native-bind')
+    need(type(mounts) is list and [row for row in mounts if row.get('host') == str(root)] == [mount],
+         'archive-configured-exact-helper-bind')
+    for rows, native_rows in ((mounts, False), (native_profile['Mounts'], True)):
+        for row in rows:
+            if native_rows:
+                host = row.get('Source') if row.get('Type') == 'bind' else None
+                destination = row.get('Destination')
+                if row is native[0]:continue
+            else:
+                need(type(row) is dict and set(row) == {'host', 'child', 'write'}
+                     and type(row['write']) is bool, 'archive-configured-helper-mount')
+                host, destination = row['host'], row['child']
+                if row == mount:continue
+            for raw, base in ((host, root), (destination, child)):
+                if raw is None:continue
+                path = absolute(raw)
+                need(not (path == base or base in path.parents or path in base.parents),
+                     'archive-configured-no-alias-or-shadow')
+
+
+def child_publication_geometry(value):
+    """Project paths only; preserve captured identities and original host bind."""
+    result=copy.deepcopy(value)
+    if value['version']==3:
+        host=Path(value['source_mount']['host']); child=Path(value['source_mount']['child'])
+        for role in ('common_root','library','retention'):
+            result[role]['path']=str(child/Path(value[role]['path']).relative_to(host))
+    return result
+
+
+def searchable_retention_geometry(geometry):
+    """One schema predicate shared by probe birth, observation and cleanup."""
+    if geometry.get('version')==3:
+        configured_geometry(geometry,geometry['library']['path'],geometry['retention']['path'])
+    else:
+        need(geometry.get('version')==2 and geometry.get('kind')=='searchable-common-root-nfs',
+             'nfs-probe-searchable-retention-geometry')
+        retention=absolute(geometry['retention']['path'])
+        need(retention.name=='R' and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None,
+             'nfs-probe-disposable-retention')
+
+
 # Only this exact, explicitly bound geometry gets owner-principal reads.
 _OWNER_READS = None
 _OWNER_READ_FAILED = False
@@ -510,28 +606,33 @@ class GeometryOwnerReads:
     __slots__ = ('geometry', 'thread', 'poisoned', 'busy', 'handles', 'common_roots', 'nodes', 'root', 'source', 'code', 'seal', 'registry', '__weakref__')
 
     def __init__(self, geometry):
-        need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
-             and type(geometry['version']) is int and geometry['version'] == 2
-             and geometry['kind'] == 'searchable-common-root-nfs', 'owner-read-geometry-v2')
+        production = type(geometry) is dict and geometry.get('version') == 3
+        if production:
+            configured_geometry(geometry, geometry['library']['path'], geometry['retention']['path'])
+        else:
+            need(type(geometry) is dict and set(geometry) == {'version', 'kind', 'common_root', 'library', 'retention'}
+                 and type(geometry['version']) is int and geometry['version'] == 2
+                 and geometry['kind'] == 'searchable-common-root-nfs', 'owner-read-geometry-v2')
         self.geometry = copy.deepcopy(geometry); self.thread = threading.get_ident()
         self.poisoned = False; self.busy = False; self.handles = {}; self.common_roots = []; self.nodes = {}
         self.root = absolute(geometry['common_root']['path'])
-        need(self.root.name.startswith('archive-publication-') and digest(self.root.name.removeprefix('archive-publication-')),
-             'owner-read-disposable-root')
-        for role, suffix in (('common_root', None), ('library', 'L'), ('retention', 'R')):
-            ref = geometry[role]
-            need(type(ref) is dict and set(ref) == {'path', 'signature9'}, 'owner-read-original-ref')
-            path = absolute(ref['path']); v = ref['signature9']
-            need((suffix is None and path == self.root or suffix is not None and path == self.root / suffix)
-                 and type(v) is list and len(v) == 9 and all(type(x) is int for x in v)
-                 and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5]) == (0o711 if suffix is None else 0o700)
-                 and v[6:8] == [1000, 1000], 'owner-read-original-directory')
+        if not production:
+            need(self.root.name.startswith('archive-publication-') and digest(self.root.name.removeprefix('archive-publication-')),
+                 'owner-read-disposable-root')
+            for role, suffix in (('common_root', None), ('library', 'L'), ('retention', 'R')):
+                ref = geometry[role]
+                need(type(ref) is dict and set(ref) == {'path', 'signature9'}, 'owner-read-original-ref')
+                path = absolute(ref['path']); v = ref['signature9']
+                need((suffix is None and path == self.root or suffix is not None and path == self.root / suffix)
+                     and type(v) is list and len(v) == 9 and all(type(x) is int for x in v)
+                     and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5]) == (0o711 if suffix is None else 0o700)
+                     and v[6:8] == [1000, 1000], 'owner-read-original-directory')
         self.source = dict(path=str(Path(__file__).absolute()), sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                            signature9=nine(os.lstat(__file__)))
         self.code = tuple((name, value, value.__code__) for name, value in type(self).__dict__.items() if hasattr(value, '__code__'))
         dependencies = tuple((name, globals()[name], globals()[name].__code__, globals()[name].__defaults__,
                               None if globals()[name].__kwdefaults__ is None else tuple(globals()[name].__kwdefaults__.items()), globals()) for name in
-                             ('_owner_dependencies_match', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'remote_control_vector', 'final', 'five', 'nine'))
+                             ('_owner_dependencies_match', 'configured_geometry', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'remote_control_vector', 'final', 'five', 'nine'))
         dependencies += tuple((name, value, code, value.__defaults__, None if value.__kwdefaults__ is None
                                else tuple(value.__kwdefaults__.items()), type(self).__dict__) for name, value, code in self.code)
         self.seal = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code, dependencies, self.handles, self.nodes)
@@ -817,8 +918,18 @@ class GeometryOwnerReads:
              'owner-read-original-directory-path5')
         common, common_fact = geometry[0]
         before, names, after = methods['_run'](self, 'names', common)
-        need(tuple(nine(before)) == tuple(nine(after)) == common_fact and set(names) == {'L', 'R'},
+        need(tuple(nine(before)) == tuple(nine(after)) == common_fact and set(names) == (set(self.geometry['namespace']) if self.geometry['version'] == 3 else {'L', 'R'}),
              'owner-read-original-common-namespace9')
+        if self.geometry['version'] == 3:
+            entries = tuple(self.geometry['namespace'].items())
+            for offset in range(0, len(entries), 512):
+                batch = entries[offset:offset + 512]
+                observed = methods['_run'](self, 'stats', tuple(str(self.root / name) for name, _ in batch))
+                need(all(five(actual) == original for actual, (_, original) in zip(observed, batch)),
+                     'owner-read-original-configured-namespace5')
+            before, names, after = methods['_run'](self, 'names', common)
+            need(tuple(nine(before)) == tuple(nine(after)) == common_fact
+                 and set(names) == set(self.geometry['namespace']), 'owner-read-final-configured-namespace9')
         ancestors = methods['_run'](self, 'stats', tuple(path for path, _ in nodes), ancestor=True)
         need(len(ancestors) == len(nodes) and all(tuple(five(value)) == fact for (_, fact), value in zip(nodes, ancestors)),
              'owner-read-original-ancestor5')
@@ -881,7 +992,7 @@ class GeometryOwnerReads:
 def bind_owner_reads(geometry):
     global _OWNER_READS
     need(not _OWNER_READ_FAILED, 'owner-read-process-poison')
-    if os.geteuid() != 0 or geometry.get('version') != 2:return None
+    if os.geteuid() != 0 or geometry.get('version') not in (2, 3):return None
     need(_OWNER_READS is None, 'owner-read-no-scope-replacement')
     actor = GeometryOwnerReads(geometry); _OWNER_READS = actor; return actor
 
@@ -1115,7 +1226,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = 'fe054b1a693af44d81f504904563764d30007c7a85e75093f1b885711b993b8e'
+BASE_ADMISSION_SHA = '62bf0cc43f6cac4f0497204fd0da4f85a34bd27cd03c131264443dd0a797a7c4'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -1307,13 +1418,12 @@ class Paths:
         need(row is not None and row[1]==owner.plan['publication_geometry'],'nfs-probe-original-retention-row')
         check_common_root(row);geometry=row[1]
         if geometry['version']==1 and geometry['kind']=='private-common-root-nfs':return None
-        need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs','nfs-probe-searchable-retention-geometry')
+        searchable_retention_geometry(geometry)
         retention=absolute(geometry['retention']['path']);root=absolute(fixture)
         # Retention belongs to the admitted identity-preserving NFS roots.
         # Observe that set once rather than re-entering both mapping wrappers.
         roots=self.nfs_roots()
-        need(root.parent.parent==retention and retention.name=='R'
-             and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+        need(root.parent.parent==retention
              and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
              and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None
              and any(retention==Path(path) or Path(path) in retention.parents for path in roots),
@@ -1436,7 +1546,7 @@ class Paths:
                 common_original=_ARCHIVE_COMMON_ROOTS.get(owner)
                 need(common_original is not None and common_original[1]==owner.plan['publication_geometry'],'nfs-probe-original-retention-row')
                 geometry=common_original[1]
-                need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs','nfs-probe-searchable-retention-geometry')
+                searchable_retention_geometry(geometry)
                 active=decode(_NFS_SOURCE_CONTEXTS[owner][2]);ref=active['active_scope']
                 need(ref['path'] in owner.files,'nfs-plan13-original-scope')
                 scope_nodes=parents(Path(ref['path']));scope_stamp=tuple(owner.files[ref['path']])
@@ -1444,8 +1554,7 @@ class Paths:
                 roots=tuple(scope['forbidden_roots'])+(str(Path(active['parent_admission']['path']).parent),)
                 need(_NFS_DATA_ROOTS.get(owner)==roots,'nfs-plan13-original-protected-roots')
                 retention=absolute(geometry['retention']['path']);fixture=absolute(decode(raw)['root'])
-                need(fixture.parent.parent==retention and retention.name=='R'
-                     and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+                need(fixture.parent.parent==retention
                      and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',fixture.parent.name) is not None
                      and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',fixture.name) is not None
                      and any(retention==Path(path) or Path(path) in retention.parents for path in roots),
@@ -1632,7 +1741,7 @@ _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
 NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '8d419dd75e19a1c9bf412f27aa1fb03bbbd0f1ac09c970de783188d3b770e603', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='f175f7f7340a3854dbe42fffd8f593be1f4450e205a2fae2f47e442f9028bdb3'
+NFS_ACTIVE_SOURCE_SHA='fa816c61c29e8ec3d5c7f08a6d00aebb8b8694b1c1d5d51c2a6dfe0a8ff454a3'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -2063,24 +2172,38 @@ def _close_common_handles(handles, actor):
     if first is not None:raise first
 
 
-def admit_common_root(value,mounts,library,retention,other_roots):
+def admit_common_root(value,mounts,library,retention,other_roots,*,native_profile=None):
     """Plan13 only: one private NFS bind containing exactly library+retention."""
-    need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and (value['version'],value['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'archive-common-schema')
-    for role in ('common_root','library','retention'):
-        ref=value[role];need(type(ref) is dict and set(ref)=={'path','signature9'},'archive-common-ref')
-        path=absolute(ref['path']);need(nfs_canonical(path),'archive-common-canonical')
-        v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(nfs_lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==(0o711 if value['version']==2 and role=='common_root' else 0o700) and v[6:8]==[1000,1000],'archive-common-original-directory9')
-    root=Path(value['common_root']['path']);left=Path(value['library']['path']);right=Path(value['retention']['path'])
-    if value['version']==2:need(root.name.startswith('archive-publication-') and digest(root.name.removeprefix('archive-publication-')) and left==root/'L' and right==root/'R','archive-common-disposable-names')
-    need(str(left)==library and str(right)==retention and left.parent==root and right.parent==root and left!=right and len({tuple(value[k]['signature9'][:2]) for k in ('common_root','library','retention')})==3 and len({value[k]['signature9'][0] for k in ('common_root','library','retention')})==1,'archive-common-exact-two-direct-children')
-    need(set(nfs_names(root))=={left.name,right.name},'archive-common-exact-namespace')
-    need(all(not(root==Path(p) or root in Path(p).parents or Path(p) in root.parents) for p in other_roots),'archive-common-other-scope-overlap')
-    bound=[r for r in mounts if r['host']==str(root)]
-    need(bound==[dict(host=str(root),child=str(root),write=True)],'archive-common-one-canonical-writable-bind')
-    for row in mounts:
-        if row is bound[0]:continue
-        for raw in (row['host'],row['child']):
-            path=Path(raw);need(not(path==root or root in path.parents or path in root.parents),'archive-common-no-nested-or-shadow-bind')
+    production = type(value) is dict and value.get('version') == 3
+    if production:
+        configured_common_root(value, mounts, native_profile, library, retention)
+        root=Path(value['common_root']['path']);left=Path(value['library']['path']);right=Path(value['retention']['path'])
+        for role in ('common_root','library','retention'):
+            ref=value[role];path=absolute(ref['path'])
+            need(nfs_canonical(path) and nine(nfs_lstat(path))==ref['signature9'],
+                 'archive-configured-original-directory9')
+        need(set(nfs_names(root))==set(value['namespace']),'archive-configured-original-namespace')
+        for name, original in value['namespace'].items():
+            need(five(nfs_lstat(root/name))==original,'archive-configured-original-namespace5')
+        need(all(not(root==Path(p) or root in Path(p).parents or Path(p) in root.parents) for p in other_roots),
+             'archive-configured-other-scope-overlap')
+    else:
+        need(type(value) is dict and set(value)=={'version','kind','common_root','library','retention'} and type(value['version']) is int and (value['version'],value['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'archive-common-schema')
+        for role in ('common_root','library','retention'):
+            ref=value[role];need(type(ref) is dict and set(ref)=={'path','signature9'},'archive-common-ref')
+            path=absolute(ref['path']);need(nfs_canonical(path),'archive-common-canonical')
+            v=ref['signature9'];need(type(v) is list and len(v)==9 and all(type(x) is int for x in v) and tuple(nine(nfs_lstat(path)))==tuple(v) and stat.S_ISDIR(v[5]) and stat.S_IMODE(v[5])==(0o711 if value['version']==2 and role=='common_root' else 0o700) and v[6:8]==[1000,1000],'archive-common-original-directory9')
+        root=Path(value['common_root']['path']);left=Path(value['library']['path']);right=Path(value['retention']['path'])
+        if value['version']==2:need(root.name.startswith('archive-publication-') and digest(root.name.removeprefix('archive-publication-')) and left==root/'L' and right==root/'R','archive-common-disposable-names')
+        need(str(left)==library and str(right)==retention and left.parent==root and right.parent==root and left!=right and len({tuple(value[k]['signature9'][:2]) for k in ('common_root','library','retention')})==3 and len({value[k]['signature9'][0] for k in ('common_root','library','retention')})==1,'archive-common-exact-two-direct-children')
+        need(set(nfs_names(root))=={left.name,right.name},'archive-common-exact-namespace')
+        need(all(not(root==Path(p) or root in Path(p).parents or Path(p) in root.parents) for p in other_roots),'archive-common-other-scope-overlap')
+        bound=[r for r in mounts if r['host']==str(root)]
+        need(bound==[dict(host=str(root),child=str(root),write=True)],'archive-common-one-canonical-writable-bind')
+        for row in mounts:
+            if row is bound[0]:continue
+            for raw in (row['host'],row['child']):
+                path=Path(raw);need(not(path==root or root in path.parents or path in root.parents),'archive-common-no-nested-or-shadow-bind')
     actor = _OWNER_READS if _OWNER_READS is not None and _OWNER_READS.contains(str(root)) else None
     fd=nfs_directory(root)
     held=[];result=None
@@ -2132,6 +2255,7 @@ def check_common_root(row):
              and paths==tuple(birth[role]['path'] for role in ('common_root','library','retention'))
              and facts==tuple(tuple(birth[role]['signature9'][i] for i in (0,1,5,6,7)) for role in ('common_root','library','retention'))
              and expected==tuple(birth['common_root']['signature9']),'archive-common-original-owner-geometry')
+        if value['version']==3:need(encode(value)==encode(birth),'archive-configured-original-owner-geometry')
         original_value=encode(value);original_nodes=encode(ancestors);original_roots=actor.common_roots
         path_facts=dict(zip(paths,facts));path_facts.update((path,tuple(fact)) for path,fact in ancestors.items())
         def close_row():
@@ -2169,10 +2293,13 @@ def check_common_root(row):
             close_row()
             return
     need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(nfs_lstat(root)))==expected,'archive-common-original-root-FD9')
-    names={Path(value[k]['path']).name for k in ('library','retention')}
+    names=set(value['namespace']) if value['version']==3 else {Path(value[k]['path']).name for k in ('library','retention')}
     fresh=nfs_directory(root)
     try:
         need(tuple(nine(os.fstat(fresh)))==expected and set(nfs_names(fresh))==names,'archive-common-original-namespace')
+        if value['version']==3:
+            for name, original in value['namespace'].items():
+                need(five(nfs_lstat(root/name))==original,'archive-configured-original-namespace5')
         for role,handle in zip(('library','retention'),held):
             ref=value[role];v=ref['signature9'];need(tuple(five(os.fstat(handle)))==tuple(v[i] for i in (0,1,5,6,7)),'archive-common-retained-child-FD5');actual=nfs_lstat(ref['path'])
             need(tuple(five(actual))==tuple(v[i] for i in (0,1,5,6,7)),'archive-common-original-child5')
@@ -2224,7 +2351,10 @@ class LifecycleParent:
         if archive:base_keys=(base_keys-{'action_inputs','admission_source_sha256'})|{'action','backup_provider'}
         if same_child:base_keys.add('terminal_mode')
         if archive and plan.get('version') in (12,13):base_keys.add('worker_observation')
-        if archive and plan.get('version')==13:base_keys.add('publication_geometry')
+        if archive and plan.get('version')==13:
+            base_keys.add('publication_geometry')
+            need(type(plan.get('publication_geometry')) is dict,'archive-publication-geometry')
+            if plan.get('publication_geometry',{}).get('version')==3:base_keys.add('configured_original')
         need(type(plan) is dict and set(plan)==base_keys,'plan-schema')
         need(plan['version'] in ((10,11,12,13) if archive else (9,)) and type(plan['version']) is int
              and plan['kind'] == ('reviewed-archive-one-lifecycle-protocol' if archive else 'reviewed-negative-five-lifecycle-protocol')
@@ -2286,10 +2416,19 @@ class LifecycleParent:
             need(type(scopes) is dict and set(scopes)=={'version','scratch','retention_root'} and type(scopes['version']) is int and scopes['version']==1,'archive-private-scope-input')
             writable={str(self.op),self.mapping.host(plan['native']['data']),*[self.mapping.host(x) for x in plan['native']['roots']],scopes['scratch'],scopes['retention_root']}
             if plan['version']==13:
-                geometry=admit_common_root(plan['publication_geometry'],plan['mounts'],self.mapping.host(plan['native']['roots'][0]),scopes['retention_root'],[str(self.op),self.mapping.host(plan['native']['data']),scopes['scratch']])
+                geometry=admit_common_root(plan['publication_geometry'],plan['mounts'],self.mapping.host(plan['native']['roots'][0]),scopes['retention_root'],[str(self.op),self.mapping.host(plan['native']['data']),scopes['scratch']],native_profile=plan['held_native']['profile'])
                 _ARCHIVE_COMMON_ROOTS[self]=geometry
                 weakref.finalize(self,close_common_root,geometry)
                 writable.add(geometry[1]['common_root']['path'])
+                if geometry[1]['version']==3:
+                    original=plan['configured_original']
+                    need(type(original) is dict and set(original)=={'path','signature9','sha256'}
+                         and digest(original['sha256']) and type(original['signature9']) is list
+                         and len(original['signature9'])==9 and all(type(v) is int for v in original['signature9'])
+                         and stat.S_ISREG(original['signature9'][5]) and original['signature9'][8]==1
+                         and 0<original['signature9'][2]<=512*1024**2
+                         and absolute(original['path']).is_relative_to(Path(geometry[1]['library']['path'])),
+                         'archive-configured-selected-original')
             need(all(not row['write'] or row['host'] in writable for row in plan['mounts']),'archive-finite-writable-host-scope')
             # Immutable image code cannot be overlaid by any declared child mount.
             for row in plan['mounts']:
@@ -2505,7 +2644,7 @@ class LifecycleParent:
                 for mount in observed['Mounts']:
                     if mount['Type']!='bind':continue
                     source=Path(mount['Source'])
-                    need(source==library or not(source==common or common in source.parents or source in common.parents),'archive-common-original-role-overlap')
+                    need((geometry['version']==3 and (source==common or common in source.parents)) or source==library or not(source==common or common in source.parents or source in common.parents),'archive-common-original-role-overlap')
             check_common_root(_ARCHIVE_COMMON_ROOTS[self])
         reader = self.baselines['reader']
         need(reader['State']['Running'] is True and reader['State']['Paused'] is False,
@@ -3138,15 +3277,13 @@ class LifecycleParent:
                  and retained[1]==self.plan.get('publication_geometry'),
                  'nfs-probe-cleanup-original-retention-row')
             geometry=retained[1];geometry_tape=encode(geometry)
-            need(geometry['version']==2 and geometry['kind']=='searchable-common-root-nfs',
-                 'nfs-probe-cleanup-searchable-retention')
+            searchable_retention_geometry(geometry)
             retention=absolute(geometry['retention']['path']);root=absolute(fixture)
             stamp=geometry['retention']['signature9']
             binding=dict(host_root=str(retention),child_root=str(retention),root5=[stamp[i] for i in (0,1,5,6,7)])
             need(encode(spec['binding'])==encode(binding)
                  and encode(spec['mounts'][:2])==encode([[str(retention),str(retention),True],[str(retention),'/config',False]])
-                 and root.parent.parent==retention and retention.name=='R'
-                 and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None
+                 and root.parent.parent==retention
                  and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',root.parent.name) is not None
                  and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',root.name) is not None,
                  'nfs-probe-cleanup-exact-retention-binding')
@@ -4491,13 +4628,24 @@ class LifecycleParent:
             _CHILD_TREES[self].archive_sources(refs);self.left()
         provider=self.mapping.child_ref(self.phase_provider(phase));command=command_template(provider,phase,self.mapping.child(host_path))
         value=dict(payload,version=1,nonce=self.plan['nonce'],action='archive-one-backup' if phase=='backup' else 'archive-one',parent_sha256=self.source_ref['sha256'],command_template=command,operation=self.mapping.child(directory),selected_image=self.plan['selected_image'],sdk_map=self.mapping.child_ref(self.plan['sdk_map']))
-        if phase=='backup':value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))
+        if phase=='backup':
+            value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))
+            if self.plan.get('publication_geometry',{}).get('version')==3:
+                configs=[row for row in payload['runtime']['Mounts'] if row['Destination']=='/config']
+                need(len(configs)==1 and configs[0]['Type']=='bind','archive-backup-original-config-mount')
+                host=configs[0]['Source']; child=self.mapping.child(host)
+                need(self.mapping.host(child)==host,'archive-backup-original-config-projection')
+                value.update(version=2,config_binding=dict(host=host,child=child,signature9=nine(nfs_lstat(host))))
         else:
             request=decode(read(self.plan['producer_inputs']['archive_request']))
             value.update(owner=request['owner'],operation_id=request['operation_id'])
         if self.plan.get('version') in (11,12,13) and phase=='execute':
             value.update(version=2,terminal_mode='same-child-v1')
             if self.plan['version']==13:value.update(version=3,terminal=request.get('terminal','forward'),publication_protocol='rename-link-v1')
+            if self.plan.get('publication_geometry',{}).get('version')==3:
+                need(request['version']==2,'archive-configured-no-fixture-transition')
+                original=copy.deepcopy(self.plan['configured_original']);original['path']=self.mapping.child(original['path'])
+                value.update(version=5,selected_original=original)
             if request['version']==3:
                 originals=archive_fixture_inputs(self.plan,request)
                 value.update(version=4,fixture_originals={role:self.mapping.child_ref(ref) for role,ref in originals.items()})
@@ -4537,7 +4685,7 @@ class LifecycleParent:
         need(nfs_lstat(library).st_dev==facts['device'],'archive-publication-original-library-device')
         result=dict(version=1,protocol='rename-link-v1',nonce=self.plan['nonce'],input_sha256=input_ref['sha256'],parent_sha256=self.source_ref['sha256'],owner=copy.deepcopy(request['owner']),operation_id=request['operation_id'],library=library,mount=copy.deepcopy(facts['mount']),device=facts['device'],execution_authority=False,publication_acceptance=False)
         need(self in _ARCHIVE_COMMON_ROOTS,'archive-publication-common-root-required')
-        geometry=_ARCHIVE_COMMON_ROOTS[self];check_common_root(geometry);result['geometry']=copy.deepcopy(geometry[1])
+        geometry=_ARCHIVE_COMMON_ROOTS[self];check_common_root(geometry);result['geometry']=child_publication_geometry(geometry[1])
         record['canary'].close();self.continuous();self.left();read(ref)
         check_common_root(geometry)
         _ARCHIVE_PUBLICATION_REQUESTS[self]=encode(result);return result
@@ -4559,7 +4707,7 @@ class LifecycleParent:
             observed=nfs.stop_owned(self)
             runtime=copy.deepcopy(observed['reader'])
             for mount in runtime['Mounts']:
-                if mount['Type']=='bind':need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
+                if mount['Type']=='bind' and self.plan.get('publication_geometry',{}).get('version')!=3:need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
             inp,cmd=self.phase_input('backup',dict(runtime=runtime));backup=self.child_phase('backup',inp,cmd)
             backup=dict(backup,manifest=self.child_control(backup['manifest'],self.mapping.child(self.op/'backup'/'reader-backup'/'manifest.json')),restore_root=self.mapping.host(backup['restore_root']))
             # Child backup control refs use canonical HOST mount spelling. No

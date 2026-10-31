@@ -100,7 +100,7 @@ class Controls(unittest.TestCase):
         self.assertFalse(scope.binding['mutation_authority']);self.assertFalse(scope.binding['publication_acceptance'])
         self.assertEqual(len(scope._mounts),73);scope.revalidate()
         with self.assertRaises(l.Held):l.from_birth(token)
-    def publication_custody(self,request_version=3,*,version=None,protocol='rename-link-v1'):
+    def publication_custody(self,request_version=3,*,version=None,protocol='rename-link-v1',configured=False):
         # Execute the Parent's real input-version branch. Original fixture-document
         # validation is an explicit double here, not a configured fixture claim.
         source=root/'reader_recovery/comic_reader_lifecycle_parent.py'
@@ -109,11 +109,14 @@ class Controls(unittest.TestCase):
         branch=next(n for n in method.body if isinstance(n,ast.If) and any(isinstance(v,ast.Constant) and v.value=='same-child-v1' for v in ast.walk(n)))
         refs={name:{} for name in ('bootstrap','catalog')}
         owner=types.SimpleNamespace(plan={'version':13},mapping=types.SimpleNamespace(child_ref=copy.deepcopy))
-        namespace=dict(self=owner,phase='execute',request={'version':request_version,'terminal':'forward'},
+        if configured:
+            owner.plan.update(publication_geometry={'version':3},configured_original=dict(path='/host/library/original.cbz',signature9=[1,2,3,4,5,0o100600,1000,1000,1],sha256='a'*64))
+            owner.mapping.child=lambda path:'/data/comics/original.cbz'
+        namespace=dict(copy=copy,need=l.require,self=owner,phase='execute',request={'version':request_version,'terminal':'forward'},
                        value={'version':1,'owner':{'table':'issues','issueid':'1','parentcomicid':'2','releasecomicid':'2'},'operation_id':'e'*64},
                        archive_fixture_inputs=lambda plan,request:refs)
         exec(compile(ast.Module(body=[branch],type_ignores=[]),str(source),'exec'),namespace)
-        invocation=namespace['value'];self.assertEqual(invocation['version'],4 if request_version==3 else 3)
+        invocation=namespace['value'];self.assertEqual(invocation['version'],5 if configured else 4 if request_version==3 else 3)
         if version is not None:invocation['version']=version
         if protocol is None:invocation.pop('publication_protocol')
         else:invocation['publication_protocol']=protocol
@@ -138,8 +141,17 @@ class Controls(unittest.TestCase):
         custody,scope,adoption=self.publication_custody(request_version=2)
         with patch.object(adoption,'installed'):selection=adoption.nfs_publication(custody,scope)
         self.assertEqual(selection.facts['protocol'],'rename-link-v1');self.assertNotIn(custody,l._WRITER_PIPE)
+    def test_configured_v5_parent_birth_custody_reaches_owning_publication_selection(self):
+        custody,scope,adoption=self.publication_custody(request_version=2,configured=True)
+        with patch.object(adoption,'installed'):selection=adoption.nfs_publication(custody,scope)
+        self.assertEqual(custody.invocation['version'],5)
+        self.assertEqual(custody.invocation['selected_original']['path'],'/data/comics/original.cbz')
+        self.assertEqual(selection.facts,self.publication_facts)
+        self.assertEqual(custody.archive_publication_original(scope),selection.facts)
+        self.assertNotIn(custody,l._WRITER_PIPE)
+
     def test_publication_version_type_and_unknown_versions_refuse(self):
-        for version in (True,3.0,4.0,2,5):
+        for version in (True,3.0,4.0,5.0,2,6):
             with self.subTest(version=version):
                 case=Controls('runTest');case.setUp()
                 try:

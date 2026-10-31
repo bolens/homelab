@@ -9,7 +9,7 @@ Before submitting a change:
 
 ```bash
 make hooks-install
-make ci-local JAVA_HOME_21=/path/to/jdk-21
+make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
 Install the locked npm tools in each checkout or worktree. `make ci-local` checks
@@ -17,6 +17,9 @@ for its Markdown tooling before running the source suites. The Mylar checks incl
 workflow intake regressions as well as the recovery and publication suites.
 The Komga gate includes the canonical worker pipe protocol tests before its
 compiled observer checks.
+Prepare the shared source-lint checkout and locked dependencies as described in
+[local CI setup](documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).
+Its revision and Ruff version must match the hosted workflow.
 The final secret scan covers the complete history reachable from `HEAD`.
 Staged secrets remain checked by the commit hook. Use `make secrets` to audit
 all local refs, including unrelated branches and snapshots.

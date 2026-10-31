@@ -33,6 +33,14 @@ class Tests(unittest.TestCase):
             value=dict(self.plan,terminal=terminal)
             self.assertEqual(action.validate_plan(value,self.args,self.argv),value)
 
+    def test_configured_action_requires_distinct_original_binding_schema(self):
+        original=dict(path='/data/comics/target.cbz',signature9=[1,2,3,4,5,0o100600,1000,1000,1],sha256='a'*64)
+        value=dict(self.plan,version=5,selected_original=original)
+        self.assertEqual(action.validate_plan(value,self.args,self.argv),value)
+        with self.assertRaises(action.Held):action.validate_plan(dict(self.plan,selected_original=original),self.args,self.argv)
+        value.pop('selected_original')
+        with self.assertRaises(action.Held):action.validate_plan(value,self.args,self.argv)
+
     def test_missing_unknown_or_legacy_protocol_fields_refuse(self):
         for mutation in ({'version':2},{'publication_protocol':'exchange-fallback'},{'terminal':'retry'}):
             with self.subTest(mutation=mutation),self.assertRaises(action.Held):

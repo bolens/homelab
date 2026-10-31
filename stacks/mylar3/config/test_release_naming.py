@@ -210,6 +210,19 @@ class NamingTest(unittest.TestCase):
             with self.assertRaises(ValueError):self.native.recover(self.writer)
         self.assertTrue(self.writer.fenced(release=True))
 
+    def test_recovery_owner_drift_refuses_before_creating_any_target_link(self):
+        # Keep the original prepared transaction without creating its target.
+        with patch('mylar.release_naming.os.link',side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):self.native.rename(self.request)
+        self.assertFalse(self.target.exists())
+        self.db.execute("UPDATE issues SET IssueID='foreign'");self.db.commit()
+        with self.writer.hold(allow_release_pending=True):
+            with patch('mylar.release_naming.os.link',wraps=self.native.os.link) as linked:
+                with self.assertRaises(ValueError):self.native.recover(self.writer)
+                linked.assert_not_called()
+        self.assertFalse(self.target.exists());self.assertTrue(self.source.exists())
+        self.assertTrue(self.writer.fenced(release=True))
+
     def test_worker_admission_waits_for_release_fence(self):
         from mylar.media_writer import Busy
         with self.writer.hold(allow_release_pending=True):

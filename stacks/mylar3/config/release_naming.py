@@ -63,6 +63,15 @@ def catalog(database, source):
     return result
 
 
+def checked_catalog_owner(owner, job):
+    """Join the actual catalog path to the persisted transaction before writes."""
+    row=owner['row'];request=job['request']
+    if (str(row['IssueID'])!=request['issueid'] or str(row['ComicID'])!=request['comicid']
+            or owner['table']!=job['table'] or row['Status']!=job['status']):
+        raise ValueError('Release catalog owner changed; recovery requires review')
+    return owner
+
+
 def parsed(database, parent, path):
     from mylar import filechecker, file_identity
     aliases = (parent.get('AlternateSearch') or '').split('##')
@@ -323,10 +332,7 @@ def reject(database, store, job):
     request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
     publication_checkpoint(job)
     verified(source, job)
-    row = catalog(database, source)['row']
-    if (str(row['IssueID']) != request['issueid'] or str(row['ComicID']) != request['comicid']
-            or row['Status'] != job['status']):
-        raise ValueError('Rejected release owner changed')
+    checked_catalog_owner(catalog(database,source),job)
     if target.exists():
         verified(target, job); publication_checkpoint(job); target.unlink(); sync(source.parent)
     verified(source, job)
@@ -369,16 +375,15 @@ def finish(database, store, job):
         if not source.exists():
             raise ValueError('Release publication paths missing; recovery requires review')
         publication_checkpoint(job)
+        checked_catalog_owner(catalog(database,source),job)
         os.link(source, target, follow_symlinks=False); sync(source.parent)
         publication_checkpoint(job)
     try:
-        owner = catalog(database, source)
+        owner = catalog(database,source)
     except ValueError:
-        owner = catalog(database, target)
+        owner = catalog(database,target)
+    owner=checked_catalog_owner(owner,job)
     row = owner['row']
-    if (str(row['IssueID']) != request['issueid'] or str(row['ComicID']) != request['comicid']
-            or owner['table'] != job['table'] or row['Status'] != job['status']):
-        raise ValueError('Release catalog owner changed; recovery requires review')
     # Validate the final name with native matching before retiring its old path.
     try:
         entry, _ = parsed(database, owner['parent'], target)

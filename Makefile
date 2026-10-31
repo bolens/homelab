@@ -1,7 +1,8 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local mylar-source-check komga-source-check hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local source-lint mylar-source-check komga-source-check hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 JAVA_HOME_21 ?= $(JAVA_HOME_21_X64)
 MYLAR_PYTHON ?= python3
+SOURCE_LINT_TOOLING ?=
 
 help:
 	@echo "Homelab repository targets:"
@@ -10,6 +11,7 @@ help:
 	@echo "  validate-strict    Validate and require every lint dependency"
 	@echo "  validate-changed   Validate changed stacks; requires BASE=<git revision>"
 	@echo "  ci-local           Run source, pre-commit and candidate-history secret checks"
+	@echo "  source-lint        Run pinned shared lint; requires SOURCE_LINT_TOOLING"
 	@echo "  mylar-source-check Run Mylar recovery/archive source controls without Docker"
 	@echo "  komga-source-check Run the Komga source/compile gate; requires JAVA_HOME_21"
 	@echo "  hooks-install      Install repository pre-commit hooks"
@@ -44,10 +46,14 @@ validate-changed:
 
 ci-local:
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
+	$(MAKE) source-lint
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-source-check
 	pre-commit run --all-files
 	bash scripts/scan-secrets-gitleaks.sh git --log-opts=HEAD
+
+source-lint:
+	python3 scripts/source-lint-local.py "$(SOURCE_LINT_TOOLING)"
 
 mylar-source-check:
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py

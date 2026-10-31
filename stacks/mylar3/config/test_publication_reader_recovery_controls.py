@@ -210,7 +210,7 @@ class Controls(unittest.TestCase):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],sum(count for _,count in m.SUITES));self.assertEqual(len(children),len(m.SUITES));self.assertEqual(m.SUITES[-1],('test_transition_consumers.py',9))
+  self.assertEqual(value['tests'],sum(count for _,count in m.SUITES));self.assertEqual(len(children),len(m.SUITES));self.assertEqual(m.SUITES.count(('test_transition_consumers.py',9)),1)
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()

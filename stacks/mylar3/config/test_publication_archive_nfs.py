@@ -486,6 +486,57 @@ class Tests(unittest.TestCase):
                     self.common.chmod(0o711);self.case.c.library.chmod(0o700)
         self.assertFalse((self.case.c.writer.root/a.PENDING).exists())
 
+    def test_configured_selected_original_is_joined_to_actual_catalog_before_preparation(self):
+        from reader_recovery import comic_archive_repair_action as action
+        core=a.o;c=self.case.c
+        modules={'publication_archive_owned':core,'publication_guard':c.modules[2]}
+        request=dict(version=2,owner=c.owner,operation_id=c.operation_id,terminal='forward')
+        other=c.library/'unrelated.cbz';other.write_bytes(c.source.read_bytes())
+        wrong=core.fact(other,512*1024**2,__import__('time').monotonic()+30)
+        for ref in (wrong,dict(wrong,path=str(c.source))):
+            plan=dict(version=5,selected_original=ref)
+            with self.subTest(source=ref['path']),patch.object(action,'control_join',return_value=request),patch.object(core,'prepare_existing',side_effect=AssertionError('must refuse before preparation')),self.assertRaisesRegex(action.Held,'catalog-selected-original'):
+                action.prepare_one(plan,modules,None,None,c.controller,c.writer,self.case.scratch,self.case.retention)
+        self.assertFalse((c.controller.root/('archive-repair-'+c.operation_id)).exists())
+
+    def configured_geometry(self):
+        self.common.chmod(0o777);self.case.c.library.chmod(0o777)
+        sibling=self.common/'manga';sibling.mkdir(mode=0o775)
+        self.geometry=dict(version=3,kind='configured-common-root-nfs',
+            **{role:dict(path=str(path),signature9=a.o.signature(path)) for role,path in
+               (('common_root',self.common),('library',self.case.c.library),('retention',self.case.retention))},
+            source_mount=dict(host='/configured/'+self.common.name,child=str(self.common),write=True),
+            namespace={path.name:a.o.stat5(path.lstat()) for path in self.common.iterdir()})
+        self.facts['geometry']=self.geometry
+        facts,transport=self.mount_fixture()
+        facts['library']=self.geometry['source_mount']['host']+'/library'
+        facts['mount']['target']='/configured'
+        return facts,transport
+
+    def test_configured_original_modes_namespace_and_nonidentity_mount_projection(self):
+        facts,transport=self.configured_geometry()
+        with transport:result=ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+        self.assertEqual(result['id'],101)
+        self.assertEqual(self.common.stat().st_mode & 0o777,0o777)
+        self.assertEqual(self.case.c.library.stat().st_mode & 0o777,0o777)
+
+    def test_configured_original_sibling_mode_drift_refuses(self):
+        facts,transport=self.configured_geometry();(self.common/'manga').chmod(0o700)
+        with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+
+    def test_configured_host_projection_must_join_original_export(self):
+        facts,transport=self.configured_geometry();facts['geometry']['source_mount']['host']='/foreign/export'
+        with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+
+    def test_configured_namespace_cannot_omit_unselected_sibling(self):
+        facts,transport=self.configured_geometry();del facts['geometry']['namespace']['manga']
+        with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+
+    def test_configured_retention_must_remain_private(self):
+        facts,transport=self.configured_geometry();self.case.retention.chmod(0o777)
+        facts['geometry']['retention']['signature9']=a.o.signature(self.case.retention)
+        with transport,self.assertRaises(a.o.Held):ORIGINAL_NFS_GEOMETRY(facts,self.case.c.source,self.case.retention)
+
     def test_same_device_separate_mount_ids_and_nested_shadow_refuse(self):
         for fault in ({'shadow':True},{'nested':True},{'readonly':True},{'source':'foreign:/export'}):
             facts,transport=self.mount_fixture(**fault)

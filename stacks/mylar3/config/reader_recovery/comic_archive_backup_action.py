@@ -46,8 +46,8 @@ def _helper(name,pin):
         z=os.lstat(q)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise ValueError('backup-helper-leaf-final')
     return module
-a=_helper('comic_archive_repair_action.py','83432ab4e367e227668ceceb4caa87697397b9103b271a6a164b36cb24e3cf65')
-p=_helper('comic_archive_proof_producer.py','29c2808981512354af402c8b067d888220f27ed42ac6b920db9a42db624c94d4')
+a=_helper('comic_archive_repair_action.py','cf4d6927a206ef594352f426574141b0f13977c2a87ea13c7c5790113cfdfc64')
+p=_helper('comic_archive_proof_producer.py','0bb8ee74cc378c4fefff1743a72df62ca21ce6f7ca4200ddca7b15cf62136660')
 
 PARENT_SOURCE_SHA=None
 HERE=Path(__file__).resolve().parent
@@ -63,12 +63,24 @@ def load(name,originals):
 
 def backup_existing(plan,watch):
     """Full source/copy/restore facts, never a stopped-reader grant."""
-    a.need(set(plan)=={'version','action','nonce','parent_sha256','command_template','operation','selected_image','sdk_map','runtime','native','bounds','seconds'},'archive-backup-plan')
-    a.need(type(plan['version']) is int and plan['version']==1 and plan['action']=='archive-one-backup','archive-backup-purpose')
+    projected=type(plan.get('version')) is int and plan['version']==2
+    a.need(set(plan)==({'version','action','nonce','parent_sha256','command_template','operation','selected_image','sdk_map','runtime','native','bounds','seconds'}|({'config_binding'} if projected else set())),'archive-backup-plan')
+    a.need(type(plan['version']) is int and plan['version'] in (1,2) and plan['action']=='archive-one-backup','archive-backup-purpose')
     runtime=plan['runtime'];mounts=[m for m in runtime['Mounts'] if m['Destination']=='/config']
     a.need(len(mounts)==1 and mounts[0]['Type']=='bind','archive-backup-config-root')
     state=runtime['State'];a.need(state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0 and all(state[k] is False for k in ('Paused','Restarting','Dead','OOMKilled')),'archive-backup-stopped')
-    config=Path(mounts[0]['Source']);operation,opnodes=a.operation_directory(plan['operation']);out=operation/'reader-backup'
+    config=Path(mounts[0]['Source'])
+    if projected:
+        binding=plan['config_binding']
+        a.need(type(binding) is dict and set(binding)=={'host','child','signature9'}
+               and binding['host']==str(config) and type(binding['child']) is str
+               and Path(binding['child']).is_absolute() and str(Path(binding['child']))==binding['child']
+               and '..' not in Path(binding['child']).parts
+               and type(binding['signature9']) is list and len(binding['signature9'])==9
+               and all(type(v) is int for v in binding['signature9']), 'archive-backup-config-binding')
+        config=Path(binding['child'])
+        a.need(a.nine(os.lstat(config))==binding['signature9'], 'archive-backup-original-config9')
+    operation,opnodes=a.operation_directory(plan['operation']);out=operation/'reader-backup'
     a.need(not os.path.lexists(out),'archive-backup-exclusive')
     originals=p.Originals([config,operation,*[HERE/name for name in p.PINS]],trees=(config,))
     # Private operation namespace changes only by our declared exclusive outputs;
