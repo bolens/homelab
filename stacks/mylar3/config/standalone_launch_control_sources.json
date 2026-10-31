@@ -131,7 +131,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "488afb1fc6839afe799f02b7e56f7851a18e785cec1d86e0d867fe2a9825e0b1",
+    "sha256": "74fc141fdbccaf9e44ecda81fb0ec19275e3badb53894a7c21f580774850ff43",
     "target": "fixtures/child/source/publication_archive_adoption.py"
   },
   {
@@ -166,7 +166,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "69ac7f89a7f0c978374be27006ae23a18369537575388801bc6546c8e13be108",
+    "sha256": "63a2a51b81269e962d7b9af5c8b1a7f008a01709473752767ae0b2a89df1c532",
     "target": "fixtures/child/source/publication_archive_preparation_existing.py"
   },
   {
@@ -256,7 +256,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "58dcc420ff49035acee2015392ce55815f24843f1a3661615fa1b2e15fc9b53c",
+    "sha256": "9df14729b740bd08ae978d10668747b1b4497c7f23676b74dcad01bcb5b37944",
     "target": "fixtures/child/source/publication_reader_lifecycle.py"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
     "path": "release_naming.py",
-    "sha256": "eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9",
+    "sha256": "7e53e2e9af71183dbcad2d290d23fb9961b238a6e72968cac46d0ff218cd118c",
     "target": "fixtures/child/source/release_naming.py"
   },
   {

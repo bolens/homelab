@@ -10,7 +10,7 @@ from mylar import publication_archive_owned as o
 from mylar import publication_reader_lifecycle as lifecycle
 
 OWNED_SHA='511d5b9828964187a88b0d028051917b7a1b40b47bed96c60265329f5fe9fed5'
-LIFECYCLE_SHA='58dcc420ff49035acee2015392ce55815f24843f1a3661615fa1b2e15fc9b53c'
+LIFECYCLE_SHA='9df14729b740bd08ae978d10668747b1b4497c7f23676b74dcad01bcb5b37944'
 MAX=512*1024**2+2
 NAMES={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'}
 PENDING=('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending','archive-repair-v1.pending','archive-repair-v1.terminal-pending','normalizer-v1.pending','tagger-v2.pending','release-v1.pending','tagger-publication-v1.json','nested-derivative-v1.json','tagger-recovery-v1.pending')

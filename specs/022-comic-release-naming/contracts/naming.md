@@ -15,3 +15,12 @@ Ordinary requests remain version 1. An explicit replacement is version 2 with th
 The worker verifies Komga's recorded hash against actual source bytes and checks for duplicate/deleted restoration candidates before mutation. Reader scan and final readiness/progress proof follow native commit. An uncertain submission retains copies and reconciles the native receipt/actual catalog before any further action. Live bulk work requires a fresh reviewed manifest and restore-verified persistent-state backups.
 
 Combined-pass holds can retain receipt-bound hardlinks in both naming and joint folders. Keep them intact. Supply a fresh private detached pair from the restore-verified recovery backup to `recovery_entry`; shared or linked copies are never accepted as its preservation set. Replacement reconciliation rechecks the predecessor digest before any mutation or fence clearance.
+
+## Catalog ownership before recovery writes
+
+A prepared legacy rename re-resolves the actual source catalog row and compares
+its issue ID, comic ID, table and status with the original job before creating
+the target hardlink. Rejection and the later publication check use that same
+owner predicate. Changed ownership leaves the source, target absence and recovery
+fence intact. The protected rename capability retains its independent catalog,
+hash and original-file checks before each mutation.

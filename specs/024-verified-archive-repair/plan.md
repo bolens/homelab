@@ -6,17 +6,19 @@
 
 Install bounded refusal diagnostics first, then a dedicated native-owned preparation/adoption route for one lossless ZIP directory-spelling repair. Ordinary inventory, nested metadata lineage, correction policy and import acknowledgements retain their current meaning. A diagnostic or prepared copy cannot authorize publication.
 
-The four corrective designs below are implemented and delivered through PRs
-#507, #509, #510 and #511. They document the retained boundaries, not a new
-implementation queue. The remaining execution order is owned by
-[tasks.md](tasks.md#current-remaining-work): one isolated forward, one distinct
-rollback, then separately scoped operational acceptance. Do not add another
-plan, fixture generation or review layer unless a concrete uncovered failure
-requires it.
+The isolated forward and separate rollback are accepted under T012/T015. The
+live native rollout, preservation checks and matching inactive worker are
+accepted under T016. The remaining order is configured production admission and
+selected repair/import acceptance under T017, then restart and current-library
+verification under T018. Features 022/023 reference the same evidence before
+naming/metadata batches and final idempotence/cleanup. Historical attempts below
+retain their original scope and do not form a new execution queue.
 
-Current execution is the shared isolated pair in `tasks.md`. NFS readiness and
-reader stop are intermediate milestones. The stopped-reader handoff must retain
-the original configured profile through its expected lifecycle transition, and
+The production admission correction uses plan13 with a distinct geometry v3,
+`configured-common-root-nfs`, and action input v5. It preserves the current
+same-child terminal protocol. The configured constructor is separate from the
+strict disposable bootstrap constructor. No additional fixture generation is a
+prerequisite. Reader stop remains an intermediate milestone, and
 the finite retained protocol must cover that handoff without confusing session
 lifetime with the separate 120-second admission-freshness requirement. Preserve
 physical Writer checks, original process/FD custody and unknown-outcome holds.
@@ -31,10 +33,44 @@ Do not create another task, wrapper or review layer for each uncovered seam.
 
 - Runtime: the existing Mylar and normalizer Python images; actual selected-runtime checks include Mylar Python 3.10.
 - Dependencies: existing publication guard, native Controller, existing-only shared Writer, complete correction census and native/reader transaction boundaries. No new external dependency.
-- Storage: private preparation, custody and phase records inside existing application state, outside scanned media. Diagnostics add no mount; prospective plan13 replaces two temporary library/retention binds with one exact private common-root bind described in the owning contract. No automatic remote directory creation.
+- Storage: private preparation, custody and phase records inside existing application state, outside scanned media. Diagnostics add no mount; plan13 uses one same-mount library/retention bind. Disposable geometry retains its private namespace. Configured geometry reuses the exact existing native writable bind and preserves its original namespace, modes and owners as described in the owning contract. No automatic remote directory creation.
 - Tests: disposable byte, SQLite and filesystem controls; source/image imports, native/generated parity, late-change/lost-response controls and verified scoped live acceptance.
 - Limits: 128 MiB for buffered runtime diagnostics within the existing 768 MiB worker allowance, 512 MiB source for owned native repair preparation, existing 4,096-member/4 GiB expanded/per-member/metadata limits and monotonic deadlines. No remote access during classification or while Writer is held.
 - Profile: one empty stored Unix directory with consistent directory flag and missing slash in a closed ZIP32 archive. Other ordinary supported variants stay on ordinary inventory.
+
+## Configured production admission
+
+The production geometry derives the existing native media bind from the original
+native inspection and destination from the actual config. Its common root is
+that exact bind source, never a caller-selected broader ancestor. Library and
+private retention are distinct direct children on that filesystem. Retention
+stays UID/GID1000 mode0700 outside every configured library root. Existing export
+and library permissions and groups remain unchanged. Capture the complete root
+namespace and original child identities, retain all three directory descriptors,
+and close those facts before and after callbacks. Alias and shadow mounts refuse.
+
+Keep host facts and selected-child paths distinct. Project geometry through the
+original host-to-child mount without changing captured identities. Join the
+original host export subtree to the actual child NFS mount ID and device.
+Probe birth, observation and cleanup share the original retention binding in the
+separate NFS observer namespace. Backup input v2 carries the reader config's
+explicit host/child mapping and original directory identity while preserving the
+stopped reader DTO unchanged.
+
+The production constructor carries the selected source full9/SHA into the
+immutable Parent plan and action v5. Under Writer, the action resolves the source
+from the exact requested catalog owner, compares that actual file with the
+captured source, and requires the resulting preparation to retain the same
+original before adoption. This is a compare-and-swap condition, not a path-based
+publication selector. Fixture transitions remain confined to disposable input v4.
+
+The helper sees the same writable media ancestor already configured on native
+Mylar during execute only. Namespace checks detect interference but do not
+kernel-confine writes to two children. Preserve cooperating-writer exclusion,
+stopped reader custody and the inactive worker for the whole operation. The
+existing six admitted link/unlink transitions remain the only mutation route.
+Code review, source controls and image publication precede a separately reviewed
+production run. None alone completes T017 or authorizes bulk worker startup.
 
 ## Delivered correction: finite owning metadata closure
 

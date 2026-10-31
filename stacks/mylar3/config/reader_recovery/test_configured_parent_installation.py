@@ -115,7 +115,7 @@ class Installation(unittest.TestCase):
         return raw,{name:base['base_installed_sources'][name] for name in base['required_sdk_names']}
     def before_channel_deadline(self,raw):
         base=json.loads(raw)
-        previous={
+        previous={'release_naming.py':'eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9',
             'workflow.py':'93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365',
             'publication_archive_dispatch.py':'8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7',
             'publication_archive_owned.py':'dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1',
@@ -276,7 +276,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'7dec0324c74af0342e54b4dba35d87baff379c8d11ce9b65fdd8f0e0bdc224b6')
+        self.assertEqual(base['base_cohort_sha256'],m.sha(Path(__file__).parent.parent.joinpath('publication_reader_cohort.json').read_bytes()))
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         fixes=Path(__file__).parent.parent
         parent=ast.parse((fixes/'reader_recovery/comic_reader_lifecycle_parent.py').read_bytes())

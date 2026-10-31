@@ -761,13 +761,32 @@ def disposable_archive_mapping(rows, roots, roles, plan):
 def current_mapping(rows, roots, roles=None):
     plan = None if roles is None else current_plan(roles)
     if plan is not None and type(plan.get('version')) is int and plan['version'] == 13:
-        return disposable_archive_mapping(rows, roots, roles, plan)
+        check(type(plan.get('publication_geometry')) is dict,'mapping-original-geometry')
+        if plan['publication_geometry'].get('version')!=3:
+            return disposable_archive_mapping(rows, roots, roles, plan)
+        check(plan.get('kind')=='reviewed-archive-one-lifecycle-protocol' and plan.get('action')=='archive-one'
+              and plan.get('terminal_mode')=='same-child-v1','configured-mapping-original-plan')
+        geometry=plan['publication_geometry'];mount=geometry.get('source_mount')
+        check(geometry.get('kind')=='configured-common-root-nfs' and type(mount) is dict
+              and set(mount)=={'host','child','write'} and mount['write'] is True,
+              'configured-mapping-original-bind')
+        selected=select_roles(rows,roles)
+        binds=[row for row in selected['native']['Mounts'] if row.get('Type')=='bind' and row.get('Source')==mount['host']]
+        check(len(binds)==1 and binds[0]['Destination']==mount['child'] and binds[0]['RW'] is True
+              and mount in plan.get('mounts',[]) and geometry['common_root']['path']==mount['host'],
+              'configured-mapping-original-native-bind')
+        result=live_mapping(rows,roots,roles)
+        root=geometry['library']['path']
+        check(root in [row['source'] for row in result['media_mounts']]
+              and plan['native']['roots']==[str(Path(mount['child'])/Path(root).relative_to(mount['host']))],
+              'configured-mapping-native-library')
+        return result
     return live_mapping(rows, roots, roles)
 
 
 def selected_library_root(mapping, roles=None):
     plan = None if roles is None else current_plan(roles)
-    if plan is not None and type(plan.get('version')) is int and plan['version'] == 13:
+    if plan is not None and type(plan.get('version')) is int and plan['version'] == 13 and plan.get('publication_geometry',{}).get('version')!=3:
         root = plan['publication_geometry']['library']['path']
         check(mapping['media_mounts'] == [dict(source=root, destination=root, rw=False)],
               'disposable-mapping-selected-library')

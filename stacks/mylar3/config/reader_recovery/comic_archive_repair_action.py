@@ -1,6 +1,6 @@
 """Dedicated archive-one selected child; accepted parent pin intentionally absent."""
 
-import argparse,copy,hashlib,importlib,json,os,re,stat,sys
+import argparse,copy,hashlib,importlib,json,os,re,stat,sys,time
 from pathlib import Path
 
 MAX=64*1024**2
@@ -472,6 +472,12 @@ def fixture_transition(plan,modules,custody,scope,controller,writer,request,publ
 def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,publication=None):
  core=modules['publication_archive_owned'];request=control_join(plan,custody)
  owner=modules['publication_guard'].exact_owner(request['owner']);need(owner==request['owner'],'repair-exact-owner')
+ if plan.get('version')==5:
+  selected=plan['selected_original'];need(type(selected) is dict and set(selected)=={'path','signature9','sha256'},'repair-configured-original-ref')
+  deadline=time.monotonic()+modules['publication_guard'].TIMEOUT
+  observed,_,_=core.catalog(controller,owner,modules['publication_guard'],deadline)
+  source=Path(observed['owner']['path'])
+  need(core.fact(source,512*1024**2,deadline)==selected,'repair-configured-catalog-selected-original')
  stage=controller.root/('archive-repair-'+request['operation_id']);transition=None
  if request['version']==3:
   need(not os.path.lexists(stage),'fixture-no-preexisting-repair-stage')
@@ -484,6 +490,7 @@ def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,p
   prep=modules['publication_archive_preparation_existing'].from_existing(controller,writer,owner,request['operation_id'],custody)
  need(type(prep) is core.RepairPreparation and prep._controller is controller and prep._writer is writer,'repair-exact-original-preparation')
  original=prep.revalidate();source=Path(original['source']['path'])
+ if plan.get('version')==5:need(original['source']==plan['selected_original'],'repair-configured-preparation-original')
  # The actual catalog-derived source is the sole input; no caller path or URL.
  lease=modules['publication_archive_reader'].from_stopped(custody,source,scratch)
  need(type(lease) is modules['publication_archive_reader'].RepairReaderLease and lease.custody is custody and lease.source==source,'repair-exact-reader-lease')
@@ -608,12 +615,13 @@ def require_terminal_observers(modules):
 
 def validate_plan(plan,args,argv):
  base={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}
- same=type(plan) is dict and type(plan.get('version')) is int and plan['version'] in (2,3,4)
- if type(plan) is dict and plan.get('version') in (3,4):base|={'terminal','publication_protocol'}
+ same=type(plan) is dict and type(plan.get('version')) is int and plan['version'] in (2,3,4,5)
+ if type(plan) is dict and plan.get('version') in (3,4,5):base|={'terminal','publication_protocol'}
  if type(plan) is dict and plan.get('version')==4:base.add('fixture_originals')
+ if type(plan) is dict and plan.get('version')==5:base.add('selected_original')
  expected=base|({'execution_originals'} if args.phase=='verify-terminal' else set())|({'terminal_mode'} if same else set())
- need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2,3,4) and plan['action']=='archive-one','repair-exact-action-input')
- if type(plan) is dict and plan.get('version') in (3,4):need(plan['terminal'] in ('forward','rollback') and plan['publication_protocol']=='rename-link-v1','repair-finite-explicit-terminal')
+ need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2,3,4,5) and plan['action']=='archive-one','repair-exact-action-input')
+ if type(plan) is dict and plan.get('version') in (3,4,5):need(plan['terminal'] in ('forward','rollback') and plan['publication_protocol']=='rename-link-v1','repair-finite-explicit-terminal')
  if same:need(args.phase=='execute' and plan['terminal_mode']=='same-child-v1','repair-exact-same-child-mode')
  need(args.phase in ('execute','verify-terminal'),'repair-finite-action-phase');owner_request({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']})
  need(type(plan['nonce']) is str and re.fullmatch('[0-9a-f]{64}',plan['nonce']) and type(plan['parent_sha256']) is str and re.fullmatch('[0-9a-f]{64}',plan['parent_sha256']) and re.fullmatch('sha256:[0-9a-f]{64}',plan['selected_image']),'repair-parent-identities')
@@ -788,11 +796,11 @@ def same_child_ack(modules,custody,scope,cap,witness,reference,vectors,source_fi
  if written!=len(frame):raise Held('repair-final-ACK-partial-no-replay')
 
 def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args):
- need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version') in (2,3,4),'repair-same-child-default-disabled')
+ need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version') in (2,3,4,5),'repair-same-child-default-disabled')
  controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
- publication=modules['publication_archive_adoption'].nfs_publication(custody,scope) if plan['version'] in (3,4) else None
+ publication=modules['publication_archive_adoption'].nfs_publication(custody,scope) if plan['version'] in (3,4,5) else None
  with scope.writer_session(controller,writer):
   modules['publication_archive_history'].directory(controller,writer)
   scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention,*((publication,) if publication is not None else ()))

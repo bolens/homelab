@@ -23,7 +23,7 @@ need = p.need
 HERE = Path(__file__).absolute().parent
 PINS = {
     'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_negative_nfs_active_parent.py': 'f175f7f7340a3854dbe42fffd8f593be1f4450e205a2fae2f47e442f9028bdb3',
+    'comic_negative_nfs_active_parent.py': 'fa816c61c29e8ec3d5c7f08a6d00aebb8b8694b1c1d5d51c2a6dfe0a8ff454a3',
     'genuine_source_cohort.py': '9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d',
 }
 RIGHTS = ('backup_verified', 'publication_acceptance', 'mutation_authority')
@@ -59,11 +59,11 @@ class Assembly:
 
     def validate(self):
         q = self.document
-        need(type(q) is dict and set(q) == {'version', 'kind', 'nonce', 'observed', 'current_roles',
+        configured=type(q) is dict and q.get('version')==2 and q.get('kind')=='configured-original-active-input-assembly'
+        need(type(q) is dict and set(q) == ({'version', 'kind', 'nonce', 'observed', 'current_roles',
              'active_scope', 'query', 'native_controls', 'effective_observer_review', 'source_cohort',
-             'parent_admission', 'probe_plan', 'operation_output', 'originals', 'sources'}
-             and type(q['version']) is int and q['version'] == 1
-             and q['kind'] == 'disposable-original-active-input-assembly' and p.digest(q['nonce']), 'active-input-schema')
+             'parent_admission', 'probe_plan', 'operation_output', 'originals', 'sources'}|({'geometry','mounts'} if configured else set()))
+             and type(q['version']) is int and (configured or q['version']==1 and q['kind']=='disposable-original-active-input-assembly') and p.digest(q['nonce']), 'active-input-schema')
         fresh(q['observed'])
         need(type(q['sources']) is dict and set(q['sources']) == {*PINS, 'genuine_active_inputs.py'}, 'active-source-set')
         modules = {'genuine_plan13_producer.py': composer, 'comic_negative_nfs_active_parent.py': active,
@@ -87,10 +87,17 @@ class Assembly:
                  and row['id'] not in ids and type(row['image']) is str
                  and re.fullmatch('sha256:[a-f0-9]{64}', row['image']), 'active-role-identity')
             ids.add(row['id']); profile = row['profile']
-            need(profile['Id'] == row['id'] and profile['Image'] == row['image']
-                 and profile['Name'] == '/archive-bootstrap-' + q['nonce'][:16] + '-' + name
-                 and profile['Config']['Labels'].get(composer.bootstrap.LABEL) == q['nonce']
-                 and profile['Config']['Labels'].get(composer.bootstrap.PURPOSE) == 'genuine-archive-fixture', 'active-disposable-role')
+            need(profile['Id'] == row['id'] and profile['Image'] == row['image'], 'active-role-original-profile')
+            if not configured:
+                need(profile['Name'] == '/archive-bootstrap-' + q['nonce'][:16] + '-' + name
+                     and profile['Config']['Labels'].get(composer.bootstrap.LABEL) == q['nonce']
+                     and profile['Config']['Labels'].get(composer.bootstrap.PURPOSE) == 'genuine-archive-fixture', 'active-disposable-role')
+        if configured:
+            geometry=q['geometry']
+            p.configured_common_root(geometry,q['mounts'],roles['native']['profile'],
+                                    geometry['library']['path'],geometry['retention']['path'])
+            need(self.owner_reads is not None and p.encode(self.owner_reads.geometry)==p.encode(geometry),
+                 'active-configured-original-owner-scope')
         refs = q['originals']; need(type(refs) is dict and 1 <= len(refs) <= 128, 'active-finite-originals')
         self.used = set()
         def follow(ref, *, private=True):
@@ -211,7 +218,7 @@ class Assembly:
         if getattr(self, 'owner_reads', None) is not None:
             self.owner_reads.check()
             geometry = self.owner_reads.geometry
-            need(self.owner_reads.root.name == 'archive-publication-' + self.document['nonce'], 'active-owner-read-bootstrap-nonce')
+            if geometry['version']!=3:need(self.owner_reads.root.name == 'archive-publication-' + self.document['nonce'], 'active-owner-read-bootstrap-nonce')
             need(probe['library_root'] == geometry['library']['path']
                  and str(Path(probe['fixture_parent']).parent) == geometry['retention']['path']
                  and p.nine(self.owner_reads.stat(geometry['retention']['path'])) == self.document['parent_admission']['grandparent_signature'], 'active-owner-read-exact-probe-geometry')

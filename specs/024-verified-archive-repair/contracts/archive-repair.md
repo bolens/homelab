@@ -104,6 +104,39 @@ refuse. Native/reader configuration, DATA, scratch and operation output remain
 outside G. The canary owns an absent child below R and cleans it before retention
 admission; it cannot use G as the neutral grandparent.
 
+Configured geometry v3, `configured-common-root-nfs`, is a separate alternative
+to the disposable private/searchable geometry. Its G is the exact original native
+writable bind source and its CHILD destination is the original configured
+mapping. L is the whole configured library, R is a distinct private direct child
+outside every library root, and all three share one filesystem. G/L retain their
+actual owners, groups and modes. R remains UID/GID1000 mode0700. The complete
+original G namespace and every child identity replace the disposable two-entry
+namespace. Original FDs, G full9, canonical paths, aliases/shadows, same actual
+NFS mount ID/export/device and late closure remain required. Existing native and
+inactive-worker media binds may overlap G only as their original inspected
+profiles. No extra ancestor or new service mount gains authority.
+
+The selected child receives projected paths with the original physical facts,
+not HOST path strings relabelled as CHILD paths. Its original host bind remains
+in geometry for the export-subtree join. The NFS probe uses its separate original
+HOST retention binding at birth, observation and cleanup. Backup input v2 carries
+an explicit config projection and original directory9 while retaining the
+stopped reader's runtime DTO verbatim. Neither observer nor backup grants repair.
+
+Plan13 configured geometry requires an immutable `configured_original` full9/SHA
+reference. Action input v5 carries its exact CHILD projection. Under the original
+Writer, the action resolves the requested primary-key owner through the actual
+catalog and compares that source before preparation. The owning preparation must
+retain the identical original before adoption. A different same-library file,
+changed hash or replaced inode refuses. Public requests remain primary-key-only.
+
+Configured G exposes existing unrelated siblings to the restricted repair child.
+Namespace sealing detects drift but is not a kernel write sandbox. The operator
+must exclude noncooperating writers for the whole existing operation. The child
+is writable at G only during execute and retains the fixed six mutation steps.
+It cannot use a captured source reference to choose a different catalog owner,
+reconstruct a live capability from receipts or replay an uncertain outcome.
+
 Original NFS-ready facts travel over the existing bound Parent pipe before
 Writer. They remain sealed separately from ordinary native observation fields.
 The one-use typed selection joins original owner/operation/configured paths,

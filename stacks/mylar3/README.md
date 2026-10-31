@@ -1511,6 +1511,27 @@ local exchange retains the original, preserves every reader reference and limits
 catalog change to the owned archive size. Runtime installation, terminal recovery
 and live adoption must pass the feature 024 acceptance gates before use.
 
+Legacy release-name recovery also rechecks the original job's exact catalog
+owner before creating a target link. Owner drift retains the recovery fence and
+source without creating another library name. Protected rename transactions
+retain their independent publication checkpoints.
+
+The configured `archive-one` route uses the native service's exact existing
+media bind, with the actual configured destination, original owner/group/modes
+and complete sibling namespace. It does not change library permissions or move
+the library into a bootstrap layout. A separate private retention child must
+already exist outside scanned library roots on the same verified filesystem.
+Preparation does not create that directory over an unverified remote mount.
+The owning Parent checks the original media mapping and private retention,
+stops the reader through its existing protocol, and verifies a full projected
+reader-config backup/restore. The action compares the captured source with the
+requested owner's actual catalog source under Writer before preparation and
+adoption. Unrelated namespace drift, shadow mounts and changed originals hold.
+The transient execute child sees that existing writable media ancestor, so
+cooperating-writer exclusion remains required. The fixed repair steps and
+terminal proof constrain the operation. Source checks and publication do not
+complete production acceptance or release the experimental worker.
+
 For an exact owning repair that has successfully reversed, the typed rollback
 consumer clears its pending marker only after original archive, catalog and
 reader verification. A durable successor retains the hold across uncertain

@@ -121,7 +121,9 @@ _NFS_SELECTIONS=weakref.WeakKeyDictionary()
 
 def nfs_child_geometry(facts,source,retention):
     """Join original host export spelling to actual selected-child mount IDs."""
-    geometry=facts['geometry'];o.check(type(geometry) is dict and set(geometry)=={'version','kind','common_root','library','retention'} and type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs')),'repair-nfs-common-geometry')
+    geometry=facts['geometry'];production=type(geometry) is dict and geometry.get('version')==3
+    keys={'version','kind','common_root','library','retention'}|({'source_mount','namespace'} if production else set())
+    o.check(type(geometry) is dict and set(geometry)==keys and type(geometry['version']) is int and (geometry['version'],geometry['kind']) in ((1,'private-common-root-nfs'),(2,'searchable-common-root-nfs'),(3,'configured-common-root-nfs')),'repair-nfs-common-geometry')
     root=Path(geometry['common_root']['path']);library=Path(geometry['library']['path']);retention=Path(retention)
     if geometry['version']==1:
         saved=geometry['common_root']['signature9'];o.check(type(saved) is list and len(saved)==9 and all(type(v) is int for v in saved) and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000],'repair-nfs-private-original-directory')
@@ -130,10 +132,46 @@ def nfs_child_geometry(facts,source,retention):
         for role in ('common_root','library','retention'):
             ref=geometry[role];saved=ref['signature9'];path=Path(ref['path'])
             o.check(type(ref) is dict and set(ref)=={'path','signature9'} and type(saved) is list and len(saved)==9 and all(type(v) is int for v in saved) and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==(0o711 if role=='common_root' else 0o700) and saved[6:8]==[1000,1000] and path.is_absolute() and path.resolve(strict=True)==path and all(not q.is_symlink() for q in (path,*path.parents)),'repair-nfs-searchable-original-directory')
-    o.check(library==Path(facts['library']) and retention==Path(geometry['retention']['path']) and library.parent==root and retention.parent==root and library!=retention and Path(source).is_relative_to(library),'repair-nfs-common-direct-paths')
-    expected=geometry['common_root']['signature9'];o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-original-common-root9')
+    configured_library=Path(facts['library'])
+    if production:
+        mount=geometry['source_mount']
+        o.check(type(mount) is dict and set(mount)=={'host','child','write'} and mount['write'] is True,
+                'repair-nfs-configured-original-bind')
+        host=Path(mount['host']);child=Path(mount['child'])
+        o.check(host.is_absolute() and child.is_absolute() and root==child
+                and '..' not in host.parts and '..' not in child.parts and configured_library.parent==host,
+                'repair-nfs-configured-path-projection')
+        configured_library=child/configured_library.relative_to(host)
+        for role in ('common_root','library','retention'):
+            ref=geometry[role];saved=ref['signature9'];path=Path(ref['path'])
+            o.check(type(ref) is dict and set(ref)=={'path','signature9'} and type(saved) is list and len(saved)==9
+                    and all(type(v) is int for v in saved) and stat.S_ISDIR(saved[5])
+                    and path.is_absolute() and path.resolve(strict=True)==path
+                    and all(not q.is_symlink() for q in (path,*path.parents)), 'repair-nfs-configured-directory')
+        saved=geometry['retention']['signature9']
+        o.check(stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000], 'repair-nfs-configured-private-retention')
+        namespace=geometry['namespace']
+        o.check(type(namespace) is dict and 2<=len(namespace)<=4096, 'repair-nfs-configured-namespace')
+        for name,identity in namespace.items():
+            o.check(type(name) is str and name not in ('','.','..') and '/' not in name
+                    and not any(c in name for c in ('\x00','\n','\r','\\'))
+                    and type(identity) is list and len(identity)==5 and all(type(v) is int for v in identity),
+                    'repair-nfs-configured-namespace-entry')
+        for role in ('library','retention'):
+            saved=geometry[role]['signature9']
+            o.check(namespace.get(Path(geometry[role]['path']).name)==[saved[i] for i in (0,1,5,6,7)],
+                    'repair-nfs-configured-selected-identity')
+    names=set(geometry['namespace']) if production else {library.name,retention.name}
+    def namespace_original():
+        o.check(set(os.listdir(root))==names,'repair-nfs-original-common-namespace')
+        if production:
+            for name,identity in geometry['namespace'].items():
+                o.check(o.stat5(os.lstat(root/name))==identity,'repair-nfs-configured-original-child5')
+    o.check(library==configured_library and retention==Path(geometry['retention']['path']) and library.parent==root and retention.parent==root and library!=retention and Path(source).is_relative_to(library),'repair-nfs-common-direct-paths')
+    expected=geometry['common_root']['signature9'];o.check(o.signature(root)==expected,'repair-nfs-original-common-root9')
+    namespace_original()
     for role,path in (('library',library),('retention',retention)):
-        saved=geometry[role]['signature9'];o.check(o.stat5(os.lstat(path))==[saved[i] for i in (0,1,5,6,7)] and stat.S_ISDIR(saved[5]) and stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000],'repair-nfs-original-common-child5')
+        saved=geometry[role]['signature9'];o.check(o.stat5(os.lstat(path))==[saved[i] for i in (0,1,5,6,7)] and stat.S_ISDIR(saved[5]) and (production or stat.S_IMODE(saved[5])==0o700 and saved[6:8]==[1000,1000]),'repair-nfs-original-common-child5')
     def unescape(value):
         for encoded,plain in ((r'\040',' '),(r'\011','\t'),(r'\012','\n'),(r'\134','\\')):value=value.replace(encoded,plain)
         return value
@@ -152,15 +190,19 @@ def nfs_child_geometry(facts,source,retention):
     original=facts['mount'];host_target=Path(original['target']);export=Path(original['fsroot'])
     host_source=original['source'];suffix='['+original['fsroot']+']'
     if host_source.endswith(suffix):host_source=host_source[:-len(suffix)]
-    o.check(root.is_relative_to(host_target),'repair-nfs-original-host-subtree')
-    subtree=root.relative_to(host_target)
+    o.check(production or root.is_relative_to(host_target),'repair-nfs-original-host-subtree')
+    host_root=Path(geometry['source_mount']['host']) if production else root
+    o.check(host_root.is_relative_to(host_target),'repair-nfs-configured-original-host-subtree')
+    subtree=host_root.relative_to(host_target)
     same_export=(left['source']==host_source and Path(left['root'])==export/subtree)
     source_suffix=(original['fsroot']==left['root']=='/' and str(subtree)!='.'
                    and left['source']==host_source.rstrip('/')+'/'+str(subtree))
     o.check(left==right and 'rw' in left['options'].split(',') and left['target']==str(root) and left['fstype']=='nfs4' and left['device']==original['maj:min'] and (same_export or source_suffix),'repair-nfs-same-actual-mount-and-export')
     o.check(not any(Path(row['target'])!=root and Path(row['target']).is_relative_to(root) for row in rows),'repair-nfs-nested-child-mount')
     device=os.lstat(source).st_dev;o.check(device==facts['device'] and device==os.lstat(retention).st_dev and str(os.major(device))+':'+str(os.minor(device))==left['device'],'repair-nfs-original-device')
-    o.check(o.signature(root)==expected and set(os.listdir(root))=={library.name,retention.name},'repair-nfs-final-common-root9')
+    o.check(o.signature(root)==expected,'repair-nfs-final-common-root9')
+    namespace_original()
+    o.check(o.signature(root)==expected,'repair-nfs-final-configured-root9')
     return left
 
 class NFSRepairPublication:

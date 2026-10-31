@@ -32,6 +32,15 @@ reference the same original evidence from all applicable tasks. Do not repeat
 accepted runs, unchanged image checks or reviews solely to obtain another task
 receipt. Add corrective implementation only for a demonstrated unmet contract.
 
+For existing-library transactions, bind a captured source to the exact requested
+catalog owner and require the owning preparation/publication to consume that
+original. Library membership plus separately valid owner fields is insufficient.
+Check owner/path/identity/hash before the first mutation, including recovery of a
+persisted legacy job, and retain later closure checks. Incoming-import sources
+remain a separate case because they need not already be catalog destinations.
+When adding a private action version, trace every actual dispatcher, birth,
+lifecycle policy and terminal consumer before operational testing.
+
 Reviewed, frozen source and its matching checked installation may be exercised
 in an explicitly authorized disposable integration test before merge. Hosted CI
 still gates merge, and final source, delivery and runtime evidence must join
