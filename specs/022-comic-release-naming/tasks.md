@@ -9,7 +9,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-29.** 21 of 24 tasks are complete. T019/T023 require configured
+**Updated 2026-10-31.** 21 of 24 tasks are complete. T019/T023 require configured
 recovery and current-library acceptance before the combined naming/metadata
 passes; T024 proves final idempotence, preservation and cleanup afterward.
 Preserve dotted fields and the hyphen before the verified release group.
@@ -20,7 +20,8 @@ accepted [isolated forward/rollback evidence](../024-verified-archive-repair/evi
 where applicable; this feature requires no additional archive fixture or repeated
 source-delivery gate. Its three configured/bulk/final tasks remain open. Installed naming/metadata component
 proof and the accepted ordinary native baseline retain their recorded scope.
-The permanent worker and combined bulk pass stay inactive. The separate
+The shared [live rollout and data preservation](../024-verified-archive-repair/evidence-history.md#verified-live-rollout-and-data-preservation--2026-10-31)
+now pass under feature 024 T016. The permanent worker and combined bulk pass stay inactive. The separate
 reading-progress audit remains deferred.
 
 The older backup index supplies no exact candidate for 19 historical missing DDL

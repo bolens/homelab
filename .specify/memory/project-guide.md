@@ -81,6 +81,15 @@ cancelling and repeating the workflow.
 For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
 coordination to the affected state and follow the Mylar stack's update instructions.
 Do not reuse a multi-service rollout script for a single-service UI change.
+When validating an image-only recreation, bind Compose's version label to the
+independently observed installed CLI version. Preserve the prior profile and
+require all other configuration, mount, command and runtime fields to match the
+reviewed transition. Bind replacement labels to the original Compose logical
+service/instance identity rather than assuming they equal the container name.
+Compare complete mount entries independent of order. Normalize empty/null DNS
+arrays only for absent Compose settings, preserving actual overrides and raw
+profiles. A metadata hold before startup does not justify repeating a verified
+backup or recreating the same container again.
 Release the external deployment Writer guard before ordinary Mylar startup,
 following the [owning README](../../stacks/mylar3/README.md); use scoped Writer
 windows for preservation checks or actual repairs. Keep verified normal Mylar
