@@ -809,6 +809,17 @@ excluding tables or claiming that the delayed database equals its preimage.
 Follow the current [delivery rules](../../RELEASING.md), including any revocation
 of a temporary CI exception.
 
+Keep at most one active archive-bootstrap fixture group: native, reader and an
+inactive worker. Preserving an attempt's evidence does not require keeping its
+containers running. Before admitting another group, retire the prior runtime
+under the operation's authorization after its owning process has returned.
+Retain original receipts, profiles, bind-mounted state and unresolved histories.
+Capture final logs and writable-layer changes after stopping retired containers
+and before removing them. Use exact owned container IDs, preserve volumes and
+images needed for rollback, and remove only owned networks verified empty.
+Inventory other suspected duplicates before removal: a shared image alone does
+not make application workers, schedulers or separate databases redundant.
+
 A nonblocking Writer refusal before start intent is contention, not a failed import.
 Retain the failed attempt, verify the owned container never started, and use a bounded
 acquisition wait with unchanged original-lock checks before a fresh attempt. Do not
