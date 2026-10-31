@@ -616,7 +616,7 @@
       "sha256": "0821fc0a2973afc3cdad18906b62831c74c1b02940301af232a7ec52179604ee"
     },
     "test_configured_archive_geometry.py": {
-      "sha256": "17286784c4e97f7fa11aa4e150a37e8cf62a3f30dcca8a4bd1398aeaf92eb76d"
+      "sha256": "0db331e366ce5e5216effe7aab08018daedcd49919f68a43559755c157ab60f9"
     },
     "test_configured_parent_installation.py": {
       "sha256": "83f7cfe2a361c6b376bf5365eabdd40d46d02b8b1578655d1b2e195e821178c1"

@@ -1,7 +1,6 @@
 """Production geometry must use existing configured authority, never fixture names."""
 import copy
 import stat
-import os
 from pathlib import Path
 import tempfile
 import unittest
