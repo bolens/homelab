@@ -533,7 +533,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "62bf0cc43f6cac4f0497204fd0da4f85a34bd27cd03c131264443dd0a797a7c4"
+    "sha256": "4a8f5b9d7f723b8a2b27c1ff644fd2c8a10585d412cd9a41f295863fcc47a1c6"
   },
   {
     "path": "publication_reader_disk.py",
@@ -685,7 +685,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "b9b6d7e84bbed7c2007ccacd9d0bacece5b177e6a3461bc653bb4f70de225c8b"
+    "sha256": "bb3f2bcc518faf16425bd72e3ca9b2ccfc38d83d4a904f40866657afa7dfcff2"
   },
   {
     "path": "run_standalone_controls.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "3091c9eb1677c94882f8595d1f16df4b1e8fd4ffd1517db79c9afedc90e86cc0"
+    "sha256": "d16cfb853e5dffa4c0d171550bf666955a21aa5241afc865bd25e4a2e32180e2"
   },
   {
     "path": "story_arc_search.py",
@@ -1313,7 +1313,7 @@
   },
   {
     "path": "test_publication_negative.py",
-    "sha256": "1adb494f5de4458d8a0961a9a04ab57c17b91427a04eebdfc17270719c66b7e6"
+    "sha256": "bdef4214c5051630bd4c1b7fe4e61c5d7912f44f69c00a643b237527f4c3173b"
   },
   {
     "path": "test_publication_negative_aggregate.py",
@@ -1357,7 +1357,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "09928d9d937196ec5db78d16d423a867714a63f9d78f2a147527cb36ddf65df8"
+    "sha256": "6f7cbdd7e9f38780c9b8e30bde051737fbae2b3bfcce693ee9fd9a2887a1be58"
   },
   {
     "path": "test_publication_reader_lifecycle.py",

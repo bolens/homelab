@@ -57,11 +57,8 @@ source-lint:
 
 mylar-source-check:
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
-	# The wrapper runs every owning recovery control and checks source preservation.
-	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_reader_recovery_controls.py
-	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_reader_lifecycle.py
-	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_native_scope_birth.py
-	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_owned.py
+	# Match the image's owning portable suites, including complete recovery controls.
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_publication_reader_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py
 

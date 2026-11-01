@@ -1226,7 +1226,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '62bf0cc43f6cac4f0497204fd0da4f85a34bd27cd03c131264443dd0a797a7c4'
+BASE_ADMISSION_SHA = '4a8f5b9d7f723b8a2b27c1ff644fd2c8a10585d412cd9a41f295863fcc47a1c6'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -1859,7 +1859,9 @@ class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
   nfs_remote_guard(self)
-  need(type(args) is list and bool(args) and args[0] in ('inspect','stop','start','create','events'),'engine-command')
+  need(type(args) is list and bool(args) and (args[0] in ('inspect','stop','start','create','events')
+       or len(args)==3 and args[:2]==['volume','inspect'] and type(args[2]) is str
+       and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]*',args[2]) is not None),'engine-command')
   try:r=subprocess.run([*DOCKER,*args],capture_output=True,timeout=seconds,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except (OSError,subprocess.TimeoutExpired):raise Held('engine-ACK-unknown-no-replay') from None
   need(len(r.stdout)<=MAX and len(r.stderr)<=MAX and r.returncode==0,'engine-command-held');return r.stdout
@@ -4614,6 +4616,53 @@ class LifecycleParent:
             else:raise Held('archive-terminal-round-projection-type')
         if tuple(projection)!=original_seal or _ARCHIVE_TERMINAL_SEALS.get(self) is not original_seal or _ARCHIVE_TERMINAL_ROUNDS.get(self) is not record:raise Held('archive-terminal-round-final-registry')
 
+    def reader_backup_preflight(self, *, projected=False):
+        """Check actual backup access and volume lifetime before stopping reader."""
+        runtime=self.continuous()['reader'];mounts=runtime['Mounts']
+        configs=[row for row in mounts if row['Destination']=='/config']
+        if projected:
+            need(len(configs)==1,'reader-backup-config-root')
+            source=configs[0]['Source'];rows=[row for row in self.plan['mounts'] if row['host']==source]
+            need(len(rows)==1 and rows[0]['write'] is False
+                 and self.mapping.child(source)==rows[0]['child'] and self.mapping.host(rows[0]['child'])==source,
+                 'reader-backup-readonly-projection')
+            for row in self.plan['mounts']:
+                if row is rows[0]:continue
+                for key in ('host','child'):
+                    left=Path(row[key]);right=Path(rows[0][key])
+                    need(not left.is_relative_to(right) and not right.is_relative_to(left),'reader-backup-projection-shadow')
+        else:
+            for row in mounts:
+                if row['Type'] in ('bind','volume'):
+                    need(self.mapping.child(row['Source'])==row['Source'],'backup-host-path-not-mounted-canonically')
+        if not projected:
+            for config in configs:
+                root=Path(config['Source']);covering=[row for row in self.plan['mounts'] if root.is_relative_to(Path(row['host']))]
+                need(bool(covering),'backup-host-path-not-mounted-canonically')
+                depth=max(len(Path(row['host']).parts) for row in covering)
+                selected=[row for row in covering if len(Path(row['host']).parts)==depth]
+                need(len(selected)==1,'reader-backup-projection-shadow')
+                for row in self.plan['mounts']:
+                    if row is selected[0]:continue
+                    for key in ('host','child'):
+                        path=Path(row[key])
+                        need(not path.is_relative_to(root) and not root.is_relative_to(path),'reader-backup-projection-shadow')
+        for row in configs:
+            if row['Type']!='volume':continue
+            name=row.get('Name')
+            need(row.get('Driver')=='local' and type(name) is str
+                 and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]*',name) is not None,'reader-backup-volume-driver')
+            value=decode(self.engine.run(['volume','inspect',name],self.left()))
+            need(type(value) is list and len(value)==1,'reader-backup-volume-inspect')
+            volume=value[0]
+            # A driver mount may detach at last consumer stop. Only default
+            # local-volume directories have the required lifetime here.
+            need(volume.get('Name')==name and volume.get('Driver')=='local' and volume.get('Scope')=='local'
+                 and volume.get('Mountpoint')==row['Source'] and volume.get('Options') in (None,{}),
+                 'reader-backup-volume-backing')
+            self.emit('reader-config-volume-inspect.json',volume)
+        need(same_runtime(self.continuous()['reader'],runtime),'reader-backup-original-runtime')
+
     def archive_phase_input(self,phase,payload,custody_context):
         need(phase in ('backup','execute','verify-terminal'),'archive-finite-phase')
         host_path=self.op/(phase+'-input.json');directory=self.op/phase
@@ -4632,7 +4681,7 @@ class LifecycleParent:
             value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))
             if self.plan.get('publication_geometry',{}).get('version')==3:
                 configs=[row for row in payload['runtime']['Mounts'] if row['Destination']=='/config']
-                need(len(configs)==1 and configs[0]['Type']=='bind','archive-backup-original-config-mount')
+                need(len(configs)==1 and configs[0].get('RW') is True and (configs[0]['Type']=='bind' or configs[0]['Type']=='volume' and configs[0].get('Driver')=='local' and type(configs[0].get('Name')) is str and bool(configs[0]['Name'])) and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in payload['runtime']['Mounts']), 'archive-backup-original-config-mount')
                 host=configs[0]['Source']; child=self.mapping.child(host)
                 need(self.mapping.host(child)==host,'archive-backup-original-config-projection')
                 value.update(version=2,config_binding=dict(host=host,child=child,signature9=nine(nfs_lstat(host))))
@@ -4704,10 +4753,11 @@ class LifecycleParent:
             nfs.preflight(self)
             if self in _NFS_SOURCE_CONTEXTS:nfs.run_active_retained(self)
             else:nfs.run_active(self)
+            self.reader_backup_preflight(projected=self.plan.get('publication_geometry',{}).get('version')==3)
             observed=nfs.stop_owned(self)
             runtime=copy.deepcopy(observed['reader'])
             for mount in runtime['Mounts']:
-                if mount['Type']=='bind' and self.plan.get('publication_geometry',{}).get('version')!=3:need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
+                if mount['Type'] in ('bind','volume') and self.plan.get('publication_geometry',{}).get('version')!=3:need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
             inp,cmd=self.phase_input('backup',dict(runtime=runtime));backup=self.child_phase('backup',inp,cmd)
             backup=dict(backup,manifest=self.child_control(backup['manifest'],self.mapping.child(self.op/'backup'/'reader-backup'/'manifest.json')),restore_root=self.mapping.host(backup['restore_root']))
             # Child backup control refs use canonical HOST mount spelling. No
@@ -4852,11 +4902,12 @@ class LifecycleParent:
             nfs_module.preflight(self)  # implementation and source evidence before stop
             if self in _NFS_SOURCE_CONTEXTS:nfs_module.run_active_retained(self)
             else:nfs_module.run_active(self) # legacy exact process-local factory
+            self.reader_backup_preflight()
             observed=nfs_module.stop_owned(self)
             runtime = copy.deepcopy(observed['reader'])
             # Provider backup sees canonical host config roots also mounted in child.
             for mount in runtime['Mounts']:
-                if mount['Type'] == 'bind':
+                if mount['Type'] in ('bind','volume'):
                     need(self.mapping.child(mount['Source']) == mount['Source'], 'backup-host-path-not-mounted-canonically')
             inp, command = self.phase_input('backup', dict(runtime=runtime))
             backup = self.child_phase('backup', inp, command)

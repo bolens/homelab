@@ -15,8 +15,11 @@ def load(name, path):
 old = load('negative_tests_original', str(_PORTABLE_ROOT / 'fixtures/test_publication_negative_v4.py'))
 new = load('negative_producer_v6', str(_PORTABLE_ROOT / 'publication_negative.py'))
 import hashlib
+import json
 assert Path(new.__file__).resolve() == _PORTABLE_ROOT / 'publication_negative.py'
-assert hashlib.sha256(Path(new.__file__).read_bytes()).hexdigest() == '85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41'
+_NEGATIVE = json.loads((_PORTABLE_ROOT / 'publication_reader_cohort.json').read_bytes())['modules']['publication_negative']
+assert _NEGATIVE['filename'] == Path(new.__file__).name
+assert hashlib.sha256(Path(new.__file__).read_bytes()).hexdigest() == _NEGATIVE['sha256']
 old.m = new
 
 class ConsumeDispatchTests(unittest.TestCase):

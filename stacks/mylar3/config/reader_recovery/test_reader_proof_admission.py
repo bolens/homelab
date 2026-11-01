@@ -88,6 +88,25 @@ class AdmissionTests(unittest.TestCase):
             reader_root=str(self.config),scratch=str(self.scratch),operation=str(self.operation),restore_root=str(self.restore))
         path=self.root/'invocation.json';path.write_bytes(m.encode(document));path.chmod(0o600)
         return own,parent,life,path,document,h
+    def test_reader_config_bind_and_named_volume_keep_original_source(self):
+        for kind in ('bind','volume'):
+            row=dict(Type=kind,Source=str(self.config),Destination='/config',RW=True)
+            if kind=='volume':row.update(Driver='local',Name='reader_config')
+            state={'Mounts':[row]};before=copy.deepcopy(state)
+            with self.subTest(kind=kind):self.assertEqual(m.reader_config_root(state),str(self.config));self.assertEqual(state,before)
+
+    def test_reader_config_rejects_unsupported_volume_or_shadow(self):
+        for fault in ('driver','name','readonly','duplicate','shadow','relative'):
+            row=dict(Type='volume',Source=str(self.config),Destination='/config',RW=True,Driver='local',Name='reader_config')
+            state={'Mounts':[row]}
+            if fault=='driver':row['Driver']='foreign'
+            elif fault=='name':row.pop('Name')
+            elif fault=='readonly':row['RW']=False
+            elif fault=='duplicate':state['Mounts'].append(copy.deepcopy(row))
+            elif fault=='shadow':state['Mounts'].append(dict(Type='bind',Source='/other',Destination='/config/index',RW=True))
+            else:row['Source']='relative'
+            with self.subTest(fault=fault),self.assertRaisesRegex(m.Held,'current-reader-config-root'):m.reader_config_root(state)
+
     def test_distinct_provider_input_and_admission_source_bound(self):
         own,parent,life,path,doc,h=self.checked_provider_document()
         with patch.object(m,'__file__',str(own)),patch.object(m,'PARENT_SOURCE',parent),patch.object(m,'PARENT_SHA',h(parent)),patch.object(m,'LIFECYCLE_SOURCE',life),patch.object(m,'LIFECYCLE_SHA',h(life)),patch.object(m,'installed_code_read',side_effect=m.private_read):

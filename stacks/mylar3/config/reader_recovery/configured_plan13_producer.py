@@ -107,6 +107,25 @@ def compose(document, originals, installation):
          and mapping.host(native['data'] + '/config.ini') == document['native_config']['path']
          and mapping.child(str(operation)) == str(shared.installer.CHILD_OPERATION),
          'configured-producer-child-projection')
+    configs=[row for row in roles['reader']['profile']['Mounts'] if row['Destination']=='/config']
+    need(len(configs)==1 and configs[0].get('RW') is True
+         and (configs[0]['Type']=='bind' or configs[0]['Type']=='volume'
+              and configs[0].get('Driver')=='local' and type(configs[0].get('Name')) is str and bool(configs[0]['Name']))
+         and all(type(row.get('Destination')) is str and not row['Destination'].startswith('/config/')
+                 for row in roles['reader']['profile']['Mounts']), 'configured-producer-reader-config-mount')
+    source=configs[0]['Source'];backups=[row for row in document['mounts'] if row['host']==source]
+    need(len(backups)==1 and backups[0]['write'] is False
+         and mapping.host(backups[0]['child'])==source and mapping.child(source)==backups[0]['child'],
+         'configured-producer-reader-backup-projection')
+    for row in document['mounts']:
+        if row is backups[0]:continue
+        for key in ('host','child'):
+            left=Path(row[key]);right=Path(backups[0][key])
+            need(not left.is_relative_to(right) and not right.is_relative_to(left),
+                 'configured-producer-reader-backup-shadow')
+    reader_child=Path(backups[0]['child'])
+    need(all(not reader_child.is_relative_to(Path(path)) and not Path(path).is_relative_to(reader_child)
+             for path in (native['data'],*native['roots'])), 'configured-producer-reader-backup-shadow')
     need(not os.path.lexists(operation), 'configured-producer-exclusive-operation')
     for role in ('common_root', 'library', 'retention'):
         ref = geometry[role]; path = p.absolute(ref['path'])

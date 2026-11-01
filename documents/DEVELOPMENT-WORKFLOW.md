@@ -93,9 +93,10 @@ repository list ignored. Verify remote refs and the service result after a sync.
 
 ## 3. Local CI before pushing
 
-`make ci-local` includes the Mylar private-copy recovery controls and current
-reader lifecycle and archive custody/adoption/rename-link source suites through
-`make mylar-source-check`.
+`make ci-local` runs the same complete Mylar portable publication suite as the
+image build, including private-copy recovery controls, through
+`make mylar-source-check`. The gate also runs workflow intake and archive
+adoption and NFS source tests.
 They use disposable local files and SQLite, require no Docker access, and preserve
 tracked source files. `MYLAR_PYTHON` selects the interpreter (default `python3`);
 use Python 3.10 to match the native runtime. These source checks do not replace

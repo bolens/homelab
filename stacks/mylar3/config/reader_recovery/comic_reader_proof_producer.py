@@ -9,7 +9,7 @@ import stat
 import tempfile
 import time
 import types
-PINS={'comic_negative_reader_action.py':'b3da611c8ff07ea4bebcc22ab178cc27d4c9b5d20dc262b719f7200a3db926d6','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
+PINS={'comic_negative_reader_action.py':'99329a56bdb10438257ba1e36c6359746e05aea4f0cbec7164fcf1d940470499','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
 BACKUP_SHA='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3'
 ROLES={'stopped_runtime','backup_ack','backup_manifest','backup_acceptance','rows','schema','reviewed_plan','timestamp_evidence','custody'}
 class Held(ValueError):pass
@@ -28,7 +28,7 @@ def module(name):
 
 def stopped(row):
  need(type(row) is dict and row['State']['Running'] is False and row['State']['Status']=='exited' and type(row['State']['Pid']) is int and row['State']['Pid']==0 and all(row['State'][k] is False for k in ('Paused','Restarting','Dead','OOMKilled')),'producer-stopped-profile')
- config=[m for m in row['Mounts'] if m['Destination']=='/config'];need(len(config)==1 and config[0]['Type']=='bind','producer-config-bind');return Path(config[0]['Source'])
+ config=[m for m in row['Mounts'] if m['Destination']=='/config'];need(len(config)==1 and config[0].get('RW') is True and (config[0]['Type']=='bind' or config[0]['Type']=='volume' and config[0].get('Driver')=='local' and type(config[0].get('Name')) is str and bool(config[0]['Name'])) and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in row['Mounts']), 'producer-config-bind');return Path(config[0]['Source'])
 
 def backup_controls(request,*,watch):
  """Parent-root fresh callback and actual immutable backup report; no lifecycle grant."""

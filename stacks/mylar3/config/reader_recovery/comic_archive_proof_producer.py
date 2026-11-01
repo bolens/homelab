@@ -147,7 +147,7 @@ def runtime(watch,expected):
 
 def stopped(row):
  s=row['State'];need(s['Running'] is False and s['Status']=='exited' and type(s['Pid']) is int and s['Pid']==0 and all(s[k] is False for k in ('Paused','Restarting','Dead','OOMKilled')),'archive-producer-stopped')
- mounts=[m for m in row['Mounts'] if m['Destination']=='/config'];need(len(mounts)==1 and mounts[0]['Type']=='bind','archive-producer-config-bind');return Path(mounts[0]['Source'])
+ mounts=[m for m in row['Mounts'] if m['Destination']=='/config'];need(len(mounts)==1 and mounts[0].get('RW') is True and (mounts[0]['Type']=='bind' or mounts[0]['Type']=='volume' and mounts[0].get('Driver')=='local' and type(mounts[0].get('Name')) is str and bool(mounts[0]['Name'])) and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in row['Mounts']), 'archive-producer-config-bind');return Path(mounts[0]['Source'])
 
 def emit(o,out,name,value):
  intended=a.encoded(value);expected_nodes={node:list(o.nodes[node]) for node in (out,*out.parents)};ref=a.write(out/name,value,expected_nodes=expected_nodes);need(ref['sha256']==digest(intended),'archive-producer-intended-write')
@@ -216,7 +216,9 @@ def backup_controls(request,*,watch):
  expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,restore,mapping);runtime(watch,expected)
  manifest=o.ref(backup['manifest']);need(same(o.ref(original_ref,private=False),manifest),'archive-producer-original-manifest-view');need(type(manifest['version']) is int and manifest['version']==1 and manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']==PINS['comic_reader_backup.py'] and manifest['primitives_sha256']==PINS['comic_reader_backup_primitives.py'] and manifest['backup_verified'] is False and manifest['final_ack_required'] is True,'archive-producer-neutral-backup-source')
  need(backup['backup_helper_ack']['manifest_sha256']==backup['manifest']['sha256'] and backup['backup_helper_ack']['backup_verified'] is True,'archive-producer-actual-helper-ACK')
- scope=[s for s in manifest['scopes'] if s['name']=='config'];need(len(scope)==1 and Path(scope[0]['path'])==config and restore==backup_root/'restore'/'config','archive-producer-config-restore-join');scope=scope[0]
+ scope=[s for s in manifest['scopes'] if s['name']=='config'];need(len(scope)==1 and restore==backup_root/'restore'/'config','archive-producer-config-restore-join');scope=scope[0]
+ child=scope['path'];need(type(child) is str and str(Path(child))==child and Path(child).is_absolute()
+      and mapping.host(child)==str(config) and mapping.child(str(config))==child, 'archive-producer-config-restore-join')
  primitive=module('comic_reader_backup_primitives.py',o);schema=module('comic_reader_schema.py',o)
  # Reverify every captured source, backup and independently restored member,
  # attributes, complete namespace and database table/schema proof.

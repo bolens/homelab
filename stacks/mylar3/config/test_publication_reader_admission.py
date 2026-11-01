@@ -6,6 +6,7 @@ import copy
 import hashlib
 import importlib.util
 import inspect
+import json
 from pathlib import Path
 import shutil
 import sqlite3
@@ -21,7 +22,9 @@ def load(name, path):
     return module
 m = load('admission_fixture', str(_PORTABLE_ROOT / 'publication_reader_admission.py'))
 assert Path(m.__file__).resolve() == _PORTABLE_ROOT / 'publication_reader_admission.py'
-assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == '62bf0cc43f6cac4f0497204fd0da4f85a34bd27cd03c131264443dd0a797a7c4'
+_ADMISSION = json.loads((_PORTABLE_ROOT / 'publication_reader_cohort.json').read_bytes())['modules']['publication_reader_admission']
+assert _ADMISSION['filename'] == Path(m.__file__).name
+assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == _ADMISSION['sha256']
 d = load('disk_fixture', str(_PORTABLE_ROOT / 'fixtures/comic_komga_stopped_reader_disk_v3.py'))
 f = load('kernel_fixture', str(_PORTABLE_ROOT / 'test_publication_reader_softdelete.py'))
 
@@ -624,8 +627,8 @@ class GeometryControls(unittest.TestCase):
         self.assertIn('f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',raw)
         self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
-        self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
-        self.assertEqual(m.LIFECYCLE_SHA,'9df14729b740bd08ae978d10668747b1b4497c7f23676b74dcad01bcb5b37944')
+        self.assertEqual(m.NEGATIVE_SHA,hashlib.sha256((_PORTABLE_ROOT/'publication_negative.py').read_bytes()).hexdigest())
+        self.assertEqual(m.LIFECYCLE_SHA,hashlib.sha256((_PORTABLE_ROOT/'publication_reader_lifecycle.py').read_bytes()).hexdigest())
         self.assertIsNone(m.PARENT_SHA)
 
 if __name__ == '__main__':

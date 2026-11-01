@@ -148,7 +148,7 @@ def produce(request, *, watch, adapter):
     need(len(pre['native'])==len(ready['members'])==5,'terminal-five-action-bound')
     # Current roots come from original reviewed custody plus inspected /config.
     custody=o.ref(ctx['controls']['custody']);mounts=[m for m in ctx['observations']['reader']['Mounts'] if m['Destination']=='/config']
-    need(len(mounts)==1 and mounts[0]['Type']=='bind' and custody['reader_root']==mounts[0]['Source'],'terminal-current-reader-geometry')
+    need(len(mounts)==1 and mounts[0].get('RW') is True and (mounts[0]['Type']=='bind' or mounts[0]['Type']=='volume' and mounts[0].get('Driver')=='local' and type(mounts[0].get('Name')) is str and bool(mounts[0]['Name'])) and custody['reader_root']==mounts[0]['Source'] and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in ctx['observations']['reader']['Mounts']), 'terminal-current-reader-geometry')
     need(custody['restore_root']==ctx['backup']['restore_root'] and pre['restore_main']['path']==mapping.child(Path(custody['restore_root'])/'database.sqlite') and pre['restore_tasks']['path']==mapping.child(Path(custody['restore_root'])/'tasks.sqlite'),'terminal-original-restore-geometry')
     value=dict(version=1,preimage=pre_ref,clear_ready=ready_ref,cleared=cleared_ref,restore_main=pre['restore_main'],restore_tasks=pre['restore_tasks'],current_main=mapping.child(Path(custody['reader_root'])/'database.sqlite'),current_tasks=mapping.child(Path(custody['reader_root'])/'tasks.sqlite'),writer_root=str(Path(pre['native_paths']['publication']).parent))
     # Observe the intended candidate via the same source-bound observer without

@@ -1476,6 +1476,15 @@ shared-memory file. It still rejects empty main databases, missing companions,
 aliases and changed originals. SQLite queries run only against detached copies;
 the original pair remains closed through repair and terminal verification.
 
+Configured reader backups accept a unique writable `/config` bind mount or a
+default named volume using Docker's `local` driver, with no nested config shadow. The
+helper gets an explicit read-only bind of that original Source. Runtime mount
+rows keep their original Type, Driver and Name. Backup manifests retain child
+paths; the host consumer verifies both projection directions without rewriting
+the original manifest. Pre-stop capacity checks measure the full reader config
+and the owning forbidden-directory census before the strict stopped backup and
+isolated restore. Before stop, the Parent checks the original volume metadata and empty driver options. Driver-mounted backends stay held because they may detach at last-consumer stop.
+
 The source also installs primary-key-only POST `publicationControl` actions
 `prepare-archive-repair` and `archive-repair-status`. Requests contain only
 `version`, `action`, exact `owner` and a lowercase SHA-shaped `operation_id`.

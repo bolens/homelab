@@ -37,7 +37,7 @@ class Controls(unittest.TestCase):
   def ref(path,value):return a.write(path,value)
   self.archive_request=ref(self.root/'request.json',{'version':1,'owner':OWNER,'operation_id':'a'*64});self.scopes=ref(self.root/'scopes.json',{'version':1,'scratch':str(self.scratch),'retention_root':str(self.retention)})
   state={'Running':False,'Status':'exited','Pid':0,'Paused':False,'Restarting':False,'Dead':False,'OOMKilled':False}
-  reader={'Id':'reader','State':state,'Mounts':[{'Destination':'/config','Type':'bind','Source':str(self.config)}]}
+  reader={'Id':'reader','State':state,'Mounts':[{'Destination':'/config','Type':'bind','RW':True,'Source':str(self.config)}]}
   self.observations={'reader':reader,'held_native':{'State':{'Pid':123},'Mounts':[{'Type':'bind','RW':True,'Source':str(self.native),'Destination':'/config/mylar'},{'Type':'bind','RW':True,'Source':str(self.library),'Destination':'/comics'}]},'held_worker':{'State':{'Status':'created'},'Mounts':[{'Type':'bind','RW':True,'Source':str(self.library),'Destination':'/data/comics'}]}}
   parent=self.root/'parent.py';parent.write_text('''import copy\nfrom pathlib import Path\nfrom comic_reader_lifecycle_parent import Paths,LifecycleParent\ndef same_runtime(a,b):return a==b\nclass Mapping(Paths):\n def __init__(self,pairs):\n  super().__init__([dict(host=str(Path(pairs[0][0]).parent),child=str(Path(pairs[0][0]).parent),write=True)])\n  self.pairs=pairs\n def child(self,value):\n  for host,child in self.pairs:\n   if value==host or value.startswith(host+"/"):return child+value[len(host):]\n  return value\n def host(self,value):\n  for host,child in self.pairs:\n   if value==child or value.startswith(child+"/"):return host+value[len(child):]\n  return value\nclass Parent:\n child_control=LifecycleParent.child_control\n def continuous(self):return copy.deepcopy(self.observations)\n''');parent.chmod(0o600)
   sp=importlib.util.spec_from_file_location('parent_fixture',parent);m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m);self.parent=m.Parent();self.parent.observations=self.observations;self.parent.mapping=m.Mapping([(str(self.native),'/config/mylar'),(str(self.library),'/comics')])
@@ -53,6 +53,21 @@ class Controls(unittest.TestCase):
   views=self.operation/'child-output-views';views.mkdir(mode=0o700)
   view=views/'manifest-view.json';view.write_bytes(Path(original['path']).read_bytes());view.chmod(0o600)
   self.backup['manifest']=dict(path=str(view),sha256=original['sha256'],signature9=a.nine(view.stat()))
+ def test_stopped_named_volume_preserves_original_config_source(self):
+  row=copy.deepcopy(self.observations['reader']);row['Mounts'][0].update(Type='volume',Driver='local',Name='reader_config')
+  before=copy.deepcopy(row);self.assertEqual(p.stopped(row),self.config);self.assertEqual(row,before)
+ def test_stopped_config_rejects_foreign_volume_and_shadow(self):
+  for fault in ('driver','shadow','readonly','name'):
+   row=copy.deepcopy(self.observations['reader']);row['Mounts'][0].update(Type='volume',Driver='local',Name='reader_config')
+   if fault=='driver':row['Mounts'][0]['Driver']='foreign'
+   elif fault=='shadow':row['Mounts'].append(dict(Type='bind',Source='/other',Destination='/config/index',RW=True))
+   elif fault=='readonly':row['Mounts'][0]['RW']=False
+   else:row['Mounts'][0].pop('Name')
+   with self.subTest(fault=fault),self.assertRaisesRegex(p.Held,'archive-producer-config-bind'):p.stopped(row)
+ def test_backup_manifest_config_inverse_projection_is_required(self):
+  mapping=self.parent.mapping;child=mapping.child
+  mapping.child=lambda value:'/wrong-reader' if str(value)==str(self.config)else child(value)
+  with self.assertRaisesRegex(p.Held,'archive-producer-config-restore-join'):self.go()
  def test_copied_manifest_view_keeps_original_backup_geometry(self):
   self.copied_manifest_view();evidence=self.go()['evidence']
   self.assertEqual(evidence['controls']['backup_manifest'],self.backup['manifest'])

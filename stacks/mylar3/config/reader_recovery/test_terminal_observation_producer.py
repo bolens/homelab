@@ -39,7 +39,7 @@ class Controls(unittest.TestCase):
   class Parent:
    mapping=Mapping()
    def continuous(self):return self.observations
-  self.parent=Parent();self.parent.observations={'reader':{'Mounts':[dict(Type='bind',Source=str(c.current),Destination='/config')]}}
+  self.parent=Parent();self.parent.observations={'reader':{'Mounts':[dict(Type='bind',Source=str(c.current),Destination='/config',RW=True)]}}
   self.req=dict(nonce='a'*64,operation=str(c.root),context=dict(backup=dict(restore_root=str(c.restore)),controls=copy.deepcopy(controls),observations=copy.deepcopy(self.parent.observations),execute_action=self.action),parent_source=c.write(c.root/'parent.py',{'fixture':'explicit fake parent'}),parent_plan=c.write(c.root/'parent-plan.json',self.plan))
   def context(request,watch):
    reads=a.Reads();reads.ref(request['parent_source']);reads.ref(request['parent_plan'])
@@ -53,6 +53,9 @@ class Controls(unittest.TestCase):
   report=c.write(self.execute/'execute-report.json',dict(kind='negative-five-owning-terminal-observation' if c.forward else 'negative-five-owning-rollback-observation',preimage=c.ref(self.execute/'terminal-observation-preimage.json'),terminal_refs=evidence,terminal=dict(marker_cleared=True),phase='execute',nonce=self.req['nonce'],final_ack_required=True,provider_continuity_verified=False,publication_acceptance=False,reader_resume_authority=False))
   self.req['context']['execute_ack']=c.write(c.root/'execute-ack.json',dict(nonce=self.req['nonce'],phase='execute',source_sha256=self.plan['provider']['sha256'],report=report,publication_acceptance=False,reader_resume_authority=False))
  def call(self):return p.produce(self.req,watch=self.parent.continuous,adapter=self.adapter)
+ def test_named_volume_terminal_keeps_original_reader_source(self):
+  for row in (self.parent.observations['reader'],self.req['context']['observations']['reader']):row['Mounts'][0].update(Type='volume',Driver='local',Name='reader_config')
+  self.assertEqual(self.call()['outcome'],'observed-forward')
  def test_forward_actual_fulltables_and_five_files(self):
   value=self.call();self.assertEqual(value['outcome'],'observed-forward');self.assertTrue(Path(value['manifest']['path']).is_file())
   report=f.m.observe(value['manifest'],source_sha256=hashlib.sha256(Path(f.m.__file__).read_bytes()).hexdigest());self.assertFalse(report['recovery_capability'])

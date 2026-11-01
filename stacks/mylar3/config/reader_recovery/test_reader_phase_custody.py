@@ -49,6 +49,12 @@ class Controls(unittest.TestCase):
  def put(self,role,value):
   ref=self.req['context']['controls'][role];p=Path(ref['path']);p.write_bytes(a.encode(value));p.chmod(0o600);ref.update(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),signature9=list(a.nine(p.lstat())))
  def call(self):return a.produce('phase-custody',self.req,watch=self.parent.continuous)['evidence']
+ def test_named_volume_custody_keeps_original_reader_source(self):
+  self.values['reader']['Mounts'][0].update(Type='volume',Driver='local',Name='reader_config')
+  self.put('stopped_runtime',dict(version=1,kind='root-owned-reader-stopped-observation',nonce='a'*64,observed=int(time.time()),container=self.values['reader']))
+  self.req['context']['observations']=copy.deepcopy(self.values)
+  path=Path(self.inv['input_path']);doc=a.decode(path.read_bytes());doc['controls']=copy.deepcopy(self.req['context']['controls']);path.write_bytes(a.encode(doc));self.inv['input_sha256']=hashlib.sha256(path.read_bytes()).hexdigest();self.inv['command'][9]=self.inv['input_sha256']
+  result=self.call();self.assertEqual(result['reader']['config_root'],str(self.current))
  def test_full_nine_join_and_original_pair9(self):
   result=self.call();self.assertEqual(set(result),{'reader','proofs','birth_seed'});self.assertEqual(result['reader']['current_pairs'],f.a.decode(Path(self.req['context']['controls']['custody']['path']).read_bytes())['current_pairs']);self.assertNotIn('native_scope',result['proofs']);self.assertEqual(result['birth_seed']['invocation'],self.inv)
  def test_distinct_native_worker_destinations_same_physical_library(self):

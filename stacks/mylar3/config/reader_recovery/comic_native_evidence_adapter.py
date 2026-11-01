@@ -13,7 +13,7 @@ import types
 PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
 SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 PRODUCER_SHA = '90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01'
-TERMINAL_PRODUCER_SHA = '00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc'
+TERMINAL_PRODUCER_SHA = 'e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da'
 MAX = 1024*1024
 class Held(ValueError): pass
 
@@ -224,7 +224,7 @@ def phase_custody(request, *, watch):
     admission=Reads()
     need(type(ctx['backup']) is dict and 'restore_root' in ctx['backup'] and 'manifest' in ctx['backup'],'custody-original-backup')
     mounts=ctx['observations']['reader']['Mounts'];config_mounts=[m for m in mounts if m['Destination']=='/config']
-    need(len(config_mounts)==1 and config_mounts[0]['Type']=='bind','custody-reader-config-mount')
+    need(len(config_mounts)==1 and config_mounts[0].get('RW') is True and (config_mounts[0]['Type']=='bind' or config_mounts[0]['Type']=='volume' and config_mounts[0].get('Driver')=='local' and type(config_mounts[0].get('Name')) is str and bool(config_mounts[0]['Name'])) and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in mounts), 'custody-reader-config-mount')
     declared=[Path(ctx['backup']['restore_root']),Path(config_mounts[0]['Source']),Path(ctx['controls']['custody']['path']).parent/'scratch',Path(__file__).absolute()]
     for name in ('publication_native_configured_scope.py','comic_native_process_probe.py'):
         declared.append(Path(__file__).with_name(name))
