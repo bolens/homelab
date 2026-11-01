@@ -1,6 +1,7 @@
 """Actual neutral copy/restore/SQLite; synthetic stopped profile and watch only."""
 from pathlib import Path
 import hashlib
+import importlib.util
 import os
 import types
 import json
@@ -140,7 +141,52 @@ class Controls(fixture.Controls):
         with self.assertRaisesRegex(b.a.Held,'action-backup-purpose'):self.main_backup(lambda plan:plan.update(action='archive-one'))
         self.assertFalse((self.work/'reader-backup').exists())
 
+    def primitive_variants(self):
+        paths=(Path(__file__).with_name('comic_reader_backup_primitives.py'),Path(__file__).parent.parent/'standalone_launch_host/comic_reader_backup_primitives.py')
+        for index,path in enumerate(paths):
+            spec=importlib.util.spec_from_file_location('durability_primitive_'+str(index),path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            yield index,module
+    def durability_source(self,index):
+        root=self.root/('durability-'+str(index));root.mkdir();source=root/'source';source.mkdir();(source/'nested').mkdir()
+        (source/'one').write_bytes(b'payload\0bytes');(source/'nested'/'empty.lock').write_bytes(b'');(source/'link').symlink_to('one')
+        (source/'one').chmod(0o640);os.setxattr(source/'one','user.test',b'preserved')
+        return source,root/'copy'
+    def test_backup_copy_durability_order_and_exact_payload_metadata(self):
+        for index,h in self.primitive_variants():
+            with self.subTest(variant=index):
+                source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');events=[];attrs=h.apply_attrs;sync=h.sync
+                def apply(path,value):
+                    events.append(('attrs',Path(path)));return attrs(path,value)
+                def durable(path):
+                    events.append(('sync',Path(path)));return sync(path)
+                with patch.object(h,'apply_attrs',apply),patch.object(h,'sync',durable):h.copy_scope(source,target,rows)
+                copied,_=h.inventory(target,'tree');self.assertEqual(h.logical(rows),h.logical(copied))
+                self.assertEqual((target/'one').read_bytes(),b'payload\0bytes');self.assertEqual(os.readlink(target/'link'),'one')
+                attr_events=[i for i,v in enumerate(events)if v[0]=='attrs'];sync_events=[i for i,v in enumerate(events)if v[0]=='sync'];self.assertLess(max(attr_events),min(sync_events))
+                paths=[p for kind,p in events if kind=='sync'];expected=[target if row['path']=='.'else target/row['path']for row in sorted(rows,key=lambda row:len(Path(row['path']).parts),reverse=True)if row['kind']!='symlink']+[target.parent]
+                self.assertEqual(paths,expected);self.assertEqual(len(paths),len(set(paths)))
+    def test_backup_copy_no_early_file_fsync(self):
+        for index,h in self.primitive_variants():
+            source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');seen=[]
+            with patch.object(h,'sync',lambda path:seen.append(Path(path))),patch.object(h.os,'fsync',side_effect=AssertionError('early durability barrier')):h.copy_scope(source,target,rows)
+            self.assertTrue(seen);self.assertEqual(seen[-1],target.parent)
+    def durability_failure(self,kind):
+        for index,h in self.primitive_variants():
+            source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');events=[];real=h.sync;error=OSError('durability-'+kind)
+            def fail(path):
+                path=Path(path);events.append(path)
+                chosen=(kind=='file'and path.is_file())or(kind=='directory'and path==target/'nested')or(kind=='parent'and path==target.parent)
+                if chosen:raise error
+                return real(path)
+            with patch.object(h,'sync',fail),self.assertRaises(OSError)as caught:h.copy_scope(source,target,rows)
+            self.assertIs(caught.exception,error)
+            if kind!='parent':self.assertNotIn(target.parent,events)
+            self.assertEqual((source/'one').read_bytes(),b'payload\0bytes')
+    def test_backup_copy_file_barrier_failure_refuses(self):self.durability_failure('file')
+    def test_backup_copy_directory_barrier_failure_refuses(self):self.durability_failure('directory')
+    def test_backup_copy_parent_barrier_failure_refuses(self):self.durability_failure('parent')
+
 if __name__=='__main__':
     names=[name for name in Controls.__dict__ if name.startswith('test_backup_')]
     result=unittest.TextTestRunner().run(unittest.TestSuite(Controls(name) for name in names))
-    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=15)
+    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=20)

@@ -341,12 +341,12 @@
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0",
+    "sha256": "cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b",
     "target": "fixtures/host/comic_reader_backup_primitives.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2",
+    "sha256": "ab0002992bbb437871201cb46d735a7513bd1a125520199e14f606900cd3f596",
     "target": "fixtures/host/comic_retained_standalone_backup.py"
   },
   {

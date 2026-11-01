@@ -624,8 +624,8 @@ class GeometryControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'after-URL-callbacks'):m.verify_reader_native_pair(self.life,self.prep,self.pair)
     def test_portable_source_pins_not_historical(self):
         raw=Path(m.__file__).read_text()
-        self.assertIn('f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',raw)
-        self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
+        self.assertIn(hashlib.sha256((_PORTABLE_ROOT/'reader_recovery/comic_reader_backup.py').read_bytes()).hexdigest(),raw)
+        self.assertIn(hashlib.sha256((_PORTABLE_ROOT/'reader_recovery/comic_reader_rows.py').read_bytes()).hexdigest(),raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
         self.assertEqual(m.NEGATIVE_SHA,hashlib.sha256((_PORTABLE_ROOT/'publication_negative.py').read_bytes()).hexdigest())
         self.assertEqual(m.LIFECYCLE_SHA,hashlib.sha256((_PORTABLE_ROOT/'publication_reader_lifecycle.py').read_bytes()).hexdigest())
