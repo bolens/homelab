@@ -1641,7 +1641,7 @@
   },
   {
     "path": "test_publication_negative.py",
-    "sha256": "1adb494f5de4458d8a0961a9a04ab57c17b91427a04eebdfc17270719c66b7e6",
+    "sha256": "bdef4214c5051630bd4c1b7fe4e61c5d7912f44f69c00a643b237527f4c3173b",
     "target": "test_publication_negative.py"
   },
   {
@@ -1696,7 +1696,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "09928d9d937196ec5db78d16d423a867714a63f9d78f2a147527cb36ddf65df8",
+    "sha256": "6f7cbdd7e9f38780c9b8e30bde051737fbae2b3bfcce693ee9fd9a2887a1be58",
     "target": "test_publication_reader_admission.py"
   },
   {

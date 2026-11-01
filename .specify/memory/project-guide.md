@@ -256,7 +256,11 @@ replace the owning native reader controls: run `run_publication_reader_controls.
 and its canonical cohort-import test when lifecycle or admission source changes.
 Trace direct dependency literals in both admission and archive preparation, then
 the Parent base-admission pin and current import-time test pins; a closed JSON
-map can still contain a caller that refuses the new module. Trace inherited operational suppliers and generated
+map can still contain a caller that refuses the new module. Current portable tests
+bind their loaded source to the owning cohort manifest and exact module path.
+Keep historical fixture pins fixed. `make mylar-source-check` must invoke the
+complete image portable runner, including recovery, so `make ci-local` exercises
+these import-time checks before publication. Trace inherited operational suppliers and generated
 health programs too: a new top-level image receipt can still invoke an older
 embedded module hash. Prepare an exact source-bound supplier successor, preserve
 the predecessor, and verify old-source refusal and new-source acceptance before
