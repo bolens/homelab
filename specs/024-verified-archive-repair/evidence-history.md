@@ -1294,7 +1294,7 @@ FH completion-boundary receipt SHA256:
 
 ## Verified live rollout and data preservation — 2026-10-31
 
-The production native instance now runs the reviewed #543 image at
+At T016 acceptance, the production native instance ran the reviewed #543 image at
 `sha256:73b97153418f534850135eeaf1175e29a570c244d69bc0fa0a721441a53c37ea`.
 A fresh coordinated affected-state backup and independent isolated restore
 verify 12,343 files and all four databases before recreation. The operation
@@ -1372,3 +1372,40 @@ Read-only worker binding verification SHA256:
 `109b983a9bf03b33d19488382dfff52f82aab30842eb730408b8c11193694618`.
 Joined T016 acceptance receipt SHA256:
 `c5c07067c2f360ee33a349da0f5294c3f6f65bc7bae70c7d4b9b09d6dcf6a001`.
+
+## Configured-admission rollout — 2026-10-31
+
+[PR #562](https://github.com/bolens/homelab/pull/562) delivers configured-original
+admission and the catalog-to-selected-original join. The actual published image
+`sha256:50d0492ba2abe9947cf24fc3955dd08da1c2a7655bd9c4368d92ef1b693e502b`
+passes all four installed-image cases without skips. Its temporary checker was
+removed and absence verified.
+
+The first stopped backup refused the newly selected archive's unproven exact
+NFS metadata variant before creating a backup or changing the image. Mylar
+recovered on its original container and image. The correction proves that
+variant through synthetic backup and restore on the actual destination
+filesystem. The complete backup scope, including both configuration selectors,
+now passes metadata coverage before service stop. Strict stopped checks remain.
+
+A fresh backup and isolated restore verify 12,344 files and all four databases
+before the Mylar-only update. Independent checks verify health, publication
+readiness and all 180 installed source modules. Komga remains unchanged and the
+permanent worker remains inactive. The selected repair archive and all protected
+retained payloads are unchanged.
+
+Business catalog data remains exact: 2,747 series, 16,473 issues and 145 annuals.
+Scheduler changes match the existing classifier. Protected workflow keys and
+payloads remain intact. The comparison applies the existing advisory policy
+before protected-key equality: 20 removed polling observations are advisory.
+The retained evidence also classifies 65 handoff/exhaustion timestamp refreshes,
+one advancing library cursor and a 65-row oldest-prefix event rollover. These
+facts do not establish raw workflow-row equality. Configuration bytes and access
+attributes are preserved; the selector changes only its intended image value.
+
+Joined private rollout acceptance SHA256:
+`183fd6b20f4db57425a675413863f5a8457465f9c3b0faeb6b8fdf218628088c`.
+
+This refreshes T017's rollout prerequisite. T017 selected repair/import/ACK and
+T018 current-library acceptance remain open. No production repair or bulk start
+is accepted by this record.

@@ -118,6 +118,27 @@ namespace before and after writes. A private mode and final-leaf `O_NOFOLLOW`
 alone do not prevent parent-path replacement. Preserve the primary operation
 error when later output or cleanup custody also refuses.
 
+Before stopping a service for a portable backup, check metadata coverage for the
+complete backup scope, including newly selected files and configuration selectors.
+Use the same scope constructor for this check and the fresh stopped capture.
+Exact metadata variants include timestamps as well as owners, modes and ACLs.
+Prove any new variant with synthetic backup and restore on the actual destination
+filesystem, then bind the union of proven variants to its original reports. Keep
+the stopped backup's strict checks; the earlier check does not prove a backup or
+permit changing source metadata to fit an older proof.
+
+In preservation comparisons, validate every row's shape and uniqueness before
+applying an existing source-reviewed advisory policy. Compare protected keysets
+after that classification, keep protected payload checks strict, and retain the
+actual added and removed rows. Advisory polling churn does not establish raw-row
+equality or permit new exceptions for protected records.
+
+Current-role consumers share the capture producer's static profile and separate
+complete, Health-free lifecycle epoch. Test that emitted shape across composition
+and assembly; embedding `State` in the profile creates an incompatible DTO.
+Container-init host PIDs and native application process PIDs belong to different
+namespaces and must retain their own original process checks.
+
 For the health-only cache allocation test, state the observation endpoint
 explicitly: verified child termination and payload removal precede the sole
 consistent AFTER snapshot and typed comparison. Keep exact source checks through

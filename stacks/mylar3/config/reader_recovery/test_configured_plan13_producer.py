@@ -30,10 +30,10 @@ class Controls(unittest.TestCase):
         for name,row in current['roles'].items():
             row['profile']['Name']='/configured-'+name
             row['profile']['Config']['Labels']={}
-            row['profile']['State']=dict(Status='created' if name=='worker' else 'running',
+            row['epoch']=dict(Status='created' if name=='worker' else 'running',
                 Running=name!='worker',Pid=0 if name=='worker' else 123,
-                StartedAt='fixture',Paused=False,Restarting=False,Dead=False,OOMKilled=False)
-            row['epoch']=copy.deepcopy(row['profile']['State'])
+                StartedAt='fixture',FinishedAt='',ExitCode=0,Error='',
+                Paused=False,Restarting=False,Dead=False,OOMKilled=False)
         current['roles']['native']['profile']['Mounts']=[
             dict(Type='volume',Driver='local',Source=str(f.data),Destination='/config',RW=True),
             dict(Type='bind',Source=str(f.common),Destination='/data',RW=True)]
@@ -58,7 +58,37 @@ class Controls(unittest.TestCase):
         self.assertEqual(plan['native'],dict(data='/config',roots=['/data/comics']))
         self.assertEqual(plan['configured_original'],self.document['archive_original'])
         self.assertNotIn('fixture_transition',plan)
+        current=json.loads(Path(self.document['current_roles']['path']).read_bytes())
+        for row in current['roles'].values():
+            self.assertEqual(row['profile'],c.p.static(row['profile']))
+            c.p.lifecycle_state({'State':row['epoch']})
         frame.close()
+
+    def test_embedded_lifecycle_state_cannot_replace_static_profile(self):
+        current=json.loads(Path(self.document['current_roles']['path']).read_bytes())
+        current['roles']['reader']['profile']['State']=copy.deepcopy(current['roles']['reader']['epoch'])
+        value=copy.deepcopy(self.document);value['current_roles']=self.fixture.put(current)
+        with self.assertRaisesRegex(ValueError,'configured-producer-original-role'):self.compose(value)
+
+    def test_epoch_remains_complete_typed_and_without_health(self):
+        for change in ('missing','health','type'):
+            with self.subTest(change=change):
+                current=json.loads(Path(self.document['current_roles']['path']).read_bytes())
+                state=current['roles']['native']['epoch']
+                if change=='missing':del state['FinishedAt']
+                elif change=='health':state['Health']={'Status':'healthy'}
+                else:state['Pid']=True
+                value=copy.deepcopy(self.document);value['current_roles']=self.fixture.put(current)
+                with self.assertRaises(ValueError):self.compose(value)
+
+    def test_role_phase_drift_refuses(self):
+        for role in ('native','reader','worker'):
+            with self.subTest(role=role):
+                current=json.loads(Path(self.document['current_roles']['path']).read_bytes())
+                state=current['roles'][role]['epoch']
+                state.update(Status='running'if role=='worker'else'exited',Running=role=='worker',Pid=123 if role=='worker'else 0)
+                value=copy.deepcopy(self.document);value['current_roles']=self.fixture.put(current)
+                with self.assertRaisesRegex(ValueError,'configured-producer-role-phase'):self.compose(value)
 
     def test_disposable_kind_cannot_borrow_configured_geometry(self):
         value=copy.deepcopy(self.document);value['kind']='disposable-original-plan13-input'

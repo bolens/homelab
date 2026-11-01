@@ -72,12 +72,22 @@ def compose(document, originals, installation):
          'configured-producer-current-role-bracket')
     roles = current['roles']
     need(type(roles) is dict and set(roles) == {'native', 'reader', 'worker'}, 'configured-producer-three-roles')
-    for row in roles.values():
+    for role, row in roles.items():
         need(type(row) is dict and set(row) == {'id', 'image', 'profile', 'epoch'}
-             and p.digest(row['id']) and row['profile']['Id'] == row['id']
-             and row['profile']['Image'] == row['image']
-             and row['epoch'] == {k: v for k, v in row['profile']['State'].items() if k != 'Health'},
+             and p.digest(row['id']) and type(row['profile']) is dict
+             and set(row['profile']) == {'Id', 'Name', 'Image', 'Path', 'Args',
+                 'Config', 'HostConfig', 'Mounts', 'NetworkSettings'}
+             and row['profile']['Id'] == row['id'] and row['profile']['Image'] == row['image']
+             and type(row['epoch']) is dict and 'Health' not in row['epoch'],
              'configured-producer-original-role')
+        # CurrentRoles and Assembly share a static profile with a separate
+        # complete lifecycle epoch. Neither field can supply the other's facts.
+        state = row['epoch']; p.lifecycle_state({'State': state})
+        running = role != 'worker'
+        need(state['Status'] == ('running' if running else 'created')
+             and state['Running'] is running and (state['Pid'] > 0 if running else state['Pid'] == 0)
+             and not any(state[key] for key in ('Paused', 'Restarting', 'Dead', 'OOMKilled')),
+             'configured-producer-role-phase')
     need(len({row['id'] for row in roles.values()}) == 3, 'configured-producer-distinct-roles')
     native = document['native']; geometry = document['publication_geometry']
     need(type(native) is dict and set(native) == {'data', 'roots'}
