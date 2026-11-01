@@ -47,7 +47,7 @@ def _helper(name,pin):
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise ValueError('backup-helper-leaf-final')
     return module
 a=_helper('comic_archive_repair_action.py','cf4d6927a206ef594352f426574141b0f13977c2a87ea13c7c5790113cfdfc64')
-p=_helper('comic_archive_proof_producer.py','0bb8ee74cc378c4fefff1743a72df62ca21ce6f7ca4200ddca7b15cf62136660')
+p=_helper('comic_archive_proof_producer.py','583885e6d9e8ad79210f09f9b8865c34825e3c021cace225c1fa4778610b1116')
 
 PARENT_SOURCE_SHA=None
 HERE=Path(__file__).resolve().parent
@@ -67,7 +67,7 @@ def backup_existing(plan,watch):
     a.need(set(plan)==({'version','action','nonce','parent_sha256','command_template','operation','selected_image','sdk_map','runtime','native','bounds','seconds'}|({'config_binding'} if projected else set())),'archive-backup-plan')
     a.need(type(plan['version']) is int and plan['version'] in (1,2) and plan['action']=='archive-one-backup','archive-backup-purpose')
     runtime=plan['runtime'];mounts=[m for m in runtime['Mounts'] if m['Destination']=='/config']
-    a.need(len(mounts)==1 and mounts[0]['Type']=='bind','archive-backup-config-root')
+    a.need(len(mounts)==1 and mounts[0].get('RW') is True and (mounts[0]['Type']=='bind' or mounts[0]['Type']=='volume' and mounts[0].get('Driver')=='local' and type(mounts[0].get('Name')) is str and bool(mounts[0]['Name'])) and all(type(m.get('Destination')) is str and not m['Destination'].startswith('/config/') for m in runtime['Mounts']), 'archive-backup-config-root')
     state=runtime['State'];a.need(state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0 and all(state[k] is False for k in ('Paused','Restarting','Dead','OOMKilled')),'archive-backup-stopped')
     config=Path(mounts[0]['Source'])
     if projected:

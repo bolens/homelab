@@ -9,8 +9,8 @@ import subprocess
 import sys
 import tempfile
 FIXES=Path(__file__).resolve().parent
-SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',21),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',129),('test_native_evidence.py',39),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',11),('test_terminal_observation_producer.py',19),('test_terminal_phase_custody.py',5),('test_archive_repair_protocol.py',28),('test_archive_repair_flow.py',16),('test_nfs_current_source.py',50),('test_hardlink_nfs_probe.py',29),('test_nfs_factual_successor.py',15),('test_nfs_public_geometry.py',9),('test_archive_proof_producer.py',42),('test_archive_nfs_readiness.py',23))
-SUITES=SUITES+(('test_archive_backup_action.py',13),('test_archive_backup_bootstrap.py',3),('test_archive_parent_composition.py',27),('test_archive_terminal_vectors.py',12),('test_archive_native_geometry.py',10),('test_archive_parent_admission.py',4),('test_archive_same_child_parent.py',22),('test_archive_same_child_producer.py',10),('test_archive_worker_vectors.py',16),('test_archive_worker_composition.py',45))
+SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',21),('test_reader_proof_producer.py', 11),('test_reader_proof_admission.py', 54),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',129),('test_native_evidence.py',39),('test_reader_phase_custody.py', 26),('test_terminal_reconstruction.py',11),('test_terminal_observation_producer.py', 20),('test_terminal_phase_custody.py',5),('test_archive_repair_protocol.py',28),('test_archive_repair_flow.py',16),('test_nfs_current_source.py',50),('test_hardlink_nfs_probe.py',29),('test_nfs_factual_successor.py',15),('test_nfs_public_geometry.py',9),('test_archive_proof_producer.py', 45),('test_archive_nfs_readiness.py',23))
+SUITES=SUITES+(('test_archive_backup_action.py', 15),('test_archive_backup_bootstrap.py',3),('test_archive_parent_composition.py',27),('test_archive_terminal_vectors.py',12),('test_archive_native_geometry.py',10),('test_archive_parent_admission.py',4),('test_archive_same_child_parent.py',22),('test_archive_same_child_producer.py',10),('test_archive_worker_vectors.py',16),('test_archive_worker_composition.py',45))
 SUITES=SUITES+(('test_child_control_projection.py', 51), ('test_configured_parent_installation.py',25), ('test_nfs_parent_admission.py', 11), ('test_nfs_parent_session.py',14), ('test_retained_nfs_boundary.py', 9), ('test_host_lease.py',21), ('test_lease_supervision.py', 15), ('test_host_probe.py', 24), ('test_host_intents.py', 11), ('test_child_transport.py', 17), ('test_child_factory_interface.py', 8), ('test_factory_entry.py', 4), ('test_namespace_clients.py', 7))
 SUITES=SUITES+(('test_nfs_current_roles.py',19),)
 SUITES=SUITES+(('test_deferred_lease.py',11),('test_local_lease_window.py',14),('test_nfs_remote_guard.py',10),('test_expired_lease_paths.py',33))
@@ -29,7 +29,7 @@ SUITES=SUITES+(('test_genuine_current_roles.py',26),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',25),)
 SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
-SUITES=SUITES+(('test_configured_archive_geometry.py',26),('test_configured_plan13_producer.py',13),)
+SUITES=SUITES+(('test_configured_archive_geometry.py', 34),('test_configured_plan13_producer.py', 17),)
 # Resource ceiling shared with the complete owning source union. This is not
 # the current manifest census: membership comes from the checked source maps.
 SUITE_TIMEOUT=120

@@ -114,6 +114,11 @@ already accepted. Historical channel deadlines and held attempts remain in
 evidence history; they are not instructions to create another fixture or repeat
 an old run. No held attempt has replay or inferred resume authority.
 
+The current reader uses a named config volume. Before T017, deliver and verify
+the matching volume-aware backup/admission code and its image, use an explicit
+read-only helper projection, and measure the full reader backup scope. The prior
+native rollout backup and source-only checks do not satisfy this reader gate.
+
 Forward and explicit `terminal=rollback` use distinct fixtures, requests,
 baselines and original receipts. Rollback restores the causal malformed source,
 not the forward fixture's repaired genesis. Verify each original terminal chain

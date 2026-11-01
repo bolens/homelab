@@ -17,7 +17,7 @@ import types
 BACKUP_SHA='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3'
 PRIMITIVES_SHA='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
 ROWS_SHA='ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a'
-TERMINAL_PRODUCER_SHA = '00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc'
+TERMINAL_PRODUCER_SHA = 'e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da'
 OBSERVER_SHA='ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04'
 MAX=64*1024**2
 ROOT=Path('/app/mylar3/mylar')
@@ -122,7 +122,11 @@ def sdk(ref):
 
 def backup(plan,watch):
  """Actual accepted full-copy/restore algorithm, portable adjacent dependencies."""
- operation=Path(plan['operation']);runtime=plan['runtime'];config=Path(next(x['Source'] for x in runtime['Mounts'] if x['Destination']=='/config'));out=operation/'reader-backup'
+ operation=Path(plan['operation']);runtime=plan['runtime'];configs=[row for row in runtime['Mounts'] if row['Destination']=='/config']
+ need(len(configs)==1 and configs[0].get('RW') is True
+      and (configs[0]['Type']=='bind' or configs[0]['Type']=='volume' and configs[0].get('Driver')=='local' and type(configs[0].get('Name')) is str and bool(configs[0]['Name']))
+      and all(type(row.get('Destination')) is str and not row['Destination'].startswith('/config/') for row in runtime['Mounts']), 'action-reader-config-root')
+ config=Path(configs[0]['Source']);out=operation/'reader-backup'
  need(not out.exists(),'action-exclusive-backup');watch();helper=load('comic_reader_backup.py',BACKUP_SHA)
  document=dict(version=1,kind='approved-komga-reader-backup',approved_scope=True,config_root=str(config),retention_files=[],forbidden_roots=[plan['native']['data'],*plan['native']['roots']],output_root=str(out),max_files=plan['bounds']['files'],max_bytes=plan['bounds']['bytes'],deadline_seconds=plan['seconds'])
  inp=write(operation/'backup-plan.json',document);watch();ack=helper.run(types.SimpleNamespace(input=Path(inp['path']),input_sha256=inp['sha256'],source_sha256=BACKUP_SHA));watch()

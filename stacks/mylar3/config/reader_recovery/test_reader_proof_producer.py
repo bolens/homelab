@@ -37,7 +37,7 @@ class Controls(unittest.TestCase):
   for p in self.config.iterdir():p.chmod(0o600)
   self.schema=self.ref('reviewed-schema',f.SCHEMA);self.timestamp=self.ref('encoding-evidence',{'fixture_review_only':True,'encoding_approval':False})
   selection=copy.deepcopy(self.c.manifest);selection['timestamp_encoding_evidence_sha256']=self.timestamp['sha256'];self.selection=self.ref('selection',selection)
-  self.runtime={'Id':'a'*64,'Image':f.m.IMAGE,'Mounts':[{'Type':'bind','Source':str(self.config),'Destination':'/config'}],'State':dict(Running=False,Status='exited',Pid=0,Paused=False,Restarting=False,Dead=False,OOMKilled=False)}
+  self.runtime={'Id':'a'*64,'Image':f.m.IMAGE,'Mounts':[{'Type':'bind','RW':True,'Source':str(self.config),'Destination':'/config'}],'State':dict(Running=False,Status='exited',Pid=0,Paused=False,Restarting=False,Dead=False,OOMKilled=False)}
   self.watch=Watch({'reader':self.runtime});plan={'nonce':'b'*64,'operation':str(self.op),'producer_inputs':{'schema':self.schema,'reviewed_selection':self.selection,'timestamp_evidence':self.timestamp}}
   self.parent=self.ref('parent-plan',plan);p=Path(__file__).absolute();self.source=dict(path=str(p),sha256=m.sha(p.read_bytes()),signature9=a.nine(p.lstat()))
   inp=self.ref('backup-input',dict(version=1,kind='approved-komga-reader-backup',approved_scope=True,config_root=str(self.config),retention_files=[],forbidden_roots=[str(self.config)],output_root=str(self.op/'copies'),max_files=1000,max_bytes=64*1024**2,deadline_seconds=60))
@@ -46,6 +46,9 @@ class Controls(unittest.TestCase):
   self.request=dict(version=1,phase='backup-controls',nonce='b'*64,operation=str(self.op),deadline_monotonic=time.monotonic()+120,parent_plan=self.parent,parent_source=self.source,context=dict(backup=self.backup,observations=self.watch.obs))
  def ref(self,name,value):return a.write(self.root/(name+'.json'),value)
  def go(self):return m.produce('backup-controls',self.request,watch=self.watch.continuous)
+ def test_stopped_named_volume_source_is_unchanged(self):
+  row=copy.deepcopy(self.runtime);row['Mounts'][0].update(Type='volume',Driver='local',Name='reader_config')
+  before=copy.deepcopy(row);self.assertEqual(m.stopped(row),self.config);self.assertEqual(row,before)
  def test_genuine_copy_schema_rows_custody_nine_join(self):
   before={p:p.read_bytes() for p in self.config.iterdir()};r=self.go();refs=r['evidence']['controls'];self.assertEqual(set(refs),m.ROLES)
   docs={k:json.loads(Path(v['path']).read_bytes()) for k,v in refs.items()};self.assertEqual(docs['backup_ack']['acceptance_sha256'],refs['backup_acceptance']['sha256']);self.assertEqual(docs['rows']['source_sha256'],m.PINS['comic_reader_rows.py']);self.assertEqual(docs['rows']['databases']['database.sqlite']['selected_rows'],self.c.manifest['before_rows']);self.assertFalse(docs['backup_acceptance']['backup_verified']);self.assertFalse(docs['rows']['timestamp_encoding_approved']);self.assertEqual(before,{p:p.read_bytes() for p in before});self.assertGreaterEqual(self.watch.calls,3)

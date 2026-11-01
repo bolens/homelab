@@ -40,6 +40,9 @@ class Controls(unittest.TestCase):
         current['roles']['reader']['profile']['Mounts']=[
             dict(Type='bind',Source=str(f.common/name),Destination='/data/'+name,RW=False)
             for name in ('comics','manga')]
+        self.reader_config=f.state/'reader-config';self.reader_config.mkdir(mode=0o700)
+        current['roles']['reader']['profile']['Mounts'].append(
+            dict(Type='bind',Source=str(self.reader_config),Destination='/config',RW=True))
         self.document['current_roles']=f.put(current)
         self.document['native']=dict(data='/config',roots=['/data/comics'])
         self.document['native_config']=f.raw(f.data/'config.ini',b'[General]\ndestination_dir = /data/comics\n')
@@ -47,6 +50,7 @@ class Controls(unittest.TestCase):
         self.document['archive_scopes']=f.put(dict(version=1,scratch=str(f.scratch),retention_root=str(f.retention)))
         self.document['mounts']=[dict(host=str(path),child=child,write=True) for path,child in
             ((f.common,'/data'),(f.data,'/config'),(f.scratch,'/scratch'),(f.state/'operation','/_operation'))]
+        self.document['mounts'].append(dict(host=str(self.reader_config),child='/reader-config',write=False))
 
     def compose(self,document=None):
         frame=c.Originals();installation=c.shared.checked_installation(frame,self.fixture.install_ref,self.fixture.base_manifest)
@@ -89,6 +93,32 @@ class Controls(unittest.TestCase):
                 state.update(Status='running'if role=='worker'else'exited',Running=role=='worker',Pid=123 if role=='worker'else 0)
                 value=copy.deepcopy(self.document);value['current_roles']=self.fixture.put(current)
                 with self.assertRaisesRegex(ValueError,'configured-producer-role-phase'):self.compose(value)
+
+    def test_named_reader_volume_uses_exact_readonly_backup_projection(self):
+        current=json.loads(Path(self.document['current_roles']['path']).read_bytes())
+        current['roles']['reader']['profile']['Mounts'][-1].update(Type='volume',Driver='local',Name='reader_config')
+        self.document['current_roles']=self.fixture.put(current)
+        before=copy.deepcopy(current['roles']['reader']['profile'])
+        (plan,_,_,_),frame=self.compose()
+        self.assertEqual(plan['reader']['profile'],before)
+        self.assertIn(dict(host=str(self.reader_config),child='/reader-config',write=False),plan['mounts'])
+        frame.close()
+
+    def test_missing_or_writable_reader_backup_projection_refuses_before_entry(self):
+        for fault in ('missing','writable'):
+            value=copy.deepcopy(self.document)
+            if fault=='missing':value['mounts'].pop()
+            else:value['mounts'][-1]['write']=True
+            with self.subTest(fault=fault),self.assertRaisesRegex(ValueError,'configured-producer-reader-backup-projection'):self.compose(value)
+
+    def test_reader_backup_rejects_nested_helper_directory_and_database_mounts(self):
+        for child in ('/reader-config/subdir','/reader-config/database.sqlite'):
+            value=copy.deepcopy(self.document);value['mounts'].append(dict(host=str(self.fixture.scratch/'foreign'),child=child,write=False))
+            with self.subTest(child=child),self.assertRaisesRegex(ValueError,'configured-producer-reader-backup-shadow'):self.compose(value)
+
+    def test_reader_backup_cannot_shadow_native_state(self):
+        value=copy.deepcopy(self.document);value['mounts'][-1]['child']='/config/reader'
+        with self.assertRaisesRegex(ValueError,'configured-producer-reader-backup-shadow'):self.compose(value)
 
     def test_disposable_kind_cannot_borrow_configured_geometry(self):
         value=copy.deepcopy(self.document);value['kind']='disposable-original-plan13-input'

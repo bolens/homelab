@@ -36,6 +36,22 @@ class Controls(fixture.Controls):
         self.assertTrue(result['full_backup_restore_observed'])
         self.assertEqual(self.plan['runtime'],before)
 
+    def test_backup_named_volume_projection_preserves_original_runtime_and_restores_tables(self):
+        mount=self.plan['runtime']['Mounts'][0]
+        mount.update(Type='volume',Driver='local',Name='reader_config',RW=True,Source='/configured/reader-state')
+        self.plan.update(version=2,config_binding=dict(host=mount['Source'],child=str(self.config),signature9=list(b.a.nine(self.config.lstat()))))
+        before=json.loads(json.dumps(self.plan['runtime']))
+        result,_=self.call()
+        self.assertTrue(result['full_backup_restore_observed'])
+        self.assertEqual(self.plan['runtime'],before)
+        manifest=json.loads(Path(result['manifest']['path']).read_bytes())
+        self.assertEqual(manifest['databases']['config:database.sqlite']['tables']['BOOK']['rows'],2)
+
+    def test_backup_foreign_volume_driver_refuses_before_copy(self):
+        self.plan['runtime']['Mounts'][0].update(Type='volume',Driver='foreign',Name='reader_config',RW=True)
+        with self.assertRaisesRegex(b.a.Held,'archive-backup-config-root'):self.call()
+        self.assertFalse((self.work/'reader-backup').exists())
+
     def test_backup_projected_config_refuses_wrong_host_or_original_identity_before_backup(self):
         for fault in ('host','signature9'):
             value=dict(host=self.plan['runtime']['Mounts'][0]['Source'],child=str(self.config),signature9=list(b.a.nine(self.config.lstat())))
@@ -127,4 +143,4 @@ class Controls(fixture.Controls):
 if __name__=='__main__':
     names=[name for name in Controls.__dict__ if name.startswith('test_backup_')]
     result=unittest.TextTestRunner().run(unittest.TestSuite(Controls(name) for name in names))
-    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=13)
+    raise SystemExit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun!=15)

@@ -55,6 +55,20 @@ No remote calls under Writer. Reader preparation/acknowledgement follows writer 
 
 Measure, consistently back up and independently restore all affected application state and specific originals before live adoption. Retain compatible rollback image/configuration. Compare actual files, catalog/census and reader behavior against baseline; retain custody on inconclusive results. Prune only conclusively superseded operation-owned copies after required acceptance and the one-verified-backup retention rule.
 
+The stopped-reader backup scope is the full inspected `/config` Source. Require
+one writable config mount, either a bind or a named volume using Docker's
+`local` driver, and reject nested config shadows. Keep the runtime DTO intact.
+Configured helper plans must bind that exact Source read-only at an explicit
+child path before Parent entry. Both projection directions and original root
+identity must match. Child manifest scope paths stay original; host proof
+consumers map them through the checked binding instead of rewriting receipts.
+The Parent verifies the original volume Name, Driver, Scope, Mountpoint and empty driver options before reader stop. Driver-mounted backends remain held because they may detach at last-consumer stop. Ordinary backup retains identity mapping; configured backup uses the explicit projection. Both reject helper subtree shadows before stop.
+
+Measure this actual reader tree and the owning forbidden-directory census before
+reader stop. Bounds must fit the existing helper maxima and both copy-space
+requirements with its reserve. This measurement is advisory. The stopped source
+inventory, complete backup, isolated restore and database proofs remain strict.
+
 Install exact native/worker diagnostic modules and verify selected runtimes. Advertise diagnostics separately from preparation/adoption and only when actually installed. Features 022/023 still gate general writer release on complete current-library acceptance. A new process does not inherit a process-local startup hold.
 
 ## Existing completed preparation factory

@@ -230,4 +230,59 @@ class ConfiguredNFSMapping(unittest.TestCase):
         with self.assertRaises(self.active.Held):self.mapping()
 
 
+class ReaderBackupMounts(unittest.TestCase):
+    """Actual mapping/volume checks with read-only transport responses only."""
+    def setUp(self):
+        import types
+        from test_nfs_current_roles import row
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.config=self.root/'reader';self.config.mkdir(mode=0o700)
+        self.runtime=row(3,'reader','running')
+        self.runtime['Mounts']=[dict(Type='volume',Driver='local',Name='reader_config',Source=str(self.config),Destination='/config',RW=True)]
+        self.volume=dict(Name='reader_config',Driver='local',Scope='local',Mountpoint=str(self.config),Options=None)
+        self.calls=[];self.emitted=[]
+        def run(args,seconds):self.calls.append(args);return p.encode([copy.deepcopy(self.volume)])
+        self.mounts=[dict(host=str(self.config),child=str(self.config),write=False)]
+        self.owner=types.SimpleNamespace(continuous=lambda:dict(reader=copy.deepcopy(self.runtime)),plan={'mounts':self.mounts},mapping=p.Paths(self.mounts),engine=types.SimpleNamespace(run=run),left=lambda:30,emit=lambda name,value:self.emitted.append((name,value)))
+    def call(self,projected=False):return p.LifecycleParent.reader_backup_preflight(self.owner,projected=projected)
+    def test_default_volume_identity_checked_without_changing_runtime(self):
+        before=copy.deepcopy(self.runtime);self.call();self.assertEqual(self.runtime,before)
+        self.assertEqual(self.calls,[['volume','inspect','reader_config']]);self.assertEqual(len(self.emitted),1)
+    def test_bind_identity_needs_no_volume_inspection(self):
+        self.runtime['Mounts'][0]['Type']='bind';self.call();self.assertFalse(self.calls)
+    def test_ordinary_nonidentity_volume_refuses_before_stop(self):
+        self.mounts[0]['child']='/reader-config';self.owner.mapping=p.Paths(self.mounts)
+        with self.assertRaisesRegex(p.Held,'backup-host-path-not-mounted-canonically'):self.call()
+        self.assertFalse(self.calls)
+    def test_configured_readonly_volume_projection_is_explicit(self):
+        self.mounts[0]['child']='/reader-config';self.owner.mapping=p.Paths(self.mounts)
+        self.call(projected=True);self.assertEqual(self.calls,[['volume','inspect','reader_config']])
+    def test_driver_backends_that_detach_at_stop_are_refused(self):
+        for options in ({'type':'nfs','device':'example.invalid:/export'},{'type':'none','o':'bind','device':'/other'}):
+            self.volume['Options']=options
+            with self.subTest(options=options),self.assertRaisesRegex(p.Held,'reader-backup-volume-backing'):self.call()
+        self.assertFalse(self.emitted)
+    def test_volume_identity_and_scope_cannot_be_substituted(self):
+        for key,value in (('Name','foreign'),('Driver','foreign'),('Scope','global'),('Mountpoint','/foreign')):
+            before=copy.deepcopy(self.volume);self.volume[key]=value
+            with self.subTest(key=key),self.assertRaisesRegex(p.Held,'reader-backup-volume-backing'):self.call()
+            self.volume=before
+        self.assertFalse(self.emitted)
+    def test_ordinary_bind_and_volume_helper_shadows_refuse_before_inspection(self):
+        for kind in ('bind','volume'):
+            self.runtime['Mounts'][0]['Type']=kind
+            for suffix in ('subdir','database.sqlite'):
+                shadow=dict(host='/other',child=str(self.config/suffix),write=False)
+                self.owner.plan['mounts']=[self.mounts[0],shadow];self.owner.mapping=p.Paths(self.owner.plan['mounts'])
+                with self.subTest(kind=kind,suffix=suffix),self.assertRaisesRegex(p.Held,'reader-backup-projection-shadow'):self.call()
+        self.assertFalse(self.calls)
+
+    def test_configured_helper_host_and_child_shadows_refuse_before_inspection(self):
+        self.mounts[0]['child']='/reader-config'
+        for shadow in (dict(host='/other',child='/reader-config/subdir',write=False),dict(host='/other',child='/reader-config/database.sqlite',write=False),dict(host=str(self.config/'subdir'),child='/other',write=False)):
+            self.owner.plan['mounts']=[self.mounts[0],shadow];self.owner.mapping=p.Paths(self.owner.plan['mounts'])
+            with self.subTest(shadow=shadow),self.assertRaisesRegex(p.Held,'reader-backup-projection-shadow'):self.call(projected=True)
+        self.assertFalse(self.calls)
+
+
 if __name__ == '__main__':unittest.main()

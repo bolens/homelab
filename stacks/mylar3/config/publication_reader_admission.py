@@ -428,6 +428,24 @@ def verify_reader_native_pair(lifecycle,prep,pair):
     check(wrong==pair['wrong_url'] and correct==pair['correct_url'],'reader-native-path-correspondence')
     check(prep.revalidate()==original,'reader-native-proof-after-URL-callbacks')
 
+def reader_config_root(state):
+    """Select original reader state without changing its inspected mount row.
+
+    Docker's local driver identifies the supported volume interface, not the
+    backing filesystem. Actual source/copy/restore facts remain mandatory.
+    """
+    mounts=state.get('Mounts',[])
+    config=[row for row in mounts if row.get('Destination')=='/config']
+    check(len(config)==1 and config[0].get('RW') is True
+          and (config[0].get('Type')=='bind' or config[0].get('Type')=='volume'
+               and config[0].get('Driver')=='local' and type(config[0].get('Name')) is str and bool(config[0]['Name']))
+          and all(type(row.get('Destination')) is str and not row['Destination'].startswith('/config/') for row in mounts),
+          'current-reader-config-root')
+    source=config[0].get('Source')
+    check(type(source) is str and Path(source).is_absolute() and str(Path(source))==source
+          and '..' not in Path(source).parts,'current-reader-config-root')
+    return source
+
 def admit_child(invocation,coordinator,native_preparations):
     check(PARENT_SHA is not None and NEGATIVE_SHA is not None,'owning-producer-not-installed')
     check(type(invocation) is CheckedChildInvocation,'typed-invocation')
@@ -497,9 +515,7 @@ def admit_child(invocation,coordinator,native_preparations):
             row=records.get(name+suffix)
             check(row is not None and row['kind']=='file' and row['sha256']==fact['sha256'],
                   'manifest-custody-bytes')
-    config=[m for m in state.get('Mounts',[]) if m.get('Destination')=='/config']
-    check(len(config)==1 and config[0].get('Type')=='bind'
-          and config[0].get('Source')==doc['reader_root'],'current-reader-config-root')
+    check(reader_config_root(state)==doc['reader_root'],'current-reader-config-root')
     # Explicit negative source/correct URL mapping is required in the reviewed
     # plan; no issue-wide blacklist or inferred owner is created here.
     for prep,pair in zip(native_preparations,reviewed['pairs']):
