@@ -29,7 +29,7 @@ SUITES=SUITES+(('test_genuine_current_roles.py',26),)
 SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',25),)
 SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
-SUITES=SUITES+(('test_configured_archive_geometry.py',26),('test_configured_plan13_producer.py',10),)
+SUITES=SUITES+(('test_configured_archive_geometry.py',26),('test_configured_plan13_producer.py',13),)
 # Resource ceiling shared with the complete owning source union. This is not
 # the current manifest census: membership comes from the checked source maps.
 SUITE_TIMEOUT=120

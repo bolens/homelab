@@ -490,7 +490,7 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_plan13_producer.py": {
-      "sha256": "1fe835eee3ae013df0a985c243dfa65317a919c1b48368d31894c87c7a98a95c"
+      "sha256": "add877e57f672de097918f2e86cf68b80f21029a9f98c85a4dd20ead8e81bf2c"
     },
     "configured_reader_parent_base_sources.json": {
       "sha256": "5bdd8817598bc46d8692d49e97572da110ae4fc4d0bac05f979201a8431088e5"
@@ -622,7 +622,7 @@
       "sha256": "83f7cfe2a361c6b376bf5365eabdd40d46d02b8b1578655d1b2e195e821178c1"
     },
     "test_configured_plan13_producer.py": {
-      "sha256": "b5639d1b51942df16bae2dd913f9fb8477d3c3a5bf20c83860ff92fcd39a295d"
+      "sha256": "e86ac2ffcbb9b1647882de5ef52c3effdfca66ab14a1c070ff685bda24c49893"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "c21f312ce8825b7c8e96ef5c9cf1ee28baa39203be041893698e324a0a0ba8b6"
