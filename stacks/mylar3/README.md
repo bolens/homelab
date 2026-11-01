@@ -1082,6 +1082,13 @@ reconciles pending work before admitting writers or scans. Simulated process exi
 and storage-flush failures verify recovery and copy retention. Persistent I/O
 failures require review and retain evidence rather than reporting success.
 
+Whole-scope backup copies finish data and metadata before their final durability
+pass. Every regular file and directory is synced from children to parents, then
+the destination parent, before backup/restore verification can succeed. This
+retains all final barriers while avoiding an extra per-file data sync during
+copying. Destination performance must be measured with representative file counts
+before a planned service stop.
+
 No real power-loss test is performed. Recovery depends on the filesystem and NFS
 server honoring acknowledged flushes. Process interruption tests do not prove
 storage-controller caches or server power-loss durability.

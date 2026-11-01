@@ -482,11 +482,11 @@ def admit_child(invocation,coordinator,native_preparations):
           and acceptance.get('image')==state.get('Image'),'verified-reader-custody-chain')
     manifest=documents['backup_manifest'];rows=documents['rows']
     check(manifest.get('kind')=='verified-reader-backup-copies'
-          and manifest.get('source_sha256')=='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3'
-          and manifest.get('primitives_sha256')=='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
+          and manifest.get('source_sha256')=='b9555ac1b1cf89dde85f9923ce6f02a0f5fce576e0a7efcd6319734ef41dcb71'
+          and manifest.get('primitives_sha256')=='cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
           and manifest.get('backup_verified') is False and manifest.get('final_ack_required') is True
           and rows.get('kind')=='reader-restored-eleven-row-observation'
-          and rows.get('source_sha256')=='ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a'
+          and rows.get('source_sha256')=='d08baf45a742bf62e5bc8da6569f5804d4fd1fbeb5505be9652d0373540b8149'
           and rows.get('backup_manifest_sha256')==doc['controls']['backup_manifest']['sha256']
           and rows.get('schema_sha256')==doc['controls']['schema']['sha256'],'backup-rows-provenance')
     schema=documents['schema'];reviewed=documents['reviewed_plan']

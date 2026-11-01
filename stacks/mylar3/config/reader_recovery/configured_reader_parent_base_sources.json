@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "913e2aeb39e0759be88f127d25bb6c81135edb6f294b246b58bf1c294cae5ac4",
+  "base_cohort_sha256": "076aa69264cfea96ec3fb571138abc1602c8a6c013e087d4f0e686a1797ab012",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -219,7 +219,7 @@
     "publication_negative_namespace.py": "406d27948d2dd16f63eb8b70506daf46165a30f48b50db8d116750556d189a44",
     "publication_negative_namespace_kernel.py": "f35887c5dad8985baf41fb5861423c18f556db1311f0e4fde202021f4cb59633",
     "publication_negative_phase.py": "e4629c1f0fb1caf085ded83762a3370346ee55d661a8eac32b8a5a7a0a452ae3",
-    "publication_reader_admission.py": "4a8f5b9d7f723b8a2b27c1ff644fd2c8a10585d412cd9a41f295863fcc47a1c6",
+    "publication_reader_admission.py": "ea40a13b8e3a3b91ac9848cdbdd72c27d6c9f5b591c41167d42fd0fbb2f36b3d",
     "publication_reader_disk.py": "c469c8add49e93fef63616f07a67e46ca012a56ac61de7f2cba3ed629cdccaa1",
     "publication_reader_lifecycle.py": "9df14729b740bd08ae978d10668747b1b4497c7f23676b74dcad01bcb5b37944",
     "publication_reader_native_coordinator.py": "e54130e689c4a2b28fa269e104a72f966a94882295fd9c70a2d471bad4be6611",
@@ -855,7 +855,7 @@
         "already_installed": false,
         "filename": "publication_reader_admission.py",
         "owned_predecessor_sha256": "43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071",
-        "sha256": "4a8f5b9d7f723b8a2b27c1ff644fd2c8a10585d412cd9a41f295863fcc47a1c6"
+        "sha256": "ea40a13b8e3a3b91ac9848cdbdd72c27d6c9f5b591c41167d42fd0fbb2f36b3d"
       },
       "publication_reader_disk": {
         "already_installed": false,

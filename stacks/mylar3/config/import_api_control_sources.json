@@ -533,7 +533,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "4a8f5b9d7f723b8a2b27c1ff644fd2c8a10585d412cd9a41f295863fcc47a1c6"
+    "sha256": "ea40a13b8e3a3b91ac9848cdbdd72c27d6c9f5b591c41167d42fd0fbb2f36b3d"
   },
   {
     "path": "publication_reader_disk.py",
@@ -621,7 +621,7 @@
   },
   {
     "path": "reader_recovery/comic_reader_backup_primitives.py",
-    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
+    "sha256": "cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b"
   },
   {
     "path": "reader_recovery/comic_retained_pack_backup.py",
@@ -637,7 +637,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2"
+    "sha256": "ab0002992bbb437871201cb46d735a7513bd1a125520199e14f606900cd3f596"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
@@ -685,7 +685,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "bb3f2bcc518faf16425bd72e3ca9b2ccfc38d83d4a904f40866657afa7dfcff2"
+    "sha256": "2a90ff021cc56d6fce590f625a04ae5dd380e4ddac1b5d77862cce9e7cee16db"
   },
   {
     "path": "run_standalone_controls.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "d16cfb853e5dffa4c0d171550bf666955a21aa5241afc865bd25e4a2e32180e2"
+    "sha256": "ab3e0d3efb589b784a6af8ab803abe5b3bea4ade3e6dbee221ab41aa61b9a4c7"
   },
   {
     "path": "story_arc_search.py",
@@ -1357,7 +1357,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "6f7cbdd7e9f38780c9b8e30bde051737fbae2b3bfcce693ee9fd9a2887a1be58"
+    "sha256": "37dcb336d021afb87f486635f7a037b5d49506d42f28640031d73df3e8afcd27"
   },
   {
     "path": "test_publication_reader_lifecycle.py",
@@ -1657,11 +1657,11 @@
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
+    "sha256": "cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2"
+    "sha256": "ab0002992bbb437871201cb46d735a7513bd1a125520199e14f606900cd3f596"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",

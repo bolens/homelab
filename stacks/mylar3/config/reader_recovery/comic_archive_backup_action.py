@@ -47,7 +47,7 @@ def _helper(name,pin):
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise ValueError('backup-helper-leaf-final')
     return module
 a=_helper('comic_archive_repair_action.py','cf4d6927a206ef594352f426574141b0f13977c2a87ea13c7c5790113cfdfc64')
-p=_helper('comic_archive_proof_producer.py','583885e6d9e8ad79210f09f9b8865c34825e3c021cace225c1fa4778610b1116')
+p=_helper('comic_archive_proof_producer.py','8565809da0339815362523c37f9341694b34bf4972590b786f44412565e52b8c')
 
 PARENT_SOURCE_SHA=None
 HERE=Path(__file__).resolve().parent

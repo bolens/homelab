@@ -806,6 +806,14 @@ derive the `/config` bind from the original inspected native profile, cover the
 parent read-only and keep only the intended nested DATA mount writable. These
 source checks do not establish configured execution acceptance.
 
+For whole-scope copy helpers, complete data and attribute writes before the final
+durability pass. Sync every non-symlink file and directory from children to
+parents, then the destination parent, before verifying or publishing success.
+Do not transfer this ordering to protocols with separate FD/custody barriers.
+Measure complete backup and restore on the actual destination with representative
+file counts; byte capacity alone does not bound serial filesystem commit cost.
+Keep failure deadlines separate from acceptance evidence.
+
 Before a large application-state backup, measure its size and verify free space
 on the destination filesystem for both the backup and isolated restore. Prefer
 disk storage for large snapshots: tmpfs output consumes memory and can exhaust a

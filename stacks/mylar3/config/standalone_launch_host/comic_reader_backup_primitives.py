@@ -199,11 +199,16 @@ def copy_scope(source, target, rows):
             incoming = os.open(node,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
             with os.fdopen(fd,'wb') as out, os.fdopen(incoming,'rb') as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):raise Held('special-file')
-                shutil.copyfileobj(stream,out,1024**2);out.flush();os.fsync(out.fileno())
+                shutil.copyfileobj(stream,out,1024**2);out.flush()
     for row in sorted(rows,key=lambda value:len(Path(value['path']).parts),reverse=True):
         dest = target if row['path'] == '.' else target/row['path']
         apply_attrs(dest,row['attributes'])
-        if not dest.is_symlink():sync(dest)
+    # Complete data and metadata before the final durability pass. Each file's
+    # fsync covers both; syncing it during copying forces a redundant commit.
+    # Children precede directories, and the containing parent is durable last.
+    for row in sorted(rows,key=lambda value:len(Path(value['path']).parts),reverse=True):
+        dest = target if row['path'] == '.' else target/row['path']
+        if row['kind'] != 'symlink':sync(dest)
     sync(target.parent)
 
 

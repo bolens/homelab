@@ -13,7 +13,7 @@ MAX_ENTRIES = 100000
 MAX_ARCHIVE_BYTES = 256 * 1024 ** 2
 BACKUP_SECONDS = 1800
 ROLES = ('native_state', 'reader_state', 'retained_source', 'existing_target')
-PRIMITIVES_SHA256 = 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
+PRIMITIVES_SHA256 = 'cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
 _OBSERVATIONS = weakref.WeakKeyDictionary()
 
 

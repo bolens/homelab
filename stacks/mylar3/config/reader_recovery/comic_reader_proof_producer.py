@@ -9,8 +9,8 @@ import stat
 import tempfile
 import time
 import types
-PINS={'comic_negative_reader_action.py':'99329a56bdb10438257ba1e36c6359746e05aea4f0cbec7164fcf1d940470499','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
-BACKUP_SHA='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3'
+PINS={'comic_negative_reader_action.py':'0ed4bd9c2e76871921170b65da167748904c2c5e0a3e395567d7aceb40575efc','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'d08baf45a742bf62e5bc8da6569f5804d4fd1fbeb5505be9652d0373540b8149','comic_reader_backup_primitives.py':'cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
+BACKUP_SHA='b9555ac1b1cf89dde85f9923ce6f02a0f5fce576e0a7efcd6319734ef41dcb71'
 ROLES={'stopped_runtime','backup_ack','backup_manifest','backup_acceptance','rows','schema','reviewed_plan','timestamp_evidence','custody'}
 class Held(ValueError):pass
 def need(v,r):
