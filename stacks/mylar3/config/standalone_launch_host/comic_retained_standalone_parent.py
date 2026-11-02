@@ -639,7 +639,7 @@ def native_observation(runtime, probe_ref, scope_ref, config_ref, module_pins, n
     before=runtime.inspect(runtime.ids['native']);need(runtime.static(before)==runtime.static(runtime.baseline['native']) and
          before['State']['Running'] is True and before['State']['Paused'] is False,'standalone-fresh-probe-original-native')
     try:
-        response=subprocess.run(['docker','exec','--interactive',runtime.ids['native'],'python3','-I','-B','-c',code.decode()],
+        response=subprocess.run(['docker','exec','--interactive',runtime.ids['native'],'python3','-I','-B','-c',code.decode(),'--wait-writer'],
                                 input=encode(request),capture_output=True,check=True,timeout=45)
     except (subprocess.SubprocessError,OSError):
         raise ValueError('Standalone original native observation unavailable') from None

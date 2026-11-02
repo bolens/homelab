@@ -370,9 +370,24 @@ class ArchiveCompletionExclusion:
     Native remote observations finish before acquisition. Retained terminal
     facts still have to match; this does not refresh a snapshot after a race.
     """
-    def __init__(self, frames):
+    def __init__(self, frames, *, deadline=None, originals=(), _clock=time.monotonic, _pause=time.sleep):
         self.nodes, self.files = frames
+        definitions=completion_definitions_guard;definition_code=definitions.__code__;definition_defaults=definitions.__defaults__
+        definitions()
+        need(deadline is None or type(deadline) in (int,float) and 0<deadline<float('inf'),
+             'archive-completion-original-deadline')
+        originals=tuple(copy.deepcopy(ref) for ref in originals)
+        for ref in originals:read(ref,private=False)
+        clock=_clock;pause=_pause
         close=type(self).close;close_code=close.__code__;close_defaults=close.__defaults__
+        check=type(self).check;check_code=check.__code__;check_defaults=check.__defaults__
+        def unchanged():
+            need(completion_definitions_guard is definitions and definitions.__code__ is definition_code
+                 and definitions.__defaults__ is definition_defaults,'archive-completion-original-definition-check')
+            definitions()
+            if deadline is not None:
+                need(time.monotonic is clock and time.sleep is pause,'archive-completion-original-wait-clock')
+                need(clock()<deadline,'archive-completion-acquisition-deadline')
         need(len(self.nodes)==1 and len(self.files)==2,'archive-completion-lock-frames')
         root, root5 = self.nodes[0]
         lock, lock9 = self.files[0]
@@ -385,11 +400,30 @@ class ArchiveCompletionExclusion:
             fd=os.open('writer-v1.lock',os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=rootfd)
             self.fd=fd
             need(tuple(nine(os.fstat(fd)))==tuple(lock9),'archive-completion-lock-original-FD')
-            try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            except BlockingIOError:raise Held('archive-completion-native-writer-busy') from None
+            while True:
+                unchanged()
+                need(tuple(five(os.fstat(rootfd)))==tuple(root5)
+                     and tuple(five(os.lstat(root)))==tuple(root5),'archive-completion-lock-directory')
+                need(tuple(nine(os.fstat(fd)))==tuple(lock9)
+                     and tuple(nine(os.stat('writer-v1.lock',dir_fd=rootfd,follow_symlinks=False)))==tuple(lock9),
+                     'archive-completion-lock-original-FD')
+                for ref in originals:
+                    need(nine(os.lstat(ref['path']))==list(ref['signature9']),'archive-completion-original-source-drift')
+                try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                except BlockingIOError:
+                    if deadline is None:raise Held('archive-completion-native-writer-busy') from None
+                    remaining=deadline-clock();need(remaining>0,'archive-completion-acquisition-deadline')
+                    pause(min(.05,remaining));continue
+                break
             acquired=True
+            unchanged()
             self.witness=os.dup(fd);os.set_inheritable(self.witness,False)
-            self.check()
+            unchanged()
+            need(type(self).check is check and check.__code__ is check_code
+                 and check.__defaults__ is check_defaults,'archive-completion-original-check')
+            check(self)
+            for ref in originals:read(ref,private=False)
+            unchanged()
         except BaseException:
             try:
                 if not acquired and self.fd is not None:
@@ -458,13 +492,21 @@ _COMPLETION_DEFINITIONS = (ArchiveCompletionExclusion,ArchiveCompletionExclusion
     ArchiveCompletionExclusion.check.__code__,ArchiveCompletionExclusion.check.__defaults__,
     archive_completion_guard,archive_completion_guard.__code__,archive_completion_guard.__defaults__,
     completion_fd_locked,completion_fd_locked.__code__,ArchiveCompletionExclusion.close,
-    ArchiveCompletionExclusion.close.__code__,ArchiveCompletionExclusion.close.__defaults__)
+    ArchiveCompletionExclusion.close.__code__,ArchiveCompletionExclusion.close.__defaults__,
+    tuple(ArchiveCompletionExclusion.__init__.__kwdefaults__[name] for name in ('deadline','originals','_clock','_pause')))
 
 
 def completion_definitions_guard(original=_COMPLETION_DEFINITIONS):
     need(ArchiveCompletionExclusion is original[0] and ArchiveCompletionExclusion.__init__ is original[1]
          and ArchiveCompletionExclusion.check is original[3] and archive_completion_guard is original[6]
-         and completion_fd_locked is original[9] and ArchiveCompletionExclusion.close is original[11],
+         and completion_fd_locked is original[9] and ArchiveCompletionExclusion.close is original[11]
+         and type(ArchiveCompletionExclusion.__init__.__kwdefaults__) is dict
+         and len(ArchiveCompletionExclusion.__init__.__kwdefaults__)==4
+         and all(type(name) is str for name in ArchiveCompletionExclusion.__init__.__kwdefaults__)
+         and set(ArchiveCompletionExclusion.__init__.__kwdefaults__)=={'deadline','originals','_clock','_pause'},
+         'archive-completion-original-definitions')
+    need(all(ArchiveCompletionExclusion.__init__.__kwdefaults__[name] is value
+             for name,value in zip(('deadline','originals','_clock','_pause'),original[14])),
          'archive-completion-original-definitions')
     current=(ArchiveCompletionExclusion,ArchiveCompletionExclusion.__init__,
         ArchiveCompletionExclusion.__init__.__code__,ArchiveCompletionExclusion.check,
@@ -472,7 +514,8 @@ def completion_definitions_guard(original=_COMPLETION_DEFINITIONS):
         archive_completion_guard,archive_completion_guard.__code__,archive_completion_guard.__defaults__,
         completion_fd_locked,completion_fd_locked.__code__,ArchiveCompletionExclusion.close,
         ArchiveCompletionExclusion.close.__code__,ArchiveCompletionExclusion.close.__defaults__)
-    need(current==original,'archive-completion-original-definitions')
+    need(all(value is expected for value,expected in zip(current,original[:14])),
+         'archive-completion-original-definitions')
 
 
 def five(value):
@@ -1748,8 +1791,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'c37e69139ece8547993a441f6cd036aa01288252f1b44d4cc3f74fde2ccc316e', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '9f63ff76823db5dbfcb15c4724566ee9d12bce331d49b607e6e4905b3808b88b', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='4708aeafbaee8fa286083a9c2dfcfcb5c0c5de0722fa5a9f08a4c068cef2fb82'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'c37e69139ece8547993a441f6cd036aa01288252f1b44d4cc3f74fde2ccc316e', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '9f63ff76823db5dbfcb15c4724566ee9d12bce331d49b607e6e4905b3808b88b', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_ACTIVE_SOURCE_SHA='5fa50a4f2fc4751406b5b97849abd8c58c08b1343006508536b82ab37845d31c'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -4058,10 +4101,19 @@ class LifecycleParent:
             if completion_frames is not None:
                 need(self not in _ARCHIVE_COMPLETION_LOCKS,'archive-completion-one-lock')
                 need(type(completion_slot) is list and completion_slot==[None],'archive-completion-owning-slot')
-                lock=ArchiveCompletionExclusion(completion_frames)
+                completion_deadline=None;completion_originals=()
+                if type(self.engine) is ScopedDocker:
+                    dialogue_close(self.engine,cid)
+                    completion_deadline=min(self.deadline,_DIALOGUE_SEALS[self.engine][cid][6])
+                    completion_originals=(self.source_ref,self.plan_ref,input_ref)
+                lock=ArchiveCompletionExclusion(completion_frames,deadline=completion_deadline,
+                                                originals=completion_originals)
                 record=(lock,lock.fd,lock.nodes,lock.files,type(lock).check,type(lock).check.__code__,lock.witness,type(lock).close)
                 completion_slot[0]=record
                 _ARCHIVE_COMPLETION_LOCKS[self]=record
+                if completion_deadline is not None:
+                    self.left();dialogue_close(self.engine,cid)
+                need(_definitions.__code__ is _definition_code and _definitions.__defaults__ is _definition_defaults,'archive-completion-original-definition-check');_definitions()
                 terminal_raw,terminal_seq=pending_terminal
                 pending_message=decode(terminal_raw)
                 actual_response=self.accept_archive_terminal(input_ref,actual,pending_message,current,original_running,terminal_raw)

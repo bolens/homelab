@@ -336,7 +336,7 @@
   },
   {
     "path": "standalone_launch_host/comic_native_process_probe.py",
-    "sha256": "86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407",
+    "sha256": "41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861",
     "target": "fixtures/probe_sources/comic_native_process_probe.py"
   },
   {
@@ -351,12 +351,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "e7ffb0f50a9e224f8f43645b9ebdb62a07f04a1a6390b04c9877f23505774fc6",
+    "sha256": "92c84eff2f49afebeb4d35dce741aee4c10f2b2b9f25ae265f63651ac6ec4bd7",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "a8dba9570b2179d115b1b85924b97548e3263705ff1b37897d86a0521cae458c",
+    "sha256": "def818b27972f2837d51b7bae868aa89ab2bcf3d24b442ecfc9ec18fea148655",
     "target": "source/comic_retained_standalone_parent.py"
   },
   {

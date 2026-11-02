@@ -11,7 +11,7 @@ import time
 import sys
 
 ACTION_SHA='db2a3d59b1859325b4626803cf3ad3a8095a6d313cf717f0f5bc5ecc4563a411'
-PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
+PROBE_SHA = '41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861'
 SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 PRODUCER_SHA='d690d903a86480d0dc45dccfdd53863dc659b515bb3b85508f830dbdc5bab8ce'
 TERMINAL_PRODUCER_SHA='d690d903a86480d0dc45dccfdd53863dc659b515bb3b85508f830dbdc5bab8ce'
@@ -67,8 +67,10 @@ def deadline(request):
 # exact verified buffer on one original native ID. No shell/key in argv.
 def probe_exec(container,source,request,seconds):
     need(type(container) is str and len(container)==64 and all(x in '0123456789abcdef' for x in container),'adapter-native-ID')
+    budget=min(request['seconds'],int(seconds));need(1<=budget<=120,'adapter-native-probe-budget')
+    request=dict(request,seconds=budget)
     args=['pkexec','/usr/bin/docker','--host','unix:///run/docker.sock','exec','--user','1000:1000','-i',container,
-          '/lsiopy/bin/python3','-I','-B','-c',source.decode('utf-8')]
+          '/lsiopy/bin/python3','-I','-B','-c',source.decode('utf-8'),'--wait-writer']
     try: result=subprocess.run(args,input=encode(request),capture_output=True,timeout=seconds,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
     except (OSError,subprocess.TimeoutExpired):raise Held('adapter-native-probe-unavailable') from None
     need(result.returncode==0 and len(result.stdout)<=MAX and len(result.stderr)<=MAX,'adapter-native-probe-held')

@@ -89,7 +89,8 @@ def health(url,body,seconds):
         raw = response.read(MAX + 1); need(len(raw) <= MAX,'probe-health-bound')
     return decode(raw)
 
-def capture(request,*,proc=Path('/proc'),transport=health,clock=time.monotonic):
+def capture(request,*,proc=Path('/proc'),transport=health,clock=time.monotonic,wait_writer=False):
+    need(type(wait_writer) is bool,'probe-writer-wait-mode')
     need(set(request) == {'version','nonce','source_sha256','seconds','module_pins','scope_source'},'probe-request')
     need(type(request['version']) is int and request['version'] == 1 and type(request['seconds']) is int and 1<=request['seconds']<=120,'probe-deadline')
     end = clock() + request['seconds']; reads = Reads(); current = process(proc)
@@ -123,7 +124,10 @@ def capture(request,*,proc=Path('/proc'),transport=health,clock=time.monotonic):
     pins = request['module_pins']; need(set(pins)=={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'},'probe-daemon-origin-roles')
     for path,digest in pins.items(): need(hashlib.sha256(reads.read(path)).hexdigest()==digest,'probe-daemon-origin-pin')
     remaining = end-clock(); need(remaining > 0,'probe-expired')
-    response = transport('http://127.0.0.1:'+port+prefix.rstrip('/')+'/api',urllib.parse.urlencode({'cmd':'getHealth','apikey':key}).encode(),min(10,remaining))
+    seconds=remaining if wait_writer else min(10,remaining)
+    body={'cmd':'getHealth','apikey':key}
+    if wait_writer:body['writer_wait']=seconds
+    response = transport('http://127.0.0.1:'+port+prefix.rstrip('/')+'/api',urllib.parse.urlencode(body).encode(),seconds)
     need(type(response) is dict and response.get('success') is True and type(response.get('data')) is dict,'probe-daemon-response')
     publication = response['data'].get('publication'); need(type(publication) is dict,'probe-publication-missing')
     need(process(proc)==current and clock()<end,'probe-daemon-incarnation')
@@ -158,6 +162,7 @@ if __name__ == '__main__':
         raw = sys.stdin.buffer.read(MAX+1); need(len(raw)<=MAX,'probe-input-bound'); request=decode(raw)
         code = sys.orig_argv[sys.orig_argv.index('-c')+1]
         need(hashlib.sha256(code.encode()).hexdigest()==request['source_sha256'],'probe-executed-source')
-        sys.stdout.buffer.write(capture(request)+b'\n')
+        need(sys.argv[1:] in ([],['--wait-writer']),'probe-finite-mode')
+        sys.stdout.buffer.write(capture(request,wait_writer=sys.argv[1:]==['--wait-writer'])+b'\n')
     except Exception:
         sys.stdout.write('{"verified":false,"reason":"native-readonly-probe-held"}\n'); raise SystemExit(2)

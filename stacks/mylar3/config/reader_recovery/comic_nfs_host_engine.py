@@ -163,6 +163,9 @@ def build_intents(active_ref, roles_ref, original_refs):
         observations=9+MAX_REOBSERVATIONS
         add(prefix+['inspect',*ids],None,observations)
         add(prefix+['exec','-i','--user','1000:1000',ids[0],'/lsiopy/bin/python3','-I','-B','-c',ready.decode('utf-8')],request,observations)
+        # Distinct, finite read mode: the native endpoint acquires Writer once
+        # before recomputing its census. No client retry consumes another intent.
+        add(prefix+['exec','-i','--user','1000:1000',ids[0],'/lsiopy/bin/python3','-I','-B','-c',ready.decode('utf-8'),'--wait-writer'],request,observations)
         add(prefix+['exec','-i','--user','1000',ids[0],'/lsiopy/bin/python3','-'],parity,5)
         for target,uses in ((library,3+MAX_REOBSERVATIONS),(grandparent,1),(parent,1)):
             add(['findmnt','--json','--target',target,'--output','SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN'],None,uses)

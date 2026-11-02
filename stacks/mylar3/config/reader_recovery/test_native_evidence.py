@@ -31,17 +31,47 @@ class ProbeTests(unittest.TestCase):
             f=self.root/name;f.write_text('x=1\n');key='/app/mylar3/mylar/'+name;self.modules[key]=f;self.pins[key]=hashlib.sha256(f.read_bytes()).hexdigest()
         self.req=dict(version=1,nonce='a'*64,source_sha256='b'*64,seconds=60,module_pins=self.pins,scope_source=(ROOT/'publication_native_configured_scope.py').read_text())
         self.publication=dict(state='held',reason='startup-restart-required',census={})
-    def run_probe(self,transport=None):
+    def run_probe(self,transport=None,*,wait_writer=False,clock=time.monotonic):
         original=p.Reads.read
         def mapped(obj,path):return original(obj,self.modules.get(str(path),path))
         with patch.object(p.Reads,'read',mapped):
-            return p.decode(p.capture(self.req,proc=self.proc,transport=transport or self.transport))
+            return p.decode(p.capture(self.req,proc=self.proc,transport=transport or self.transport,wait_writer=wait_writer,clock=clock))
     def transport(self,url,body,seconds):
         self.assertEqual(url,'http://127.0.0.1:8090/mylar/api');self.assertIn(b'cmd=getHealth',body);self.assertIn(b'apikey=',body)
         return dict(success=True,data=dict(publication=copy.deepcopy(self.publication)))
     def test_actual_proc_and_daemon_output(self):
         value=self.run_probe();self.assertEqual(value['process']['start_ticks'],987);self.assertEqual(value['process']['pid'],123)
         self.assertNotIn('k'*32,json.dumps(value));self.assertEqual(value['config']['sha256'],hashlib.sha256(self.config.read_bytes()).hexdigest())
+    def test_waiting_probe_uses_same_http_budget_once_and_keeps_typed_hold(self):
+        from urllib.parse import parse_qs
+        calls=[]
+        self.publication=dict(version=1,state='held',reason='writer-busy',census=None)
+        def transport(url,body,seconds):
+            fields=parse_qs(body.decode());self.assertEqual(float(fields['writer_wait'][0]),seconds)
+            self.assertLessEqual(seconds,self.req['seconds']);calls.append(fields)
+            return self.transport(url,body,seconds)
+        value=self.run_probe(transport,wait_writer=True)
+        self.assertEqual(len(calls),1);self.assertEqual(value['publication'],self.publication)
+    def test_ordinary_probe_keeps_zero_wait_health_request(self):
+        def transport(url,body,seconds):
+            self.assertNotIn(b'writer_wait',body);return self.transport(url,body,seconds)
+        self.run_probe(transport)
+    def test_wait_is_capped_by_original_remaining_probe_deadline(self):
+        from urllib.parse import parse_qs
+        self.req['seconds']=1;clock=iter([100,100.75,100.8,100.9])
+        def transport(url,body,seconds):
+            self.assertEqual(seconds,.25)
+            self.assertEqual(float(parse_qs(body.decode())['writer_wait'][0]),.25)
+            return self.transport(url,body,seconds)
+        self.run_probe(transport,wait_writer=True,clock=lambda:next(clock))
+    def test_wait_uses_remaining_original_budget_beyond_monitoring_ten_seconds(self):
+        from urllib.parse import parse_qs
+        clock=iter([100,120,120,120]);calls=[]
+        def transport(url,body,seconds):
+            self.assertEqual(seconds,40)
+            self.assertEqual(float(parse_qs(body.decode())['writer_wait'][0]),40)
+            calls.append(True);return self.transport(url,body,seconds)
+        self.run_probe(transport,wait_writer=True,clock=lambda:next(clock));self.assertEqual(calls,[True])
     def test_native_saved_boolean_spellings(self):
         self.config.write_text(self.config.read_text().replace('api_enabled=1','api_enabled=True').replace('enable_https=0','enable_https=False'))
         self.assertEqual(self.run_probe()['process']['pid'],123)
@@ -240,8 +270,12 @@ class AdapterTests(unittest.TestCase):
 
     def test_probe_engine_argv_no_shell_no_secret(self):
         class Result:returncode=0;stdout=b'{"ok":true}';stderr=b''
-        with patch.object(a.subprocess,'run',return_value=Result()) as run:a.probe_exec('a'*64,b'x=1',{'version':1},2)
-        args=run.call_args.args[0];self.assertEqual(args[:6],['pkexec','/usr/bin/docker','--host','unix:///run/docker.sock','exec','--user']);self.assertNotIn('shell',run.call_args.kwargs);self.assertIn('-B',args)
+        for adapter in (a,load('comic_archive_evidence_adapter')):
+            with self.subTest(adapter=adapter.__name__),patch.object(adapter.subprocess,'run',return_value=Result()) as run:
+                adapter.probe_exec('a'*64,b'x=1',{'version':1,'seconds':30},2)
+            args=run.call_args.args[0];self.assertEqual(args[:6],['pkexec','/usr/bin/docker','--host','unix:///run/docker.sock','exec','--user']);self.assertNotIn('shell',run.call_args.kwargs);self.assertIn('-B',args)
+            self.assertEqual(args[-1],'--wait-writer');self.assertEqual(run.call_args.kwargs['timeout'],2)
+            self.assertEqual(json.loads(run.call_args.kwargs['input'])['seconds'],2)
     def test_unimplemented_phase_never_grants(self):
         self.req['phase']='nfs-ready'
         with self.assertRaises(a.Held):a.produce('nfs-ready',self.req,watch=self.parent.continuous)

@@ -59,7 +59,7 @@ class Engine:
             self.network['Containers'][args[-1]]['EndpointID'] = 'own-new-endpoint'
             return args[-1].encode()
         if args[0] == 'exec' and args[-1] == b.IMAGE_PROGRAM:return b.p.encode(self.sdk)
-        if args[0]=='exec' and args[-1]==Path(self.plan['native_probe']['path']).read_text():
+        if args[0]=='exec' and (args[-1]==Path(self.plan['native_probe']['path']).read_text() or args[-2:]==[Path(self.plan['native_probe']['path']).read_text(),'--wait-writer']):
             return b.p.encode(dict(version=1,nonce=self.plan['nonce'],source_sha256=self.plan['native_probe']['sha256'],config=dict(self.plan['native_ini'],path='/config/config.ini'),publication=dict(state='held')))
         if args[0] != 'exec':raise AssertionError(args)
         value = b.p.decode(data); h.request(value); operation = value['operation']

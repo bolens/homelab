@@ -209,6 +209,15 @@ supplies no publication admission. Health uses an existing zero-wait Writer
 before the full admitted snapshot so a concurrent writer cannot turn the status
 probe into a long operation wait.
 
+Primary-key `getHealth` callers may explicitly pass `writer_wait` in seconds
+between zero and 120 for a coordinated readiness observation. This acquires the
+existing Writer once and recomputes authority and the complete census under that
+hold. The waiting process/config probe caps it by its original remaining observation
+budget. Ordinary monitoring omits the parameter, and observations made while an
+owning recovery lease is held remain zero-wait. A timeout still returns a held
+sample with no census; neither waiting nor a ready reply transfers Writer
+ownership or authorizes a later operation.
+
 For an initialized workflow store, health computes fresh intake status without
 saving an intake record or emitting an intake-transition event. Ordinary intake
 persists initialization and decision transitions, including a transition first

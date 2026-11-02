@@ -43,7 +43,7 @@ class Transport(original.Engine):
         if args[-1] == g.b.IMAGE_PROGRAM:
             self.maps += 1
             return g.p.encode(self.sdk if self.fail != 'sdk' else dict(self.sdk, **{'worker_health.py': 'f' * 64}))
-        if args[-1] == Path(self.plan['native_probe']['path']).read_text():
+        if args[-2:] == [Path(self.plan['native_probe']['path']).read_text(),'--wait-writer']:
             self.probes += 1
             if self.fail == 'timeout':raise subprocess.TimeoutExpired('explicit-readonly-probe-double', seconds)
             value = dict(version=1, nonce=self.plan['nonce'], source_sha256=g.PROBE_SHA,
@@ -297,8 +297,10 @@ class Tests(unittest.TestCase):
             with self.subTest(args=args), self.assertRaises(g.p.Held):policy.approve(args, None)
         prefix = ['exec', '--interactive', '--user', '1000:1000', self.f.plan['roles']['native']['id'], '/lsiopy/bin/python3', '-I', '-B', '-c']
         policy.approve(prefix + [g.b.IMAGE_PROGRAM], g.p.encode(sorted(owner.sdk)))
-        policy.approve(prefix + [owner.probe_program], g.p.encode(owner.probe_request(10)))
-        with self.assertRaises(g.p.Held):policy.approve(prefix + [owner.probe_program], g.p.encode(dict(owner.probe_request(10), nonce='f' * 64)))
+        policy.approve(prefix + [owner.probe_program,'--wait-writer'], g.p.encode(owner.probe_request(10)))
+        for suffix in ([],['--wait-writer-foreign']):
+            with self.assertRaises(g.p.Held):policy.approve(prefix+[owner.probe_program,*suffix],g.p.encode(owner.probe_request(10)))
+        with self.assertRaises(g.p.Held):policy.approve(prefix + [owner.probe_program,'--wait-writer'], g.p.encode(dict(owner.probe_request(10), nonce='f' * 64)))
         self.assertEqual(self.f.engine.calls, [])
 
     def test_existing_output_and_disabled_entry_cannot_adopt(self):
