@@ -136,6 +136,13 @@ text, unsafe checksum paths and unidentified binary files are retained. Binary
 controls and unsupported legacy bytes fail recognition. The empty-output
 guard still retains releases containing only disposable sidecars.
 
+Legacy `[number]-[FULL]-[#a.b.flac@EFNet]` posting wrappers are also recognised
+when the complete filename identifies an NFO or SFV, part counters and yEnc
+fields. The same 64 KiB content and unsafe-path checks apply. These legacy NFOs
+may use `Title:` in place of `Album:`, with artist, two other release fields and
+a numbered track still required. Unknown wrappers, binary content and cue
+references remain protected.
+
 Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
 filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
 the complete payload. Similar text, named audio/video, cue and M3U files and
@@ -167,6 +174,20 @@ removed during cleanup. Unknown, ambiguous, remote and unsafe M3U lists stay
 retained. Recognition accepts UTF-8, BOM-marked UTF-16 and explicit Windows-1252 M3U
 lists up to 1 MiB with local audio paths;
 it does not fetch URLs or infer completeness from unrelated text.
+A complete local `.m3u` or `.m3u8` can also establish disc boundaries for FLACs
+without disc tags. The album artist must agree across the group, using track
+artist only when album-artist tags are absent. Every same-folder track in one
+tagged album must have a
+three-digit `DTT` filename prefix matching its track number, with discs starting
+at 1 and consecutive tracks starting at 1 within each disc. The playlist must
+resolve exactly once to every track in that group. Missing identity tags,
+partial or duplicate references, gaps, mixed album identities, conflicting
+album-artist aliases and any explicit disc metadata or numbered disc folder
+prevent this fallback. Existing track totals still apply within
+each disc. Playlists used for this fallback remain retained even without strict
+completeness, so repeat processing keeps the same evidence. This affects
+validation only and preserves audio, tags and filenames.
+
 Retained, resolvable playlists have their references updated whenever files move
 or gain extensions, including cleanup-disabled helpers and cue-protected lists.
 An unresolved retained M3U, or another recognised playlist with existing local

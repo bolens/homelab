@@ -404,8 +404,12 @@ def is_album_info_sidecar(path: Path) -> bool:
 
 def is_obfuscated_posting_sidecar(path: Path) -> bool:
     """Require both a posting filename and structured release metadata/checksums."""
-    if not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
-                     path.name, re.IGNORECASE):
+    legacy = re.fullmatch(
+        r"\[\d{1,8}\]-\[FULL\]-\[\#a\.b\.flac@EFNet\]-\[ [^\[\]\r\n]{1,256} \]-"
+        r"\[\d{1,5}_\d{1,5}\] - _[^/\\\r\n]{1,256}\.(?:nfo|sfv)_ yEnc \(\d{1,5}_\d{1,5}\)(?: \(\d{1,5}_\d{1,5}\))?",
+        path.name, re.IGNORECASE)
+    if not legacy and not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+                                    path.name, re.IGNORECASE):
         return False
     with path.open("rb") as stream:
         raw = stream.read(65537)
@@ -415,9 +419,10 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         frame = " \t|" + "".join(chr(code) for code in range(0x2500, 0x25a0)) + "\u25a0"
         lines = [line.strip(frame) for line in text.splitlines()]
         fields = {match[1].casefold() for line in lines
-                  if (match := re.fullmatch(r"(Artist|Album|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
+                  if (match := re.fullmatch(r"(Artist|Album|Title|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
                                             line, re.IGNORECASE))}
-        return ({"artist", "album"} <= fields and len(fields) >= 4
+        return (({"artist", "album"} <= fields or legacy is not None and {"artist", "title"} <= fields)
+                and len(fields - {"artist", "album", "title"}) >= 2
                 and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
 
     try:
@@ -746,7 +751,71 @@ def album_directory(path: Path, root: Path) -> Path:
     return path.parent
 
 
-def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> set[Path]:
+def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
+                         required_playlists: set[Path] | None = None) -> dict[Path, str]:
+    """Use a covering playlist and matching DTT names to separate untagged discs."""
+    cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
+    for path in files:
+        if detected_suffix(path) != ".flac":
+            continue
+        tags, embedded = flac_album_metadata(path)
+        if embedded or tags.get("CUESHEET"):
+            continue
+        artists = [tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
+                   if tags.get(key, "").strip()]
+        key = (path.parent, tags.get("ALBUM", "").strip().casefold(),
+               artists[0] if artists else "")
+        cohorts.setdefault(key, []).append((path, tags))
+    inferred = {}
+    playlists = [path for path in files if path.suffix.casefold() in {".m3u", ".m3u8"}]
+    for records in cohorts.values():
+        if any(path in protected or any(DISC_DIRECTORY.fullmatch(part) for part in path.parent.relative_to(root).parts)
+               for path, _ in records):
+            continue
+        groups: dict[int, list[int]] = {}
+        positions = {}
+        performers = set()
+        for path, tags in records:
+            artists = {tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
+                       if tags.get(key, "").strip()}
+            if len(artists) > 1:
+                break
+            disc, total = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+            track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
+            match = re.fullmatch(r"([1-9])([0-9]{2})[ _.-]+.+", path.stem)
+            if (disc or total or not match or not re.fullmatch(r"[0-9]{1,2}", track)
+                    or int(track) != int(match[2]) or int(track) == 0
+                    or any(not tags.get(key, "").strip() for key in ("ALBUM", "ARTIST", "TITLE"))):
+                break
+            performers.add(next(iter(artists)) if artists else tags["ARTIST"].strip().casefold())
+            number = int(match[1])
+            groups.setdefault(number, []).append(int(track))
+            positions[path] = str(number)
+        else:
+            if (len(performers) != 1 or len(groups) < 2 or set(groups) != set(range(1, len(groups) + 1))
+                    or any(sorted(tracks) != list(range(1, len(tracks) + 1)) for tracks in groups.values())):
+                continue
+            for playlist in playlists:
+                entries = playlist_entries(playlist)
+                if not entries or len(entries) != len(records):
+                    continue
+                available: dict[str, set[Path]] = {}
+                for path, _ in records:
+                    if path.is_relative_to(playlist.parent):
+                        for target in (path, extension_target(path)):
+                            available.setdefault(target.relative_to(playlist.parent).as_posix().casefold(), set()).add(path)
+                resolved = [available.get(entry.as_posix().casefold(), set()) for entry in entries]
+                if all(len(matches) == 1 for matches in resolved) and len({next(iter(matches)) for matches in resolved}) == len(records):
+                    inferred.update(positions)
+                    if required_playlists is not None:
+                        required_playlists.add(playlist)
+                    break
+    return inferred
+
+
+def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
+                       required_playlists: set[Path] | None = None) -> set[Path]:
+    filename_discs = playlist_disc_groups(files, protected, root, required_playlists)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
     proven = set(protected)
@@ -767,7 +836,7 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> s
             continue
         number, total = metadata_position(tags, ("TRACKNUMBER", "TRACK"),
                                           ("TRACKTOTAL", "TOTALTRACKS"), "track")
-        key = (album or str(path.parent), artist, disc, ancestry, str(base))
+        key = (album or str(path.parent), artist, disc or filename_discs.get(path, ""), ancestry, str(base))
         groups.setdefault(key, []).append((path, number, total))
     for records in discs.values():
         totals = {int(total) for _, total in records if re.fullmatch(r"[0-9]{1,5}", total) and int(total) > 0}
@@ -990,7 +1059,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     cues = read_cues(files, root)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
     completeness_cues = cue_image_targets(cues) if require_completeness else protected
-    proven = check_album_tracks(files, completeness_cues, root) if cleanup or require_completeness else set()
+    disc_playlists: set[Path] = set()
+    proven = check_album_tracks(files, completeness_cues, root, disc_playlists) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
     playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
@@ -1032,7 +1102,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     for path in files:
         target = extension_target(path) if extensions else path
         sidecar = path in playlists or (path.suffix.casefold() not in {".m3u", ".m3u8"} and disposable(path))
-        if (cleanup and path not in protected and not (require_completeness and path in playlists)
+        if (cleanup and path not in protected and path not in disc_playlists
+                and not (require_completeness and path in playlists)
                 and (sidecar or detected_suffix(path) in CLEANUP_SIGNATURE_SUFFIXES)):
             # Only recognized images/documents without an established media suffix are
             # disposable. Do not delete a named audio/video file on a sniff alone.
