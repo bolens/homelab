@@ -486,6 +486,14 @@ def absolute(value):
     return Path(value)
 
 
+def filesystem_absolute(value):
+    """Read-only filesystem spelling; commas are not Docker mount syntax here."""
+    need(type(value) is str and value.startswith('/') and str(PurePosixPath(value)) == value
+         and not any(x in value for x in ('\x00', '\n', '\r', '\\'))
+         and '..' not in PurePosixPath(value).parts, 'filesystem-path-spelling')
+    return Path(value)
+
+
 def configured_geometry(value, library, retention):
     """Validate captured production facts without reading or changing a path.
 
@@ -632,7 +640,7 @@ class GeometryOwnerReads:
         self.code = tuple((name, value, value.__code__) for name, value in type(self).__dict__.items() if hasattr(value, '__code__'))
         dependencies = tuple((name, globals()[name], globals()[name].__code__, globals()[name].__defaults__,
                               None if globals()[name].__kwdefaults__ is None else tuple(globals()[name].__kwdefaults__.items()), globals()) for name in
-                             ('_owner_dependencies_match', 'configured_geometry', 'absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'remote_control_vector', 'final', 'five', 'nine'))
+                             ('_owner_dependencies_match', 'configured_geometry', 'absolute', 'filesystem_absolute', 'digest', 'need', 'encode', 'read', '_read_original', 'parents', 'nfs_lstat', 'remote_control_vector', 'final', 'five', 'nine'))
         dependencies += tuple((name, value, code, value.__defaults__, None if value.__kwdefaults__ is None
                                else tuple(value.__kwdefaults__.items()), type(self).__dict__) for name, value, code in self.code)
         self.seal = (encode(self.geometry), encode(self.source), str(self.root), self.thread, self.code, dependencies, self.handles, self.nodes)
@@ -687,7 +695,7 @@ class GeometryOwnerReads:
         need(type(operation) is str and operation in ('stat', 'stats', 'directory', 'names', 'file'), 'owner-read-operation')
         paths = path if operation == 'stats' else (path,)
         need(type(ancestor) is bool and type(paths) is tuple and 1 <= len(paths) <= 512
-             and all(type(value) is str and str(absolute(value)) == value
+             and all(type(value) is str and str(filesystem_absolute(value)) == value
                      and (self.contains(value) or ancestor and value in {str(x) for x in self.root.parents}) for value in paths)
              and len(set(paths)) == len(paths), 'owner-read-fixed-scope')
         seal = _OWNER_READ_SEALS[self]
@@ -822,7 +830,7 @@ class GeometryOwnerReads:
                      and type(row[1]) is tuple and len(row[1]) == width and all(type(value) is int for value in row[1]),
                      'owner-vector-primitive-fact')
                 path, fact = row
-                need(str(absolute(path)) == path, 'owner-vector-canonical-path')
+                need(str(filesystem_absolute(path)) == path, 'owner-vector-canonical-path')
                 need(stat.S_ISREG(fact[5]) and fact[8] == 1 and 0 <= fact[2] <= MAX if width == 9
                      else stat.S_ISDIR(fact[2]), 'owner-vector-fact-type')
                 identity = tuple(fact[i] for i in (0, 1, 5, 6, 7)) if width == 9 else fact
@@ -903,7 +911,7 @@ class GeometryOwnerReads:
                          for role in ('common_root', 'library', 'retention'))
         expected = {}
         for path, fact in tuple(row for _, row in handles) + tuple((path, tuple(fact[i] for i in (0, 1, 5, 6, 7))) for path, fact in geometry):
-            need(type(path) is str and str(absolute(path)) == path and self.contains(path)
+            need(type(path) is str and str(filesystem_absolute(path)) == path and self.contains(path)
                  and stat.S_ISDIR(fact[2]), 'owner-check-fixed-directory')
             need(path not in expected or expected[path] == fact, 'owner-check-conflicting-path')
             expected[path] = fact
