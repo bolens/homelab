@@ -746,7 +746,65 @@ def album_directory(path: Path, root: Path) -> Path:
     return path.parent
 
 
+def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path) -> dict[Path, str]:
+    """Use a covering playlist and matching DTT names to separate untagged discs."""
+    cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
+    for path in files:
+        if detected_suffix(path) != ".flac":
+            continue
+        tags, embedded = flac_album_metadata(path)
+        if embedded or tags.get("CUESHEET"):
+            continue
+        artists = [tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
+                   if tags.get(key, "").strip()]
+        key = (path.parent, tags.get("ALBUM", "").strip().casefold(),
+               artists[0] if artists else tags.get("ARTIST", "").strip().casefold())
+        cohorts.setdefault(key, []).append((path, tags))
+    inferred = {}
+    playlists = [path for path in files if path.suffix.casefold() in {".m3u", ".m3u8"}]
+    for records in cohorts.values():
+        if any(path in protected or any(DISC_DIRECTORY.fullmatch(part) for part in path.parent.relative_to(root).parts)
+               for path, _ in records):
+            continue
+        groups: dict[int, list[int]] = {}
+        positions = {}
+        for path, tags in records:
+            artists = {tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
+                       if tags.get(key, "").strip()}
+            if len(artists) > 1:
+                break
+            disc, total = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+            track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
+            match = re.fullmatch(r"([1-9])([0-9]{2})[ _.-]+.+", path.stem)
+            if (disc or total or not match or not re.fullmatch(r"[0-9]{1,2}", track)
+                    or int(track) != int(match[2]) or int(track) == 0
+                    or any(not tags.get(key, "").strip() for key in ("ALBUM", "ARTIST", "TITLE"))):
+                break
+            number = int(match[1])
+            groups.setdefault(number, []).append(int(track))
+            positions[path] = str(number)
+        else:
+            if (len(groups) < 2 or set(groups) != set(range(1, len(groups) + 1))
+                    or any(sorted(tracks) != list(range(1, len(tracks) + 1)) for tracks in groups.values())):
+                continue
+            for playlist in playlists:
+                entries = playlist_entries(playlist)
+                if not entries or len(entries) != len(records):
+                    continue
+                available: dict[str, set[Path]] = {}
+                for path, _ in records:
+                    if path.is_relative_to(playlist.parent):
+                        for target in (path, extension_target(path)):
+                            available.setdefault(target.relative_to(playlist.parent).as_posix().casefold(), set()).add(path)
+                resolved = [available.get(entry.as_posix().casefold(), set()) for entry in entries]
+                if all(len(matches) == 1 for matches in resolved) and len({next(iter(matches)) for matches in resolved}) == len(records):
+                    inferred.update(positions)
+                    break
+    return inferred
+
+
 def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> set[Path]:
+    filename_discs = playlist_disc_groups(files, protected, root)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
     proven = set(protected)
@@ -767,7 +825,7 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> s
             continue
         number, total = metadata_position(tags, ("TRACKNUMBER", "TRACK"),
                                           ("TRACKTOTAL", "TOTALTRACKS"), "track")
-        key = (album or str(path.parent), artist, disc, ancestry, str(base))
+        key = (album or str(path.parent), artist, disc or filename_discs.get(path, ""), ancestry, str(base))
         groups.setdefault(key, []).append((path, number, total))
     for records in discs.values():
         totals = {int(total) for _, total in records if re.fullmatch(r"[0-9]{1,5}", total) and int(total) > 0}

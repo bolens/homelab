@@ -1324,6 +1324,75 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertEqual(self.snapshot(root), before)
 
+    def test_covering_playlist_resolves_discless_scene_track_numbers(self) -> None:
+        for totals in (False, True):
+            with self.subTest(totals=totals), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                names = []
+                for disc, count in ((1, 2), (2, 3)):
+                    for track in range(1, count + 1):
+                        name = f"{disc}{track:02d}-artist-song-{disc}-{track}.flac"
+                        tags = {"ALBUM": "Example", "ARTIST": "Artist", "TITLE": f"Song {disc}-{track}",
+                                "TRACKNUMBER": str(track)}
+                        if totals:
+                            tags["TRACKTOTAL"] = str(count)
+                        (root / name).write_bytes(self.tagged_flac(tags))
+                        names.append(name)
+                (root / "album.m3u").write_text("\n".join(names) + "\n")
+                before = self.snapshot(root)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_discless_scene_groups_require_unambiguous_complete_evidence(self) -> None:
+        for problem in ("no playlist", "partial playlist", "duplicate entry", "wrong track",
+                        "disc gap", "track gap", "explicit disc", "explicit total", "missing title",
+                        "foreign album", "foreign artist", "artist aliases", "disc folder", "wrong total", "duplicate track", "unsafe playlist"):
+            with self.subTest(problem=problem), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                names = []
+                for disc, track in ((1, 1), (1, 2), (2, 1), (2, 2)):
+                    name = f"{disc if problem != 'disc gap' or disc != 2 else 3}{track:02d}-song.flac"
+                    tags = {"ALBUM": "Example", "ARTIST": "Artist", "TITLE": "Song", "TRACKNUMBER": str(track)}
+                    if disc == 2 and track == 2:
+                        if problem == "wrong track":
+                            tags["TRACKNUMBER"] = "3"
+                        if problem == "track gap":
+                            name, tags["TRACKNUMBER"] = "203-song.flac", "3"
+                        if problem == "explicit disc":
+                            tags["DISCNUMBER"] = "1"
+                        if problem == "explicit total":
+                            tags["DISCTOTAL"] = "1"
+                        if problem == "missing title":
+                            del tags["TITLE"]
+                        if problem == "foreign album":
+                            tags["ALBUM"] = "Other"
+                        if problem == "artist aliases":
+                            tags["ALBUMARTIST"], tags["ALBUM ARTIST"] = "Artist", "Other"
+                        if problem == "foreign artist":
+                            tags["ARTIST"] = "Other"
+                        if problem == "wrong total":
+                            tags["TRACKTOTAL"] = "3"
+                        if problem == "duplicate track":
+                            name, tags["TRACKNUMBER"] = "201-other.flac", "1"
+                    if problem == "disc folder":
+                        name = "CD1/" + name
+                        (root / "CD1").mkdir(exist_ok=True)
+                    (root / name).write_bytes(self.tagged_flac(tags))
+                    names.append(name)
+                if problem != "no playlist":
+                    entries = names[:-1] if problem == "partial playlist" else names
+                    if problem == "duplicate entry":
+                        entries = names + names[:1]
+                    if problem == "unsafe playlist":
+                        entries = names + ["../outside.flac"]
+                    (root / "album.m3u").write_text("\n".join(entries) + "\n")
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
     def test_numbered_flac_gaps_and_duplicates_fail_without_totals(self) -> None:
         for numbers in ((11,), (10, 10), (1, 3), (1, 1)):
             with self.subTest(numbers=numbers), tempfile.TemporaryDirectory() as temp:
