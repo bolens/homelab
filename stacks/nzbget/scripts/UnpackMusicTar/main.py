@@ -49,6 +49,7 @@ UNWANTED_SUFFIXES = {
     ".lrc",
     ".m3u",
     ".m3u8",
+    ".ffp",
     ".md5",
     ".nfo",
     ".nzb",
@@ -446,6 +447,36 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
             and structured_nfo(text))
 
 
+def is_windows_folder_metadata(path: Path) -> bool:
+    """Recognise bounded Windows music-folder metadata, never arbitrary INI files."""
+    if path.name.casefold() != "desktop.ini":
+        return False
+    with path.open("rb") as stream:
+        raw = stream.read(65537)
+    if not raw or len(raw) > 65536:
+        return False
+    try:
+        text = raw.decode("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig")
+    except UnicodeDecodeError:
+        return False
+    # Explorer may append one string terminator. Embedded or repeated NULs fail.
+    text = text.removesuffix("\x00")
+    if any(not (char.isprintable() or char in "\t\r\n") for char in text):
+        return False
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines or lines[0].casefold() != "[.shellclassinfo]":
+        return False
+    fields = {}
+    for line in lines[1:]:
+        key, separator, value = line.partition("=")
+        key, value = key.strip().casefold(), value.strip()
+        if not separator or key not in {"foldertype", "musicbuyurl"} or key in fields or not value:
+            return False
+        fields[key] = value
+    return (fields.get("foldertype", "").casefold() in {"musicalbum", "musicartist"}
+            and bool(fields.get("musicbuyurl")))
+
+
 def disposable(path: Path) -> bool:
     suffix = path.suffix.casefold()
     if suffix not in KNOWN_MEDIA_SUFFIXES | {".cue", ".m3u", ".m3u8"}:
@@ -458,7 +489,8 @@ def disposable(path: Path) -> bool:
     if suffix not in UNWANTED_SUFFIXES:
         if suffix in KNOWN_MEDIA_SUFFIXES | {".cue"} or detected_suffix(path) is not None:
             return False
-        return is_synology_metadata(path) or is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path)
+        return (is_windows_folder_metadata(path) or is_synology_metadata(path)
+                or is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path))
     # Playlist disposal needs the whole release, including files from later
     # archives. Never discard a duplicate before completeness is established.
     if path.suffix.casefold() in {".m3u", ".m3u8"} or playlist_entries(path) is not None:
