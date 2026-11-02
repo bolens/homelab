@@ -157,12 +157,23 @@ references, keeps folder structure and filenames unchanged because its reference
 
 Cue sheets are retained because album-image releases need them to identify
 individual tracks. The extension does not split album images into track files.
-Cue `FILE` references are updated when tracks move or gain extensions. Quoted
+Cue `FILE` references are updated when tracks move or gain extensions. A missing
+local `.wav` reference declared as `WAVE` can resolve to a same-folder FLAC
+with the same filename stem. Otherwise, numbered filenames can match exact
+performer, title and track tags within one fully tagged FLAC album/disc. A
+present global cue album title must also match, allowing a trailing `(single)`
+format annotation.
+Ambiguous aliases, mismatched versions, missing identity tags and references
+containing directory paths keep failing without publication. Existing WAV
+references take precedence. Quoted
 and unquoted filenames, Windows path separators, case differences, UTF-8 with
 or without a BOM, UTF-16 with a BOM in either byte order, and Windows-1252 cue
 sheets are supported. LF, CRLF, and CR line endings are preserved. A missing,
 ambiguous, or unsafe reference fails processing and leaves the original release
 intact. Files referenced by a cue sheet are protected from sidecar cleanup.
+In strict completeness mode, track-file cue references alone do not prove the
+album is complete. Cue-image evidence requires one `FILE` entry and multiple
+`TRACK AUDIO` entries, including after reference repairs and on repeat runs.
 It validates paths and file types before extraction, rejects duplicate archive
 file paths before extraction can overwrite a track, refuses to overwrite
 existing files, and removes each archive only after a successful extraction.

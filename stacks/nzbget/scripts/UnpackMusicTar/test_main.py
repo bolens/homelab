@@ -870,6 +870,154 @@ class MusicProcessingSeamTest(unittest.TestCase):
         cue = b"\x85\x00\x00\x01\x00" if embedded_cue else b""
         return b"fLaC" + streaminfo + comment_header + comments + cue + b"audio fixture"
 
+    def test_missing_local_wave_cue_resolves_matching_flac_and_preserves_encoding(self) -> None:
+        for encoding in ('utf-8-sig', 'utf-16-le', 'utf-16-be', 'cp1252'):
+            for archive in (False, True):
+                with self.subTest(encoding=encoding, archive=archive), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = self.tagged_flac({'TRACKNUMBER': '1', 'TOTALTRACKS': '1'})
+                    cue = 'FILE "01 Artist’s Song.wav" WAVE\r\n TRACK 01 AUDIO\r\n INDEX 01 00:00:00\r\n'
+                    raw = cue.encode(encoding)
+                    if encoding.startswith('utf-16'):
+                        raw = (b'\xff\xfe' if encoding.endswith('le') else b'\xfe\xff') + raw
+                    files = {'Album/01 Artist’s Song.flac': audio, 'Album/album.cue': raw}
+                    if archive:
+                        with zipfile.ZipFile(root / 'album.zip', 'w') as output:
+                            for name, payload in files.items():
+                                output.writestr(name, payload)
+                    else:
+                        (root / 'Album').mkdir()
+                        for name, payload in files.items():
+                            (root / name).write_bytes(payload)
+                    main.process_release(root)
+                    expected = raw.replace('.wav'.encode(encoding.replace('-sig', '')), '.flac'.encode(encoding.replace('-sig', '')))
+                    self.assertEqual((root / 'album.cue').read_bytes(), expected)
+                    self.assertEqual((root / '01 Artist’s Song.flac').read_bytes(), audio)
+                    main.process_release(root)
+
+    def test_missing_wave_cue_uses_exact_artist_title_track_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for number, title in ((1, 'Example Song (Radio Edit)'), (2, 'Example Song (LP Version)')):
+                (root / f'{number:02d}-obfuscated.flac').write_bytes(self.tagged_flac({
+                    'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': title, 'TRACKNUMBER': str(number)}))
+            cue = ('PERFORMER "Fixture Artist"\nTITLE "Example"\n'
+                   'FILE "01 Example Song (Radio Edit).wav" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n'
+                   ' TRACK 02 AUDIO\n INDEX 00 03:00:00\n'
+                   'FILE "02 Example Song (LP Version).wav" WAVE\n INDEX 01 00:00:00\n')
+            (root / 'album.cue').write_text(cue)
+            before = {p.name: p.read_bytes() for p in root.glob('*.flac')}
+            main.process_release(root)
+            self.assertEqual((root / 'album.cue').read_text(), cue.replace('01 Example Song (Radio Edit).wav', '01-obfuscated.flac').replace('02 Example Song (LP Version).wav', '02-obfuscated.flac'))
+            self.assertEqual({p.name: p.read_bytes() for p in root.glob('*.flac')}, before)
+
+    def test_wave_cue_fallback_rejects_ambiguity_missing_identity_and_other_versions(self) -> None:
+        tags = {'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': 'Example Song', 'TRACKNUMBER': '1'}
+        cases = [({'a.flac': tags, 'b.flac': tags}, '01 Example Song.wav'),
+                 ({'a.flac': {**tags, 'TITLE': 'Example Song (Live)'}}, '01 Example Song.wav'),
+                 ({'a.flac': {**tags, 'ARTIST': 'Other Artist'}}, '01 Example Song.wav'),
+                 ({'a.flac': {**tags, 'TRACKNUMBER': '2'}}, '01 Example Song.wav'),
+                 ({'a.flac': {k: v for k, v in tags.items() if k != 'ALBUM'}}, '01 Example Song.wav'),
+                 ({'a.flac': tags, 'b.flac': {**tags, 'ALBUM': 'Other Album', 'TRACKNUMBER': '2'}}, '01 Example Song.wav'),
+                 ({'a.flac': {**tags, 'TRACK': '2'}}, '01 Example Song.wav'),
+                 ({'01 Example Song.flac': tags}, 'Other Album/01 Example Song.wav')]
+        for files, reference in cases:
+            with self.subTest(reference=reference, files=files), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for name, values in files.items():
+                    (root / name).write_bytes(self.tagged_flac(values))
+                (root / 'album.cue').write_text(f'PERFORMER "Fixture Artist"\nFILE "{reference}" WAVE\n TRACK 01 AUDIO\n')
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_wave_cue_fallback_keeps_existing_wave_and_rejects_binary_or_foreign_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'song.wav').write_bytes(b'RIFF' + bytes(4) + b'WAVE' + bytes(32))
+            (root / 'song.flac').write_bytes(b'fLaC' + bytes(32))
+            (root / 'album.cue').write_text('FILE "song.wav" WAVE\n')
+            cues = main.read_cues(list(root.iterdir()), root)
+            self.assertEqual(cues[root / 'album.cue'][2]['song.wav'], root / 'song.wav')
+            (root / 'song.wav').unlink()
+            for reference, kind in (('song.wav', 'BINARY'), ('../song.wav', 'WAVE'), ('/song.wav', 'WAVE'), ('C:\\song.wav', 'WAVE')):
+                (root / 'album.cue').write_text(f'FILE "{reference}" {kind}\n')
+                with self.assertRaises(ValueError):
+                    main.read_cues(list(root.iterdir()), root)
+
+    def test_repaired_wave_cue_cannot_hide_missing_tracks_or_merge_references(self) -> None:
+        cases = [("FILE \"01 Song.wav\" WAVE\n TRACK 01 AUDIO\n", {'TRACKNUMBER': '1', 'TOTALTRACKS': '2'}, '01 Song.flac'),
+                 ('PERFORMER "Fixture"\nFILE "01 Song.wav" WAVE\n TRACK 01 AUDIO\nFILE "01 Fixture Song.wav" WAVE\n TRACK 02 AUDIO\n',
+                  {'ARTIST': 'Fixture', 'TITLE': 'Song', 'ALBUM': 'Example', 'TRACKNUMBER': '1', 'TOTALTRACKS': '1'}, 'obfuscated.flac')]
+        for cue, tags, name in cases:
+            with self.subTest(cue=cue), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(self.tagged_flac(tags))
+                (root / 'album.cue').write_text(cue)
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_repaired_wave_cue_keeps_album_images_and_mixed_exact_track_references(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = self.tagged_flac({'TRACKNUMBER': '1', 'TOTALTRACKS': '2'})
+            (root / 'album.flac').write_bytes(audio)
+            (root / 'album.cue').write_text('FILE "album.wav" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n TRACK 02 AUDIO\n INDEX 01 03:00:00\n')
+            main.process_release(root)
+            self.assertIn('"album.flac"', (root / 'album.cue').read_text())
+            self.assertEqual((root / 'album.flac').read_bytes(), audio)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for number in (1, 2):
+                (root / f'{number:02d} Song.flac').write_bytes(self.tagged_flac({'TRACKNUMBER': str(number), 'TOTALTRACKS': '2'}))
+            (root / 'album.cue').write_text('FILE "01 Song.wav" WAVE\n TRACK 01 AUDIO\nFILE "02 Song.flac" WAVE\n TRACK 02 AUDIO\n')
+            main.process_release(root)
+            self.assertIn('"01 Song.flac"', (root / 'album.cue').read_text())
+
+    def test_cue_metadata_album_identity_and_cr_only_parsing(self) -> None:
+        for ending in ('\n', '\r\n', '\r'):
+            for album, accepted in (('Example', True), ('Example (single)', True), ('Other Album', False)):
+                with self.subTest(ending=ending, album=album), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = self.tagged_flac({'ARTIST': 'Fixture', 'ALBUM': 'Example', 'TITLE': 'Song', 'TRACKNUMBER': '1', 'TOTALTRACKS': '1'})
+                    (root / 'obfuscated.flac').write_bytes(audio)
+                    cue = f'PERFORMER "Fixture"\nTITLE "{album}"\nFILE "01 Song.wav" WAVE\n TRACK 01 AUDIO\n'.replace('\n', ending).encode()
+                    (root / 'album.cue').write_bytes(cue)
+                    if accepted:
+                        main.process_release(root, require_completeness=True)
+                        self.assertEqual((root / 'album.cue').read_bytes(), cue.replace(b'01 Song.wav', b'obfuscated.flac'))
+                    else:
+                        before = self.snapshot(root)
+                        with self.assertRaises(ValueError):
+                            main.process_release(root)
+                        self.assertEqual(self.snapshot(root), before)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'image.flac').write_bytes(self.tagged_flac({'TRACKNUMBER': '1', 'TOTALTRACKS': '2'}))
+            (root / 'image.cue').write_bytes(b'FILE "image.wav" WAVE\r TRACK 01 AUDIO\r TRACK 02 AUDIO\r')
+            main.process_release(root, require_completeness=True)
+            self.assertEqual((root / 'image.cue').read_bytes(), b'FILE "image.flac" WAVE\r TRACK 01 AUDIO\r TRACK 02 AUDIO\r')
+
+    def test_strict_repaired_track_cues_require_count_evidence_on_first_pass_and_retry(self) -> None:
+        for count in (1, 2):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for number in range(1, count + 1):
+                    (root / f'{number:02d} Song.flac').write_bytes(self.tagged_flac({'ALBUM': 'Example', 'TRACKNUMBER': str(number)}))
+                (root / 'album.cue').write_text(''.join(f'FILE "{number:02d} Song.wav" WAVE\n TRACK {number:02d} AUDIO\n' for number in range(1, count + 1)))
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, 'unproven'):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+                main.process_release(root)
+                repaired = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, 'unproven'):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), repaired)
+
     def test_lone_track_from_album_fails_before_cleanup_or_publication(self) -> None:
         for tags in ({"TRACK": "9", "TRACKTOTAL": "10"}, {"TRACKNUMBER": "09/10"},
                      {"TRACKNUMBER": "1", "TOTALTRACKS": "10"}):
@@ -1095,7 +1243,7 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 tags = {"TRACKNUMBER": "1/1"} if kind == "total" else {"TRACKNUMBER": "11"}
                 (root / "image.flac").write_bytes(self.tagged_flac(tags, embedded_cue=kind == "embedded"))
                 if kind == "cue":
-                    (root / "image.cue").write_text('FILE "image.flac" WAVE\n TRACK 01 AUDIO\n')
+                    (root / "image.cue").write_text('FILE "image.flac" WAVE\n TRACK 01 AUDIO\n TRACK 02 AUDIO\n')
                 main.process_release(root, require_completeness=True)
                 before = self.snapshot(root)
                 main.process_release(root, require_completeness=True)
