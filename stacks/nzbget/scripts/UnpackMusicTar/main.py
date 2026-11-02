@@ -364,30 +364,47 @@ def is_album_info_sidecar(path: Path) -> bool:
 
 def is_obfuscated_posting_sidecar(path: Path) -> bool:
     """Require both a posting filename and structured release metadata/checksums."""
-    if not re.search(r"\.[0-9a-f]{8}___[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+    if not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
                      path.name, re.IGNORECASE):
         return False
     with path.open("rb") as stream:
         raw = stream.read(65537)
     if not raw or len(raw) > 65536:
         return False
+    def structured_nfo(text: str) -> bool:
+        frame = " \t|" + "".join(chr(code) for code in range(0x2500, 0x25a0)) + "\u25a0"
+        lines = [line.strip(frame) for line in text.splitlines()]
+        fields = {match[1].casefold() for line in lines
+                  if (match := re.fullmatch(r"(Artist|Album|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
+                                            line, re.IGNORECASE))}
+        return ({"artist", "album"} <= fields and len(fields) >= 4
+                and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
+
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
+        text = None
+    utf8 = text is not None
+    if text is None:
         try:
             text = raw.decode("cp1252")
         except UnicodeDecodeError:
-            return False
-    if any(not char.isprintable() and char not in "\t\r\n\f" for char in text):
+            pass
+    if text is not None and all(char.isprintable() or char in "\t\r\n\f" for char in text):
+        lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith(";")]
+        if lines and all((match := re.fullmatch(r"(.+) +[0-9a-fA-F]{8}", line))
+                         and playlist_reference(match[1]) is not None for line in lines):
+            return True
+        if structured_nfo(text):
+            return True
+    if utf8:
         return False
-    lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith(";")]
-    if lines and all((match := re.fullmatch(r"(.+) +[0-9a-fA-F]{8}", line))
-                     and playlist_reference(match[1]) is not None for line in lines):
-        return True
-    fields = {match[1].casefold() for line in text.splitlines()
-              if (match := re.fullmatch(r"[ \t]*(Artist|Album|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*", line, re.IGNORECASE))}
-    return ({"artist", "album"} <= fields and len(fields) >= 4
-            and re.search(r"^[ \t]*\d{1,3}[ .)-]+\S[^\r\n]*\r?$", text, re.MULTILINE) is not None)
+    text = raw.decode("cp437")
+    def drawing(char: str) -> bool:
+        return "\u2500" <= char <= "\u259f" or char == "\u25a0"
+    return (any(drawing(left) and drawing(right) for left, right in zip(text, text[1:]))
+            and all((" " <= char <= "~") or char in "\t\r\n\f·∙¼«»⌐" or char.isalpha() or drawing(char) for char in text)
+            and structured_nfo(text))
 
 
 def disposable(path: Path) -> bool:
