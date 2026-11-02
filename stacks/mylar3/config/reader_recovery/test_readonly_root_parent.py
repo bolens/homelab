@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import os
 import tempfile
+import time
 import types
 import unittest
 from unittest.mock import patch
@@ -25,16 +26,18 @@ class ParentReply(unittest.TestCase):
         self.grand = root / 'grand'; self.grand.mkdir()
         class Owner:
             pass
-        self.owner = Owner(); self.owner.plan = dict(nonce='a' * 64); self.owner.deadline = 999999999999
+        self.owner = Owner(); self.owner.engine = Owner(); self.owner.plan = dict(nonce='a' * 64); self.owner.deadline = 999999999999
         self.row = profiles.row(4, 'observer', 'running')
         self.row['Mounts'] = [dict(Type='bind', Source=str(p), Destination=str(p), RW=rw)
                               for p, rw in ((self.protected, False), (self.tree, True), (self.grand, True))]
         self.dialogue = types.SimpleNamespace(sequence=0)
         self.session = types.SimpleNamespace(cid=self.row['Id'], close=lambda: None,
             lease_replies=types.SimpleNamespace(lease=None), engine_replies=self.dialogue,
+            pump=types.SimpleNamespace(deadline=888888888888),
             profile_after_release=lambda: copy.deepcopy(self.row))
         m = self.m
         m._NFS_LIVE_SESSIONS[self.owner] = self.session
+        m._DIALOGUE_SEALS[self.owner.engine] = {self.session.cid: (None,)*6 + (888888888888,)}
         m._NFS_DATA_ROOTS[self.owner] = (str(self.protected), str(self.grand))
         self.epoch = (self.session, self.session.cid, self.row['State']['Pid'],
                       m.encode(m.lifecycle_state(self.row)), 123, m.encode(m.static(self.row)))
@@ -44,8 +47,8 @@ class ParentReply(unittest.TestCase):
                                 'reader': profiles.row(3, 'reader', 'running')}
         self.owner.baselines['reader']['Mounts'] = [dict(Source=str(self.protected), Destination='/config', RW=True)]
         self.observations = []; self.callback = None; self.emitted = []
-        def observe(pid, ticks, roots, writable):
-            self.observations.append((pid, ticks, roots, writable))
+        def observe(pid, ticks, roots, writable, deadline):
+            self.observations.append((pid, ticks, roots, writable, deadline))
             if self.callback is not None:
                 self.callback()
             return dict(roots=roots, mutation_authority=False, publication_authority=False)
@@ -63,6 +66,7 @@ class ParentReply(unittest.TestCase):
     def test_original_deadline_and_exact_live_roots_are_retained(self):
         result = self.call(); proof = result['payload']
         self.assertEqual(proof['parent_deadline'], self.owner.deadline)
+        self.assertEqual(self.observations[0][-1], 888888888888)
         self.assertEqual(proof['volatile_roots'], {str(self.protected): [dict(role='reader', id='3' * 64, destination='/config')]})
         self.assertFalse(proof['mutation_authority']); self.assertFalse(proof['publication_authority'])
         self.assertEqual(self.dialogue.sequence, 1)
@@ -121,7 +125,7 @@ class ObserverAdmission(unittest.TestCase):
     def test_observer_requires_actual_root_identity(self):
         with patch.object(observer.os, 'getresuid', return_value=(1000, 1000, 1000)):
             with self.assertRaisesRegex(observer.Held, 'root-observer'):
-                observer.observe_readonly_namespace(os.getpid(), 1, {}, [])
+                observer.observe_readonly_namespace(os.getpid(), 1, {}, [], time.monotonic()+30)
 
 
 class NamespaceCollector(unittest.TestCase):
@@ -149,13 +153,16 @@ class NamespaceCollector(unittest.TestCase):
                     self.callback(self.reads)
                 path = self.mountinfo
             return self.open(path, flags, *args, **kwargs)
-        for patcher in (patch.object(observer.os, 'open', opened),
+        def owner_nodes(fd, root5, paths, deadline):
+            return {p:list(observer.five(os.stat(p.lstrip('/'),dir_fd=fd,follow_symlinks=False))) for p in paths}
+        for patcher in (patch.object(observer, 'readonly_namespace_nodes', owner_nodes),
+                        patch.object(observer.os, 'open', opened),
                         patch.object(observer.os, 'getresuid', return_value=(0, 0, 0)),
                         patch.object(observer.os, 'getresgid', return_value=(0, 0, 0))):
             patcher.start(); self.addCleanup(patcher.stop)
 
     def call(self):
-        return observer.observe_readonly_namespace(self.pid, self.ticks, self.protected, self.writable)
+        return observer.observe_readonly_namespace(self.pid, self.ticks, self.protected, self.writable, time.monotonic()+30)
 
     def test_real_proc_process_and_original_node_join(self):
         result = self.call()

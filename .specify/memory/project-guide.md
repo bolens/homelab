@@ -61,6 +61,9 @@ original realized read-only namespace, including descendants and writable
 aliases, and retain that proof in the genuine original session. Keep file,
 control, fixture, direct-absence and independent data-preservation checks strict.
 A top-level Docker read-only flag or saved observation alone is insufficient.
+A Root-opened directory descriptor does not bypass NFS search permissions.
+Read namespace metadata as its fixed owning principal, retaining the original
+descriptor, process and deadline checks.
 
 ## Acceptance evidence
 

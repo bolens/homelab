@@ -12,6 +12,7 @@ import re
 import select
 import stat
 import subprocess
+import sys
 import time
 import weakref
 
@@ -117,7 +118,51 @@ def readonly_mount_observation(raw,protected,writable):
                 writable=original_writable,mutation_authority=False,publication_authority=False)
 
 
-def observe_readonly_namespace(pid,start_ticks,protected,writable):
+def readonly_namespace_nodes(root,root5,paths,deadline):
+    """Finite owner-principal metadata read through the original namespace FD."""
+    need(os.getresuid()==os.getresgid()==(0,0,0),'nfs-readonly-root-node-observer')
+    need(type(root) is int and root>=0 and type(root5) is tuple and len(root5)==5
+         and all(type(v)is int for v in root5) and type(paths) is tuple
+         and 1<=len(paths)<=32
+         and all(type(p)is str and p.startswith('/') and str(PurePosixPath(p))==p
+                 and '..'not in PurePosixPath(p).parts for p in paths)
+         and len(set(paths))==len(paths)
+         and type(deadline) in(int,float) and deadline>time.monotonic(),
+         'nfs-readonly-node-request')
+    # This literal belongs to the sealed function code. No source path, script
+    # overlay or caller-supplied program is accepted by the metadata child.
+    program="""import json,os,stat,sys
+v=json.loads(sys.argv[1]);fd=v['fd'];original=tuple(v['root5'])
+def five(z):return(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+assert os.getresuid()==os.getresgid()==(1000,1000,1000) and os.getgroups()==[]
+assert five(os.fstat(fd))==original and stat.S_ISDIR(original[2])
+rows={p:five(os.stat(p.lstrip('/'),dir_fd=fd,follow_symlinks=False)) for p in v['paths']}
+assert five(os.fstat(fd))==original
+print(json.dumps(dict(uid=list(os.getresuid()),gid=list(os.getresgid()),groups=os.getgroups(),root5=list(original),nodes=rows),sort_keys=True,separators=(',',':')),flush=True)
+"""
+    result=subprocess.run([sys.executable,'-I','-B','-c',program,
+                           encode(dict(fd=root,root5=root5,paths=paths)).decode()],
+                          pass_fds=(root,),user=1000,group=1000,extra_groups=(),
+                          stdin=subprocess.DEVNULL,capture_output=True,
+                          timeout=max(.001,deadline-time.monotonic()),check=False,
+                          env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+    need(type(result.returncode)is int and result.returncode==0 and type(result.stdout)is bytes and len(result.stdout)<=MAX
+         and result.stderr==b'','nfs-readonly-node-helper-result')
+    value=decode(result.stdout)
+    need(type(value)is dict and set(value)=={'uid','gid','groups','root5','nodes'}
+         and value['uid']==value['gid']==[1000,1000,1000] and value['groups']==[]
+         and type(value['root5'])is list and len(value['root5'])==5
+         and all(type(n)is int for n in value['root5']) and value['root5']==list(root5)
+         and type(value['nodes'])is dict
+         and set(value['nodes'])==set(paths)
+         and all(type(v)is list and len(v)==5 and all(type(n)is int for n in v)
+                 and stat.S_ISDIR(v[2]) for v in value['nodes'].values()),
+         'nfs-readonly-owner-node-census')
+    need(five(os.fstat(root))==root5 and time.monotonic()<deadline,'nfs-readonly-node-original-FD-deadline')
+    return value['nodes']
+
+
+def observe_readonly_namespace(pid,start_ticks,protected,writable,deadline):
     """Root-only kernel observation, not a Parent/session capability factory."""
     need(os.getresuid()==os.getresgid()==(0,0,0),'nfs-readonly-root-observer')
     need(type(pid) is int and pid>0 and type(start_ticks) is int and start_ticks>0,
@@ -154,9 +199,9 @@ def observe_readonly_namespace(pid,start_ticks,protected,writable):
         observation=readonly_mount_observation(before,list(protected),writable)
         def close_nodes():
             need(five(os.fstat(root))==root5,'nfs-readonly-original-namespace-root')
+            nodes=readonly_namespace_nodes(root,root5,tuple(p for p,_ in originals),deadline)
             for path,original in originals:
-                current=os.stat(path.lstrip('/'),dir_fd=root,follow_symlinks=False)
-                need(five(current)==tuple(original[i]for i in(0,1,5,6,7)),
+                need(tuple(nodes[path])==tuple(original[i]for i in(0,1,5,6,7)),
                      'nfs-readonly-original-mounted-node')
         close_nodes()
         after=bounded('mountinfo',MAX)

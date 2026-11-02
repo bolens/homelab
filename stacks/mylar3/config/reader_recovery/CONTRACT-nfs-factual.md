@@ -276,7 +276,11 @@ adopted after readiness.
 The original configured child may request one `nfs-readonly-roots` observation
 before lease initialization. The Parent joins its original helper ID, process
 start ticks, complete profile, registered session and deadline to actual kernel
-mount information. Every protected bind and descendant must be read-only, with
+mount information. Namespace node checks run as fixed UID/GID1000 without
+supplementary groups through the original Root-opened namespace descriptor.
+Both invocations retain the original minimum Parent/dialogue deadline. Root
+keeps process and mount observations, with no credential switch in the Parent.
+Every protected bind and descendant must be read-only, with
 no writable physical alias, hidden bind or propagating ancestor. Only the two
 original disjoint private operation/staging binds may be writable application
 binds. The observation retains the original full9 directory facts as evidence

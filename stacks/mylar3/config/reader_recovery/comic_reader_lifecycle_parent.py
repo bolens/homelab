@@ -1792,7 +1792,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '9fa204577fedb2e08df7ebdf3458e16ab7cee248a902a5d694a43d81b85be115', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '82773dfe736c99826da6f0638278c2ccda8b89d917482d39aff8ed77263b55dd', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
 NFS_ACTIVE_SOURCE_SHA='8d116d51bdd8e6d3bda647449650ffbdf91cd57144fa08dd4c0c713a9a64663a'
 
 
@@ -3202,7 +3202,7 @@ class LifecycleParent:
                  'nfs-readonly-exact-protected-bind')
         modules=self.nfs_host_modules();module=modules['comic_nfs_parent_session.py']
         observer=module.observe_readonly_namespace;observer_code=observer.__code__
-        result=observer(original[2],original[4],observed,writable)
+        result=observer(original[2],original[4],observed,writable,min(self.deadline,_DIALOGUE_SEALS[self.engine][session.cid][6]))
         self.nfs_host_modules()
         need(module.observe_readonly_namespace is observer and observer.__code__ is observer_code,
              'nfs-readonly-original-observer')
