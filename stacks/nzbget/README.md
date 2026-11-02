@@ -67,7 +67,7 @@ built-in unpacker and removes empty subdirectories inside the processed release.
 It preserves the processing directory itself, its parents such as
 `usenet/completed/music`, and sibling release directories. An empty music
 category directory is retained.
-After successful extraction, `.accurip`, `.htm`, `.html`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
+After successful extraction, `.accurip`, `.ffp`, `.htm`, `.html`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` and `.website` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in

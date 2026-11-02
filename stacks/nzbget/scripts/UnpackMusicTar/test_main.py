@@ -2097,6 +2097,21 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 self.assertEqual(self.run_main(root), main.FAILURE)
                 self.assertEqual(self.snapshot(root), before)
 
+    def test_flac_fingerprint_sidecars_preserve_media_and_cue_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "track.flac").write_bytes(b"fLaC\x00audio")
+            (root / "checksums.FFP").write_text("track.flac: 0123456789abcdef0123456789abcdef\n")
+            (root / "renamed.ffp").write_bytes(b"fLaC\x00hidden audio")
+            (root / "unknown.ffp").write_bytes(b"\x00binary")
+            (root / "protected.ffp").write_text("cue target\n")
+            (root / "album.cue").write_text('FILE "protected.ffp" WAVE\n  TRACK 01 AUDIO\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertFalse((root / "checksums.FFP").exists())
+            self.assertEqual((root / "renamed.ffp.flac").read_bytes(), b"fLaC\x00hidden audio")
+            self.assertEqual((root / "unknown.ffp").read_bytes(), b"\x00binary")
+            self.assertEqual((root / "protected.ffp").read_text(), "cue target\n")
+
     def test_windows_folder_sidecars_are_removed_without_flattening_conflicts(self) -> None:
         payload = (b"[.ShellClassInfo]\r\nFolderType=MusicAlbum\r\n"
                    b"MusicBuyUrl=providerName=AMG & Microsoft&album=Example\r\n\x00")

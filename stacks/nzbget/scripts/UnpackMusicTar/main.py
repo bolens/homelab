@@ -49,6 +49,7 @@ UNWANTED_SUFFIXES = {
     ".lrc",
     ".m3u",
     ".m3u8",
+    ".ffp",
     ".md5",
     ".nfo",
     ".nzb",
