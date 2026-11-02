@@ -201,6 +201,34 @@ Configured installation, real container/NFS geometry, fresh observer evidence,
 worker source parity and connected lifecycle acceptance remain unproved by the
 source controls.
 
+Unlocked native observations use the pinned probe's explicit `--wait-writer`
+mode, including the initial and post-release observations in every retained
+lifecycle path. The authenticated health handler acquires its existing Writer
+once and recomputes authority and census while holding it. The wait uses the
+probe's original remaining observation budget; it adds no retry loop or refreshed
+deadline. Owned-lease observations omit that mode so their expected busy reply
+cannot deadlock against their own Writer. These are distinct exact, finite
+engine intents. A timeout remains held, and the original process/config/census
+comparisons and subsequent mutation admission remain mandatory. Default health
+monitoring keeps its zero-wait behavior and also recomputes any ready census
+under its acquired Writer rather than publishing the earlier advisory sample.
+Monitoring retains its ten-second HTTP cap. Waiting observations use their
+remaining budget instead; enclosing transport and Parent deadlines still refuse
+late results. The server's wait bounds acquisition, not total health computation.
+Rejected unlocked observations retain only finite state, reason and census-shape
+categories on the private diagnostic channel, without API payloads or credentials.
+The same waiting mode covers initialized current-role capture, both native
+evidence adapters, ready-only catalog fixture checks, and standalone observations
+before pause. Virgin bootstrap, ordinary monitoring, process-only observations
+that permit busy telemetry, and owned-lease observations retain zero-wait behavior.
+
+The genuine completion factory also waits for its original exclusive kernel
+descriptor within the original Parent and active dialogue deadlines. It checks
+source, directory and lock identity around acquisition, keeps the Parent PID as
+the kernel owner, and retains both descriptor witnesses and every terminal
+closure. Waiting never refreshes terminal facts or replays a mutation. The
+standalone exclusion constructor keeps its immediate-refusal default.
+
 Root-private originals retain full file9/hash/ancestor5. The owning finite child
 projection produces distinct UID1000 private copies and readonly input/Birth/
 source leaves. The phase/output directory is child-owned and writable; the late

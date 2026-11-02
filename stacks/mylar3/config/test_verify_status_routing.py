@@ -3,6 +3,7 @@ import ast
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stdout
 import io
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -13,7 +14,7 @@ import tempfile
 import threading
 import time
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 HERE = Path(__file__).parent
 SOURCE = (HERE / 'verify_image.py').read_text()
@@ -71,6 +72,35 @@ class Routing(unittest.TestCase):
             self.assertEqual(len(observed), 1)
             self.assertEqual((root / 'queues/ddl.py').read_bytes(), original)
             self.assertNotIn(b'homelab-ddl-status-retention-v1', original)
+
+    def test_installed_health_check_precedes_any_temporary_repair(self):
+        block=self.custom()
+        call=next(n for n in ast.walk(block) if isinstance(n,ast.Call)
+                  and isinstance(n.func,ast.Name) and n.func.id=='health_scope_preflight')
+        self.assertEqual(ast.unparse(call.args[0]), "Path('/app/mylar3/mylar')")
+        first_copy=min(n.lineno for n in ast.walk(TREE) if isinstance(n,ast.Call)
+                       and isinstance(n.func,ast.Attribute) and n.func.attr=='copytree')
+        self.assertLess(call.lineno,first_copy)
+
+    def test_actual_installed_health_check_rejects_old_api_and_stale_worker(self):
+        method=next(n for n in TREE.body if isinstance(n,ast.FunctionDef)
+                    and n.name=='health_scope_preflight')
+        spec=importlib.util.spec_from_file_location('patch_diagnostics_api',HERE/'patch_diagnostics_api.py')
+        checker=importlib.util.module_from_spec(spec);spec.loader.exec_module(checker)
+        namespace={'FIXES':HERE}
+        exec(compile(ast.Module([method],type_ignores=[]),'actual-health-preflight','exec'),namespace)
+        check=namespace['health_scope_preflight']
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules,{'patch_diagnostics_api':checker}):
+            source=Path(directory)
+            original=(HERE/'import_api_fixtures/api_predecessor.py').read_text()
+            (source/'api.py').write_text(original)
+            (source/'worker_health.py').write_bytes((HERE/'worker_health.py').read_bytes())
+            with self.assertRaises(ValueError):check(source)
+            self.assertEqual((source/'api.py').read_text(),original)
+            (source/'api.py').write_text(checker.patched_source(original))
+            check(source)
+            (source/'worker_health.py').write_bytes(b'# stale worker\n')
+            with self.assertRaisesRegex(AssertionError,'Installed health source differs'):check(source)
 
     def test_upstream_gate_uses_temporary_fully_patched_source(self):
         self.custom()

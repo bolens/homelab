@@ -454,7 +454,8 @@ class OuterObservation(unittest.TestCase):
         raw=('[General]\ndestination_dir='+str(self.library)+'\nfile_opts=move\nchmod_file=0600\nenable_meta=0\nrename_files=0\nenable_pre_scripts=0\nenable_extra_scripts=0\npost_processing=1\n').encode();ini.write_bytes(raw);ini.chmod(0o600)
         nonce='a'*64;probe=dict(version=1,nonce=nonce,source_sha256='b'*64,config=dict(path='/config/config.ini',sha256=hashlib.sha256(raw).hexdigest(),signature9=c.p.nine(ini.stat())),process=dict(pid=12,start_ticks=34,argv=['python','/app/mylar3/Mylar.py','--datadir','/config']),publication=dict(state='ready'))
         class Engine:
-            def run(self,*args):return c.p.encode(probe)
+            def __init__(self):self.calls=[]
+            def run(self,args,*rest):self.calls.append(args);return c.p.encode(probe)
         class Session:
             def roles(self):pass
             def installed_sources(self):pass
@@ -462,6 +463,9 @@ class OuterObservation(unittest.TestCase):
         session=Session();session.engine=Engine();session.data=data;session.native_mount=data;session.probe_program='original-probe';session.scope_source='original-scope';session.sdk={'worker_health.py':'c'*64,'native_writers.py':'d'*64};session.plan=dict(nonce=nonce,native_probe=dict(sha256='b'*64),roles={'native':{'id':'e'*64}})
         self.producer.s=session;self.producer.original=None;self.producer.config=None
         self.producer.original_process(ready=True)
+        self.assertEqual(session.engine.calls[-1][-1],'--wait-writer')
+        self.producer.original_process(ready=False)
+        self.assertEqual(session.engine.calls[-1][-1],session.probe_program)
         probe['process']['pid']=99
         with self.assertRaisesRegex(c.p.Held,'process-config-changed'):self.producer.original_process(ready=True)
         probe['process']['pid']=12;probe['config']['sha256']='f'*64

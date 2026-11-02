@@ -36,7 +36,7 @@ class Catalog:
     def original_process(self, *, ready):
         s=self.s;s.roles();s.installed_sources()
         request=dict(version=1,nonce=s.plan['nonce'],source_sha256=s.plan['native_probe']['sha256'],seconds=s.seconds(),module_pins={'/app/mylar3/mylar/'+name:s.sdk[name] for name in ('worker_health.py','native_writers.py')},scope_source=s.scope_source)
-        value=p.decode(s.engine.run(['exec','--interactive','--user','1000:1000',s.plan['roles']['native']['id'],'/lsiopy/bin/python3','-I','-B','-c',s.probe_program],s.seconds(),p.encode(request)))
+        value=p.decode(s.engine.run(['exec','--interactive','--user','1000:1000',s.plan['roles']['native']['id'],'/lsiopy/bin/python3','-I','-B','-c',s.probe_program]+(['--wait-writer']if ready else[]),s.seconds(),p.encode(request)))
         container_path='/config/'+str(s.data.relative_to(s.native_mount)/'config.ini')
         need(value.get('version')==1 and value.get('nonce')==s.plan['nonce'] and value.get('source_sha256')==s.plan['native_probe']['sha256'] and value.get('config',{}).get('path')==container_path and type(value.get('process'))is dict,'native-seed-original-probe')
         current=dict(process=value['process'],config=value['config'])

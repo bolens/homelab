@@ -126,6 +126,21 @@ class Producer(unittest.TestCase):
             result=active.fresh_native(call,self.ids['native'])
         self.assertEqual(len(calls),1);self.assertEqual(result['nonce'],'8'*32)
 
+    def test_waiting_probe_has_distinct_exact_single_call_intent(self):
+        from unittest.mock import patch
+        import comic_reader_lifecycle_parent as parent
+        spec=importlib.util.spec_from_file_location('active_wait_fixture',Path(__file__).with_name('comic_negative_nfs_active_parent.py'))
+        active=importlib.util.module_from_spec(spec);spec.loader.exec_module(active)
+        contract=m.ExactCalls(self.build(),'9'*64,parent.DOCKER,self.ids.values());calls=[]
+        def call(argv,data):
+            contract.approve(argv,data,900);calls.append(argv)
+            return m.encode(dict(version=1,nonce='8'*32,source_sha256=self.ready['sha256'],process=dict(pid=1,start_ticks=1,argv=['original']),publication={},config=dict(path='/config/config.ini',sha256='7'*64,signature9=[1]*9)))
+        with patch.multiple(active,READY=Path(self.ready['path']),READY_SHA=self.ready['sha256'],READY_INPUT=Path(self.request['path']),READY_INPUT_SHA=self.request['sha256']):
+            active.fresh_native(call,self.ids['native'],wait_writer=True)
+        self.assertEqual(len(calls),1);self.assertEqual(calls[0][-1],'--wait-writer')
+        changed=calls[0][:-1]+['--wait-writer-foreign']
+        with self.assertRaises(m.Held):contract.approve(changed,Path(self.request['path']).read_bytes(),900)
+
     def test_source_change_after_read_refuses_final_custody(self):
         from unittest.mock import patch
         import comic_reader_lifecycle_parent as parent

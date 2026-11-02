@@ -47,7 +47,7 @@ READY_INPUT = None
 READY_INPUT_SHA = None
 SCOPE_SHA="4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770"
 _NATIVE_PROJECTOR=None
-CHECKED_PROBE_SHA = "86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407"
+CHECKED_PROBE_SHA = "41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861"
 _COHORT = None
 DOCKER = ["pkexec", "/usr/bin/docker", "--host", "unix:///run/docker.sock"]
 
@@ -328,9 +328,11 @@ def validate(plan, scope):
 def unlocked_publication(pub):
     # Unlocked observations retain the complete source-owned census; a live
     # owned Writer is checked separately and must expose no census.
-    check(type(pub) is dict and (pub.get('state'), pub.get('reason')) in
-          (('held', 'startup-restart-required'), ('ready', 'verified')),
-          'unlocked-native-state')
+    allowed=(type(pub) is dict and (pub.get('state'), pub.get('reason')) in
+             (('held', 'startup-restart-required'), ('ready', 'verified')))
+    if not allowed:
+        native_rejection(pub,'nfs-unlocked-native-rejected')
+        raise Held('unlocked-native-state')
     census = pub.get('census')
     check(type(census) is dict and set(census) == {'version', 'epoch', 'revision', 'keys', 'digest'}
           and type(census['version']) is int and census['version'] == 1
@@ -343,12 +345,13 @@ def unlocked_publication(pub):
           and census['digest'] == digest(encode(census['keys'])), 'unlocked-complete-census')
 
 
-def fresh_native(call, container_id):
+def fresh_native(call, container_id, *, wait_writer=False):
+    check(type(wait_writer) is bool,'fresh-daemon-wait-mode')
     check(type(container_id) is str and re.fullmatch("[a-f0-9]{64}",container_id),"fresh-daemon-container")
     source,original=checked_buffer(READY,READY_SHA,source=True)
     request,original_input=checked_buffer(READY_INPUT,READY_INPUT_SHA)
     expected=json.loads(request)
-    response=call(DOCKER+['exec','-i','--user','1000:1000',container_id,'/lsiopy/bin/python3','-I','-B','-c',source.decode()],request)
+    response=call(DOCKER+['exec','-i','--user','1000:1000',container_id,'/lsiopy/bin/python3','-I','-B','-c',source.decode()]+(['--wait-writer'] if wait_writer else []),request)
     raw=response if type(response) is bytes else response.stdout
     value=json.loads(raw)
     exact(value,('version','nonce','source_sha256','process','publication','config'))
@@ -362,27 +365,31 @@ def fresh_native(call, container_id):
     return value
 
 
+def native_rejection(publication,kind):
+    """Retain finite refusal categories without source data or exception text."""
+    publication=publication if type(publication) is dict else {}
+    state=publication.get('state');reason=publication.get('reason')
+    state=state if type(state) is str and state in ('ready','held') else 'other'
+    reason=reason if type(reason) is str and reason in (
+            'verified','startup-restart-required','writer-busy',
+            'authority-unavailable','media-pending') else 'other'
+    census=publication.get('census')
+    shape=('missing' if 'census' not in publication else
+               'null' if census is None else 'object' if type(census) is dict else 'other')
+    try:
+        os.write(2,encode(dict(kind=kind,state=state,reason=reason,census_shape=shape,
+                              terminal_accepted=False,automatic_replay=False))+b'\n')
+    except OSError:
+        pass
+
+
 def unlocked_native_projection(value):
     """Keep a rejected observation's finite categories, never its payload."""
     try:
         return _NATIVE_PROJECTOR(value)
     except ValueError:
-        publication=value.get('publication') if type(value) is dict else None
-        publication=publication if type(publication) is dict else {}
-        state=publication.get('state');reason=publication.get('reason')
-        state=state if type(state) is str and state in ('ready','held') else 'other'
-        reason=reason if type(reason) is str and reason in (
-            'verified','startup-restart-required','writer-busy',
-            'authority-unavailable','media-pending') else 'other'
-        census=publication.get('census')
-        shape=('missing' if 'census' not in publication else
-               'null' if census is None else 'object' if type(census) is dict else 'other')
-        try:
-            os.write(2,encode(dict(kind='nfs-native-projection-rejected',state=state,
-                                  reason=reason,census_shape=shape,
-                                  terminal_accepted=False,automatic_replay=False))+b'\n')
-        except OSError:
-            pass
+        native_rejection(value.get('publication') if type(value) is dict else None,
+                         'nfs-native-projection-rejected')
         raise
 
 
@@ -960,7 +967,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None, roles=None, host
         )
         ids = current_mapping(rows, roots, roles)
         native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
-        health = fresh_native(call, native["Id"])
+        health = fresh_native(call, native["Id"],wait_writer=lease is None)
         pub = health['publication']
         if lease is None:
             unlocked_publication(pub)
@@ -1284,7 +1291,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
         )
         ids = current_mapping(rows, roots, roles)
         native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
-        health = fresh_native(call, native["Id"])
+        health = fresh_native(call, native["Id"],wait_writer=lease is None)
         pub = health['publication']
         if lease is None:
             unlocked_publication(pub)
@@ -2409,7 +2416,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
               and reader_ticks == report['start_time']
               and all(reader[k] == runtime['container'][k] for k in ('Config', 'HostConfig', 'Mounts', 'NetworkSettings')),
               'same-current-effective-process-profile')
-        health = fresh_native(call, native["Id"])
+        health = fresh_native(call, native["Id"],wait_writer=active_lease is None)
         configured_writer_mapping(native['Mounts'],health['config'],WRITER_ROOT)
         publication = health['publication']
         if active_lease is None:
@@ -2605,7 +2612,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         selected=select_roles(current,roles,stopped=True) if roles is not None else None
         native_row=selected['native'] if selected is not None else next(r for r in current if r['Name']=='/mylar3')
         live=identities(([selected['native'],selected['worker']] if selected is not None else [r for r in current if r['Name']!='/komga']),roles)
-        health=fresh_native(call,native_row['Id'])
+        health=fresh_native(call,native_row['Id'],wait_writer=True)
         projection=unlocked_native_projection(dict(inspect=native_row,process=health['process'],publication=health['publication']))
         observed=dict(mapping=live,native_process=health['process'],native_config=health['config'],projection=projection)
         # Lease has ended. The original unlocked state and complete census must return.

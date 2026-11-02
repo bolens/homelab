@@ -5,7 +5,7 @@ import sys
 import unittest
 
 from health import assess
-from patch_diagnostics_api import patched_source
+from patch_diagnostics_api import patched_source, checked_health
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 
@@ -136,9 +136,44 @@ class HealthTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             patched_source('def changed(): pass')
 
-    @unittest.skipUnless(SOURCE, 'Provide candidate source directory')
+    def test_installed_health_check_rejects_unpatched_source(self):
+        source=(Path(__file__).parent/'import_api_fixtures/api_predecessor.py').read_text()
+        with self.assertRaises(ValueError):checked_health(source)
+        installed=patched_source(source)
+        self.assertEqual(checked_health(installed),installed)
+
+    def test_existing_health_patch_is_upgraded_once(self):
+        source=(Path(__file__).parent/'import_api_fixtures/api_predecessor.py').read_text()
+        upgraded=patched_source(source)
+        self.assertIn('# homelab-health-writer-wait-v1',upgraded)
+        self.assertEqual(patched_source(upgraded),upgraded)
+        with self.assertRaises(ValueError):patched_source(source.replace('worker_health.snapshot()','worker_health.changed()'))
+
+    def test_wait_marker_without_exact_waiting_handler_refuses(self):
+        source=(Path(__file__).parent/'import_api_fixtures/api_predecessor.py').read_text()
+        with self.assertRaises(ValueError):patched_source(source+'\n# homelab-health-writer-wait-v1\n')
+        upgraded=patched_source(source)
+        for changed in (upgraded.replace('writer_wait=wait','writer_wait=0'),upgraded.replace('self.apikey != mylar.CONFIG.API_KEY','False'),upgraded+'\n# homelab-health-writer-wait-v1\n'):
+            with self.subTest(changed=changed[-50:]),self.assertRaises(ValueError):patched_source(changed)
+
+    def test_health_wait_api_validates_before_observation_and_requires_primary_key(self):
+        import worker_health
+        from types import SimpleNamespace
+        from unittest.mock import Mock,patch
+        source=patched_source((Path(__file__).parent/'import_api_fixtures/api_predecessor.py').read_text())
+        node=next(n for n in ast.walk(ast.parse(source))if isinstance(n,ast.FunctionDef)and n.name=='_getHealth')
+        app=SimpleNamespace(CONFIG=SimpleNamespace(API_ENABLED=True,API_KEY='primary'),worker_health=worker_health)
+        namespace={'mylar':app};exec(compile(ast.Module(body=[node],type_ignores=[]),'<health-api>','exec'),namespace)
+        for key,wait,accepted in [('primary','0',True),('primary','2.5',True),('primary','11',True),('primary','120',True),('wrong','2',False),('primary','nan',False),('primary','inf',False),('primary','-1',False),('primary','121',False),('primary',[],False)]:
+            with self.subTest(key=key,wait=wait),patch.dict(sys.modules,{'mylar':app}),patch.object(worker_health,'_snapshot',return_value={'observed':True})as observe:
+                obj=SimpleNamespace(apikey=key,_failureResponse=Mock(return_value='denied'),_successResponse=Mock(return_value='accepted'))
+                namespace['_getHealth'](obj,writer_wait=wait)
+                self.assertEqual(obj.data,'accepted'if accepted else'denied')
+                self.assertEqual(observe.call_count,int(accepted))
+
     def test_candidate_patch_idempotent_and_primary_key_required(self):
-        source = patched_source((SOURCE / 'api.py').read_text())
+        candidate=(SOURCE/'api.py') if SOURCE else Path(__file__).parent/'import_api_fixtures/api_predecessor.py'
+        source = patched_source(candidate.read_text())
         self.assertEqual(patched_source(source), source)
         tree = ast.parse(source)
         for name in ('_getHealth', '_reportFailedDownload'):
@@ -177,7 +212,7 @@ class BusyHealthTest(unittest.TestCase):
             enabled=['SEARCH-QUEUE','POST-PROCESS-QUEUE','DDL-QUEUE','AUTO-COMPLETE-NZB'],
             downloaded=1,completed=0,processing=False,ddl_active=[])
 
-    def held_sample(self):
+    def held_sample(self,writer_wait=0):
         import threading
         from unittest.mock import patch
         entered=threading.Event();release=threading.Event();errors=[]
@@ -193,7 +228,7 @@ class BusyHealthTest(unittest.TestCase):
             before={str(p):p.read_bytes() for p in self.f.root.rglob('*') if p.is_file()}
             # The original authority probe must encounter actual exclusion before any SQL.
             with patch('sqlite3.connect',side_effect=AssertionError('busy health cannot open SQL')),patch.object(self.worker,'_snapshot',side_effect=AssertionError('busy health cannot enter mutating snapshot')):
-                value=self.worker.snapshot()
+                value=self.worker.snapshot(writer_wait=writer_wait)
             self.assertEqual(before,{str(p):p.read_bytes() for p in self.f.root.rglob('*') if p.is_file()})
             return value
         finally:
@@ -207,6 +242,56 @@ class BusyHealthTest(unittest.TestCase):
         self.assertIs(sample['busy_workers']['startup_complete'],True)
         self.f.tagger.recover.assert_not_called();self.f.release.recover.assert_not_called()
         self.assertNotIn('workflow',sample);self.assertNotIn('downloaded',sample)
+
+    def test_wait_expiry_remains_held_without_catalog_or_snapshot(self):
+        sample=self.held_sample(writer_wait=.01)
+        self.assertEqual(sample['publication'],dict(version=1,state='held',reason='writer-busy',census=None))
+        self.assertNotIn('workflow',sample)
+
+    def test_requested_wait_observes_authority_only_inside_acquired_writer(self):
+        import threading
+        from unittest.mock import patch
+        entered=threading.Event();release=threading.Event();errors=[];observed=[]
+        def holder():
+            try:
+                with self.f.Writer(self.f.root/'media-writer',create=False).hold():
+                    entered.set();self.assertTrue(release.wait(3))
+            except BaseException as error:errors.append(error)
+        thread=threading.Thread(target=holder);thread.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            original=self.f.native.owner
+            writer=original();hold=writer.hold
+            def waiting_hold(**kwargs):
+                self.assertIn(kwargs['timeout'],(2,180))
+                release.set()
+                return hold(**kwargs)
+            def status():
+                self.assertTrue(release.is_set())
+                self.assertGreater(getattr(original().local[1],'depth',0),0)
+                observed.append(True)
+                return dict(version=1,state='ready',reason='verified',census={'actual':'under-lock'})
+            with patch.object(self.f.native,'owner',return_value=writer),patch.object(writer,'hold',side_effect=waiting_hold),patch.object(self.f.native,'startup_status',side_effect=status),patch.object(self.worker,'_snapshot',return_value={}):
+                sample=self.worker.snapshot(writer_wait=2)
+            self.assertEqual(sample['publication']['census'],{'actual':'under-lock'})
+            self.assertTrue(observed)
+        finally:
+            release.set();thread.join(3)
+            self.assertFalse(thread.is_alive());self.assertEqual(errors,[])
+
+    def test_health_wait_rejects_nonfinite_and_invalid_bounds_before_observation(self):
+        from unittest.mock import patch
+        for wait in (True,None,'1',-1,120.1,float('inf'),float('nan')):
+            with self.subTest(wait=wait),patch.object(self.f.native,'startup_status',side_effect=AssertionError('invalid wait observed')):
+                with self.assertRaises(ValueError):self.worker.snapshot(writer_wait=wait)
+
+    def test_zero_wait_recomputes_census_after_actual_acquisition(self):
+        from unittest.mock import patch
+        old=dict(version=1,state='ready',reason='verified',census={'phase':'before'})
+        current=dict(old,census={'phase':'under-lock'})
+        with patch.object(self.f.native,'startup_status',side_effect=[old,current]),patch.object(self.worker,'_snapshot',return_value={}):
+            sample=self.worker.snapshot()
+        self.assertEqual(sample['publication'],current)
 
     def test_actual_cross_process_flock_contention_remains_observational(self):
         import subprocess,select

@@ -115,7 +115,10 @@ class Installation(unittest.TestCase):
         return raw,{name:base['base_installed_sources'][name] for name in base['required_sdk_names']}
     def before_channel_deadline(self,raw):
         base=json.loads(raw)
-        previous={'release_naming.py':'eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9',
+        previous={'api.py':
+                'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b',
+            'release_naming.py':'eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9',
+            'worker_health.py':'f84cf0019db0e584569c129ecb268c68d42f41287b02433c3fd5135f1394e453',
             'workflow.py':'93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365',
             'publication_archive_dispatch.py':'8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7',
             'publication_archive_owned.py':'dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1',
@@ -239,7 +242,7 @@ class CurrentBase(unittest.TestCase):
          'dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),
         ('comic_retained_standalone_action.py','92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e'),
         ('api.py',
-         'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b'),
+         '2a17aca196b9876c6800d670977c715c7b63e6affd050fecfd9068a2965d2a4d'),
         ('native_writers.py',
          '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'),
         ('pack_catalog.py',

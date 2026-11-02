@@ -276,7 +276,7 @@
   },
   {
     "path": "patch_diagnostics_api.py",
-    "sha256": "4e3251b86a5b441d6ea391fba72a6da6b7c642ea1ec829b7623657d90f83447b",
+    "sha256": "8bb83ce81f922f918b9b618df2e8c24e435fb75199400421713ed4b5d8b604d6",
     "target": "patch_diagnostics_api.py"
   },
   {
@@ -806,7 +806,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "6e68b1e8e3e6a48c78ea72712346c9cf6667350c117121315b2f28c6a7d7826d",
+    "sha256": "907a3fe6605eba78246d4f6a312d28cc2edceb4f455dc806985b9fdb0571be5e",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "914261f3f128dc7fb2cccd202ab55bb52fa1bd6cbf8f00118655e8ff2268eff3",
+    "sha256": "4ed892cc3c37ff60c03e50e725420017f19ccd13d020a198ca54743a4410b58c",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1366,7 +1366,7 @@
   },
   {
     "path": "test_health.py",
-    "sha256": "33e83ebcf3416418061b64ebd625f0de12481d3ac29c20a999656a36492bd283",
+    "sha256": "adea13572d8b9dedd42e98d5709bc82e867776604cdb96e838bc1c446d922bf6",
     "target": "test_health.py"
   },
   {
@@ -1986,7 +1986,7 @@
   },
   {
     "path": "test_verify_status_routing.py",
-    "sha256": "9329ff70c54e3536bfb52eaaa9bc86d86b4ff9b09dbda5fd10a031f856bf4276",
+    "sha256": "3e87820038af0f4988959b8bc46c63ff40856878774dacbe67315e02e3cc4f25",
     "target": "test_verify_status_routing.py"
   },
   {
@@ -2021,7 +2021,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "6cf5c6c04216ddcd1397d58eef7b12759cc6a223445799c377244f6a5f68afcd",
+    "sha256": "fbec2ce7425bb6abf1fda616d8e63d093ebc3fcc45bdd7e48471d5fb45aad56e",
     "target": "verify_image.py"
   },
   {
@@ -2036,7 +2036,7 @@
   },
   {
     "path": "worker_health.py",
-    "sha256": "f84cf0019db0e584569c129ecb268c68d42f41287b02433c3fd5135f1394e453",
+    "sha256": "3130461e36e70e861cedf1fbd96ea69d1df18cc16caf626afbc35b339cb33b20",
     "target": "worker_health.py"
   },
   {
@@ -2066,7 +2066,7 @@
   },
   {
     "path": "standalone_launch_host/comic_native_process_probe.py",
-    "sha256": "86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407",
+    "sha256": "41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861",
     "target": "standalone_launch_host/comic_native_process_probe.py"
   },
   {
@@ -2081,12 +2081,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "e7ffb0f50a9e224f8f43645b9ebdb62a07f04a1a6390b04c9877f23505774fc6",
+    "sha256": "92c84eff2f49afebeb4d35dce741aee4c10f2b2b9f25ae265f63651ac6ec4bd7",
     "target": "standalone_launch_host/comic_retained_standalone_broker.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "a8dba9570b2179d115b1b85924b97548e3263705ff1b37897d86a0521cae458c",
+    "sha256": "def818b27972f2837d51b7bae868aa89ab2bcf3d24b442ecfc9ec18fea148655",
     "target": "standalone_launch_host/comic_retained_standalone_parent.py"
   },
   {

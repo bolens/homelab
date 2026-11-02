@@ -60,13 +60,22 @@ class LocalEnvironment(unittest.TestCase):
         c=patch.multiple(P,**values);c.start();self.addCleanup(c.stop)
         c=patch.object(P,'native_gate',return_value={});c.start();self.addCleanup(c.stop)
         c=patch.object(P,'lifecycle_module',return_value=L);c.start();self.addCleanup(c.stop)
-        def fresh(call,container_id):
+        self.health_modes=[]
+        def fresh(call,container_id,*,wait_writer=False):
             raw=call(['explicit-fake-daemon-probe'],P.READY.read_bytes())
             publication=json.loads(raw.stdout if hasattr(raw,'stdout') else raw)['api_response']['data']['publication']
+            self.health_modes.append((wait_writer,publication['state'],publication['reason']))
             return {'publication':publication,'process':{'pid':11,'start_ticks':17,'argv':['explicit-fixture']},'config':{'path':'/config/config.ini','sha256':'f'*64,'signature9':[1]*9}}
         c=patch.object(P,'fresh_native',side_effect=fresh);c.start();self.addCleanup(c.stop)
 
 class FullLifecycleControls(LocalEnvironment):
+    def test_waiting_unlocked_observations_and_zero_wait_owned_lease_are_distinct(self):
+        self.fixture()
+        self.assertTrue(any(wait for wait,_,_ in self.health_modes))
+        self.assertTrue(any(not wait for wait,_,_ in self.health_modes))
+        for wait,state,reason in self.health_modes:
+            self.assertEqual(wait,(state,reason)!=('held','writer-busy'))
+
     def fixture(self, failure=None, optional_fonts=False, use_core=False, return_factual=False, ready=False, protected_optional_parent=False):
         tmp = tempfile.TemporaryDirectory(prefix='active-nfs-whole-local-')
         self.addCleanup(tmp.cleanup)
@@ -613,8 +622,8 @@ class FreshProcessControls(LocalEnvironment):
             result=original_write(path,value)
             if Path(path).name=='acceptance.json' and Path(path).parent.name=='probe':phase.append(True)
             return result
-        def fresh(call,cid):
-            result=original_fresh(call,cid)
+        def fresh(call,cid,*,wait_writer=False):
+            result=original_fresh(call,cid,wait_writer=wait_writer)
             if phase:result['process'][role]+=1
             return result
         with patch.object(P,'write',side_effect=emit),patch.object(P,'fresh_native',side_effect=fresh),self.assertRaisesRegex(P.Held,'post-probe-active-bracket'):
@@ -701,6 +710,20 @@ class RefusalACKControls(unittest.TestCase):
                 self.assertIs(value[key],False)
 
 class NativeProjectionDiagnostics(unittest.TestCase):
+    def test_initial_unlocked_refusal_retains_finite_state_without_payload(self):
+        for reason in ('writer-busy','authority-unavailable','media-pending','private-value'):
+            value=dict(state='held',reason=reason,census=None,credential='private-value')
+            with patch.object(P.os,'write')as write,self.assertRaisesRegex(P.Held,'unlocked-native-state'):
+                P.unlocked_publication(value)
+            report=json.loads(write.call_args.args[1])
+            self.assertEqual(report['kind'],'nfs-unlocked-native-rejected')
+            self.assertEqual(report['reason'],reason if reason!='private-value'else'other')
+            self.assertNotIn(b'private-value',write.call_args.args[1])
+
+    def test_initial_refusal_survives_diagnostic_io_failure(self):
+        with patch.object(P.os,'write',side_effect=OSError('private')),self.assertRaisesRegex(P.Held,'unlocked-native-state'):
+            P.unlocked_publication(dict(state='held',reason='writer-busy',census=None))
+
     def test_success_keeps_original_projection_without_output(self):
         original=object();value={'publication':{'state':'ready'}}
         with patch.object(P,'_NATIVE_PROJECTOR',return_value=original) as project,patch.object(P.os,'write') as write:

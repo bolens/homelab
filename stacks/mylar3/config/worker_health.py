@@ -2,20 +2,28 @@
 
 import os
 import time
+import math
 
 
-def snapshot():
+def snapshot(*, writer_wait=0):
+    if type(writer_wait) not in (int, float) or not math.isfinite(writer_wait) or not 0 <= writer_wait <= 120:
+        raise ValueError('Invalid health Writer wait')
     if __package__:
         from . import native_writers
         if native_writers.publication_mode():
             from .media_writer import Busy
-            status=native_writers.startup_status()
-            if status['state']!='ready':return _held_snapshot(status,native_writers)
+            if writer_wait == 0:
+                status=native_writers.startup_status()
+                if status['state']!='ready':return _held_snapshot(status,native_writers)
             try:
                 # Close the status-to-operation race without the operation's long wait.
                 # This is the same existing raw Writer; native admission still runs.
                 with native_writers.owner().hold(allow_pending=True,allow_tagger_pending=True,
-                                                  allow_release_pending=True,timeout=0):
+                                                  allow_release_pending=True,timeout=writer_wait):
+                    # The earlier status is advisory. Recompute the census
+                    # under this actual hold, including after a requested wait.
+                    status=native_writers.startup_status()
+                    if status['state']!='ready':return _held_snapshot(status,native_writers)
                     with native_writers.operation():return dict(_snapshot(),publication=status)
             except Busy:
                 return _held_snapshot(dict(version=1,state='held',reason='writer-busy',census=None),native_writers)

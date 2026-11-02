@@ -26,10 +26,10 @@ HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
     'genuine_application_bootstrap.py': 'e6814fc1c4809040e24a4a96534a3e20cac4064a50b9d314bf7f4b14f92a2d3b',
     'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_reader_lifecycle_parent.py': '32dc8bc8e62bb69ad4e856f5fedaf219ffc4a1934d957646bbe4051812c0d0de',
+    'comic_reader_lifecycle_parent.py': 'f0890bec0803f0bf63017afc0cb33250b4c0ab3a12dc4b90f6f5d0adc35725d3',
     'publication_native_configured_scope.py': '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770',
 }
-PROBE_SHA = '86d3d10f84b5b71b8905db9ea911f7529ce6d3c7529f88bb0506c051a4906407'
+PROBE_SHA = '41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861'
 SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 QUEUE_SHA = '1a364068a61d9093d55228eed7596cad4e4aae923cb864b263306190f593c7fd'
 HTTP_SHA = '756b26bf25e3bf6e669ffdb5bc8eb682fda032a6b01c9c70916cce91f28d40f8'
@@ -51,10 +51,10 @@ class ReadOnlyDocker:
             need(data is None, 'capture-network-no-input'); return
         prefix = ['exec', '--interactive', '--user', '1000:1000', o.plan['roles']['native']['id'],
                   '/lsiopy/bin/python3', '-I', '-B', '-c']
-        need(type(args) is list and len(args) == 10 and args[:9] == prefix, 'capture-readonly-exec-only')
-        if args[-1] == b.IMAGE_PROGRAM:
+        need(type(args) is list and len(args) in (10,11) and args[:9] == prefix, 'capture-readonly-exec-only')
+        if len(args)==10 and args[-1] == b.IMAGE_PROGRAM:
             need(data == p.encode(sorted(o.sdk)), 'capture-original-sdk-input'); return
-        need(args[-1] == o.probe_program and type(data) is bytes, 'capture-original-probe-only')
+        need(args[9:] == [o.probe_program,'--wait-writer'] and type(data) is bytes, 'capture-original-probe-only')
         value = p.decode(data)
         need(value == o.probe_request(value.get('seconds')) and type(value['seconds']) is int
              and 1 <= value['seconds'] <= 30, 'capture-original-probe-input')
@@ -315,7 +315,7 @@ class Capture:
             self.close(); self.roles(); self.installed_sources(); self.close()
             request = self.probe_request(self.seconds())
             value = p.decode(self.engine.run(['exec', '--interactive', '--user', '1000:1000', self.plan['roles']['native']['id'],
-                '/lsiopy/bin/python3', '-I', '-B', '-c', self.probe_program], self.seconds(), p.encode(request)))
+                '/lsiopy/bin/python3', '-I', '-B', '-c', self.probe_program,'--wait-writer'], self.seconds(), p.encode(request)))
             need(type(value) is dict and set(value) == {'version', 'nonce', 'source_sha256', 'process', 'publication', 'config'}
                  and type(value['version']) is int and value['version'] == 1 and value['nonce'] == self.plan['nonce']
                  and value['source_sha256'] == PROBE_SHA and dict(process=value['process'], config=value['config']) == self.native_process

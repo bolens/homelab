@@ -588,7 +588,7 @@ def observe_recovery_original(installation,runtime,boot):
     before=runtime.inspect(runtime.ids['native']);static=runtime.static(before)
     if static!=runtime.static(runtime.baseline['native']) or before['State']['Running'] is not True or before['State']['Paused'] is not False:raise Held('fixed-recovery-original-native')
     nonce=os.urandom(32).hex();request=dict(version=1,nonce=nonce,source_sha256=sha(probe),seconds=30,module_pins=dict(row['document']['daemon_sources']),scope_source=scope_bytes.decode())
-    result=subprocess.run(['docker','exec','--interactive',runtime.ids['native'],'python3','-I','-B','-c',probe.decode()],input=canonical(request),capture_output=True,timeout=45,check=True)
+    result=subprocess.run(['docker','exec','--interactive',runtime.ids['native'],'python3','-I','-B','-c',probe.decode(),'--wait-writer'],input=canonical(request),capture_output=True,timeout=45,check=True)
     if len(result.stdout)>1024**2:raise Held('fixed-recovery-probe-bound')
     value=json.loads(result.stdout)
     if type(value) is not dict or set(value)!={'version','nonce','source_sha256','process','publication','config'} or type(value['version']) is not int or value['version']!=1 or value['nonce']!=nonce or value['source_sha256']!=sha(probe):raise Held('fixed-recovery-probe-original')

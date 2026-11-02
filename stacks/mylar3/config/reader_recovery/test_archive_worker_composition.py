@@ -410,6 +410,127 @@ class Tests(unittest.TestCase):
    with self.assertRaisesRegex(p.Held,'native-writer-busy'):p.ArchiveCompletionExclusion(frames)
    self.assertIsNone(self.worker_row)
   finally:os.close(fd)
+ def completion_holder(self,path):
+  code="import fcntl,os,sys;fd=os.open(sys.argv[1],os.O_RDWR);fcntl.flock(fd,fcntl.LOCK_EX);print('held',flush=True);sys.stdin.buffer.read(1)"
+  with patch.object(p.subprocess,'Popen',self.real_spawn):
+   child=subprocess.Popen([sys.executable,'-I','-B','-c',code,str(path)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  def cleanup():
+   if child.poll()is None:child.kill()
+   with patch.object(p.subprocess,'Popen',self.real_spawn):child.communicate(timeout=3)
+  self.addCleanup(cleanup);self.assertEqual(child.stdout.readline(),b'held\n');return child
+ def release_on_contention(self,child,change=lambda:None):
+  original=p.fcntl.flock;released=[]
+  def flock(fd,flags):
+   try:return original(fd,flags)
+   except BlockingIOError:
+    if not released:
+     released.append(True);change();child.stdin.write(b'x');child.stdin.flush()
+    raise
+  return patch.object(p.fcntl,'flock',side_effect=flock),released
+ def test_completion_wait_acquires_original_fd_in_parent_after_actual_competitor(self):
+  path,frames=self.completion_lock();child=self.completion_holder(path);hook,released=self.release_on_contention(child)
+  with hook:lock=p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+  try:
+   self.assertEqual(released,[True]);self.assertTrue(p.completion_fd_locked(lock.fd,frames[1][0][1]))
+   self.assertTrue(p.completion_fd_locked(lock.witness,frames[1][0][1]));lock.check()
+   self.assertNotEqual(self.competing_lock(path),0)
+  finally:lock.close()
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_wait_expiry_closes_original_descriptors_without_terminal(self):
+  path,frames=self.completion_lock();self.completion_holder(path);before=set(os.listdir('/proc/self/fd'))
+  with self.assertRaisesRegex(p.Held,'acquisition-deadline'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+.02)
+  self.assertEqual(set(os.listdir('/proc/self/fd')),before);self.assertIsNone(self.worker_row)
+ def test_completion_wait_source_drift_refuses_before_terminal(self):
+  path,frames=self.completion_lock();source=self.root/'waiting-source';ref=fixture_ref(source,b'original')
+  child=self.completion_holder(path);hook,_=self.release_on_contention(child,lambda:source.write_bytes(b'changed'))
+  with hook,self.assertRaisesRegex(p.Held,'original-source-drift'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3,originals=(ref,))
+  self.assertIsNone(self.worker_row)
+ def test_completion_wait_replaced_lock_inode_refuses(self):
+  path,frames=self.completion_lock();child=self.completion_holder(path)
+  def change():
+   path.rename(path.with_suffix('.retained'));path.write_bytes(b'mylar-media-writer-v1\n');path.chmod(0o600)
+  hook,_=self.release_on_contention(child,change)
+  with hook,self.assertRaisesRegex(p.Held,'original-FD'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+  self.assertIsNone(self.worker_row)
+ def test_completion_wait_census_drift_still_refuses_after_acquisition(self):
+  path,frames=self.completion_lock();child=self.completion_holder(path);hook,_=self.release_on_contention(child,lambda:self.marker.write_bytes(b'changed-census'))
+  with hook,self.assertRaisesRegex(p.Held,'lock-file'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+  self.assertIsNone(self.worker_row);self.assertEqual(self.competing_lock(path),0)
+ def test_completion_wait_definition_substitution_refuses_without_foreign_check(self):
+  path,frames=self.completion_lock();child=self.completion_holder(path);original=p.ArchiveCompletionExclusion.check;foreign=[]
+  def check(_):foreign.append(True)
+  hook,_=self.release_on_contention(child,lambda:setattr(p.ArchiveCompletionExclusion,'check',check))
+  try:
+   with hook,self.assertRaisesRegex(p.Held,'original-definitions'):
+    p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+   self.assertEqual(foreign,[])
+  finally:p.ArchiveCompletionExclusion.check=original
+ def test_completion_successful_acquisition_rejects_replaced_checker_before_dispatch(self):
+  path,frames=self.completion_lock();original=p.ArchiveCompletionExclusion.check;flock=p.fcntl.flock;foreign=[]
+  def check(_):foreign.append(True)
+  def acquire(fd,flags):
+   result=flock(fd,flags);p.ArchiveCompletionExclusion.check=check;return result
+  before=set(os.listdir('/proc/self/fd'))
+  try:
+   with patch.object(p.fcntl,'flock',side_effect=acquire),self.assertRaisesRegex(p.Held,'original-definitions'):
+    p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+   self.assertEqual(foreign,[]);self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+  finally:p.ArchiveCompletionExclusion.check=original
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_definition_defaults_never_dispatch_foreign_equality(self):
+  calls=[]
+  class Foreign:
+   def __eq__(self,other):calls.append(True);return True
+  for name in ('deadline','originals','_clock','_pause'):
+   values=p.ArchiveCompletionExclusion.__init__.__kwdefaults__;old=values[name];values[name]=Foreign()
+   try:
+    with self.subTest(default=name),self.assertRaisesRegex(p.Held,'original-definitions'):p.completion_definitions_guard()
+   finally:values[name]=old
+  for method in (p.ArchiveCompletionExclusion.check,p.ArchiveCompletionExclusion.close,p.archive_completion_guard):
+   old=method.__defaults__;method.__defaults__=tuple(Foreign()for _ in old)
+   try:
+    with self.subTest(method=method.__name__),self.assertRaisesRegex(p.Held,'original-definitions'):p.completion_definitions_guard()
+   finally:method.__defaults__=old
+  self.assertEqual(calls,[])
+ def test_completion_wait_foreign_scheduler_never_invoked(self):
+  path,frames=self.completion_lock();self.completion_holder(path)
+  with patch.object(p.time,'sleep')as foreign,self.assertRaisesRegex(p.Held,'original-wait-clock'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+  foreign.assert_not_called();self.assertIsNone(self.worker_row)
+ def test_completion_wait_invalid_deadline_never_acquires(self):
+  path,frames=self.completion_lock()
+  for deadline in (True,-1,float('inf'),float('nan'),'3'):
+   with self.subTest(deadline=deadline),self.assertRaisesRegex(p.Held,'original-deadline'):
+    p.ArchiveCompletionExclusion(frames,deadline=deadline)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_wait_original_directory_drift_refuses(self):
+  path,frames=self.completion_lock();child=self.completion_holder(path);hook,_=self.release_on_contention(child,lambda:path.parent.chmod(0o750))
+  try:
+   with hook,self.assertRaisesRegex(p.Held,'lock-directory'):
+    p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+   self.assertIsNone(self.worker_row)
+  finally:path.parent.chmod(0o700)
+ def test_completion_wait_original_protocol_remains_required(self):
+  path,frames=self.completion_lock();path.write_bytes(b'x'*len(b'mylar-media-writer-v1\n'))
+  frames=(frames[0],((str(path),tuple(p.nine(path.lstat()))),frames[1][1]));child=self.completion_holder(path);hook,_=self.release_on_contention(child)
+  with hook,self.assertRaisesRegex(p.Held,'original-protocol'):
+   p.ArchiveCompletionExclusion(frames,deadline=time.monotonic()+3)
+  self.assertEqual(self.competing_lock(path),0)
+ def test_completion_wait_expiry_after_acquisition_releases_both_descriptors(self):
+  path,frames=self.completion_lock();source=self.root/'waiting-source';ref=fixture_ref(source,b'original')
+  original=p.read;reads=[];deadline=time.monotonic()+.1
+  def read(value,private=True):
+   raw=original(value,private=private);reads.append(True)
+   if len(reads)==2:time.sleep(max(0,deadline-time.monotonic())+.01)
+   return raw
+  before=set(os.listdir('/proc/self/fd'))
+  with patch.object(p,'read',side_effect=read),self.assertRaisesRegex(p.Held,'acquisition-deadline'):
+   p.ArchiveCompletionExclusion(frames,deadline=deadline,originals=(ref,))
+  self.assertEqual(set(os.listdir('/proc/self/fd')),before);self.assertEqual(self.competing_lock(path),0)
  def test_completion_exclusion_original_file_drift_refuses(self):
   path,frames=self.completion_lock();os.utime(path,ns=(path.stat().st_atime_ns,path.stat().st_mtime_ns+1))
   with self.assertRaisesRegex(p.Held,'original-FD'):p.ArchiveCompletionExclusion(frames)
