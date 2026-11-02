@@ -87,7 +87,8 @@ also support Windows-1252 and preserve that encoding when references change.
 Malformed UTF-16, binary
 control characters and cue-referenced files remain protected.
 Scene `.nfo` files support Windows-1252 text and CP437 box art with accented
-letters and middle dots. The entire file must pass the text checks. Binary
+letters, middle dots and the scene symbols `∙`, `¼`, `«`, `»` and `⌐`.
+The entire file must pass the text checks. Binary
 controls, undefined Windows-1252 bytes and unsupported CP437 glyphs remain
 protected. Adjacent drawing glyphs keep malformed box art from being retried as
 Windows text. Lyrics files with an `.lrc` suffix use the normal text cleanup rules.
@@ -95,6 +96,16 @@ Binary SRR recovery sidecars are recognised by the ReScene marker and valid
 bounded application header, including files with obfuscated names. Unknown or
 malformed binary files remain retained. Named audio/video and cue-referenced
 files remain protected.
+
+Synology `@SynoEAStream` files are removed only when their complete payload is
+an [AppleDouble v2](https://www.rfc-editor.org/rfc/rfc1740#appendix-B) header
+within 64 KiB, containing FinderInfo/attributes and an empty resource fork.
+The two entries must cover the payload exactly. Extended attributes must contain
+only one bounded `com.apple.provenance` record with valid header, name, offsets,
+lengths and padding. Other attributes stay retained. Data forks, nonempty resource
+forks, unknown entries, gaps, trailing bytes and malformed headers are retained.
+Recognised media and cue references remain protected, and metadata-only releases
+still trigger the existing empty-output guard.
 
 Obfuscated posting names ending in the scene hash, a `newzNZB` or `WtFnZb` tag,
 and `yEnc` fields support UTF-8 and Windows-1252 SFV checksum lists and release

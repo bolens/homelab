@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.30",
+  "version": "1.31",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -30,7 +30,7 @@
     "Offers explicit --preview and checksum-verified --recover commands for a selected release or retained workspace.",
     "Skips failed or repairable NZBGet downloads without cleanup and validates tagged FLAC track counts within separate album/disc groups, including numbered gaps and duplicates when totals are absent.",
     "Optionally decodes recognised audio with ffmpeg before publication; errors preserve originals and archives. Protect .cue files with NZBGet RenameIgnoreExt.",
-    "Recognises CP437 box-art scene NFO sidecars with accented text and middle dots, while retaining unknown binary files and cue-referenced sidecars.",
+    "Recognises CP437 box-art scene NFO sidecars with accented text, middle dots and printable scene symbols, while retaining unknown binary files and cue-referenced sidecars.",
     "Reconciles nonempty track/disc tag aliases, rejects declared missing discs, and preserves album folder boundaries when flattening would merge independent groups.",
     "Optional RequireCompleteness rejects audio without a known track count, complete covering local playlist or cue-image evidence; retains playlists and updates their paths for repeatable processing.",
     "Requires distinct resolved playlist audio paths, applies reconciled metadata to obfuscated playlist matching, and confines disc grouping to the selected release tree.",
@@ -39,6 +39,7 @@
     "Removes UTF-8 album_info posting sidecars, including short alphanumeric prefixes, only with album, artist and numbered tracklist fields within 64 KiB; retains unknown text, media and cue references.",
     "Recognises BOM-marked UTF-16 text sidecars, including EAC logs, while retaining malformed data, named media and cue references.",
     "Recognises Windows-1252 NFOs and explicit M3U playlists, preserving playlist encoding and completeness checks; removes bounded UTF-8 or Windows-1252 NFO/SFV files with matching newzNZB or WtFnZb obfuscated posting names.",
+    "Removes bounded Synology @SynoEAStream AppleDouble v2 metadata with exactly FinderInfo, optional validated com.apple.provenance attributes and an empty resource fork; retains media, cue references and unproven payloads.",
     "Runs only for the music category and removes archives after successful extraction."
   ],
   "options": [
