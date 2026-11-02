@@ -265,8 +265,42 @@ The native and never-started worker profiles remain exact. The adapter retains
 the first accepted stopped row and compares later observations exactly.
 
 An optional-absence parent keeps its full9 checks through both pre-ready
-closures. The retained canary keeps that directory's original identity5 and the
-exact absent path, allowing ordinary reader shutdown to change directory size
-and timestamps. A path also classified as a control, protected root or owned
-output directory keeps its full9 obligation. No new baseline is adopted after
-readiness.
+closures unless it is one of the proven live-service directories below. The
+retained canary keeps the directory's original identity5 and exact absent path,
+allowing ordinary reader shutdown to change directory size and timestamps.
+Controls and owned output directories retain full9. No new identity baseline is
+adopted after readiness.
+
+### Live-service directory checks in the configured NFS observer
+
+The original configured child may request one `nfs-readonly-roots` observation
+before lease initialization. The Parent joins its original helper ID, process
+start ticks, complete profile, registered session and deadline to actual kernel
+mount information. Namespace node checks run as fixed UID/GID1000 without
+supplementary groups through the original Root-opened namespace descriptor.
+Both invocations retain the original minimum Parent/dialogue deadline. Root
+keeps process and mount observations, with no credential switch in the Parent.
+Every protected bind and descendant must be read-only, with
+no writable physical alias, hidden bind or propagating ancestor. Only the two
+original disjoint private operation/staging binds may be writable application
+binds. The observation retains the original full9 directory facts as evidence
+and grants no mutation or publication authority.
+
+Only protected directories that are exact original native/reader writable mount
+sources use identity5 in configured continuity, release and terminal checks.
+Their owning running service can change directory entries while the observer
+cannot write them. The same original file9/node5 split reaches private staging
+creation and canary cleanup helpers. Those helpers still receive every protected
+root for overlap and physical-alias guards, and retain exact owned-file and
+directory deletion checks. Their public standalone wrappers stay strict. Other protected roots, regular files, immutable controls,
+fixture/output directories and staging geometry keep their full9 checks. Direct
+optional-path absence checks remain required. Library contents, archives,
+databases and reader preservation are separate acceptance obligations.
+
+The child accepts this observation only over its source-checked original pipe
+interface within the existing authenticated lifetime. It joins the observed
+process and root identities to its own originals and exact role mount records.
+The retained proof slot uses object identity, is consumed before transport and
+cannot be retried after a lost response. No saved JSON, standalone invocation or
+caller flag can select the relaxed directory comparison. Under the Writer,
+continuation uses the retained local facts and performs no mount/Docker query.

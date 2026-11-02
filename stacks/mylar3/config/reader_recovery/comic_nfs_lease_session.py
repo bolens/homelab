@@ -119,6 +119,13 @@ class ChildLeaseInterface:
         sequence=c.send('nfs-reader-epoch',{})
         result=c.receive(sequence);self.admit()
         return epoch_reply(result)
+    def readonly_roots(self):
+        self.admit()
+        need(not self.started and not self.released and not getattr(self,'readonly_requested',False),
+             'lease-interface-readonly-once-before-lease')
+        self.readonly_requested=True
+        c=self.channel;sequence=c.send('nfs-readonly-roots',{})
+        result=c.receive(sequence);self.admit();return result
     def _call(self,operation,absent=()):
         self.admit();c=self.channel;c.close();sequence=c.send('nfs-lease',dict(operation=operation,absent=list(absent),empty=self.empty if operation=='initialize' else None));result=c.receive(sequence);c.close();return result
     def prepare(self):

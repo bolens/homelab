@@ -54,6 +54,17 @@ names, hashes and original signatures, rather than copying current file totals
 between templates. Keep resource ceilings separate from census values. A changed
 inventory requires a fresh binding, not adaptation of an already armed attempt.
 
+For protected directory checks, distinguish immutable owned namespaces from
+live-service mount roots. Directory entry churn is not an identity change.
+Any configured observer using identity/owner/mode checks must first prove its
+original realized read-only namespace, including descendants and writable
+aliases, and retain that proof in the genuine original session. Keep file,
+control, fixture, direct-absence and independent data-preservation checks strict.
+A top-level Docker read-only flag or saved observation alone is insufficient.
+A Root-opened directory descriptor does not bypass NFS search permissions.
+Read namespace metadata as its fixed owning principal, retaining the original
+descriptor, process and deadline checks.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

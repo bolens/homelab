@@ -81,13 +81,18 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 - [x] T016 After T012 connected readiness and T015 matching-source/image delivery, coordinate the affected writers and validate or create a measured application-consistent backup with independently verified isolated restore for the exact live operation. Capture fresh affected archive/owner/catalog/reader state and actual image/process/configuration bindings; retain a compatible rollback image. Follow `stacks/mylar3/README.md` and `stacks/komga/README.md` for any necessary scoped rollout, normal Mylar startup and brief per-operation exclusion. Reuse an existing verified backup only while its original scopes/state still cover this operation; otherwise refresh through the owning backup route. Record private evidence digests without starting the experimental bulk worker.
 - [ ] T017 [US3] With T016 backup/restore and fresh owning admission, execute the selected supported retained-original repair through the dedicated configured `archive-one` route in `stacks/mylar3/config/publication_archive_owned.py`, not the disposable fixture transition or generic import. Compare exact original/repaired members, pages, compressed bytes, metadata, native owner/catalog/census and affected reader records; require genuine terminal vectors and intended native/worker factual consumption. Preserve the four failed selected histories; reconcile a current DDL capture only from actual ordinary import and a fresh matching catalog-to-ACK event; prove guarded repeat handling without replay or manufactured historical ACKs. Record feature 022/023 joins and retain originals on uncertainty; do not release general writers prematurely.
 
-  Configured admission is delivered in #562. Its actual native image passes
-  installed-source, health, fresh backup/restore and preservation checks. See the
-  [configured-admission rollout](evidence-history.md#configured-admission-rollout--2026-10-31).
-  Install matching private controls, then capture fresh configured inputs and
-  carry the selected original through action v5 with its actual
-  catalog/preparation join. Keep disposable geometry strict and use this
-  existing acceptance gate without another fixture generation or task series.
+  The current native image and rollout preservation are verified through #579.
+  Host-only #583 is merged and its source-cohort check passed, but the fresh
+  selected repair held before reader stop on a protected-directory metadata
+  comparison. No accepted terminal or archive mutation followed. The complete
+  two-root library baseline is retained, covering 6,668 entries and all file
+  bytes. The current correction proves observer read-only confinement and
+  distinguishes live-service directory identity from entry churn across
+  continuity, staging, cleanup and terminal consumers. Deliver matching host
+  controls, then make one fresh owning attempt. Reuse the unchanged accepted
+  image and isolated forward/rollback evidence. Keep the entered attempt
+  status-only and retain its original records. T017 remains incomplete until
+  actual repair, consistent reader backup/restore and terminal proof pass.
 
 - [ ] T018 [US3] After T017 scoped repair/import acceptance, verify restart reconciliation and the supported rollback/lost-response refusal evidence, then complete the protected current-library archive/owner/catalog/reader comparisons shared with feature 023 T018 before experimental bulk resumption. Feature 022 T024 separately supplies final post-bulk/idempotence acceptance. Record results in `specs/024-verified-archive-repair/tasks.md`; ordinary Mylar stays available under existing per-operation checks. Prune only conclusively accepted operation-owned copies after these gates, retaining one independently verified current backup, every unresolved original and durable failure history; do not treat a healthy service or successful Parent return as whole-library acceptance.
 

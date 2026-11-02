@@ -13,7 +13,7 @@ import time
 import uuid
 import weakref
 
-HELPER_SHA='9f63ff76823db5dbfcb15c4724566ee9d12bce331d49b607e6e4905b3808b88b'
+HELPER_SHA='b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc'
 _WINDOWS=weakref.WeakKeyDictionary()
 _FULL_PROFILES=weakref.WeakKeyDictionary()
 _PROFILE_CONTRACTS=weakref.WeakKeyDictionary()

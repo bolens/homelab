@@ -49,6 +49,13 @@ class Channel:
     def receive(self, sequence):
         self.close()
         need(sequence == self.sequence, 'original-sequence')
+        if self.calls[-1][0] == 'nfs-readonly-roots':
+            if self.readonly_proof is None:
+                raise EOFError('lost response')
+            callback = getattr(self, 'readonly_callback', None)
+            if callback is not None:
+                callback()
+            return copy.deepcopy(self.readonly_proof)
         if self.calls[-1][0] == 'nfs-reader-epoch':
             return decode(encode(self.epoch))
         return decode(encode(dict(held=True)))
