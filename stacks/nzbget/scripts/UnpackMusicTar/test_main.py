@@ -169,6 +169,52 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             main.process_release(root, cleanup=False)
             self.assertEqual((root / name).read_bytes(), payload)
 
+    def test_posting_info_requires_matching_release_date_and_footer(self) -> None:
+        name = "Artist-Example-xpost.1234abcd-_-_--_123456abcdef_ [WtFnZb] [8_8] - yEnc 1515 (1_1)"
+        payload = b"ASCII art\nRELEASE: Artist_Example\nUPLOADED DATE: 2024-February-29\n.::newz[NZB]::.\n"
+        cases = ((payload, True),
+                 (payload.replace(b"\n", b"\r\n"), True),
+                 (payload.replace(b"\n", b"\r"), True),
+                 (b"RELEASE:\r" + payload, False),
+                 (b"UPLOADED DATE:\r" + payload, False),
+                 (payload.replace(b"Artist_Example", b"Other_Example"), False),
+                 (payload.replace(b"2024-February-29", b"2023-February-29"), False),
+                 (payload.replace(b"2024-February-29", b"2024-Unknown-01"), False),
+                 (payload.replace(b"2024-February-29", b"0000-January-01"), False),
+                 (payload.replace(b"UPLOADED DATE:", b"DATE:"), False),
+                 (payload.replace(b".::newz[NZB]::.", b"other marker"), False),
+                 (payload.replace(b"ASCII art", b"RELEASE: Artist_Example"), False),
+                 (payload.replace(b"ASCII art", b"RELEASE:"), False),
+                 (payload.replace(b"ASCII art", b"UPLOADED DATE:"), False),
+                 (payload.replace(b".::newz[NZB]::.", b".::NEWZ[nzb]::."), False),
+                 (payload.replace(b"ASCII art", b"UPLOADED DATE: 2024-February-29"), False),
+                 (payload + b"extra text", False),
+                 (payload + b"\x00", False),
+                 (payload + b" " * 65536, False))
+        for raw, expected in cases:
+            with self.subTest(raw=raw[:100]), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / name
+                path.write_bytes(raw)
+                self.assertEqual(main.disposable(path), expected)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / name).write_bytes(payload)
+            before = {p.name: p.read_bytes() for p in root.iterdir()}
+            with self.assertRaises(ValueError):
+                main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
+            (root / "audio.flac").write_bytes(b"fLaC\x00audio")
+            main.process_release(root, cleanup=False)
+            self.assertEqual((root / name).read_bytes(), payload)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"audio.flac": b"fLaC\x00audio"})
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / name).write_bytes(payload)
+            (root / "album.cue").write_text(f'FILE "{name}" WAVE\n TRACK 01 AUDIO\n')
+            main.process_release(root)
+            self.assertEqual((root / name).read_bytes(), payload)
+
     def test_legacy_full_posting_sidecars_require_bounded_structured_content(self) -> None:
         wrapper = "[123]-[FULL]-[#a.b.flac@EFNet]-[ Artist-Example ]-[03_13] - _00-example.{}_ yEnc (1_1) (1_1)"
         nfo = b"Artist.......: Artist\nTitle........: Example\nGenre........: Rock\nSource.......: CDDA\n01.Song\n"
