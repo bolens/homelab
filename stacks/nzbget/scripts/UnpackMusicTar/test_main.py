@@ -23,6 +23,126 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
 
+    def test_jpeg_sidecar_extension_cleanup_protects_disguised_audio_and_binary(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                files = {"cover.jpeg": b"\xff\xd8\xff" + bytes(32),
+                         "cover.JPEG": b"\x89PNG\r\n\x1a\n" + bytes(32),
+                         "song.jpeg": audio, "unknown.jpeg": b"\x00binary"}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                 {"song.jpeg.flac": audio, "unknown.jpeg": files["unknown.jpeg"]})
+                main.process_release(root)
+
+    def test_jpeg_sidecar_keeps_cue_empty_output_and_cleanup_disabled_guards(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = b"\xff\xd8\xff" + bytes(32)
+            (root / "cover.jpeg").write_bytes(payload)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            main.process_release(root, cleanup=False)
+            self.assertEqual((root / "cover.jpeg").read_bytes(), payload)
+            cue = b'FILE "cover.jpeg" BINARY\n'
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"cover.jpeg": payload, "album.cue": cue})
+
+    @staticmethod
+    def decorated_posting_nfo() -> str:
+        return ("┌──────────────────────────────┐\n"
+                "│ Artist : Fixture Künstler    │\n"
+                "│ Album  : Example             │\n"
+                "│ Source : CD                  │\n"
+                "│ Encoder: FLAC                │\n"
+                "│ 1. Example Song         3:00  │\n"
+                "└──────────────────────────────┘\n")
+
+    def test_alternate_posting_separator_and_framed_nfo_are_cleaned(self) -> None:
+        for separator in ("___", "-_-_--_"):
+            for tag in ("WtFnZb", "newzNZB"):
+                for encoding in ("utf-8", "cp437"):
+                    for archive in (False, True):
+                        with self.subTest(separator=separator, tag=tag, encoding=encoding, archive=archive), tempfile.TemporaryDirectory() as temp:
+                            root = Path(temp)
+                            name = f"release.1234abcd{separator}123456abcdef_ [{tag}] [2_13] - yEnc  7533 (1_1)"
+                            audio = b"fLaC" + bytes(32)
+                            files = {name: self.decorated_posting_nfo().encode(encoding),
+                                     name.replace("7533", "449"): b"01-song.flac 1234abcd\r\n", "01-song.flac": audio}
+                            if archive:
+                                with zipfile.ZipFile(root / "release.zip", "w") as output:
+                                    for filename, payload in files.items():
+                                        output.writestr(filename, payload)
+                            else:
+                                for filename, payload in files.items():
+                                    (root / filename).write_bytes(payload)
+                            main.process_release(root)
+                            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"01-song.flac": audio})
+                            main.process_release(root)
+
+    def test_posting_art_cleanup_preserves_invalid_binary_and_empty_fields(self) -> None:
+        name = "release.1234abcd-_-_--_123456abcdef_ [WtFnZb] [2_13] - yEnc  7533 (1_1)"
+        art = self.decorated_posting_nfo()
+        files = {name: art.encode("cp437") + b"\xffbinary",
+                 name.replace("7533", "7534"): art.encode("cp437") + b"\x00",
+                 name.replace("7533", "7535"): art.replace("Fixture Künstler", "                ").encode("cp437"),
+                 name.replace("7533", "7536"): art.replace("│ 1. Example Song         3:00  │\n", "").encode("cp437"),
+                 name.replace("7533", "7537"): art.replace("│ Source : CD                  │\n", "").encode("cp437"),
+                 name.replace("-_-_--_", "-_-___-"): art.encode("cp437"),
+                 name.replace("7533", "7538"): b"fLaC" + bytes(32),
+                 name.replace("7533", "7539"): art.encode("cp437") + b"x" * 65536}
+        for index, encoding in enumerate(("utf-8", "cp437")):
+            files[name.replace("7533", str(7540 + index))] = art.replace("Example Song         3:00", "                        ").encode(encoding)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for filename, payload in files.items():
+                (root / filename).write_bytes(payload)
+            main.process_release(root)
+            expected = {(filename + ".flac" if filename == name.replace("7533", "7538") else filename): payload for filename, payload in files.items()}
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_posting_art_keeps_cue_empty_output_and_cleanup_disabled_guards(self) -> None:
+        name = "release.1234abcd-_-_--_123456abcdef_ [WtFnZb] [2_13] - yEnc  7533 (1_1)"
+        payload = self.decorated_posting_nfo().encode("cp437")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / name).write_bytes(payload)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            cue = f'FILE "{name}" BINARY\n'.encode()
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {name: payload, "album.cue": cue})
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / name).write_bytes(payload)
+            (root / "song.flac").write_bytes(b"fLaC" + bytes(32))
+            main.process_release(root, cleanup=False)
+            self.assertEqual((root / name).read_bytes(), payload)
+
+    def test_duplicate_decorated_posting_nfos_do_not_block_archive_audio(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            name = "release.1234abcd-_-_--_123456abcdef_ [WtFnZb] [2_13] - yEnc  7533 (1_1)"
+            payload = self.decorated_posting_nfo().encode("cp437")
+            audio = b"fLaC" + bytes(32)
+            (root / name).write_bytes(payload)
+            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                output.writestr(name, payload)
+                output.writestr("song.flac", audio)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
+
     @staticmethod
     def synology_metadata() -> bytes:
         # AppleDouble v2: FinderInfo/attributes followed by an empty resource fork.

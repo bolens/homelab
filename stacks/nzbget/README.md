@@ -66,7 +66,7 @@ built-in unpacker and removes empty subdirectories inside the processed release.
 It preserves the processing directory itself, its parents such as
 `usenet/completed/music`, and sibling release directories. An empty music
 category directory is retained.
-After successful extraction, `.accurip`, `.jpg`, `.log`, `.lrc`, `.m3u`,
+After successful extraction, `.accurip`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in
@@ -109,12 +109,14 @@ still trigger the existing empty-output guard.
 
 Obfuscated posting names ending in the scene hash, a `newzNZB` or `WtFnZb` tag,
 and `yEnc` fields support UTF-8 and Windows-1252 SFV checksum lists and release
-NFOs up to 64 KiB. Checksum
+NFOs up to 64 KiB. The hash separator must be exactly `___` or `-_-_--_`.
+NFO fields and numbered track rows can have drawing frames. CP437 NFOs
+require consecutive drawing glyphs and a bounded printable alphabet. Checksum
 lists require local audio paths and eight-digit hexadecimal CRCs on every
 non-comment entry. Release NFOs require nonempty artist and album fields, at
 least two additional release fields and a numbered track entry. Unstructured
 text, unsafe checksum paths and unidentified binary files are retained. Binary
-controls and undefined Windows-1252 bytes fail recognition. The empty-output
+controls and unsupported legacy bytes fail recognition. The empty-output
 guard still retains releases containing only disposable sidecars.
 
 Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
