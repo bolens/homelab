@@ -153,7 +153,7 @@ class LibraryQuery(unittest.TestCase):
         self.owner.left=lambda:10
         row=dict(Id='c'*64,Name='/komga',Image='sha256:'+'d'*64,Path='fixture',Args=[],Config={},HostConfig={},Mounts=[],NetworkSettings={},State=dict(Status='running',Running=True,Paused=False,Restarting=False,OOMKilled=False,Dead=False,Pid=os.getpid(),ExitCode=0,Error='',StartedAt='original-fixture-epoch',FinishedAt=''))
         self.owner.baselines={'reader':row};self.owner.inspect=lambda cid:copy.deepcopy(row)
-        self.session=SimpleNamespace(close=lambda:None,state='starting',pump=SimpleNamespace(failed=False,finished=False),engine_replies=SimpleNamespace(sequence=0),lease_replies=SimpleNamespace(lease=None,done=False))
+        self.session=SimpleNamespace(close=lambda:None,state='starting',pump=SimpleNamespace(failed=False,finished=False,deadline=time.monotonic()+10,check=lambda:None),engine_replies=SimpleNamespace(sequence=0),lease_replies=SimpleNamespace(lease=None,done=False))
         self.functions=tuple((name,getattr(a,name),getattr(a,name).__code__) for name in ('library_documents','checked_library_user','checked_library_documents','map_library_documents','encode','digest'))
         p._NFS_LIVE_SESSIONS[self.owner]=self.session
         p._NFS_LIBRARY_QUERIES[self.owner]=(p.encode(self.query),p.encode(reference(self.cfg)),a,self.functions,p.encode(dict(path=str(self.writer.lock),signature9=p.nine(self.writer.lock.lstat()))),a.RefuseRedirect,a.RefuseRedirect.redirect_request.__code__)
@@ -215,10 +215,59 @@ class LibraryQuery(unittest.TestCase):
         process=subprocess.Popen([sys.executable,'-I','-B','-c',program,str(HERE.parent),str(self.writer.root)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         try:
             self.assertEqual(process.stdout.readline(),b'held\n')
-            with self.assertRaisesRegex(p.Held,'exclusive-Writer-held'):self.run_query()
+            self.session.pump.deadline=time.monotonic()+0.2
+            with self.assertRaisesRegex(p.Held,'writer-acquisition-deadline'):self.run_query()
             self.assertEqual(self.calls,[])
         finally:
             process.stdin.close();self.assertEqual(process.wait(timeout=5),0,process.stderr.read());process.stdout.close();process.stderr.close()
+    def contended_query(self,change=None):
+        program="import fcntl,os,sys;fd=os.open(sys.argv[1],os.O_RDONLY);fcntl.flock(fd,fcntl.LOCK_EX);print('held',flush=True);sys.stdin.buffer.read();os.close(fd)"
+        process=subprocess.Popen([sys.executable,'-I','-B','-c',program,str(self.writer.lock)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        original_run=subprocess.run;waits=[]
+        def release_then_wait(argv,**options):
+            self.assertEqual(options['pass_fds'],(int(argv[-1]),))
+            self.assertEqual(options['stdin'],subprocess.DEVNULL)
+            self.assertGreater(options['timeout'],0)
+            self.assertLessEqual(options['timeout'],10)
+            waits.append(True)
+            process.stdin.close()
+            self.assertEqual(process.wait(timeout=5),0,process.stderr.read())
+            if change:change()
+            return original_run(argv,**options)
+        try:
+            self.assertEqual(process.stdout.readline(),b'held\n')
+            with patch.object(p.subprocess,'run',side_effect=release_then_wait):
+                result=self.run_query()
+            self.assertEqual(waits,[True]);return result
+        finally:
+            if not process.stdin.closed:process.stdin.close()
+            process.wait(timeout=5);process.stdout.close();process.stderr.close()
+    def test_kernel_acquisition_after_competing_writer_release_runs_gets_once(self):
+        def excluded():
+            fd=os.open(self.writer.lock,os.O_RDONLY)
+            try:
+                with self.assertRaises(BlockingIOError):fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            finally:os.close(fd)
+        self.callback=excluded
+        self.contended_query();self.assertEqual(len(self.calls),3)
+        # The waiter exits, but its inherited description keeps the Parent's
+        # shared flock through each GET. The separate interlock test exercises
+        # the same property for the immediate-acquisition path.
+    def test_kernel_acquisition_after_release_retains_exact_initial_reply(self):
+        before=self.run_query();self.released_fixture();after=self.contended_query()
+        self.assertEqual(before['payload'],after['payload']);self.assertEqual(len(self.calls),6)
+    def test_source_drift_during_kernel_wait_refuses_before_get(self):
+        with self.assertRaises(p.Held):
+            self.contended_query(lambda:self.cfg.write_text('{}'))
+        self.assertEqual(self.calls,[])
+    def test_failed_session_during_kernel_wait_refuses_before_get(self):
+        with self.assertRaisesRegex(p.Held,'original-session'):
+            self.contended_query(lambda:setattr(self.session,'state','failed'))
+        self.assertEqual(self.calls,[])
+    def test_expired_dialogue_after_kernel_wait_refuses_before_get(self):
+        with self.assertRaisesRegex(p.Held,'original-deadline'):
+            self.contended_query(lambda:setattr(self.session.pump,'deadline',time.monotonic()-1))
+        self.assertEqual(self.calls,[])
     def test_shared_interlock_blocks_exclusive_acquisition_during_each_get(self):
         def attempted():
             program="import os,fcntl,sys;f=os.open(sys.argv[1],os.O_RDONLY);\ntry:fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)\nexcept BlockingIOError:sys.exit(7)\nsys.exit(0)"
@@ -366,7 +415,7 @@ class NativeLibraryQuery(unittest.TestCase):
         self.owner.inspect=lambda cid:copy.deepcopy(next(row for row in self.owner.baselines.values()if row['Id']==cid))
         self.owner.emit=lambda name,value:None
         self.helper_calls=[]
-        def helper(image,reader,route,body,seconds,guard,record):
+        def helper(image,reader,route,body,seconds,guard,record,remaining):
             guard();self.helper_calls.append((image,reader['Id'],route,body));result=self.remote([],input=body);guard();return result.stdout
         self.owner.engine.library_get=helper
     def test_no_common_network_selects_original_worker_reader_namespace(self):
@@ -429,6 +478,15 @@ class NativeLibraryQuery(unittest.TestCase):
             self.execs.append((argv,kwargs));return subprocess.CompletedProcess(argv,2,b'',b'SECRET_FAILURE')
         self.owner.engine.canary=failed
         with self.assertRaisesRegex(p.Held,'native-query-held'):self.run_query()
+        self.assertEqual(len(self.execs),1);self.assertEqual(self.calls,[])
+    def test_native_transport_timeout_uses_tighter_original_dialogue_budget(self):
+        self.session.pump.deadline=time.monotonic()+1
+        def stalled(argv,**options):
+            self.execs.append((argv,options))
+            self.assertGreater(options['timeout'],0);self.assertLessEqual(options['timeout'],1)
+            raise subprocess.TimeoutExpired(argv,options['timeout'])
+        self.owner.engine.canary=stalled
+        with self.assertRaises(subprocess.TimeoutExpired):self.run_query()
         self.assertEqual(len(self.execs),1);self.assertEqual(self.calls,[])
     def test_client_source_drift_refuses(self):
         original=p.NATIVE_LIBRARY_GET
@@ -502,7 +560,17 @@ class ReaderNetworkHelper(unittest.TestCase):
     def record(self,name,value):
         self.records.append((name,value));self.events.append(('record',name.rsplit('-',1)[-1]))
         target=self.record_root/name;raw=p.encode(value);target.write_bytes(raw);target.chmod(0o600);return reference(target)
-    def run_get(self):return self.engine.library_get(self.image,self.reader,'/api/v2/users/me',self.body,10,self.guard,self.record)
+    def run_get(self):return self.engine.library_get(self.image,self.reader,'/api/v2/users/me',self.body,10,self.guard,self.record,getattr(self,'remaining',lambda:10))
+    def test_each_helper_command_uses_current_original_budget(self):
+        self.remaining=lambda:0.125
+        self.run_get()
+        self.assertTrue(all(0<options['timeout']<=0.125 for _,options in self.calls))
+    def test_stalled_helper_start_keeps_original_budget_and_no_replay(self):
+        self.remaining=lambda:0.125;self.timeout='start'
+        with self.assertRaisesRegex(p.Held,'command-unknown-no-replay'):self.run_get()
+        self.assertEqual(sum(args[0]=='start'for args,_ in self.calls),1)
+        self.assertTrue(all(0<options['timeout']<=0.125 for _,options in self.calls))
+        self.assertFalse(self.removed)
     def test_exact_owned_helper_get_profile_stdin_cleanup(self):
         self.assertEqual(self.run_get(),b'{"id":"fixture"}');self.assertTrue(self.removed);self.assertGreater(self.guard_calls,12)
         create=next(v for v,k in self.calls if v[0]=='create');self.assertEqual(create[create.index('--network')+1],'container:'+'6'*64);self.assertNotIn('SECRET',str(create));self.assertNotIn('http://komga',str(create));self.assertNotIn('--volume',create);self.assertNotIn('--mount',create)

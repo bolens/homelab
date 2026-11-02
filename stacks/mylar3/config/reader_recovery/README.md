@@ -186,8 +186,11 @@ Metadata/map validation is separate from actual installed source parity. The fix
 Configured NFS library observation uses the retained authenticated pipe with an
 empty selector and three fixed host GETs: the current unrestricted user, then
 the complete library list twice. The host seals the original endpoint/config,
-reader epoch and existing native Writer lock. A nonblocking shared lock excludes
-exclusive Writer acquisition throughout those GETs; this is read-side exclusion,
+reader epoch and existing native Writer lock. Contention waits for a kernel
+shared lock on the original open description within the existing Parent/dialogue
+deadline. After acquisition, original session/source/reader/FD checks run again
+before the GETs. Timeout, drift and failed sessions refuse without a query or
+replay. The shared lock excludes exclusive Writer acquisition throughout those GETs; this is read-side exclusion,
 not Writer admission. Only pre-acquisition and proven physical-release phases
 can query; changed replies, lost pipes and unknown phases refuse. The child
 remains network-isolated and repeats complete DTO/root validation. Its effective
