@@ -390,6 +390,51 @@ class OwnerReadTests(unittest.TestCase):
         self.assertEqual(self.uid, 0)
         self.assertEqual(self.events[-1], 0)
 
+    def test_comma_file_metadata_and_original_vector_use_filesystem_spelling(self):
+        path = self.root/'L'/'Series, Issue.cbz'; path.write_bytes(b'original')
+        fact = p.nine(path.lstat())
+        self.assertEqual(p.nine(p.nfs_lstat(path)), fact)
+        self.assertEqual(p.nine(self.actor._run('stats', (str(path),))[0]), fact)
+        self.actor.control_vector(((str(path), tuple(fact)),), ())
+        self.assertEqual(self.uid, 0)
+
+    def test_comma_directory_namespace_descriptor_and_canonical_checks(self):
+        path = self.root/'L'/'Series, Annual'; path.mkdir(mode=0o700)
+        (path/'Issue, One.cbz').write_bytes(b'original')
+        self.assertEqual(p.nfs_names(path), ('Issue, One.cbz',))
+        self.assertTrue(p.nfs_canonical(path))
+        fd = p.nfs_directory(path)
+        self.assertEqual(p.nfs_names(fd), ('Issue, One.cbz',))
+        self.actor.close_directory(fd)
+        self.actor.check()
+        self.assertEqual(self.uid, 0)
+
+    def test_comma_path_symlink_and_foreign_scope_still_refuse(self):
+        path = self.root/'L'/'Series, Link'; path.symlink_to('/etc')
+        with self.assertRaises(p.Held):self.actor.stat(path)
+        with self.assertRaises((p.Held, OSError)):self.actor.stat(path/'passwd')
+        with self.assertRaises(p.Held):self.actor.stat(self.root.parent/'Foreign, File')
+        self.assertEqual(self.uid, 0)
+
+    def test_comma_ancestor_replacement_and_validator_rebinding_refuse(self):
+        from unittest import mock
+        path = self.root/'L'/'Series, Annual'; path.mkdir(mode=0o700)
+        fd = self.actor.directory(path)
+        path.rename(path.with_name('retained-original')); path.mkdir(mode=0o700)
+        with self.assertRaises(p.Held):self.actor.check()
+        self.actor.close_directory(fd)
+        with mock.patch.object(p, 'filesystem_absolute', side_effect=AssertionError('foreign validator')) as foreign:
+            with self.assertRaises(p.Held):self.actor.stat(self.root/'L')
+            foreign.assert_not_called()
+        self.assertEqual(self.uid, 0)
+
+    def test_comma_filesystem_admission_keeps_transport_and_mutation_spelling(self):
+        value = str(self.root/'L'/'Series, Issue.cbz')
+        self.assertEqual(p.filesystem_absolute(value), Path(value))
+        with self.assertRaises(p.Held):p.absolute(value)
+        for invalid in ('relative', '/a/../b', '/a//b', '/a/./b', '/a\n/b', '/a\r/b', '/a\\b', '/a\x00b'):
+            with self.subTest(path=repr(invalid)), self.assertRaises(p.Held):p.filesystem_absolute(invalid)
+
     def test_missing_leaf_and_late_replacement_refuse_without_credential_loss(self):
         with self.assertRaises(FileNotFoundError):self.actor.stat(self.root/'L'/'missing')
         self.assertEqual(self.uid, 0)
