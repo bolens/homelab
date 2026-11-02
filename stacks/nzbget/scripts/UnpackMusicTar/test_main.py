@@ -1,6 +1,7 @@
 import contextlib
 import errno
 import io
+import itertools
 import json
 import os
 import shutil
@@ -1112,6 +1113,84 @@ class MusicProcessingSeamTest(unittest.TestCase):
             main.process_release(root)
             self.assertEqual((root / 'album.cue').read_text(), cue.replace('01 Example Song (Radio Edit).wav', '01-obfuscated.flac').replace('02 Example Song (LP Version).wav', '02-obfuscated.flac'))
             self.assertEqual({p.name: p.read_bytes() for p in root.glob('*.flac')}, before)
+
+    def test_missing_flac_cue_resolves_renamed_tracks_without_changing_audio(self) -> None:
+        for archived in (False, True):
+            with self.subTest(archived=archived), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = self.tagged_flac({'ARTIST': 'Fixture Artist', 'ALBUM': 'Example',
+                                          'TITLE': 'Example Song', 'TRACKNUMBER': '1', 'TRACKTOTAL': '1'})
+                cue = b'PERFORMER "Fixture Artist"\r\nTITLE "Example"\r\nFILE "01 Example Song.FLAC" WAVE\r\n TRACK 01 AUDIO\r\n INDEX 01 00:00:00\r\n'
+                files = {'Nested/01..Example.Song.flac': audio, 'Nested/album.cue': cue}
+                if archived:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        for name, data in files.items():
+                            output.writestr(name, data)
+                else:
+                    (root / 'Nested').mkdir()
+                    for name, data in files.items():
+                        (root / name).write_bytes(data)
+                main.process_release(root, require_completeness=True)
+                expected = {'01..Example.Song.flac': audio,
+                            'album.cue': cue.replace(b'01 Example Song.FLAC', b'01..Example.Song.flac')}
+                self.assertEqual(self.snapshot(root), expected)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), expected)
+
+    def test_cue_guest_artist_uses_explicit_matching_album_artist_and_album(self) -> None:
+        for suffix in ('wav', 'flac'):
+            for artist_key, prefix in itertools.product(('ALBUMARTIST', 'ALBUM ARTIST'), ('', 'Fixture Artist ', 'Guest Artist ')):
+                with self.subTest(suffix=suffix, artist_key=artist_key, prefix=prefix), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = self.tagged_flac({'ARTIST': 'Guest Artist', artist_key: 'Fixture Artist',
+                                              'ALBUM': 'Example', 'TITLE': 'Remix',
+                                              'TRACKNUMBER': '1', 'TRACKTOTAL': '1'})
+                    (root / 'obfuscated.flac').write_bytes(audio)
+                    cue = f'PERFORMER "Fixture Artist"\nTITLE "Example"\nFILE "01 {prefix}Remix.{suffix}" WAVE\n TRACK 01 AUDIO\n'
+                    (root / 'album.cue').write_text(cue)
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual((root / 'obfuscated.flac').read_bytes(), audio)
+                    self.assertEqual((root / 'album.cue').read_text(), cue.replace(f'01 {prefix}Remix.{suffix}', 'obfuscated.flac'))
+                    before = self.snapshot(root)
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
+
+    def test_cue_album_artist_fallback_rejects_missing_conflicting_or_wrong_identity(self) -> None:
+        for variant in ('no-album-title', 'wrong-album', 'wrong-album-artist', 'conflicting-alias', 'wrong-version', 'ambiguous'):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {'ARTIST': 'Guest Artist', 'ALBUMARTIST': 'Fixture Artist', 'ALBUM': 'Example',
+                        'TITLE': 'Remix', 'TRACKNUMBER': '1', 'TRACKTOTAL': '1'}
+                if variant == 'wrong-album-artist':
+                    tags['ALBUMARTIST'] = 'Other Artist'
+                if variant == 'conflicting-alias':
+                    tags['ALBUM ARTIST'] = 'Other Artist'
+                if variant == 'wrong-version':
+                    tags['TITLE'] = 'Remix (Live)'
+                (root / 'obfuscated.flac').write_bytes(self.tagged_flac(tags))
+                if variant == 'ambiguous':
+                    (root / 'another.flac').write_bytes(self.tagged_flac(tags))
+                title = '' if variant == 'no-album-title' else 'TITLE "Wrong"\n' if variant == 'wrong-album' else 'TITLE "Example"\n'
+                (root / 'album.cue').write_text('PERFORMER "Fixture Artist"\n' + title + 'FILE "01 Remix.flac" WAVE\n TRACK 01 AUDIO\n')
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_missing_flac_alias_keeps_existing_references_and_rejects_foreign_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = self.tagged_flac({'ARTIST': 'Fixture', 'ALBUM': 'Example', 'TITLE': 'Song',
+                                      'TRACKNUMBER': '1', 'TRACKTOTAL': '1'})
+            (root / 'existing.flac').write_bytes(audio)
+            (root / 'obfuscated.flac').write_bytes(audio)
+            (root / 'album.cue').write_text('FILE "existing.flac" WAVE\n')
+            self.assertEqual(main.read_cues(list(root.iterdir()), root)[root / 'album.cue'][2]['existing.flac'], root / 'existing.flac')
+            for reference, kind in (('01 Song.flac', 'BINARY'), ('../01 Song.flac', 'WAVE'),
+                                    ('/01 Song.flac', 'WAVE'), ('C:\\01 Song.flac', 'WAVE')):
+                (root / 'album.cue').write_text(f'PERFORMER "Fixture"\nTITLE "Example"\nFILE "{reference}" {kind}\n')
+                with self.assertRaises(ValueError):
+                    main.read_cues(list(root.iterdir()), root)
 
     def test_wave_cue_fallback_rejects_ambiguity_missing_identity_and_other_versions(self) -> None:
         tags = {'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': 'Example Song', 'TRACKNUMBER': '1'}
