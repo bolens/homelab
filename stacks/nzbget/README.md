@@ -55,7 +55,8 @@ These settings are described in [NZBGet's configuration reference](https://githu
 The bundled `UnpackMusicTar` post-processing extension extracts ZIP and
 tar-family music releases that NZBGet's built-in unpacker reports as "Nothing
 to unpack." Extracted folder trees are flattened into the release directory,
-except for numbered `CD`, `Disc`, and `Disk` folders used by multi-disc releases.
+except for numbered `CD`, `CDM`, `Disc`, and `Disk` folders used by multi-disc releases.
+Numbered CD-maxi folders such as `CDM-1` and `CDM-2` keep their boundaries.
 Disc labels such as `CD 1 - Original Mixes` and `Disc 2 (Remixes)` are also
 retained in full. Tracks with identical numbers and filenames stay in their
 separate disc folders, preserving different mixes without renaming the tracks.
