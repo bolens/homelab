@@ -260,7 +260,7 @@ class VectorProjectionTests(unittest.TestCase):
   refs={'comic_nfs_child_input_projection.py':source};raws={next(iter(refs)):Path(source['path']).read_bytes()}
   p._NFS_SOURCE_CONTEXTS[owner]=(refs,raws,p.encode(before),p.encode({}),before['operation_output'])
   p._NFS_SOURCE_SEALS[owner]=p.encode(dict(refs=refs,raw_sha={k:hashlib.sha256(v).hexdigest() for k,v in raws.items()},active=before,probe={},output=before['operation_output'],effective_absences=[]))
-  functions=tuple((module.Inputs,name,value,value.__code__) for name,value in module.Inputs.__dict__.items() if hasattr(value,'__code__'))
+  functions=tuple((module.Inputs,name,value,value.__code__,value.__defaults__,value.__kwdefaults__) for name,value in module.Inputs.__dict__.items() if hasattr(value,'__code__'))
   modules={next(iter(refs)):module};entry=(next(iter(refs)),module,module.__name__,functions)
   p._NFS_HOST_MODULES[owner]=modules;p._NFS_HOST_MODULE_SEALS[owner]=(tuple(modules.items()),(entry,))
   for registry in (p._NFS_HOST_MODULES,p._NFS_HOST_MODULE_SEALS):self.addCleanup(registry.pop,owner,None)

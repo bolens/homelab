@@ -1846,6 +1846,9 @@ def lease_profile(row, name, mounts, expected_status='created'):
     return row['Id']
 
 
+_WRITER_NAMESPACE_READERS = weakref.WeakKeyDictionary()
+
+
 class WriterLease:
     """No live-media mount/socket. The raw lock remains held across all phases."""
     def __init__(self, output, engine=subprocess.run, launcher=subprocess.Popen):
@@ -1860,11 +1863,27 @@ class WriterLease:
         self.records = {}
         self.identity = stamp(WRITER_ROOT)[:2]
         self.ancestors = ancestry([WRITER_ROOT, LIFECYCLE, output])
-        self.before = {p: fact(p) for p in WRITER_ROOT.iterdir()}
-        check('writer-v1.lock' in {p.name for p in self.before}
-              and {p.name for p in self.before} <= {'writer-v1.lock', 'normalizer-v1.pending',
-                                                   'tagger-v2.pending', 'release-v1.pending',
-                                                   'publication-v1.json'}, 'lease-writer-namespace')
+        self.namespace_module = lifecycle_module()
+        reader=self.namespace_module.namespace
+        functions=tuple((name,value,value.__code__,value.__defaults__,value.__kwdefaults__)
+                        for name,value in self.namespace_module.__dict__.items() if hasattr(value,'__code__')
+                        and value.__module__==self.namespace_module.__name__)
+        _WRITER_NAMESPACE_READERS[self]=(self.namespace_module,reader,reader.__code__,reader.__defaults__,reader.__kwdefaults__,functions)
+        self.writer_namespace = self.writer_snapshot()
+        self.before = {WRITER_ROOT/name: fact(WRITER_ROOT/name)
+                       for name, row in self.writer_namespace[0].items() if stat.S_ISREG(row[5])}
+
+    def writer_snapshot(self):
+        module,reader,code,defaults,kwdefaults,functions=_WRITER_NAMESPACE_READERS[self]
+        def original():
+            check(self.namespace_module is module and module.namespace is reader
+                  and reader.__code__ is code and reader.__defaults__ is defaults
+                  and reader.__kwdefaults__ is kwdefaults, 'lease-namespace-original-reader')
+            for name,function,original_code,original_defaults,original_kwdefaults in functions:
+                check(getattr(module,name,None) is function and function.__code__ is original_code
+                      and function.__defaults__ is original_defaults and function.__kwdefaults__ is original_kwdefaults,
+                      'lease-namespace-original-reader')
+        original();result=reader(WRITER_ROOT,owner=1000);original();return result
 
     def call(self, argv):
         r = self.engine(argv, capture_output=True, timeout=900, check=False)
@@ -1914,7 +1933,8 @@ class WriterLease:
         check(current == self.running_identity, 'lease-process-restarted')
         for p, f in self.before.items():
             check(fact(p) == f, 'lease-marker-drift')
-        check(set(WRITER_ROOT.iterdir()) == set(self.before) and stamp(WRITER_ROOT)[:2] == self.identity,
+        check(self.writer_snapshot() == self.writer_namespace
+              and stamp(WRITER_ROOT)[:2] == self.identity,
               'lease-root-drift')
         check(ancestry([WRITER_ROOT, LIFECYCLE, self.output]) == self.ancestors, 'lease-ancestor-drift')
 

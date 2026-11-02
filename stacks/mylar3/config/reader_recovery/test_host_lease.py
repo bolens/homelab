@@ -264,4 +264,131 @@ class ReleaseOrdering(unittest.TestCase):
         with self.assertRaisesRegex(m.Held,'lease-release-ACK-timeout'):c.release([])
         self.assertLess(m.time.monotonic()-start,1);self.assertFalse(c.released)
 
+@unittest.skipUnless(os.geteuid()==1000 and os.getegid()==1000,'genuine UID1000 namespace required')
+class IdentityNamespace(unittest.TestCase):
+    setUp=RealLease.setUp
+    cleanup=RealLease.cleanup
+    launch=RealLease.launch
+    def populate(self):
+        for name in ('normalizer-state-v1.identity','release-state-v1.identity','tagger-state-v2.identity'):
+            p=self.root/name;p.write_bytes(b'a'*64+b'\n');p.chmod(0o600)
+        p=self.root/'normalizer-state-adoption-v1.json';p.write_bytes(b'{}');p.chmod(0o600)
+        p=self.root/'publication-v1.json';p.write_bytes(b'{}');p.chmod(0o600)
+        self.ledger=self.root/'identity-adoptions-v1';self.ledger.mkdir(mode=0o700)
+        self.edge=self.ledger/('b'*64+'.json');self.edge.write_bytes(b'{}');self.edge.chmod(0o600)
+    def test_delivered_seven_entry_namespace_and_nested_metadata(self):
+        self.populate();root5,rows=m.namespace(self.root)
+        self.assertEqual(len(list(self.root.iterdir())),7)
+        self.assertEqual(len(rows),8);self.assertIn(str(self.edge),dict(rows))
+        self.assertEqual(root5,m.five(self.root.stat()))
+    def test_real_lease_accepts_and_preserves_supported_identity_records(self):
+        self.populate();before=m.namespace(self.root);c=self.launch();c.pulse();c.release([])
+        self.assertEqual(m.namespace(self.root),before)
+    def test_nested_record_change_refuses_before_ack(self):
+        self.populate();c=self.launch();self.edge.write_bytes(b'{"changed":true}')
+        with self.assertRaises(m.Held):c.pulse()
+    def test_nested_addition_refuses_before_ack(self):
+        self.populate();c=self.launch();p=self.ledger/('c'*64+'.json');p.write_bytes(b'{}');p.chmod(0o600)
+        with self.assertRaises(m.Held):c.pulse()
+    def test_nested_removal_refuses_before_ack(self):
+        self.populate();c=self.launch();self.edge.unlink()
+        with self.assertRaises(m.Held):c.pulse()
+    def test_original_five_markers_remain_supported(self):
+        for name in ('normalizer-v1.pending','tagger-v2.pending','release-v1.pending','publication-v1.json'):
+            p=self.root/name;p.write_bytes(b'');p.chmod(0o600)
+        self.assertEqual(len(m.namespace(self.root)[1]),5)
+    def test_empty_ledger_refuses(self):
+        self.populate();self.edge.unlink()
+        with self.assertRaisesRegex(ValueError,'writer-ledger-namespace'):m.namespace(self.root)
+    def test_ledger_edge_limit_refuses(self):
+        self.populate()
+        for n in range(9):
+            p=self.ledger/(format(n,'064x')+'.json');p.write_bytes(b'{}');p.chmod(0o600)
+        with self.assertRaisesRegex(ValueError,'writer-ledger-namespace'):m.namespace(self.root)
+    def test_oversized_or_empty_ledger_record_refuses(self):
+        self.populate()
+        for size in (0,256*1024+1):
+            self.edge.write_bytes(b'x'*size)
+            with self.assertRaisesRegex(ValueError,'writer-ledger-record'):m.namespace(self.root)
+    def test_foreign_and_pending_top_level_entries_refuse(self):
+        for name in ('foreign','normalizer-state-adoption-v1.pending','archive-repair-v1.pending'):
+            p=self.root/name;p.write_bytes(b'x');p.chmod(0o600)
+            with self.assertRaisesRegex(ValueError,'writer-namespace'):m.namespace(self.root)
+            p.unlink()
+    def test_foreign_or_nested_ledger_refuses(self):
+        self.populate();p=self.ledger/'foreign';p.mkdir()
+        with self.assertRaisesRegex(ValueError,'writer-ledger-namespace'):m.namespace(self.root)
+        p.rmdir();self.edge.unlink();self.edge.mkdir(mode=0o700)
+        with self.assertRaisesRegex(ValueError,'writer-ledger-record'):m.namespace(self.root)
+    def test_wrong_owner_and_modes_refuse(self):
+        self.populate()
+        with self.assertRaisesRegex(ValueError,'writer-private'):m.writer_namespace(self.root,owner=1001)
+        for p,mode in ((self.ledger,0o755),(self.edge,0o644)):
+            original=p.stat().st_mode;p.chmod(mode)
+            with self.assertRaises(ValueError):m.namespace(self.root)
+            p.chmod(original)
+    def test_symlink_and_hardlink_refuse(self):
+        self.populate();p=self.ledger/('c'*64+'.json');p.symlink_to(self.edge)
+        with self.assertRaisesRegex(ValueError,'writer-ledger-record'):m.namespace(self.root)
+        p.unlink();os.link(self.edge,p)
+        with self.assertRaisesRegex(ValueError,'writer-ledger-record'):m.namespace(self.root)
+    def test_legacy_constructor_preserves_the_same_supported_shape(self):
+        import comic_negative_nfs_active_parent as active
+        self.populate();sha=hashlib.sha256(HELPER.read_bytes()).hexdigest()
+        with patch.object(active,'WRITER_ROOT',self.root),patch.object(active,'LIFECYCLE',HELPER),patch.object(active,'LIFECYCLE_SHA',sha):
+            lease=active.WriterLease(Path(self.tmp.name))
+            self.assertEqual(len(lease.before),7)
+            self.assertEqual(lease.writer_namespace[0],m.writer_namespace(self.root)[0])
+    def test_legacy_cached_reader_substitution_refuses(self):
+        import comic_negative_nfs_active_parent as active
+        self.populate();sha=hashlib.sha256(HELPER.read_bytes()).hexdigest()
+        with patch.object(active,'WRITER_ROOT',self.root),patch.object(active,'LIFECYCLE',HELPER),patch.object(active,'LIFECYCLE_SHA',sha):
+            for name in ('namespace','namespace_censuses','close_vector'):
+                lease=active.WriterLease(Path(self.tmp.name))
+                setattr(lease.namespace_module,name,lambda *args,**kwargs:self.fail('foreign legacy reader dispatched'))
+                with self.assertRaisesRegex(active.Held,'lease-namespace-original-reader'):lease.writer_snapshot()
+    def test_legacy_cached_reader_default_substitution_refuses(self):
+        import comic_negative_nfs_active_parent as active
+        self.populate();sha=hashlib.sha256(HELPER.read_bytes()).hexdigest()
+        with patch.object(active,'WRITER_ROOT',self.root),patch.object(active,'LIFECYCLE',HELPER),patch.object(active,'LIFECYCLE_SHA',sha):
+            lease=active.WriterLease(Path(self.tmp.name));lease.namespace_module.namespace.__kwdefaults__={'owner':999}
+            with self.assertRaisesRegex(active.Held,'lease-namespace-original-reader'):lease.writer_snapshot()
+    def test_shared_namespace_replacement_refuses_before_dispatch(self):
+        def foreign(*args,**kwargs):self.fail('foreign snapshot dispatched')
+        with patch.object(m,'writer_namespace',foreign),self.assertRaisesRegex(m.Held,'lease-namespace-source'):
+            m.namespace(self.root)
+    def test_identity_length_refuses(self):
+        self.populate();(self.root/'normalizer-state-v1.identity').write_bytes(b'wrong')
+        with self.assertRaisesRegex(ValueError,'writer-identity-size'):m.namespace(self.root)
+
+class CheckedNamespaceLoading(unittest.TestCase):
+    def load(self):
+        import comic_reader_lifecycle_parent as parent
+        names=('comic_negative_nfs_active_lifecycle.py','comic_nfs_host_engine.py','comic_nfs_host_lease.py','comic_nfs_lease_session.py','comic_nfs_host_probe.py','comic_nfs_parent_session.py','comic_nfs_child_input_projection.py')
+        saved={name[:-3]:sys.modules.pop(name[:-3],None) for name in names}
+        def restore():
+            for key,value in saved.items():
+                sys.modules.pop(key,None)
+                if value is not None:sys.modules[key]=value
+        self.addCleanup(restore)
+        owner=object.__new__(parent.LifecycleParent);owner.left=lambda:None
+        refs={name:dict(path=str(ROOT/name)) for name in names}
+        raws={name:(ROOT/name).read_bytes() for name in names}
+        parent._NFS_SOURCE_CONTEXTS[owner]=(refs,raws,b'',b'',b'')
+        modules=owner.nfs_host_modules()
+        return owner,modules,parent
+    def test_actual_loader_uses_checked_helper_before_host_import(self):
+        owner,modules,parent=self.load()
+        self.assertIs(modules['comic_nfs_host_lease.py'].writer_namespace,modules['comic_negative_nfs_active_lifecycle.py'].namespace)
+        self.assertIs(owner.nfs_host_modules(),modules)
+    def test_joint_global_and_default_substitution_refuses_before_dispatch(self):
+        owner,modules,parent=self.load();host=modules['comic_nfs_host_lease.py']
+        def foreign(*args,**kwargs):self.fail('foreign reader dispatched')
+        host.writer_namespace=foreign;host.namespace.__defaults__=(foreign,foreign.__code__)
+        with self.assertRaisesRegex(parent.Held,'nfs-host-original-callable'):owner.nfs_host_modules()
+    def test_checked_helper_function_substitution_refuses(self):
+        owner,modules,parent=self.load();helper=modules['comic_negative_nfs_active_lifecycle.py']
+        helper.namespace=lambda *args,**kwargs:self.fail('foreign helper dispatched')
+        with self.assertRaisesRegex(parent.Held,'nfs-host-original-callable'):owner.nfs_host_modules()
+
 if __name__=='__main__':unittest.main()

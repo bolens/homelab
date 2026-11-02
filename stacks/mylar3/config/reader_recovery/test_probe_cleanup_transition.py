@@ -214,7 +214,7 @@ class IntegratedProbe(unittest.TestCase):
   session.seal=(o,session.g,self.cid,engine,session.lease_replies,session.probe_replies,(self.ref['path'],self.ref['sha256'],tuple(self.ref['signature9'])),session.output,session.host_modules_guard)
   module._SESSION_SEALS[session]=(*session.seal,session.created_static,session.lease_class,session.abort_method,session.abort_code)
   p._NFS_LIVE_SESSIONS[o]=session;self.session=session
-  entry=('comic_nfs_parent_session.py',module,name,((module.RetainedChild,'close',module.RetainedChild.close,module.RetainedChild.close.__code__),))
+  entry=('comic_nfs_parent_session.py',module,name,((module.RetainedChild,'close',module.RetainedChild.close,module.RetainedChild.close.__code__,module.RetainedChild.close.__defaults__,module.RetainedChild.close.__kwdefaults__),))
   p._NFS_HOST_MODULES[o]={'comic_nfs_parent_session.py':module};p._NFS_HOST_MODULE_SEALS[o]=(tuple(p._NFS_HOST_MODULES[o].items()),(entry,))
   child,host,nodes,directories,_,cid,pid,nonce,spec=self.row;self.row=(child,host,nodes,directories,session,cid,pid,nonce,spec);p._NFS_PROBE_ROWS[o]=self.row;self.reseal()
  def test_initial_and_final_actual_parent_closures(self):

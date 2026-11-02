@@ -1394,7 +1394,7 @@ class Paths:
         entries=[entry for entry in seal[1] if entry[0]=='comic_nfs_parent_session.py' and entry[1] is module]
         need(len(entries)==1 and type(session) is getattr(module,'RetainedChild',None),'nfs-empty-original-session-type')
         entry=entries[0];methods=[item for item in entry[3] if item[0] is type(session) and item[1]=='close']
-        need(len(methods)==1,'nfs-empty-original-session-checker');kind,_,method,code=methods[0]
+        need(len(methods)==1,'nfs-empty-original-session-checker');kind,_,method,code,defaults,kwdefaults=methods[0]
         def binding():
             bound=session.close
             need(self.owner is owner and _NFS_EMPTY_ROWS.get(owner) is row
@@ -1405,7 +1405,7 @@ class Paths:
                  and type(session) is kind and kind.close is method
                  and getattr(bound,'__self__',None) is session and getattr(bound,'__func__',None) is method
                  and method.__globals__ is module.__dict__ and method.__code__ is code
-                 and method.__defaults__ is None and method.__kwdefaults__ is None
+                 and method.__defaults__ is defaults and defaults is None and method.__kwdefaults__ is kwdefaults and kwdefaults is None
                  and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),
                  'nfs-empty-original-session-checker')
         binding();method(session);binding()
@@ -1502,7 +1502,7 @@ class Paths:
             entries=[entry for entry in seal[1] if entry[0]=='comic_nfs_parent_session.py' and entry[1] is module]
             need(len(entries)==1 and type(session) is getattr(module,'RetainedChild',None),'nfs-probe-original-session-type')
             entry=entries[0];methods=[item for item in entry[3] if item[0] is type(session) and item[1]=='close']
-            need(len(methods)==1,'nfs-probe-original-session-checker');kind,_,method,code=methods[0]
+            need(len(methods)==1,'nfs-probe-original-session-checker');kind,_,method,code,defaults,kwdefaults=methods[0]
             context_original=_NFS_SOURCE_CONTEXTS.get(owner)
             need(type(context_original) is tuple and len(context_original)==5,'nfs-probe-original-context')
             context_refs,context_raws,active_original,probe_original,output_original=context_original
@@ -1529,7 +1529,7 @@ class Paths:
                      and type(session) is kind and kind.close is method
                      and getattr(bound,'__self__',None) is session and getattr(bound,'__func__',None) is method
                      and method.__globals__ is module.__dict__ and method.__code__ is code
-                     and method.__defaults__ is None and method.__kwdefaults__ is None
+                     and method.__defaults__ is defaults and defaults is None and method.__kwdefaults__ is kwdefaults and kwdefaults is None
                      and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),
                      'nfs-probe-original-session-checker')
             binding();method(session);binding()
@@ -1748,8 +1748,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': '8d419dd75e19a1c9bf412f27aa1fb03bbbd0f1ac09c970de783188d3b770e603', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='fa816c61c29e8ec3d5c7f08a6d00aebb8b8694b1c1d5d51c2a6dfe0a8ff454a3'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'f844875b212d86063327091cf262a047d4e7d8d84eb65b697174857a297dfb89', 'comic_nfs_host_lease.py': 'c37e69139ece8547993a441f6cd036aa01288252f1b44d4cc3f74fde2ccc316e', 'comic_nfs_lease_session.py': '0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '5888f33f731856411ffcc168f2952225f142ed1c795cf8eaf5244e64e1d802f0', 'comic_negative_nfs_active_lifecycle.py': '9f63ff76823db5dbfcb15c4724566ee9d12bce331d49b607e6e4905b3808b88b', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_ACTIVE_SOURCE_SHA='4708aeafbaee8fa286083a9c2dfcfcb5c0c5de0722fa5a9f08a4c068cef2fb82'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -2838,13 +2838,13 @@ class LifecycleParent:
             need(tuple((name,module) for name,module in modules.items())==original[0],'nfs-host-original-module-table')
             for name,module,key,functions in original[1]:
                 need(sys.modules.get(key) is module and module.__file__==refs[name]['path'],'nfs-host-original-module-origin')
-                for parent,attribute,value,code in functions:
-                    need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code,'nfs-host-original-callable')
+                for parent,attribute,value,code,defaults,kwdefaults in functions:
+                    need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code and getattr(value,'__defaults__',None) is defaults and getattr(value,'__kwdefaults__',None) is kwdefaults,'nfs-host-original-callable')
             return modules
         refs,raws,_,_,_=_NFS_SOURCE_CONTEXTS[self];modules={}
         # Production host-only imports consume the checked detached buffers.
         # No SDK names, preexisting module replacement or origin patching.
-        for name in ('comic_nfs_host_engine.py','comic_nfs_host_lease.py','comic_nfs_lease_session.py','comic_nfs_host_probe.py','comic_nfs_parent_session.py','comic_nfs_child_input_projection.py'):
+        for name in ('comic_negative_nfs_active_lifecycle.py','comic_nfs_host_engine.py','comic_nfs_host_lease.py','comic_nfs_lease_session.py','comic_nfs_host_probe.py','comic_nfs_parent_session.py','comic_nfs_child_input_projection.py'):
             key=name[:-3];need(key not in sys.modules,'nfs-host-module-existing-refused')
             spec=importlib.util.spec_from_loader(key,loader=None);module=importlib.util.module_from_spec(spec);module.__file__=refs[name]['path']
             exec(compile(raws[name],module.__file__,'exec'),module.__dict__)
@@ -2854,10 +2854,10 @@ class LifecycleParent:
             functions=[]
             for attribute,value in tuple(module.__dict__.items()):
                 if callable(value) and getattr(value,'__module__',None)==module.__name__:
-                    functions.append((module,attribute,value,getattr(value,'__code__',None)))
+                    functions.append((module,attribute,value,getattr(value,'__code__',None),getattr(value,'__defaults__',None),getattr(value,'__kwdefaults__',None)))
                     if isinstance(value,type):
                         for member,method in tuple(value.__dict__.items()):
-                            if hasattr(method,'__code__'):functions.append((value,member,method,method.__code__))
+                            if hasattr(method,'__code__'):functions.append((value,member,method,method.__code__,method.__defaults__,method.__kwdefaults__))
             seals.append((name,module,name[:-3],tuple(functions)))
         self.left();_NFS_HOST_MODULES[self]=modules;_NFS_HOST_MODULE_SEALS[self]=(tuple(modules.items()),tuple(seals));return modules
 
@@ -3352,8 +3352,8 @@ class LifecycleParent:
         need(tuple((name,module) for name,module in modules.items())==original[0],'nfs-writer-window-original-module-table')
         for name,module,key,functions in original[1]:
             need(sys.modules.get(key) is module and module.__file__==_NFS_SOURCE_CONTEXTS[self][0][name]['path'],'nfs-writer-window-original-module-origin')
-            for parent,attribute,value,code in functions:
-                need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code,'nfs-writer-window-original-callable')
+            for parent,attribute,value,code,defaults,kwdefaults in functions:
+                need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code and getattr(value,'__defaults__',None) is defaults and getattr(value,'__kwdefaults__',None) is kwdefaults,'nfs-writer-window-original-callable')
         need(lease_class.window_state is record[10] and record[10].__code__ is record[11]
              and lease_class.physical_exit is record[12] and record[12].__code__ is record[13],
              'nfs-writer-window-original-physical-code')

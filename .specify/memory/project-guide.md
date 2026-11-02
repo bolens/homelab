@@ -1036,3 +1036,13 @@ query must retain distinct original role IDs, the original history start, a fres
 cutoff, foreign-actor rejection and the final source/Parent closure. Do not remove
 a guard merely because a later guard checks the same facts. An intervening
 callback may use replaced OS functions before the later guard can reject them.
+
+
+A Writer lease must preserve the complete supported Writer namespace, including
+previously delivered identity bindings and the finite adoption ledger. Share the
+namespace reader across host, UID helper and maintained legacy consumers. Keep
+root and ledger censuses distinct from flattened metadata references, and close
+both before ACK. Namespace compatibility grants no identity-adoption authority;
+unknown entries and pending adoption markers still refuse. Exercise the actual
+delivered directory shape with real acquire/pulse/release controls before a live
+attempt, rather than relying on a newly initialized lock-only fixture.
