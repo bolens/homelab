@@ -40,6 +40,8 @@ DISC_DIRECTORY = re.compile(
 )
 UNWANTED_SUFFIXES = {
     ".accurip",
+    ".htm",
+    ".html",
     ".jpg",
     ".jpeg",
     ".log",
@@ -57,6 +59,7 @@ UNWANTED_SUFFIXES = {
     ".toc",
     ".txt",
     ".url",
+    ".website",
 }
 MEDIA_SIGNATURES = (
     (b"fLaC", ".flac"),
