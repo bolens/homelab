@@ -76,6 +76,13 @@ content first, including files carrying a sidecar extension such as `.txt` or
 `.nfo`. Recognized media receives an extension instead of being deleted. This includes
 tagless MP3, ADTS AAC, and AIFF audio. MP3 and AAC recognition requires two
 consecutive valid frame headers rather than a single sync marker.
+FLAC audio preceded by a valid [ID3v2 header](https://id3.org/id3v2.4.0-structure)
+is recognised from its underlying FLAC marker and STREAMINFO block. ID3v2.2,
+2.3 and 2.4 tags up to 16 MiB are supported, including a validated 2.4 footer.
+A misleading `.mp3` suffix is corrected to `.flac` when extension repairs are
+enabled. The file bytes, including existing tags and artwork, stay unchanged.
+Completeness checks read the underlying FLAC comments. Ordinary MP3 files and
+unconfirmed or malformed wrappers keep their existing handling.
 Recognized images and PDF booklets, including files without extensions, flow
 through the normal cleanup rules. Unknown files
 are retained. Cleanup removes a file with a sidecar extension only when its

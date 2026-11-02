@@ -909,6 +909,127 @@ class MusicProcessingSeamTest(unittest.TestCase):
         cue = b"\x85\x00\x00\x01\x00" if embedded_cue else b""
         return b"fLaC" + streaminfo + comment_header + comments + cue + b"audio fixture"
 
+    @classmethod
+    def id3_flac(cls, tags: dict[str, str], *, version: int = 3, footer: bool = False) -> bytes:
+        flac = bytearray(cls.tagged_flac(tags))
+        streaminfo = struct.pack(">HH", 4096, 4096) + bytes(6)
+        streaminfo += ((44100 << 44) | (1 << 41) | (15 << 36) | 44100).to_bytes(8, "big") + bytes(16)
+        flac[8:42] = streaminfo
+        title = b"\x00Fixture title"
+        frame = ((b"TT2" + len(title).to_bytes(3, "big")) if version == 2
+                 else b"TIT2" + len(title).to_bytes(4, "big") + bytes(2)) + title
+        body = frame + (b"" if footer else bytes(5000))
+        size = bytes((len(body) >> shift) & 127 for shift in (21, 14, 7, 0))
+        header = b"ID3" + bytes((version, 0, 16 if footer else 128)) + size
+        return header + body + (b"3DI" + header[3:] if footer else b"") + flac + b"TAG" + bytes(125)
+
+    def test_id3_flac_is_repaired_without_changing_tags_artwork_or_payload(self) -> None:
+        tags = {"ALBUM": "Example", "ARTIST": "Fixture", "TITLE": "Song", "TRACKNUMBER": "1", "TRACKTOTAL": "1"}
+        for version, footer in ((2, False), (3, False), (4, False), (4, True)):
+            for archive in (False, True):
+                with self.subTest(version=version, footer=footer, archive=archive), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = self.id3_flac(tags, version=version, footer=footer)
+                    cue = b'FILE "track.MP3" WAVE\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n'
+                    files = {"track.MP3": audio, "album.cue": cue, "tracks.m3u": b"track.MP3\r\n", "info.txt": b"posting info"}
+                    if archive:
+                        with zipfile.ZipFile(root / "release.zip", "w") as output:
+                            for name, data in files.items():
+                                output.writestr(name, data)
+                    else:
+                        for name, data in files.items():
+                            (root / name).write_bytes(data)
+                    main.process_release(root, require_completeness=True)
+                    expected = {"track.flac": audio, "album.cue": cue.replace(b"track.MP3", b"track.flac"),
+                                "tracks.m3u": b"track.flac\r\n"}
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+                    self.assertEqual(main.flac_album_metadata(root / "track.flac"), (tags, False))
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_wave_cue_alias_uses_confirmed_flac_with_a_planned_mp3_rename(self) -> None:
+        tags = {"ALBUM": "Example", "ARTIST": "Fixture", "TITLE": "Song", "TRACKNUMBER": "1", "TRACKTOTAL": "1"}
+        for wrapped in (False, True):
+            for archive in (False, True):
+                for extensions in (False, True):
+                    with self.subTest(wrapped=wrapped, archive=archive, extensions=extensions), tempfile.TemporaryDirectory() as temp:
+                        root = Path(temp)
+                        audio = self.id3_flac(tags) if wrapped else self.tagged_flac(tags)
+                        cue = b'FILE "song.wav" WAVE\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n'
+                        if archive:
+                            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                                output.writestr("song.mp3", audio)
+                                output.writestr("album.cue", cue)
+                        else:
+                            (root / "song.mp3").write_bytes(audio)
+                            (root / "album.cue").write_bytes(cue)
+                        main.process_release(root, extensions=extensions, require_completeness=True)
+                        target = "song.flac" if extensions else "song.mp3"
+                        expected = {target: audio, "album.cue": cue.replace(b"song.wav", target.encode())}
+                        self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+                        main.process_release(root, extensions=extensions, require_completeness=True)
+                        self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_wave_cue_alias_keeps_ambiguous_planned_flac_targets(self) -> None:
+        tags = {"ALBUM": "Example", "TRACKNUMBER": "1", "TRACKTOTAL": "1"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            files = {"song.mp3": self.id3_flac(tags), "song.flac": self.tagged_flac(tags),
+                     "album.cue": b'FILE "song.wav" WAVE\n  TRACK 01 AUDIO\n'}
+            for name, payload in files.items():
+                (root / name).write_bytes(payload)
+            with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+                main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
+
+    def test_id3_flac_keeps_disabled_repairs_and_target_collision_protection(self) -> None:
+        tags = {"ALBUM": "Example", "ARTIST": "Fixture", "TITLE": "Song", "TRACKNUMBER": "1", "TRACKTOTAL": "1"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = self.id3_flac(tags)
+            (root / "track.mp3").write_bytes(audio)
+            main.process_release(root, extensions=False, require_completeness=True)
+            self.assertEqual((root / "track.mp3").read_bytes(), audio)
+            other = self.tagged_flac({**tags, "ALBUM": "Other edition"})
+            (root / "track.flac").write_bytes(other)
+            with self.assertRaises(FileExistsError):
+                main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"track.mp3": audio, "track.flac": other})
+
+    def test_id3_flac_recognition_rejects_malformed_or_unproven_headers(self) -> None:
+        valid = self.id3_flac({"TITLE": "Song"})
+        offset = 10 + sum(value << shift for value, shift in zip(valid[6:10], (21, 14, 7, 0)))
+        core = valid[offset:]
+        malformed = [b"ID3", b"ID3\x05" + valid[4:], valid[:4] + b"\xff" + valid[5:],
+                     valid[:5] + b"\x01" + valid[6:], valid[:6] + b"\x80" + valid[7:],
+                     valid[:6] + b"\x7f\x7f\x7f\x7f" + valid[10:],
+                     valid[:offset] + b"fLaC" + bytes(38),
+                     self.id3_flac({"TITLE": "Song"}, version=4, footer=True).replace(b"3DI", b"bad", 1),
+                     b"ID3\x03\x00\x00" + bytes(4) + b"\xff\xfb\x90\x64" + bytes(413),
+                     b"ID3\x03\x00\x00" + bytes((0, 0, 0, 4)) + b"fLaC" + b"not FLAC audio"]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "track.mp3"
+            for data in malformed:
+                with self.subTest(header=data[:10]):
+                    path.write_bytes(data)
+                    self.assertEqual(main.detected_suffix(path), ".mp3")
+                    self.assertEqual(main.flac_album_metadata(path), ({}, False))
+            # A FLAC marker inside an ID3 payload does not identify the following MPEG stream.
+            header = b"ID3\x03\x00\x00" + bytes((0, 0, 1, 0))
+            path.write_bytes(header + core[:128].ljust(128, b"\x00") + b"\xff\xfb\x90\x64" + bytes(413))
+            self.assertEqual(main.detected_suffix(path), ".mp3")
+            self.assertEqual(main.extension_target(path), path)
+
+    def test_raw_flac_with_mp3_suffix_is_repaired_and_disguised_sidecars_are_kept(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            raw = self.tagged_flac({"ALBUM": "Example", "TRACKNUMBER": "1", "TRACKTOTAL": "1"})
+            tagged = self.id3_flac({"ALBUM": "Other", "TRACKNUMBER": "1", "TRACKTOTAL": "1"})
+            (root / "song.mp3").write_bytes(raw)
+            (root / "song.txt").write_bytes(tagged)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": raw, "song.txt.flac": tagged})
+
     def test_missing_local_wave_cue_resolves_matching_flac_and_preserves_encoding(self) -> None:
         for encoding in ('utf-8-sig', 'utf-16-le', 'utf-16-be', 'cp1252'):
             for archive in (False, True):
