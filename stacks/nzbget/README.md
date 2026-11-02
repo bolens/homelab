@@ -168,12 +168,16 @@ Cue sheets are retained because album-image releases need them to identify
 individual tracks. The extension does not split album images into track files.
 Cue `FILE` references are updated when tracks move or gain extensions. A missing
 local `.wav` reference declared as `WAVE` can resolve to a same-folder FLAC
-with the same filename stem. Otherwise, numbered filenames can match exact
+with the same filename stem. Otherwise, missing local `.wav` and `.flac` references declared as `WAVE`
+can use numbered filenames to match exact
 performer, title and track tags within one fully tagged FLAC album/disc. A
 present global cue album title must also match, allowing a trailing `(single)`
-format annotation.
+format annotation. For guest tracks, an explicit matching album artist can
+identify the performer when the cue also supplies a matching global album title.
+Conflicting album-artist aliases prevent that fallback. Numbered filenames may
+include the track artist or the matched cue performer; guest artist tags are preserved.
 Ambiguous aliases, mismatched versions, missing identity tags and references
-containing directory paths keep failing without publication. Existing WAV
+containing directory paths keep failing without publication. Existing WAV and FLAC
 references take precedence. Quoted
 and unquoted filenames, Windows path separators, case differences, UTF-8 with
 or without a BOM, UTF-16 with a BOM in either byte order, and Windows-1252 cue
