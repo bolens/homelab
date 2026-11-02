@@ -2097,6 +2097,55 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 self.assertEqual(self.run_main(root), main.FAILURE)
                 self.assertEqual(self.snapshot(root), before)
 
+    def test_windows_folder_sidecars_are_removed_without_flattening_conflicts(self) -> None:
+        payload = (b"[.ShellClassInfo]\r\nFolderType=MusicAlbum\r\n"
+                   b"MusicBuyUrl=providerName=AMG & Microsoft&album=Example\r\n\x00")
+        for encoding in ("utf-8", "utf-16", "utf-16-be"):
+            with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                raw = payload.decode().encode(encoding)
+                if encoding == "utf-16-be":
+                    raw = b"\xfe\xff" + raw
+                with zipfile.ZipFile(root / "release.zip", "w") as archive:
+                    archive.writestr("Release/desktop.ini", raw)
+                    archive.writestr("Release/FLAC/Desktop.INI", raw)
+                    archive.writestr("Release/FLAC/01.flac", b"fLaC\x00audio")
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                self.assertEqual(self.snapshot(root), {"01.flac": b"fLaC\x00audio"})
+
+    def test_windows_folder_sidecar_recognition_is_conservative(self) -> None:
+        valid = b"[.ShellClassInfo]\nFolderType=MusicArtist\nMusicBuyUrl=example\n"
+        cases = (("desktop.ini", valid, True),
+                 ("other.ini", valid, False),
+                 ("desktop.ini", b"fLaC\x00audio", False),
+                 ("desktop.ini", valid + b"\x00binary", False),
+                 ("desktop.ini", valid + b"\x00\x00", False),
+                 ("desktop.ini", valid + b"[Other]\nKey=value\n", False),
+                 ("desktop.ini", valid + b"Unknown=value\n", False),
+                 ("desktop.ini", valid + b"FolderType=MusicAlbum\n", False),
+                 ("desktop.ini", valid.replace(b"MusicArtist", b"Unknown"), False),
+                 ("desktop.ini", b"[.ShellClassInfo]\n", False),
+                 ("desktop.ini", b"\xff\xfe[", False),
+                 ("desktop.ini", valid + b" " * (65536 - len(valid)), True),
+                 ("desktop.ini", valid + b" " * (65537 - len(valid)), False))
+        for name, raw, expected in cases:
+            with self.subTest(raw=raw[:80]), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / name
+                path.write_bytes(raw)
+                self.assertEqual(main.disposable(path), expected)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "desktop.ini").write_bytes(valid)
+            (root / "album.cue").write_text('FILE "desktop.ini" WAVE\n  TRACK 01 AUDIO\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual((root / "desktop.ini").read_bytes(), valid)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "desktop.ini").write_bytes(valid)
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(self.snapshot(root), before)
+
     def test_duplicate_disposable_sidecars_do_not_block_music(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
