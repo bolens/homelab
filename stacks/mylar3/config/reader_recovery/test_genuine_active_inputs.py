@@ -37,7 +37,8 @@ def owning_precreation(outer, roots, library):
         selected_library_root=lambda mapping,roles:library, canonical=g.active.canonical,
         stamp=g.active.stamp, observe_mount=lambda path:outer['probe_plan']['mount_identity'],
         check=g.active.check, output=Path(outer['operation_output']), module=lifecycle,
-        gated=True, ancestors={}, emit=lambda *args:None)
+        gated=True, ancestors={}, emit=lambda *args:None,
+        rootstates={root:g.active.stamp(root) for root in roots}, rootnodes={})
     exec(compile(selected,str(Path(g.active.__file__)),'exec'),scope)
     return scope['parent'],scope['core']
 

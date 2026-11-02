@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA='0c7fca1e79cde9881eff8ded3ffab9e4513e517ec120c5689667b68df08383ba'
+HOST_LEASE_INTERFACE_SHA='e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0'
 
 IMAGE = None
 KOMGA = None
@@ -188,6 +188,7 @@ def private_parent(p):
 
 
 _SCOPE_LIFETIMES = weakref.WeakKeyDictionary()
+_READONLY_ROOT_PROOFS = weakref.WeakKeyDictionary()
 
 
 def _scope_method_seals(owner):
@@ -263,6 +264,97 @@ def fresh_scope(scope, lifetime=None):
             epoch.append(current)
     _scope_lifetime_current(lifetime, original)
     documents[kind] = raw
+
+
+def protected_root_vectors(roots, roles=None, lifetime=None):
+    """Keep full facts except for live directories proven read-only to this helper.
+
+    This proves observer confinement and directory identity, not preservation
+    of application contents. File and database preservation have separate gates.
+    """
+    full = {p: stamp(p) for p in roots}
+    if lifetime is None:
+        return full, {}
+    original = _SCOPE_LIFETIMES.get(lifetime)
+    check(original is not None, 'readonly-original-lifetime')
+    _scope_lifetime_current(lifetime, original)
+    cached = _READONLY_ROOT_PROOFS.get(lifetime)
+    if cached is None:
+        check(not getattr(lifetime, 'acquired', False) and not lifetime.started,
+              'readonly-before-Writer-only')
+        # A lost response must not permit another transport attempt.
+        slot = (original, None)
+        _READONLY_ROOT_PROOFS[lifetime] = slot
+        proof = original[0].readonly_roots(lifetime)
+        _scope_lifetime_current(lifetime, original)
+        raw = encode(proof)
+        check(_READONLY_ROOT_PROOFS.get(lifetime) is slot, 'readonly-original-slot')
+        cached = (original, raw)
+        _READONLY_ROOT_PROOFS[lifetime] = cached
+    else:
+        check(type(cached) is tuple and len(cached) == 2 and cached[0] is original
+              and type(cached[1]) is bytes, 'readonly-original-cache')
+        raw = cached[1]
+        proof = json.loads(raw)
+    exact(proof, ('version', 'kind', 'nonce', 'helper', 'parent_deadline', 'observation',
+                  'volatile_roots', 'mutation_authority', 'publication_authority'))
+    check(type(proof['version']) is int and proof['version'] == 1
+          and proof['kind'] == 'parent-original-readonly-protected-roots'
+          and proof['nonce'] == original[3][2]
+          and type(proof['parent_deadline']) in (int, float)
+          and time.monotonic() < proof['parent_deadline']
+          and proof['mutation_authority'] is False and proof['publication_authority'] is False,
+          'readonly-original-proof')
+    observation = proof['observation']
+    exact(observation, ('namespace_pid', 'roots', 'namespace_root5', 'mounts',
+                        'mutation_authority', 'publication_authority'))
+    check(type(observation['namespace_pid']) is int and observation['namespace_pid'] == os.getpid()
+          and observation['mutation_authority'] is False and observation['publication_authority'] is False,
+          'readonly-own-namespace')
+    helper = proof['helper']
+    exact(helper, ('id', 'pid', 'start_ticks', 'epoch'))
+    ticks = int(Path('/proc/self/stat').read_text().rsplit(')', 1)[1].split()[19])
+    check(type(helper['id']) is str and len(helper['id']) == 64
+          and all(c in '0123456789abcdef' for c in helper['id'])
+          and type(helper['pid']) is int and helper['pid'] > 0
+          and type(helper['start_ticks']) is int and helper['start_ticks'] == ticks,
+          'readonly-own-process')
+    recorded = observation['roots']
+    check(type(recorded) is dict and set(recorded) == {str(p) for p in roots}, 'readonly-exact-roots')
+    mounts = observation['mounts']
+    check(type(mounts) is dict and set(mounts['protected']) == set(recorded)
+          and mounts['mutation_authority'] is False and mounts['publication_authority'] is False
+          and all(row['readonly'] is True for row in mounts['protected'].values()),
+          'readonly-realized-protected-mounts')
+    expected = {}
+    check(type(roles) is dict, 'readonly-original-roles')
+    for role in ('native', 'reader'):
+        baseline = roles['roles'][role]
+        for mount in baseline['profile']['Mounts']:
+            if mount['RW'] is True and mount['Source'] in recorded:
+                expected.setdefault(mount['Source'], []).append(dict(role=role, id=baseline['id'], destination=mount['Destination']))
+    check(proof['volatile_roots'] == expected, 'readonly-original-live-service-roots')
+    nodes = {}
+    for p, value in full.items():
+        observed = recorded[str(p)]
+        check(type(observed) is list and len(observed) == 9 and all(type(n) is int for n in observed)
+              and stat.S_ISDIR(observed[5]) and stat.S_ISDIR(value[5]), 'readonly-directory-only')
+        node = [observed[i] for i in (0, 1, 5, 6, 7)]
+        check([value[i] for i in (0, 1, 5, 6, 7)] == node, 'readonly-original-root-node')
+        if str(p) in expected:
+            nodes[p] = node
+    _scope_lifetime_current(lifetime, original)
+    check(_READONLY_ROOT_PROOFS.get(lifetime) is cached, 'readonly-original-proof-closure')
+    return {p: value for p, value in full.items() if p not in nodes}, nodes
+
+
+def close_protected_roots(files, nodes):
+    for p, original in files.items():
+        check(stamp(p) == original, 'forbidden-root-drift')
+    for p, original in nodes.items():
+        current = os.lstat(p)
+        check([current.st_dev, current.st_ino, current.st_mode, current.st_uid, current.st_gid] == original,
+              'forbidden-root-node-drift')
 
 
 def outside(path, roots):
@@ -1324,7 +1416,7 @@ def _probe_gated_phases(a,engine,roles,host_probe,lifetime=None):
     for ref in scope["sources"].values():
         controls[canonical(ref["path"])] = fact(ref["path"], ref["sha256"])
     ancestors = ancestry([*controls, fixture, out, *roots])
-    rootstates = {p: stamp(p) for p in roots}
+    rootstates, rootnodes = protected_root_vectors(roots, roles, lifetime)
     if not a.execute:
         return dict(
             executable=False,
@@ -1378,8 +1470,7 @@ def _probe_gated_phases(a,engine,roles,host_probe,lifetime=None):
         check(
             ancestry([*controls, fixture, out, *roots]) == ancestors, "ancestor-drift"
         )
-        for p, s in rootstates.items():
-            check(stamp(p) == s, "forbidden-root-drift")
+        close_protected_roots(rootstates, rootnodes)
 
     fresh_scope(scope, lifetime)
     initial = observe()
@@ -1601,7 +1692,7 @@ def _probe_gated_phases(a,engine,roles,host_probe,lifetime=None):
     )
 
     file_items = tuple((str(p), tuple(f['signature'])) for p, f in {**controls, **fixture_files}.items()) + ((str(fixture), tuple(fixture_stamp)), (str(out), tuple(out_stamp))) + tuple((str(p), tuple(v)) for p, v in rootstates.items()) + tuple((str(fixture/name),tuple(v)) for name,v in fixture_dirs.items())
-    node_items = tuple((str(p), tuple(v)) for p, v in ancestors.items())
+    node_items = tuple((str(p), tuple(v)) for p, v in ancestors.items()) + tuple((str(p), tuple(v)) for p, v in rootnodes.items())
     fixture_names = frozenset({'source','target'}|{p.name for p in fixture_files if p.parent==fixture})
     output_names = frozenset(census)
     if frozenset(os.listdir(fixture)) != fixture_names:raise Held('terminal-fixture-census')
@@ -2352,7 +2443,7 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
     for name in ('need','encode','epoch_reply'):
         check(getattr(interface_module,name).__code__==getattr(expected,name).__code__,'host-lease-interface-helper-code')
     actual_class=interface_module.ChildLeaseInterface;expected_class=expected.ChildLeaseInterface
-    for name in ('__init__','admit','factory','probe','reader_epoch','_call','prepare','acquire','start','pulse','profile','release_after_absence'):
+    for name in ('__init__','admit','factory','probe','reader_epoch','readonly_roots','_call','prepare','acquire','start','pulse','profile','release_after_absence'):
         check(actual_class.__dict__[name].__code__==expected_class.__dict__[name].__code__,'host-lease-interface-method-code')
     for name in ('__init__','prepare','create','start_prepare','execute_local','finish_after_release'):
         check(interface_module.ChildProbe.__dict__[name].__code__==expected.ChildProbe.__dict__[name].__code__,'host-probe-interface-method-code')
@@ -2398,6 +2489,7 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
         check(type(result) is ActiveNFSCanaryObservation,'host-lease-genuine-child-canary')
         result.close();lease_interface.admit();return result
     finally:
+        _READONLY_ROOT_PROOFS.pop(lease_interface, None)
         if _SCOPE_LIFETIMES.get(lease_interface) is original:
             del _SCOPE_LIFETIMES[lease_interface]
         elif sys.exc_info()[1] is None:
@@ -2433,7 +2525,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
                            *[Path(ref['path']) for ref in scope['sources'].values()]])
     check(all(discovered.get(p) == v for p, v in entry.items() if p in discovered), 'scope-input-ancestor-drift')
     admission = {**entry, **discovered}
-    rootstates = {r: stamp(r) for r in roots}
+    rootstates, rootnodes = protected_root_vectors(roots, roles, lifetime)
     controls = {**_COHORT.facts(), Path(a.input): of, canonical(outer['active_scope']['path']): sf,
                 Path(__file__): own, LIFECYCLE: helper}
     if host_control is not None:
@@ -2469,6 +2561,8 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     controls.update(effective_controls)
     effective_absent = tuple(Path(p) for p in report.get('optional_absent_scopes', {}))
     effective_absent_parents = {canonical(p.parent): stamp(canonical(p.parent)) for p in effective_absent}
+    # Direct absences still close below; sibling churn belongs to the live service.
+    effective_absent_parents = {p: value for p, value in effective_absent_parents.items() if p not in rootnodes}
     controls.update(native_gate())
     controls[READY] = fact(READY, READY_SHA, source=True)
     controls[PARITY] = fact(PARITY, PARITY_SHA, source=True)
@@ -2572,7 +2666,9 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
           and core['mount_identity'] == outer['parent_admission']['mount_identity']
           and observe_mount(core['library_root']) == core['mount_identity'], 'precreation-same-actual-library-nfs')
     check(not output.is_relative_to(canonical(core['mount_identity']['target'])), 'metadata-output-outside-nfs-target')
-    parent = (module.prepare_parent(outer['parent_admission'],roots,observe_mount) if gated
+    parent = (module._prepare_parent(outer['parent_admission'], roots, observe_mount,
+              tuple((str(p), tuple(v)) for p, v in rootstates.items()),
+              tuple((str(p), tuple(v)) for p, v in rootnodes.items())) if gated
               else module.admit_parent(outer['parent_admission'],roots,lease,observe_mount))
     admitted_parent=(str(parent['path']),tuple(parent['signature']),tuple(parent['grandparent_identity']),tuple(parent['grandparent_node5']))
     admitted_grandparent=Path(admitted_parent[0]).parent
@@ -2626,20 +2722,25 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     check(all(canonical(p).is_relative_to(fixture) for p in accepted['fixture_facts']),'accepted-hardlink-leaf-parent')
     # Original stopped child was verified by the core, never a caller bypass.
     original_parent=dict(path=admitted_parent[0],signature=list(admitted_parent[1]),grandparent_identity=list(admitted_parent[2]),grandparent_node5=list(admitted_parent[3]))
-    cleaned = module.cleanup_hardlink_owned(original_parent, {'path':str(fixture),'signature':fixture_sig},
-                                            ff,accepted['fixture_directories'],roots,lease)
+    if gated:
+        cleaned = module._cleanup_hardlink_owned(original_parent, {'path':str(fixture),'signature':fixture_sig},
+                    ff, accepted['fixture_directories'], roots, lease,
+                    tuple((str(p), tuple(v)) for p, v in rootstates.items()),
+                    tuple((str(p), tuple(v)) for p, v in rootnodes.items()))
+    else:
+        cleaned = module.cleanup_hardlink_owned(original_parent, {'path':str(fixture),'signature':fixture_sig},
+                                                ff,accepted['fixture_directories'],roots,lease)
     check(cleaned['owned_fixture_absence_verified'] is True, 'owned-cleanup-required')
     emit('cleanup-result.json', cleaned)
     if not gated:check(same_active(observe_active()[0]), 'post-cleanup-active-bracket')
     release_files = tuple((str(p),tuple(f['signature'])) for p,f in controls.items()) + tuple((str(p),tuple(v)) for p,v in rootstates.items())
-    release_nodes = tuple((str(p),tuple(v)) for p,v in ancestors.items())
+    release_nodes = tuple((str(p),tuple(v)) for p,v in ancestors.items()) + tuple((str(p),tuple(v)) for p,v in rootnodes.items())
     for p, f in controls.items():
         check(fact(p, source=p in (Path(__file__), LIFECYCLE) or stat.S_IMODE(f['signature'][5]) == 0o644) == f,
               'active-source-closure')
     current_ancestors = ancestry([*controls, output, *roots])
     check(all(ancestors.get(p) == v for p, v in current_ancestors.items()), 'active-ancestor-closure')
-    for p, s in rootstates.items():
-        check(stamp(p) == s, 'active-root-closure')
+    close_protected_roots(rootstates, rootnodes)
     lease.release_after_absence((fixture, canonical(parent['path'])), original_files=release_files, original_nodes=release_nodes)
     active_lease=None
     if gated:
@@ -2686,6 +2787,9 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     terminal_ack=encode(terminal_result)+b'\n' if ack_fd is not None else None
     terminal_files = {p: f['signature'] for p, f in controls.items()} | rootstates | owned_directories | effective_absent_parents
     terminal_nodes = {Path(p): v for p,v in ancestors.items()}
+    for path, node in rootnodes.items():
+        check(path not in terminal_nodes or tuple(terminal_nodes[path]) == tuple(node), 'terminal-protected-root-node')
+        terminal_nodes[path] = node
     for path, original in effective_absent_parents.items():
         node=(original[0],original[1],original[5],original[6],original[7])
         check(path not in terminal_nodes or tuple(terminal_nodes[path])==node,'terminal-absence-parent-original5')

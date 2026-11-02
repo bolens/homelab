@@ -4,8 +4,11 @@ This transport owns no engine, SDK, ACK or canary authority. The Parent supplies
 its original registered process and fixed handlers; the genuine canary stays in
 the UID1000 child. Unknown EOF/timeouts retain the process and refuse replay.
 """
+import hashlib
 import json
 import os
+from pathlib import PurePosixPath
+import re
 import select
 import stat
 import subprocess
@@ -30,6 +33,139 @@ def decode(raw):
         for k,v in rows:need(k not in value,'nfs-pump-duplicate');value[k]=v
         return value
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(Held('nfs-pump-nonfinite')))
+
+
+def readonly_mount_observation(raw,protected,writable):
+    """Parse actual helper mountinfo; returned facts grant no continuation rights.
+
+    The owning Parent must additionally retain its helper/process/plan originals
+    and compare this observation with the original configured Docker profile.
+    """
+    need(type(raw) is bytes and 0<len(raw)<=MAX,'nfs-readonly-mountinfo-bound')
+    def path(value):
+        need(type(value) is str and value.startswith('/') and not value.startswith('//')
+             and str(PurePosixPath(value))==value and '..' not in PurePosixPath(value).parts
+             and not any(c in value for c in ('\x00','\n','\r','\t')),'nfs-readonly-path')
+        return PurePosixPath(value)
+    def field(value):
+        need(re.search(r'\\(?!040|011|012|134)',value) is None,'nfs-readonly-mountinfo-escape')
+        return re.sub(r'\\(040|011|012|134)',lambda m:chr(int(m.group(1),8)),value)
+    need(type(protected) in (list,tuple) and 1<=len(protected)<=32
+         and type(writable) in (list,tuple) and len(writable)==2,'nfs-readonly-scope-shape')
+    protected=tuple(path(p) for p in protected);writable=tuple(path(p) for p in writable)
+    need(len(set(protected))==len(protected) and len(set(writable))==2
+         and all(not(a==b or a in b.parents or b in a.parents)for a in protected for b in writable),
+         'nfs-readonly-scope-disjoint')
+    rows=[];ids=set()
+    lines=raw.decode('utf-8',errors='strict').splitlines()
+    need(1<=len(lines)<=8192,'nfs-readonly-mount-count')
+    for line in lines:
+        columns=line.split(' ');need(columns.count('-')==1,'nfs-readonly-mountinfo-separator')
+        split=columns.index('-');need(split>=6 and len(columns)==split+4,'nfs-readonly-mountinfo-shape')
+        need(all(re.fullmatch('[0-9]{1,20}',v) for v in columns[:2])
+             and 0<int(columns[0])<2**63 and 0<int(columns[1])<2**63
+             and re.fullmatch('[0-9]{1,10}:[0-9]{1,10}',columns[2]),'nfs-readonly-mountinfo-identity')
+        mid=int(columns[0]);need(mid not in ids,'nfs-readonly-mountinfo-duplicate-id');ids.add(mid)
+        root=path(field(columns[3]));point=path(field(columns[4]));options=columns[5].split(',')
+        need(len(options)==len(set(options)) and (('ro'in options)!=('rw'in options)),
+             'nfs-readonly-mountinfo-options')
+        rows.append(dict(id=mid,parent=int(columns[1]),device=columns[2],root=str(root),point=str(point),readonly='ro'in options,
+                         propagation=columns[6:split],filesystem=columns[split+1],source=field(columns[split+2])))
+    def exact(point):
+        found=[r for r in rows if r['point']==str(point)]
+        need(len(found)==1,'nfs-readonly-exact-mount');return found[0]
+    need(exact(PurePosixPath('/'))['readonly'],'nfs-readonly-root-filesystem')
+    original_roots={str(p):exact(p) for p in protected}
+    original_writable={str(p):exact(p) for p in writable}
+    need(all(not r['readonly'] for r in original_writable.values()),'nfs-readonly-owned-writable-mounts')
+    by_point={r['point']:r for r in rows}
+    need(len(by_point)==len(rows),'nfs-readonly-stacked-mount')
+    root_mount=by_point['/']
+    need(root_mount['parent']==root_mount['id'] or root_mount['parent']not in ids,
+         'nfs-readonly-root-parent')
+    # Mountinfo includes hidden mounts. A lexical prefix alone does not prove
+    # that the recorded bind is visible beneath intervening ancestor mounts.
+    for row in rows:
+        if row['point']=='/':continue
+        ancestors=[by_point[str(p)] for p in PurePosixPath(row['point']).parents if str(p)in by_point]
+        need(bool(ancestors) and row['parent']==ancestors[0]['id'],'nfs-readonly-hidden-mount')
+    covered={};descendant_rows={}
+    for p,original in original_roots.items():
+        base=PurePosixPath(p)
+        descendants=[r for r in rows if PurePosixPath(r['point'])==base or base in PurePosixPath(r['point']).parents]
+        need(len({r['point']for r in descendants})==len(descendants),'nfs-readonly-stacked-protected-mount')
+        need(all(r['readonly']for r in descendants),'nfs-readonly-protected-submount')
+        ancestry=[by_point[str(q)] for q in (base,*base.parents)if str(q)in by_point]
+        need(not any(v.split(':',1)[0]in('shared','master','propagate_from')
+                     for r in (*ancestry,*descendants)for v in r['propagation']),
+             'nfs-readonly-protected-submount')
+        descendant_rows[p]=descendants
+        covered.update((r['id'],r)for r in descendants)
+    for original in covered.values():
+        source_root=PurePosixPath(original['root'])
+        for row in rows:
+            if row['readonly']:continue
+            same=row['device']==original['device']
+            same=same or (row['filesystem']in('nfs','nfs4') and original['filesystem']in('nfs','nfs4')
+                          and row['source']==original['source'])
+            if not same:continue
+            other=PurePosixPath(row['root'])
+            need(not(other==source_root or other in source_root.parents or source_root in other.parents),
+                 'nfs-readonly-writable-physical-alias')
+    return dict(mountinfo_sha256=hashlib.sha256(raw).hexdigest(),protected=original_roots,
+                protected_descendants=descendant_rows,
+                writable=original_writable,mutation_authority=False,publication_authority=False)
+
+
+def observe_readonly_namespace(pid,start_ticks,protected,writable):
+    """Root-only kernel observation, not a Parent/session capability factory."""
+    need(os.getresuid()==os.getresgid()==(0,0,0),'nfs-readonly-root-observer')
+    need(type(pid) is int and pid>0 and type(start_ticks) is int and start_ticks>0,
+         'nfs-readonly-original-process')
+    need(type(protected) is dict and 1<=len(protected)<=32
+         and all(type(p) is str and type(v) in(list,tuple)and len(v)==9
+                 and all(type(n)is int for n in v)and stat.S_ISDIR(v[5])
+                 for p,v in protected.items()),'nfs-readonly-original-roots')
+    originals=tuple((p,tuple(v))for p,v in protected.items())
+    def bounded(name,maximum):
+        fd=os.open('/proc/'+str(pid)+'/'+name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            chunks=[];size=0
+            while size<=maximum:
+                part=os.read(fd,min(65536,maximum+1-size))
+                if not part:break
+                chunks.append(part);size+=len(part)
+            need(size<=maximum,'nfs-readonly-proc-bound');return b''.join(chunks)
+        finally:os.close(fd)
+    def process():
+        raw=bounded('stat',65536).decode();split=raw.rfind(')')
+        need(split>0 and raw[:raw.index('(')].strip()==str(pid),'nfs-readonly-proc-pid')
+        fields=raw[split+2:].split();need(len(fields)>19 and int(fields[19])==start_ticks,
+                                      'nfs-readonly-original-starttick')
+        lines=[line.split()[1:]for line in bounded('status',65536).decode().splitlines()
+               if line.startswith('NSpid:')]
+        need(len(lines)==1 and 1<=len(lines[0])<=64 and all(v.isdecimal() for v in lines[0])
+             and int(lines[0][0])==pid and all(int(v)>0 for v in lines[0]),'nfs-readonly-pid-namespace')
+        return int(lines[0][-1])
+    namespace_pid=process()
+    root=os.open('/proc/'+str(pid)+'/root',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)
+    try:
+        root5=five(os.fstat(root));before=bounded('mountinfo',MAX)
+        observation=readonly_mount_observation(before,list(protected),writable)
+        def close_nodes():
+            need(five(os.fstat(root))==root5,'nfs-readonly-original-namespace-root')
+            for path,original in originals:
+                current=os.stat(path.lstrip('/'),dir_fd=root,follow_symlinks=False)
+                need(five(current)==tuple(original[i]for i in(0,1,5,6,7)),
+                     'nfs-readonly-original-mounted-node')
+        close_nodes()
+        after=bounded('mountinfo',MAX)
+        need(after==before and process()==namespace_pid,'nfs-readonly-namespace-closure')
+        close_nodes()
+        return dict(namespace_pid=namespace_pid,roots={p:list(v)for p,v in originals},
+                    namespace_root5=list(root5),mounts=observation,
+                    mutation_authority=False,publication_authority=False)
+    finally:os.close(root)
 
 class OriginalPump:
     def __init__(self,process,deadline,guard):
@@ -211,6 +347,8 @@ class RetainedChild:
                 need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'},'nfs-session-frame')
                 if frame['type']=='nfs-role-namespace':
                     response=self.owner.nfs_role_namespace_reply(frame);self.pump.write(response);continue
+                if frame['type']=='nfs-readonly-roots':
+                    response=self.owner.nfs_readonly_roots_reply(frame);self.pump.write(response);continue
                 if frame['type']=='nfs-library-query':
                     response=self.owner.nfs_library_query_reply(frame);self.pump.write(response);continue
                 if frame['type']=='nfs-reader-epoch':

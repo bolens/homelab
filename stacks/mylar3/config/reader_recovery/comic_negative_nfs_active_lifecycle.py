@@ -151,7 +151,35 @@ def admit_parent(plan, roots, lease, mount_observer):
         os.close(fd)
 
 
+def _protected_vectors(roots, file_items, node_items):
+    """Pure helper boundary; authenticated vector selection belongs to its caller."""
+    require(type(file_items) is tuple and type(node_items) is tuple, 'protected-vector-tuples')
+    all_roots = tuple(canonical(p) for p in roots)
+    require(len(set(all_roots)) == len(all_roots), 'protected-vector-root-census')
+    files = {}; nodes = {}
+    for items, size, target in ((file_items, 9, files), (node_items, 5, nodes)):
+        for row in items:
+            require(type(row) is tuple and len(row) == 2 and type(row[0]) is str
+                    and type(row[1]) is tuple and len(row[1]) == size
+                    and all(type(n) is int for n in row[1]), 'protected-vector-shape')
+            path = canonical(row[0]); value = row[1]
+            require(path in all_roots and path not in files and path not in nodes,
+                    'protected-vector-exact-membership')
+            require(stat.S_ISDIR(value[5 if size == 9 else 2]), 'protected-vector-directory')
+            target[path] = value
+    require(set(files) | set(nodes) == set(all_roots), 'protected-vector-complete')
+    # Original primitive tuples are retained before any later helper callback.
+    close_vector(files, nodes, {})
+    return files, nodes
+
+
 def prepare_parent(plan, roots, mount_observer):
+    # Standalone and legacy callers retain strict directory metadata checks.
+    files = tuple((str(p), tuple(stamp(p))) for p in roots)
+    return _prepare_parent(plan, roots, mount_observer, files, ())
+
+
+def _prepare_parent(plan, roots, mount_observer, root_files, root_nodes):
     """Prelease birth of the exact admitted absent parent; no Writer claim.
 
     mount_observer is the owning parent's frozen findmnt verifier; this helper
@@ -169,8 +197,11 @@ def prepare_parent(plan, roots, mount_observer):
     require(plan['mount_identity']['fstype'] == 'nfs4'
             and mount_observer(p.parent) == plan['mount_identity'], 'actual-nfs-mount')
     ancestors = direct_ancestors([p, *roots])
-    rootstates = {r: stamp(r) for r in roots}
-    forbidden_ids = {tuple(v[:2]) for v in rootstates.values()}
+    rootstates, rootnodes = _protected_vectors(roots, root_files, root_nodes)
+    for path, node in rootnodes.items():
+        require(path not in ancestors or tuple(ancestors[path]) == node, 'protected-vector-ancestor')
+        ancestors[path] = node
+    forbidden_ids = {tuple(v[:2]) for v in (*rootstates.values(), *rootnodes.values())}
     require(not any(tuple(stamp(q)[:2]) in forbidden_ids for q in (p.parent, *p.parent.parents)),
             'physical-protected-alias')
     close_vector(rootstates | {p.parent: plan['grandparent_signature']}, ancestors, {})
@@ -455,6 +486,11 @@ if __name__ == '__main__':
 
 
 def cleanup_hardlink_owned(parent, child, facts, directories, roots, lease):
+    files = tuple((str(p), tuple(stamp(p))) for p in roots)
+    return _cleanup_hardlink_owned(parent, child, facts, directories, roots, lease, files, ())
+
+
+def _cleanup_hardlink_owned(parent, child, facts, directories, roots, lease, root_files, root_nodes):
     """Exact stopped-child hardlink namespace only; all evidence is retained outside it."""
     p=canonical(parent['path']);c=canonical(child['path'])
     required={'source/source.bin','source/collision.bin','target/foreign.bin',
@@ -471,7 +507,10 @@ def cleanup_hardlink_owned(parent, child, facts, directories, roots, lease):
     nodes=direct_ancestors([p,c,c/'source'/ 'leaf',c/'target'/'leaf',*roots])
     for q,v in ((p,parent_node),(p.parent,grandparent_node)):
         require(tuple(nodes[q])==v,'hardlink-original-ancestor-conflict');nodes[q]=v
-    rootstates={q:stamp(q) for q in roots}
+    rootstates, rootnodes = _protected_vectors(roots, root_files, root_nodes)
+    for path, node in rootnodes.items():
+        require(path not in nodes or tuple(nodes[path]) == node, 'protected-vector-ancestor')
+        nodes[path] = node
     fdpaths=(p.parent,p,c,c/'source',c/'target');fds=[]
     try:
         for q in fdpaths:
