@@ -305,12 +305,52 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             art = "┌───┐\n│ ¼ «Fixture» ∙ ⌐ │\n└───┘\n".encode("cp437")
-            files = {"song.flac": b"fLaC" + bytes(32), "unknown.nfo": art + b"\xffbinary",
+            files = {"song.flac": b"fLaC" + bytes(32), "unknown.nfo": art + "∞".encode("cp437"),
                      "control.nfo": art + b"\x08binary", "drawing.txt": art}
             for name, payload in {**files, "scene.nfo": art}.items():
                 (root / name).write_bytes(payload)
             main.process_release(root)
             self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
+
+    def test_legacy_text_sidecars_from_existing_and_archived_releases(self) -> None:
+        notes = "Vinyl notes: Artist’s album © 2017\r\n".encode("cp1252")
+        art = "┌───┐\n│ ÷ ≤ Fixture  │\n└───┘\n".encode("cp437")
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                files = {"song.flac": audio, "notes.TXT": notes, "scene.nfo": art,
+                         "binary.txt": notes + b"\x00", "undefined.txt": notes + b"\x81",
+                         "control.nfo": art + b"\x08", "drawing.txt": art,
+                         "unknown": notes, "audio.txt": audio}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                expected = {k: v for k, v in files.items() if k not in {"notes.TXT", "scene.nfo", "audio.txt"}}
+                expected["audio.txt.flac"] = audio
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+                main.process_release(root)
+
+    def test_legacy_text_sidecar_guards_cover_cues_cleanup_and_empty_output(self) -> None:
+        notes = "Artist’s notes © 2017\n".encode("cp1252")
+        art = "┌──┐\n│ ÷ ≤  │\n└──┘\n".encode("cp437")
+        for name, payload in (("notes.txt", notes), ("scene.nfo", art)):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(payload)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root)
+                main.process_release(root, cleanup=False)
+                cue = ('FILE "' + name + '" BINARY\n').encode()
+                (root / "album.cue").write_bytes(cue)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                 {name: payload, "album.cue": cue})
 
     def test_additional_sidecars_from_postings_are_removed(self) -> None:
         posting = "release.1234abcd___123456abcdef_ [newzNZB] [4_22] - yEnc  1393 (1_1)"
@@ -1646,7 +1686,7 @@ class MusicProcessingSeamTest(unittest.TestCase):
             root = Path(temp)
             art = "┌─────┐\r\n│ ■ Artist: Fixture ■ │\r\n└─────┘\r\n".encode("cp437")
             (root / "release.nfo").write_bytes(art)
-            (root / "unknown.nfo").write_bytes(art + b"\xffbinary")
+            (root / "unknown.nfo").write_bytes(art + "∞".encode("cp437"))
             (root / "control.nfo").write_bytes(art + b"\x00binary")
             (root / "audio.nfo").write_bytes(b"fLaC\x00audio")
             (root / "art.txt").write_bytes(art)

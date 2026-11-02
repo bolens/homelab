@@ -289,7 +289,7 @@ def is_text_sidecar(path: Path) -> bool:
                 if any(not char.isprintable() and char not in "\t\r\n\f" for char in chunk):
                     return False
     except UnicodeDecodeError:
-        if encoding == "utf-16" or path.suffix.casefold() != ".nfo":
+        if encoding == "utf-16" or path.suffix.casefold() not in {".nfo", ".txt"}:
             return False
         # Scene NFOs mix drawing glyphs with accented release text. Keep the
         # drawing alphabet separate from Windows text, and reject binary controls.
@@ -305,9 +305,9 @@ def is_text_sidecar(path: Path) -> bool:
                     drawing_run |= glyph and previous_drawing
                     previous_drawing = glyph
                     if not (char.isascii() and (char.isprintable() or char in "\t\r\n\f")
-                            or glyph or char.isalpha() or char in "·∙¼«»⌐"):
+                            or glyph or char.isalpha() or char in "·∙¼«»⌐÷≤\u00a0"):
                         valid_cp437 = False
-        if drawing and valid_cp437:
+        if drawing and valid_cp437 and path.suffix.casefold() == ".nfo":
             return True
         # A lone accented Windows character can resemble a drawing glyph.
         # Keep malformed box art protected rather than retrying it as Windows text.
