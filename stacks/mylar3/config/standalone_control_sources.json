@@ -1986,7 +1986,7 @@
   },
   {
     "path": "test_verify_status_routing.py",
-    "sha256": "9329ff70c54e3536bfb52eaaa9bc86d86b4ff9b09dbda5fd10a031f856bf4276",
+    "sha256": "3e87820038af0f4988959b8bc46c63ff40856878774dacbe67315e02e3cc4f25",
     "target": "test_verify_status_routing.py"
   },
   {
@@ -2021,7 +2021,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "0d3fed12c7790e4b33345244c5d8ac9ebfeef6dc68ae1874fa8d98be4bd5f0bc",
+    "sha256": "fbec2ce7425bb6abf1fda616d8e63d093ebc3fcc45bdd7e48471d5fb45aad56e",
     "target": "verify_image.py"
   },
   {

@@ -163,6 +163,12 @@ def config_scope_preflight(source, *, installed):
         assert (source / 'publication_native_configured_scope.py').read_bytes() == scope, 'Installed configured scope source differs'
 
 
+def health_scope_preflight(source):
+    import patch_diagnostics_api as diagnostics_patch
+    diagnostics_patch.checked_health((source/'api.py').read_text())
+    assert (source/'worker_health.py').read_bytes() == (FIXES/'worker_health.py').read_bytes(), 'Installed health source differs'
+
+
 def selected_owning_suites(phase):
     assert phase in ('all', 'remaining'), 'Unknown verification phase'
     return tuple(name for name in OWNING_SUITES
@@ -180,11 +186,9 @@ subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_tagging_stage_inpu
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_tagging_stage.py')], check=True)
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'ordinary_pipeline/test_gate.py')], check=True)
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
-    import patch_diagnostics_api as diagnostics_patch
-    diagnostics_patch.checked_health(Path('/app/mylar3/mylar/api.py').read_text())
-    assert Path('/app/mylar3/mylar/worker_health.py').read_bytes() == (FIXES/'worker_health.py').read_bytes(), 'Installed health source differs'
     config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_status_retention.py'), '/app/mylar3/mylar'], check=True)
+    health_scope_preflight(Path('/app/mylar3/mylar'))
     subprocess.run([sys.executable, '-B', '-c', """import importlib
 from pathlib import Path
 import sys

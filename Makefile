@@ -58,6 +58,7 @@ source-lint:
 mylar-source-check:
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_health.py
+	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_verify_status_routing.py
 	# Match the image's owning portable suites, including complete recovery controls.
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_publication_reader_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
