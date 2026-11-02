@@ -169,6 +169,41 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             main.process_release(root, cleanup=False)
             self.assertEqual((root / name).read_bytes(), payload)
 
+    def test_legacy_full_posting_sidecars_require_bounded_structured_content(self) -> None:
+        wrapper = "[123]-[FULL]-[#a.b.flac@EFNet]-[ Artist-Example ]-[03_13] - _00-example.{}_ yEnc (1_1) (1_1)"
+        nfo = b"Artist.......: Artist\nTitle........: Example\nGenre........: Rock\nSource.......: CDDA\n01.Song\n"
+        sfv = b"01-song.flac 1234abcd\n"
+        cases = ((wrapper.format("nfo"), nfo, True),
+                 (wrapper.format("sfv"), sfv, True),
+                 (wrapper.format("txt"), nfo, False),
+                 (wrapper.format("nfo").replace("EFNet", "Other"), nfo, False),
+                 (wrapper.format("nfo"), nfo + b"\x00", False),
+                 (wrapper.format("nfo"), b"Artist: Artist\nAlbum: Example\nTitle: Example\nGenre: Rock\n01.Song\n", False),
+                 ("release.1234abcd___123456abcdef_ [newzNZB] [1_2] - yEnc 123 (1_1)",
+                  b"Artist: Artist\nAlbum: Example\nTitle: Example\nGenre: Rock\n01.Song\n", False),
+                 (wrapper.format("nfo"), nfo.replace(b"Artist.......: Artist\n", b""), False),
+                 (wrapper.format("nfo"), nfo + b" " * 65536, False),
+                 (wrapper.format("sfv"), b"../outside.flac 1234abcd\n", False),
+                 (wrapper.format("sfv"), b"01-song.flac invalid\n", False),
+                 (wrapper.format("nfo"), b"fLaC\x00audio", False))
+        for name, raw, expected in cases:
+            with self.subTest(name=name, raw=raw[:70]), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / name
+                path.write_bytes(raw)
+                self.assertEqual(main.disposable(path), expected)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = b"fLaC\x00audio"
+            (root / "01-song.flac").write_bytes(audio)
+            (root / wrapper.format("nfo")).write_bytes(nfo)
+            protected = wrapper.format("sfv")
+            (root / protected).write_bytes(sfv)
+            (root / "album.cue").write_text(f'FILE "{protected}" WAVE\n TRACK 01 AUDIO\n')
+            main.process_release(root)
+            self.assertFalse((root / wrapper.format("nfo")).exists())
+            self.assertEqual((root / protected).read_bytes(), sfv)
+            self.assertEqual((root / "01-song.flac").read_bytes(), audio)
+
     def test_duplicate_decorated_posting_nfos_do_not_block_archive_audio(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

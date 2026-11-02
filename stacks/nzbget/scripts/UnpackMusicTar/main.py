@@ -404,8 +404,12 @@ def is_album_info_sidecar(path: Path) -> bool:
 
 def is_obfuscated_posting_sidecar(path: Path) -> bool:
     """Require both a posting filename and structured release metadata/checksums."""
-    if not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
-                     path.name, re.IGNORECASE):
+    legacy = re.fullmatch(
+        r"\[\d{1,8}\]-\[FULL\]-\[\#a\.b\.flac@EFNet\]-\[ [^\[\]\r\n]{1,256} \]-"
+        r"\[\d{1,5}_\d{1,5}\] - _[^/\\\r\n]{1,256}\.(?:nfo|sfv)_ yEnc \(\d{1,5}_\d{1,5}\)(?: \(\d{1,5}_\d{1,5}\))?",
+        path.name, re.IGNORECASE)
+    if not legacy and not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+                                    path.name, re.IGNORECASE):
         return False
     with path.open("rb") as stream:
         raw = stream.read(65537)
@@ -415,9 +419,10 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         frame = " \t|" + "".join(chr(code) for code in range(0x2500, 0x25a0)) + "\u25a0"
         lines = [line.strip(frame) for line in text.splitlines()]
         fields = {match[1].casefold() for line in lines
-                  if (match := re.fullmatch(r"(Artist|Album|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
+                  if (match := re.fullmatch(r"(Artist|Album|Title|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
                                             line, re.IGNORECASE))}
-        return ({"artist", "album"} <= fields and len(fields) >= 4
+        return (({"artist", "album"} <= fields or legacy is not None and {"artist", "title"} <= fields)
+                and len(fields - {"artist", "album", "title"}) >= 2
                 and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
 
     try:

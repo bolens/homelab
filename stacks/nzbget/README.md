@@ -136,6 +136,13 @@ text, unsafe checksum paths and unidentified binary files are retained. Binary
 controls and unsupported legacy bytes fail recognition. The empty-output
 guard still retains releases containing only disposable sidecars.
 
+Legacy `[number]-[FULL]-[#a.b.flac@EFNet]` posting wrappers are also recognised
+when the complete filename identifies an NFO or SFV, part counters and yEnc
+fields. The same 64 KiB content and unsafe-path checks apply. These legacy NFOs
+may use `Title:` in place of `Album:`, with artist, two other release fields and
+a numbered track still required. Unknown wrappers, binary content and cue
+references remain protected.
+
 Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
 filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
 the complete payload. Similar text, named audio/video, cue and M3U files and
