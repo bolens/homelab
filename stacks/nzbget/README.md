@@ -67,7 +67,7 @@ built-in unpacker and removes empty subdirectories inside the processed release.
 It preserves the processing directory itself, its parents such as
 `usenet/completed/music`, and sibling release directories. An empty music
 category directory is retained.
-After successful extraction, `.accurip`, `.htm`, `.html`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
+After successful extraction, `.accurip`, `.ffp`, `.htm`, `.html`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` and `.website` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in
@@ -105,6 +105,14 @@ Binary SRR recovery sidecars are recognised by the ReScene marker and valid
 bounded application header, including files with obfuscated names. Unknown or
 malformed binary files remain retained. Named audio/video and cue-referenced
 files remain protected.
+
+Windows `desktop.ini` music-folder sidecars are removed only when the complete
+payload is within 64 KiB and contains one `[.ShellClassInfo]` section with exactly
+one `FolderType` of `MusicArtist` or `MusicAlbum` and one nonempty `MusicBuyUrl`.
+UTF-8 and BOM-marked UTF-16 are supported, including one trailing NUL terminator.
+Unknown fields, additional sections, duplicate keys, malformed text and arbitrary
+INI files remain retained. Cue-referenced files stay protected. This also avoids
+flattening conflicts between recognised folder sidecars.
 
 Synology `@SynoEAStream` files are removed only when their complete payload is
 an [AppleDouble v2](https://www.rfc-editor.org/rfc/rfc1740#appendix-B) header
