@@ -1685,7 +1685,14 @@ for checked temporary source mounts; they are absent from the final image.
 Each recovery pipe retains one monotonic deadline from the Parent's remaining
 phase budget. Backup challenges, scope birth and lifecycle custody share that
 finite budget; repeated challenges cannot renew it. Expiry retains the unknown
-outcome. Observation freshness remains separately limited to 120 seconds.
+outcome. A new observation still needs admission within 120 seconds. Once the
+configured NFS interface admits its exact bytes, later checks use the same live
+Channel, authenticated Parent exchanges, original reader epoch and unchanged
+deadline. Writer-held checks use the existing heartbeat without Docker or HTTP.
+Elapsed preparation time cannot invalidate that continuously checked lifetime;
+saved documents and other interfaces cannot recreate it. Stopped-reader phase
+custody likewise retains its first accepted record, owning Parent and deadline
+while rechecking current stopped state, source files and backup joins.
 Inherited pipe identities are captured before budget reads and checked again
 before the channel is used.
 Their library query keeps the original endpoint and credentials on stdin. When

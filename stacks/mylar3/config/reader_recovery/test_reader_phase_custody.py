@@ -126,6 +126,26 @@ class Controls(unittest.TestCase):
  def test_stale_stop(self):
   r=self.req['context']['controls']['stopped_runtime'];v=a.decode(Path(r['path']).read_bytes());v['observed']-=121;self.put('stopped_runtime',v)
   with self.assertRaises(a.Held):self.call()
+ def test_original_stopped_custody_survives_elapsed_wall_clock(self):
+  first=self.call();now=time.time()
+  with patch.object(a.time,'time',lambda:now+10000):second=self.call()
+  self.assertEqual(first,second)
+ def test_elapsed_stop_cannot_be_admitted_by_another_parent(self):
+  self.call();foreign=copy.copy(self.parent);now=time.time()
+  with patch.object(a.time,'time',lambda:now+191),self.assertRaisesRegex(a.Held,'custody-fresh-stop'):
+   a.produce('phase-custody',self.req,watch=foreign.continuous)
+ def test_original_custody_does_not_renew_its_deadline(self):
+  self.call();self.req['deadline_monotonic']+=1
+  with self.assertRaisesRegex(a.Held,'custody-original-stopped-lifetime'):self.call()
+ def test_expired_original_custody_still_refuses(self):
+  self.call()
+  with patch.object(a.time,'monotonic',lambda:self.req['deadline_monotonic']+1),self.assertRaisesRegex(a.Held,'adapter-expired'):
+   self.call()
+ def test_same_bytes_replaced_stop_cannot_borrow_admission(self):
+  self.call();r=self.req['context']['controls']['stopped_runtime'];path=Path(r['path']);raw=path.read_bytes()
+  replacement=path.with_suffix('.replacement');replacement.write_bytes(raw);replacement.chmod(0o600);os.replace(replacement,path)
+  r.update(signature9=list(a.nine(path.lstat())))
+  with self.assertRaisesRegex(a.Held,'custody-original-stopped-lifetime'):self.call()
  def test_input_controls_must_join_same_nine(self):
   path=Path(self.inv['input_path']);value=a.decode(path.read_bytes());value['controls']['rows']['sha256']='0'*64;path.write_bytes(a.encode(value));self.inv['input_sha256']=hashlib.sha256(path.read_bytes()).hexdigest();self.inv['command'][9]=self.inv['input_sha256']
   with self.assertRaisesRegex(a.Held,'input-nine-role-join'):self.call()

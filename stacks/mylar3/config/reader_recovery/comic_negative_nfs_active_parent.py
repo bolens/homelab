@@ -187,18 +187,89 @@ def private_parent(p):
     return s
 
 
-def fresh_scope(scope):
-    check(
-        type(scope["observed"]) is int and 0 <= time.time() - scope["observed"] <= 120,
-        "scope-expired-fresh-recapture-required",
-    )
+_SCOPE_LIFETIMES = weakref.WeakKeyDictionary()
+
+
+def _scope_method_seals(owner):
+    return tuple((name, value, value.__code__, value.__defaults__,
+                  value.__kwdefaults__, tuple((value.__kwdefaults__ or {}).items()))
+                 for name, value in vars(owner).items() if hasattr(value, '__code__'))
+
+
+def _scope_methods_current(owner, methods):
+    for name, method, code, defaults, keywords, values in methods:
+        current = vars(owner).get(name)
+        check(current is method and method.__code__ is code
+              and method.__defaults__ is defaults and method.__kwdefaults__ is keywords,
+              'scope-original-method')
+        if keywords is not None:
+            check(type(keywords) is dict and all(type(key) is str for key in keywords)
+                  and set(keywords) == {key for key, _ in values}
+                  and all(keywords[key] is value for key, value in values),
+                  'scope-original-method-defaults')
+
+
+def _scope_lifetime_current(interface, original):
+    check(_SCOPE_LIFETIMES.get(interface) is original, 'scope-original-lifetime')
+    cls, channel, channel_type, identity, namespace, registry, registered, methods, channel_methods, helpers, _, _ = original
+    check(type(interface) is cls and interface.channel is channel
+          and type(channel) is channel_type
+          and type(channel.read_fd) is int and type(channel.write_fd) is int
+          and type(channel.nonce) is str and type(channel.deadline) in (int, float)
+          and type(channel.facts) is tuple
+          and all(type(row) is tuple and all(type(value) is int for value in row) for row in channel.facts)
+          and (channel.read_fd, channel.write_fd, channel.nonce, channel.facts, channel.deadline) == identity
+          and namespace.get('_INTERFACES') is registry
+          and registry.get(interface) is registered, 'scope-original-channel')
+    _scope_methods_current(cls, methods)
+    _scope_methods_current(channel_type, channel_methods)
+    check(not any(name in vars(interface) for name, *_ in methods)
+          and not any(name in vars(channel) for name, *_ in channel_methods),
+          'scope-original-instance-methods')
+    for namespace, name, method, code in helpers:
+        check(namespace.get(name) is method and method.__code__ is code, 'scope-original-helper')
+    # The original admit checks inherited pipes and the one original deadline.
+    cls.admit(interface)
+
+
+def fresh_scope(scope, lifetime=None):
+    if lifetime is None:
+        check(type(scope['observed']) is int and 0 <= time.time() - scope['observed'] <= 120,
+              'scope-expired-fresh-recapture-required')
+        return
+    original = _SCOPE_LIFETIMES.get(lifetime)
+    check(original is not None, 'scope-original-lifetime')
+    _scope_lifetime_current(lifetime, original)
+    documents, epoch = original[-2:]
+    kind = scope.get('kind')
+    check(kind in ('root-reviewed-nfs-active-disposable-scope',
+                   'reviewed-komga-effective-scope-runtime'), 'scope-original-document-kind')
+    raw = encode(scope)
+    if kind not in documents:
+        # A new document still needs fresh admission. Only its identical bytes
+        # may continue within this already authenticated operation afterwards.
+        fresh_scope(scope)
+    else:
+        check(documents[kind] == raw, 'scope-original-document')
+    cls = original[0]
+    if getattr(lifetime, 'acquired', False) and not lifetime.released:
+        # Under the Writer, this existing exchange is local heartbeat only.
+        cls.pulse(lifetime)
+    else:
+        current = cls.reader_epoch(lifetime)
+        if epoch:
+            check(current == epoch[0], 'scope-original-reader-epoch')
+        else:
+            epoch.append(current)
+    _scope_lifetime_current(lifetime, original)
+    documents[kind] = raw
 
 
 def outside(path, roots):
     return all(not path.is_relative_to(r) and not r.is_relative_to(path) for r in roots)
 
 
-def validate(plan, scope):
+def validate(plan, scope, lifetime=None):
     exact(
         plan,
         (
@@ -244,10 +315,10 @@ def validate(plan, scope):
         and scope["future_mylar_destination_verified"] is False
         and scope["future_mylar_destination"] is None
         and scope["writer_lifecycle_resume_authorized"] is False
-        and type(scope["observed"]) is int
-        and 0 <= time.time() - scope["observed"] <= 120,
+        and type(scope["observed"]) is int,
         "scope",
     )
+    fresh_scope(scope, lifetime)
     check(
         type(scope["forbidden_roots"]) is list
         and 1 <= len(scope["forbidden_roots"]) <= 32
@@ -1231,14 +1302,14 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None, roles=None, host
     return terminal_result
 
 
-def _probe_gated_phases(a,engine,roles,host_probe):
+def _probe_gated_phases(a,engine,roles,host_probe,lifetime=None):
     check(callable(host_probe),"gated-original-host-probe-required");lease=None
     check(os.geteuid() == 1000, "caller-uid")
     os.umask(0o077)
     plan, pf = read(a.input, a.input_sha256)
     exact(plan["scope"], ("path", "sha256"))
     scope, sf = read(plan["scope"]["path"], plan["scope"]["sha256"])
-    fixture, out, roots = validate(plan, scope)
+    fixture, out, roots = validate(plan, scope, lifetime)
     controls = {
         canonical(a.input): pf,
         canonical(plan["scope"]["path"]): sf,
@@ -1310,7 +1381,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
         for p, s in rootstates.items():
             check(stamp(p) == s, "forbidden-root-drift")
 
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
     initial = observe()
     emit("preflight.json", initial)
     modules = json.loads(
@@ -1363,7 +1434,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
     )
     continuity()
     check(observe() == initial, "pre-create-held-drift")
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
     # Newly absent fixture is the only NFS write scope. No pre-existing files touched.
     fd = os.open(
         canonical(plan["fixture_parent"]), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -1446,12 +1517,12 @@ def _probe_gated_phases(a,engine,roles,host_probe):
     emit("profile.json", row[0])
     continuity()
     check(observe() == initial, "pre-start-held-drift")
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
     check(owned_probe is not None and all(callable(getattr(owned_probe,n,None)) for n in ('start_prepare','execute_local','finish_after_release')),'gated-original-probe-interface')
     warm=owned_probe.start_prepare();check(warm['prepared'] is True,'gated-original-probe-prepared')
     lease=yield dict(stage='prepared',container_id=child,native_grant=False,publication_authority=False)
     check(lease is not None and lease.profile()['held'] is True,'gated-original-Writer-required')
-    continuity();fresh_scope(scope)
+    continuity();fresh_scope(scope, lifetime)
     r=owned_probe.execute_local()
     ack = json.loads(r.stdout)
     exact(ack,('version','kind','source_sha256','kernel_sha256','input_sha256','report','transitions','facts','directories','root9','actual_library_platform_verified','native_grant','publication_authority'))
@@ -1464,7 +1535,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
     check(rf['signature']==ack['report']['signature9'] and report['transitions']==ack['transitions'] and report['collision_errno']==17,'hardlink-report-original')
     emit('probe-ack.json',ack)
     supported=True
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
     emit("postflight.json", initial)
     expected={'source/source.bin','source/collision.bin','target/foreign.bin','stage-intent.json','collision-intent.json','retire-intent.json','restore-intent.json','unstage-intent.json','result.json'}
     check(set(os.listdir(fixture))=={'source','target'}|{n for n in expected if '/' not in n}
@@ -1558,7 +1629,7 @@ def _probe_gated_phases(a,engine,roles,host_probe):
         "child-terminal",
     )
     check(observe() == initial, "post-held-drift")
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
     # Cleanup legitimately removed only the canary fixture and its parent.
     # Recheck original retained controls/protected roots/output after every
     # postrelease callback; never adopt their current facts as a new baseline.
@@ -1649,7 +1720,7 @@ def validate_effective_nodes(report, roots):
           'effective-scope-proof-census')
 
 
-def active_effective_controls(review, roots):
+def active_effective_controls(review, roots, lifetime=None):
     exact(review, ('producer', 'parent_source', 'report', 'ack', 'runtime', 'acceptance', 'parent_ack'))
     check(review['producer']['sha256'] == EFFECTIVE_HELPER_SHA
           and review['parent_source']['sha256'] == EFFECTIVE_PARENT_SHA, 'independently-reviewed-effective-pins')
@@ -1695,7 +1766,7 @@ def active_effective_controls(review, roots):
           and runtime['container']['Id'] == report['container_id']
           and runtime['pid'] == report['pid'] and runtime['start_time'] == report['start_time'],
           'effective-runtime-bound')
-    fresh_scope(runtime)
+    fresh_scope(runtime, lifetime)
     validate_effective_nodes(report, roots)
     for rawpath, f in report['config_files'].items():
         p = canonical(rawpath)
@@ -2215,7 +2286,7 @@ class ActiveNFSCanaryObservation:
     def binding(self):
         result=json.loads(encode(self.result));self.close();return result
 
-def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None):
+def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None,lifetime=None):
     if not a.execute:
         return dict(executable=False, native_grant=False, publication_authority=False, actual_library_platform_verified=False)
     original_input_nodes = ancestry([Path(a.input),Path(__file__),*([Path(host_control['path'])] if host_control is not None else [])])
@@ -2254,7 +2325,7 @@ def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None
     check(outer['native_controls'] is not None and outer['effective_observer_review'] is not None,
           'explicit-actual-native-and-reviewed-effective-evidence-required')
     try:
-        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles,host_control,probe_type,epoch_observer,library_observer)
+        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles,host_control,probe_type,epoch_observer,library_observer,lifetime)
     except ValueError as error:
         raise Held(str(error)) from None
 
@@ -2287,6 +2358,9 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
         check(interface_module.ChildProbe.__dict__[name].__code__==expected.ChildProbe.__dict__[name].__code__,'host-probe-interface-method-code')
     check(type(lease_interface) is actual_class and getattr(engine,'__self__',None) is lease_interface.channel
           and getattr(engine,'__func__',None) is type(lease_interface.channel).engine,'host-lease-original-child-instance')
+    check(not any(name in vars(lease_interface) for name, *_ in _scope_method_seals(actual_class))
+          and not any(name in vars(lease_interface.channel) for name, *_ in _scope_method_seals(type(lease_interface.channel))),
+          'scope-original-instance-methods')
     lease_interface.admit()
     check(ancestry([Path(interface_ref['path'])])==initial and fact(interface_ref['path'],HOST_LEASE_INTERFACE_SHA,source=True)==original,'host-lease-interface-before-factory')
     channel=lease_interface.channel
@@ -2306,12 +2380,33 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
               and type(channel).receive is receive and receive.__code__ is receive_code,
               'host-library-original-channel-methods')
         return result
-    result=_execute_factual(a,engine,lease_interface.factory,roles,interface_ref,lease_interface.probe,lease_interface.reader_epoch,library_observer)
-    check(type(result) is ActiveNFSCanaryObservation,'host-lease-genuine-child-canary')
-    result.close();lease_interface.admit();return result
+    check(lease_interface not in _SCOPE_LIFETIMES, 'scope-no-lifetime-replay')
+    namespace = interface_module.__dict__
+    registry = namespace['_INTERFACES']
+    helpers = tuple((namespace, name, namespace[name], namespace[name].__code__)
+                    for name in ('need', 'encode', 'epoch_reply'))
+    channel_namespace = type(channel).close.__globals__
+    helpers += tuple((channel_namespace, name, channel_namespace[name], channel_namespace[name].__code__)
+                     for name in ('need', 'encode', 'decode', 'five'))
+    original = (actual_class, channel, type(channel),
+                (channel.read_fd, channel.write_fd, channel.nonce, channel.facts, channel.deadline),
+                namespace, registry, registry[lease_interface], _scope_method_seals(actual_class),
+                _scope_method_seals(type(channel)), helpers, {}, [])
+    _SCOPE_LIFETIMES[lease_interface] = original
+    try:
+        result=_execute_factual(a,engine,lease_interface.factory,roles,interface_ref,lease_interface.probe,lease_interface.reader_epoch,library_observer,lease_interface)
+        check(type(result) is ActiveNFSCanaryObservation,'host-lease-genuine-child-canary')
+        result.close();lease_interface.admit();return result
+    finally:
+        if _SCOPE_LIFETIMES.get(lease_interface) is original:
+            del _SCOPE_LIFETIMES[lease_interface]
+        elif sys.exc_info()[1] is None:
+            raise Held('scope-original-lifetime-release')
+        else:
+            sys.exc_info()[1].scope_lifetime_cleanup_held = True
 
 
-def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None):
+def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None,lifetime=None):
     """Checked operational adapter. Missing actual proof refuses before writes."""
     module = lifecycle_module()
     exact(scope, ('version', 'kind', 'approved_disposable_diagnostic', 'observed',
@@ -2370,7 +2465,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         # configured host route requires its sealed projected document ref.
         check(host_control is None,'configured-effective-review-original-ref-required')
         effective_review=review_ref
-    effective_controls, runtime, report = active_effective_controls(effective_review, roots)
+    effective_controls, runtime, report = active_effective_controls(effective_review, roots, lifetime)
     controls.update(effective_controls)
     effective_absent = tuple(Path(p) for p in report.get('optional_absent_scopes', {}))
     effective_absent_parents = {canonical(p.parent): stamp(canonical(p.parent)) for p in effective_absent}
@@ -2387,7 +2482,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     check(protected.get('kind') == 'reviewed-nfs-protected-catalog-cache-recovery-scope'
           and type(protected.get('roots')) is list and protected['roots']
           and all(canonical(p) in roots for p in protected['roots']), 'complete-known-protected-roots')
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
 
     def call(argv, data=None):
         r = engine(argv, input=data, capture_output=True, timeout=900, check=False)
@@ -2462,7 +2557,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         lease.pulse()
         check(same_active(observe_active()[0]), 'pre-staging-held-bracket')
     controls.update(getattr(lease, 'records', {}))
-    fresh_scope(scope)
+    fresh_scope(scope, lifetime)
 
     def observe_mount(path):
         r = engine(['findmnt', '--json', '--target', str(path), '--output',
@@ -2494,7 +2589,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
                                    source_sha256=a.source_sha256, execute=True)
     phases=None
     if gated:
-        phases=_probe_gated_phases(core_args,engine,roles,probe_type)
+        phases=_probe_gated_phases(core_args,engine,roles,probe_type,lifetime)
         prepared=next(phases)
         check(prepared.get('stage')=='prepared' and prepared.get('native_grant') is False
               and prepared.get('publication_authority') is False,'original-probe-prepared-before-acquire')
