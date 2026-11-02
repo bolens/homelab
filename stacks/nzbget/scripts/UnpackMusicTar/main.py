@@ -481,9 +481,9 @@ def extension_target(path: Path) -> Path:
 
 
 def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Path | None:
-    """Resolve only local WAV export names with strong, unambiguous FLAC evidence."""
+    """Resolve local WAV/FLAC export names with strong, unambiguous FLAC evidence."""
     entry = PurePosixPath(name.replace("\\", "/"))
-    if len(entry.parts) != 1 or entry.suffix.casefold() != ".wav":
+    if len(entry.parts) != 1 or entry.suffix.casefold() not in {".wav", ".flac"}:
         return None
     candidates = [p for p in files if p.parent == cue.parent and detected_suffix(p) == ".flac"]
     expected = entry.with_suffix(".flac").name.casefold()
@@ -521,8 +521,13 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
             return None
         albums.add((tags["ALBUM"].strip().casefold(),
                     (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold(), disc))
-        if (int(track) == int(numbered[1]) and identity(tags["ARTIST"]) == performer
-                and identity(numbered[2]) in {identity(tags["TITLE"]), identity(tags["ARTIST"] + " " + tags["TITLE"])}):
+        album_performers = {identity(tags[key]) for key in ("ALBUMARTIST", "ALBUM ARTIST")
+                            if tags.get(key, "").strip()}
+        performer_matches = (identity(tags["ARTIST"]) == performer
+                             or bool(expected_albums) and album_performers == {performer})
+        if (int(track) == int(numbered[1]) and performer_matches
+                and identity(numbered[2]) in {identity(tags["TITLE"]), identity(tags["ARTIST"] + " " + tags["TITLE"]),
+                                             performer + identity(tags["TITLE"])}):
             matches.append(path)
     return matches[0] if len(albums) == 1 and len(matches) == 1 else None
 
