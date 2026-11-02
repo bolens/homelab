@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).parent))
 import ast
+import copy
 import hashlib
 import importlib.util
 from pathlib import Path
@@ -18,8 +19,18 @@ class Entry(unittest.TestCase):
         def leaves(path):
             return {n.name:ast.dump(n,include_attributes=False) for n in ast.parse(path.read_text()).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
         before,after=leaves(OLD),leaves(ROOT/'comic_negative_nfs_active_parent.py')
-        for name in ('run_active_factual','SourceCohort','validate','mount_identity','configured_writer_mapping','native_gate'):
+        for name in ('run_active_factual','SourceCohort','mount_identity','configured_writer_mapping','native_gate'):
             self.assertEqual(before[name],after[name],name)
+        # Keep every legacy validation gate exact except routing the freshness
+        # check through the separately tested original-interface continuation.
+        old_validate=next(n for n in ast.parse(OLD.read_text()).body if isinstance(n,ast.FunctionDef)and n.name=='validate')
+        expected=copy.deepcopy(old_validate)
+        expected.args.args.append(ast.arg(arg='lifetime'));expected.args.defaults.append(ast.Constant(value=None))
+        scope_check=next(n for n in expected.body if isinstance(n,ast.Expr)and isinstance(n.value,ast.Call)and len(n.value.args)==2 and isinstance(n.value.args[1],ast.Constant)and n.value.args[1].value=='scope')
+        self.assertEqual(ast.dump(scope_check.value.args[0].values[-1],include_attributes=False),ast.dump(ast.parse('0 <= time.time() - scope["observed"] <= 120',mode='eval').body,include_attributes=False))
+        scope_check.value.args[0].values.pop()
+        expected.body.insert(expected.body.index(scope_check)+1,ast.parse('fresh_scope(scope, lifetime)').body[0])
+        self.assertEqual(after['validate'],ast.dump(expected,include_attributes=False))
         def methods(path):
             node=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.ClassDef)and n.name=='WriterLease')
             return {n.name:ast.dump(n,include_attributes=False) for n in node.body if isinstance(n,ast.FunctionDef)}

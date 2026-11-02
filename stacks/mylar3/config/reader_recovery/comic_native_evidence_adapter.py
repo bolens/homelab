@@ -9,12 +9,14 @@ import stat
 import subprocess
 import time
 import types
+import weakref
 
 PROBE_SHA = '41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861'
 SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
 PRODUCER_SHA = '90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01'
 TERMINAL_PRODUCER_SHA = 'e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da'
 MAX = 1024*1024
+_CUSTODY_LIFETIMES = weakref.WeakKeyDictionary()
 class Held(ValueError): pass
 
 def need(value, reason):
@@ -256,8 +258,23 @@ def phase_custody(request, *, watch):
     stopped=controls['stopped_runtime'];runtime=expected['observations']['reader']
     need(set(stopped)=={'version','kind','nonce','observed','container'} and stopped['version']==1
          and stopped['kind']=='root-owned-reader-stopped-observation' and stopped['nonce']==request['nonce']
-         and type(stopped['observed']) is int and 0<=time.time()-stopped['observed'] and (terminal or time.time()-stopped['observed']<=120)
+         and type(stopped['observed']) is int
          and stopped['container']==runtime,'custody-fresh-stop')
+    # Fresh first admission, then the SAME owning Parent, stopped record and
+    # deadline. A saved record or another Parent cannot recreate this lifetime.
+    lifetime = _CUSTODY_LIFETIMES.get(owner)
+    lifetime_bytes = encode(dict(nonce=request['nonce'],operation=request['operation'],
+        parent_plan=request['parent_plan'],parent_source=request['parent_source'],
+        stopped_ref=ctx['controls']['stopped_runtime'],stopped=stopped))
+    if lifetime is None:
+        age = time.time() - stopped['observed']
+        need(0 <= age and (terminal or age <= 120), 'custody-fresh-stop')
+    else:
+        method, code, defaults, original_bytes, original_deadline = lifetime
+        need(watch.__func__ is method and method.__code__ is code
+             and method.__defaults__ is defaults and lifetime_bytes == original_bytes
+             and request['deadline_monotonic'] == original_deadline,
+             'custody-original-stopped-lifetime')
     state=runtime['State'];need(state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0
          and all(state.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')),'custody-stopped-state')
     ack=controls['backup_ack'];acceptance=controls['backup_acceptance'];manifest=controls['backup_manifest'];rows=controls['rows']
@@ -379,6 +396,11 @@ def phase_custody(request, *, watch):
         try:os.lstat(path)
         except FileNotFoundError:continue
         raise Held('custody-final-absence')
+    need(_CUSTODY_LIFETIMES.get(owner) is lifetime, 'custody-original-lifetime-registry')
+    if lifetime is None and not terminal:
+        method = watch.__func__
+        _CUSTODY_LIFETIMES[owner] = (method, method.__code__, method.__defaults__,
+                                    lifetime_bytes, request['deadline_monotonic'])
     return result
 
 def terminal_observation(request,*,watch):

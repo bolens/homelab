@@ -148,6 +148,23 @@ and assembly; embedding `State` in the profile creates an incompatible DTO.
 Container-init host PIDs and native application process PIDs belong to different
 namespaces and must retain their own original process checks.
 
+Distinguish fresh document admission from continuation of an authenticated
+operation. Keep stale first-admission refusals. Once the source-checked owning
+interface admits an original scope, check its exact bytes, original inherited
+pipes, nonce, method identities, responding Parent, role epochs and unchanged
+monotonic deadline at later boundaries. Do not reapply the document's wall-clock
+age during that lifetime, rewrite its timestamp, increase the budget or let a
+saved receipt recreate custody. Writer-held checks must use the existing local
+heartbeat rather than Docker or HTTP. Exercise delayed preparation and phase
+transitions alongside deadline, peer-loss, method-shadow and state-drift refusals.
+
+Preservation checks for `worker-health.json` must recognize the source-defined
+liveness-only `_publication_busy` result. It omits `intake_review` and retains
+every prior queue-progress field exactly. Accept that form only with empty
+errors, the exact marker schema and bounded observation clocks; it grants no
+publication authority or current intake observation. Keep database, catalog,
+protected-file and independently observed native-health comparisons separate.
+
 For the health-only cache allocation test, state the observation endpoint
 explicitly: verified child termination and payload removal precede the sole
 consistent AFTER snapshot and typed comparison. Keep exact source checks through
