@@ -440,8 +440,55 @@ def extension_target(path: Path) -> Path:
     return path.with_name(path.name + suffix)
 
 
+def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Path | None:
+    """Resolve only local WAV export names with strong, unambiguous FLAC evidence."""
+    entry = PurePosixPath(name.replace("\\", "/"))
+    if len(entry.parts) != 1 or entry.suffix.casefold() != ".wav":
+        return None
+    candidates = [p for p in files if p.parent == cue.parent and detected_suffix(p) == ".flac"]
+    aliases = [p for p in candidates if p.name.casefold() == entry.with_suffix(".flac").name.casefold()]
+    if aliases:
+        return aliases[0] if len(aliases) == 1 else None
+
+    def identity(value: str) -> str:
+        return "".join(re.findall(r"[^\W_]+", value.casefold()))
+
+    header = re.split(r"(?im)^[ \t]*TRACK[ \t]", "\n".join(text.splitlines()), maxsplit=1)[0]
+    performers = {identity(value) for value in re.findall(r'^[\ufeff \t]*PERFORMER[ \t]+"([^"\r\n]+)"[ \t]*\r?$', header, re.MULTILINE | re.IGNORECASE)}
+    numbered = re.fullmatch(r"([0-9]{1,5})[ _.-]+(.+)", entry.stem)
+    if not numbered or len(performers) != 1 or not next(iter(performers)):
+        return None
+    performer = next(iter(performers))
+    def album_identity(value: str) -> str:
+        return identity(re.sub(r"\s*\(single\)\s*$", "", value, flags=re.IGNORECASE))
+    album_titles = re.findall(r'^[\ufeff \t]*TITLE[ \t]+"([^"\r\n]+)"[ \t]*$', header, re.MULTILINE | re.IGNORECASE)
+    title_lines = re.findall(r"^[\ufeff \t]*TITLE[ \t]", header, re.MULTILINE | re.IGNORECASE)
+    expected_albums = {album_identity(value) for value in album_titles}
+    if len(album_titles) != len(title_lines) or len(expected_albums) > 1 or "" in expected_albums:
+        return None
+    albums = set()
+    matches = []
+    for path in candidates:
+        tags, embedded = flac_album_metadata(path)
+        if embedded or tags.get("CUESHEET") or any(not tags.get(key, "").strip() for key in ("ALBUM", "ARTIST", "TITLE")):
+            return None
+        track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
+        disc, _ = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+        if not re.fullmatch(r"[0-9]{1,5}", track):
+            return None
+        if expected_albums and album_identity(tags["ALBUM"]) not in expected_albums:
+            return None
+        albums.add((tags["ALBUM"].strip().casefold(),
+                    (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold(), disc))
+        if (int(track) == int(numbered[1]) and identity(tags["ARTIST"]) == performer
+                and identity(numbered[2]) in {identity(tags["TITLE"]), identity(tags["ARTIST"] + " " + tags["TITLE"])}):
+            matches.append(path)
+    return matches[0] if len(albums) == 1 and len(matches) == 1 else None
+
+
 def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[str, Path]]]:
     cues = {}
+    repaired = set()
     by_relative = {path.relative_to(root).as_posix(): path for path in files}
     for cue in files:
         if cue.suffix.casefold() != ".cue":
@@ -460,6 +507,7 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
         if any(not char.isprintable() and char not in "\t\r\n\f\ufeff" for char in text):
             raise ValueError(f"unsupported or non-text cue sheet: {cue.name}")
         references = {}
+        new_references = False
         for line in text.splitlines():
             match = CUE_FILE.fullmatch(line)
             if re.match(r"^[\ufeff \t]*FILE[ \t]", line, re.IGNORECASE) and not match:
@@ -475,14 +523,40 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
             relative = target.relative_to(root).as_posix()
             if relative not in by_relative:
                 candidates = [value for key, value in by_relative.items() if key.casefold() == relative.casefold()]
-                if len(candidates) != 1:
-                    raise ValueError(f"missing or ambiguous FILE reference in cue sheet: {cue.name}: {name}")
-                target = candidates[0]
+                if len(candidates) == 1:
+                    target = candidates[0]
+                else:
+                    alternate = (cue_flac_reference(portable, cue, text, files)
+                                 if not candidates and match["tail"].strip().casefold() == "wave" else None)
+                    if alternate is None:
+                        raise ValueError(f"missing or ambiguous FILE reference in cue sheet: {cue.name}: {name}")
+                    target = alternate
+                    repaired.add(target)
+                    new_references = True
             if target.suffix.casefold() == ".cue" or is_archive(target):
                 raise ValueError(f"invalid FILE reference in cue sheet: {cue.name}")
             references[name] = target
+        if new_references and len(set(references.values())) != len(references):
+            raise ValueError(f"ambiguous repaired FILE references in cue sheet: {cue.name}")
         cues[cue] = (encoding, text, references)
+    images = cue_image_targets(cues)
+    affected = {p.parent for p in repaired - images}
+    if affected:
+        # A repaired track-file cue must not turn a missing album track into
+        # apparent image evidence. Other folders keep their original protection.
+        check_album_tracks(files, {p for p in files if p.parent not in affected} | images, root)
     return cues
+
+
+def cue_image_targets(cues: dict[Path, tuple[str, str, dict[str, Path]]]) -> set[Path]:
+    images = set()
+    for _, text, references in cues.values():
+        lines = text.splitlines()
+        files = sum(CUE_FILE.fullmatch(line) is not None for line in lines)
+        tracks = sum(re.fullmatch(r"[ \t]*TRACK[ \t]+[0-9]+[ \t]+AUDIO[ \t]*", line, re.IGNORECASE) is not None for line in lines)
+        if files == 1 and tracks > 1:
+            images.update(references.values())
+    return images
 
 
 def flac_album_metadata(path: Path) -> tuple[dict[str, str], bool]:
@@ -835,7 +909,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
             raise ValueError(f"empty audio file: {path.name}; retaining all files")
     cues = read_cues(files, root)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
-    proven = check_album_tracks(files, protected, root) if cleanup or require_completeness else set()
+    completeness_cues = cue_image_targets(cues) if require_completeness else protected
+    proven = check_album_tracks(files, completeness_cues, root) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
     playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
