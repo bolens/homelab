@@ -93,8 +93,9 @@ BOM and byte order when references change. Explicit `.m3u` and `.m3u8` playlists
 also support Windows-1252 and preserve that encoding when references change.
 Malformed UTF-16, binary
 control characters and cue-referenced files remain protected.
+Explicit `.txt` sidecars also support Windows-1252 text with full-file validation.
 Scene `.nfo` files support Windows-1252 text and CP437 box art with accented
-letters, middle dots and the scene symbols `∙`, `¼`, `«`, `»` and `⌐`.
+letters, middle dots and the scene symbols `∙`, `¼`, `«`, `»`, `⌐`, `÷` and `≤`, plus nonbreaking spaces.
 The entire file must pass the text checks. Binary
 controls, undefined Windows-1252 bytes and unsupported CP437 glyphs remain
 protected. Adjacent drawing glyphs keep malformed box art from being retried as
