@@ -37,7 +37,7 @@ ARCHIVE_SUFFIXES = (
 # Keep the complete disc label, including mix/edition descriptions. Flattening
 # these folders would collide when separate discs use the same track filename.
 DISC_DIRECTORY = re.compile(
-    r"^(?:cd|disc|disk)[ _.-]*\d+(?:[ _.-]+.*|[\[(].*)?$", re.IGNORECASE
+    r"^(?:cdm|cd|disc|disk)[ _.-]*\d+(?:[ _.-]+.*|[\[(].*)?$", re.IGNORECASE
 )
 UNWANTED_SUFFIXES = {
     ".accurip",

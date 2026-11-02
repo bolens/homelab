@@ -590,6 +590,8 @@ class UnpackMusicArchiveTest(unittest.TestCase):
     def test_multidisc_releases_preserve_tracks_with_identical_names(self) -> None:
         disc_pairs = (
             ("CD1", "CD2"),
+            ("CDM-1", "CDM-2"),
+            ("cdm.01 - UK", "CDM 02 (Remixes)"),
             ("CD 1 - Original Mixes", "CD 2 - Extended Mixes"),
             ("Disc 01 (Originals)", "Disc 02 (Remixes)"),
             ("Disk_1_Studio", "Disk_2_Live"),
@@ -1627,6 +1629,42 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.FAILURE)
             self.assertEqual(self.snapshot(root), before)
             self.assertFalse(any(root.glob(".unpack-music-*")))
+
+    def test_cdm_disc_completeness_and_references_survive_flattening(self) -> None:
+        for missing in (False, True):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tracks = {}
+                for disc in (1, 2):
+                    if missing and disc == 2:
+                        continue
+                    for track in (1, 2):
+                        name = f"Release/CDM-{disc}/Audio/{track:02}.flac"
+                        tracks[name] = self.tagged_flac({"ALBUM": "Fixture", "ALBUMARTIST": "Artist",
+                                                       "DISCNUMBER": str(disc), "DISCTOTAL": "2",
+                                                       "TRACKNUMBER": str(track), "TRACKTOTAL": "2"})
+                for name, data in tracks.items():
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(data)
+                playlist = root / "Release/tracks.m3u"
+                playlist.write_text("".join(name.removeprefix("Release/") + "\n" for name in tracks))
+                before = self.snapshot(root)
+                if missing:
+                    with self.assertRaisesRegex(ValueError, "missing or invalid discs"):
+                        main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
+                else:
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual({str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*.flac")},
+                                     {name.replace("Release/", "").replace("/Audio/", "/"): data
+                                      for name, data in tracks.items()})
+                    self.assertEqual((root / "tracks.m3u").read_text(),
+                                     "".join(name.removeprefix("Release/").replace("/Audio/", "/") + "\n"
+                                             for name in tracks))
+                    before = self.snapshot(root)
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
 
     def test_completeness_keeps_separate_discs_albums_and_artists(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
