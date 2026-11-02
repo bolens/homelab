@@ -266,7 +266,7 @@ def is_text_sidecar(path: Path) -> bool:
                     drawing_run |= glyph and previous_drawing
                     previous_drawing = glyph
                     if not (char.isascii() and (char.isprintable() or char in "\t\r\n\f")
-                            or glyph or char.isalpha() or char == "·"):
+                            or glyph or char.isalpha() or char in "·∙¼«»⌐"):
                         valid_cp437 = False
         if drawing and valid_cp437:
             return True
@@ -300,6 +300,46 @@ def is_srr_sidecar(path: Path) -> bool:
         if not flags:
             return size == 7
         return size >= 9 and int.from_bytes(rest[:2], "little") == size - 9
+
+
+def is_synology_metadata(path: Path) -> bool:
+    """Recognise a bounded AppleDouble v2 header with no data or resource fork."""
+    if not path.name.casefold().endswith("@synoeastream"):
+        return False
+    with path.open("rb") as stream:
+        raw = stream.read(65537)
+    if (not 82 <= len(raw) <= 65536
+            or raw[:8] != b"\x00\x05\x16\x07\x00\x02\x00\x00"
+            or raw[24:26] != b"\x00\x02"):
+        return False
+    entries = {}
+    for offset in (26, 38):
+        kind, start, size = (int.from_bytes(raw[p:p + 4], "big") for p in range(offset, offset + 12, 4))
+        if kind in entries:
+            return False
+        entries[kind] = (start, size)
+    # Exactly FinderInfo/attributes from the end of the table to EOF, followed
+    # by an empty resource fork. Unknown entries, payload forks and gaps stay.
+    if entries != {9: (50, len(raw) - 50), 2: (len(raw), 0)}:
+        return False
+    if len(raw) == 82:
+        return True
+    # XNU aligns its ATTR header after two padding bytes. Accept the observed
+    # single provenance attribute, with complete record/data coverage only.
+    if len(raw) < 153 or raw[82:84] != bytes(2) or raw[84:88] != b"ATTR":
+        return False
+    total, start, size = (int.from_bytes(raw[p:p + 4], "big") for p in (92, 96, 100))
+    if (total != len(raw) or not 1 <= size <= 64 or start + size != len(raw)
+            or raw[104:118] != bytes(14) or raw[118:120] != b"\x00\x01"):
+        return False
+    offset = int.from_bytes(raw[120:124], "big")
+    length = int.from_bytes(raw[124:128], "big")
+    name_length = raw[130]
+    name_end = 131 + name_length
+    aligned_end = (name_end + 3) & ~3
+    return (raw[128:130] == bytes(2) and raw[131:name_end] == b"com.apple.provenance\x00"
+            and start == aligned_end and offset == start and length == size
+            and raw[name_end:start] == bytes(start - name_end))
 
 
 def is_album_info_sidecar(path: Path) -> bool:
@@ -362,7 +402,7 @@ def disposable(path: Path) -> bool:
     if suffix not in UNWANTED_SUFFIXES:
         if suffix in KNOWN_MEDIA_SUFFIXES | {".cue"} or detected_suffix(path) is not None:
             return False
-        return is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path)
+        return is_synology_metadata(path) or is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path)
     # Playlist disposal needs the whole release, including files from later
     # archives. Never discard a duplicate before completeness is established.
     if path.suffix.casefold() in {".m3u", ".m3u8"} or playlist_entries(path) is not None:

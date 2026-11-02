@@ -4,6 +4,7 @@ import io
 import json
 import os
 import shutil
+import struct
 import subprocess
 import tarfile
 import tempfile
@@ -21,6 +22,136 @@ class UnpackMusicArchiveTest(unittest.TestCase):
     def setUp(self) -> None:
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
+
+    @staticmethod
+    def synology_metadata() -> bytes:
+        # AppleDouble v2: FinderInfo/attributes followed by an empty resource fork.
+        name = b"com.apple.provenance\x00"
+        data = b"fixturedata"
+        start = (131 + len(name) + 3) & ~3
+        end = start + len(data)
+        attributes = (bytes(2) + struct.pack(">IIIIIIIIHH", 0x41545452, 0, end, start, len(data), 0, 0, 0, 0, 1)
+                      + struct.pack(">IIHB", start, len(data), 0, len(name)) + name
+                      + bytes(start - 131 - len(name)) + data)
+        finder = bytes(32) + attributes
+        return (struct.pack(">II16sH", 0x00051607, 0x00020000, b"Mac OS X        ", 2)
+                + struct.pack(">III", 9, 50, len(finder))
+                + struct.pack(">III", 2, end, 0) + finder)
+
+    def test_synology_metadata_cleanup_from_existing_and_archived_releases(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                files = {"Release/one.flac": audio,
+                         "Release/one.flac@SynoEAStream": self.synology_metadata(),
+                         "Release/cover.jpg@SynoEAStream": self.synology_metadata()}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        path = root / name
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"one.flac": audio})
+                main.process_release(root)
+
+    def test_synology_metadata_cleanup_preserves_unproven_data(self) -> None:
+        raw = self.synology_metadata()
+        def change(offset: int, value: int) -> bytes:
+            return raw[:offset] + struct.pack(">I", value) + raw[offset + 4:]
+        cases = [b"not metadata", raw[:49], change(0, 0x00051600), change(4, 0x00010000),
+                 raw[:24] + b"\x00\x03" + raw[26:], change(38, 9), change(38, 1),
+                 change(46, 1), change(30, 49), change(34, 31), change(42, len(raw) - 1),
+                 raw + b"trailer", raw + bytes(65536)]
+        for index, payload in enumerate(cases):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                path = root / "one.flac@SynoEAStream"
+                path.write_bytes(payload)
+                (root / "song.flac").write_bytes(b"fLaC" + bytes(32))
+                self.assertFalse(main.disposable(path))
+                main.process_release(root)
+                self.assertEqual(path.read_bytes(), payload)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            files = {"metadata.bin": raw, "named.flac": raw,
+                     "audio.flac@SynoEAStream": b"fLaC" + bytes(32)}
+            for name, payload in files.items():
+                (root / name).write_bytes(payload)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                             {"metadata.bin": raw, "named.flac": raw,
+                              "audio.flac@SynoEAStream.flac": files["audio.flac@SynoEAStream"]})
+
+    def test_synology_attribute_records_require_complete_known_structure(self) -> None:
+        raw = self.synology_metadata()
+        def change(offset: int, value: int) -> bytes:
+            return raw[:offset] + struct.pack(">I", value) + raw[offset + 4:]
+        cases = [change(84, 0), change(92, len(raw) - 1), change(96, 120), change(100, 10),
+                 change(104, 1), raw[:118] + b"\x00\x02" + raw[120:],
+                 change(120, 151), change(124, 12), raw[:128] + b"\x00\x01" + raw[130:],
+                 raw[:130] + b"\xff" + raw[131:], raw[:131] + b"x" + raw[132:],
+                 raw[:82] + b"\x00\x01" + raw[84:]]
+        for index, payload in enumerate(cases):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / "one.flac@SynoEAStream"
+                path.write_bytes(payload)
+                self.assertFalse(main.disposable(path))
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "one.flac@SynoEAStream"
+            bare = (struct.pack(">II16sH", 0x00051607, 0x00020000, bytes(16), 2)
+                    + struct.pack(">III", 9, 50, 32) + struct.pack(">III", 2, 82, 0) + bytes(32))
+            path.write_bytes(bare)
+            self.assertTrue(main.disposable(path))
+
+    def test_synology_metadata_keeps_cue_and_empty_output_guards(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            name = "one.flac@SynoEAStream"
+            payload = self.synology_metadata()
+            (root / name).write_bytes(payload)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            cue = f'FILE "{name}" BINARY\n'.encode()
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {name: payload, "album.cue": cue})
+
+    def test_synology_duplicate_metadata_does_not_block_audio(self) -> None:
+        for protected in (False, True):
+            with self.subTest(protected=protected), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                name = "one.flac@SynoEAStream"
+                (root / name).write_bytes(self.synology_metadata())
+                if protected:
+                    (root / "album.cue").write_text(f'FILE "{name}" BINARY\n')
+                audio = b"fLaC" + bytes(32)
+                with zipfile.ZipFile(root / "release.zip", "w") as output:
+                    output.writestr(name, self.synology_metadata())
+                    output.writestr("song.flac", audio)
+                before = {p.name: p.read_bytes() for p in root.iterdir()}
+                if protected:
+                    with self.assertRaises((FileExistsError, ValueError)):
+                        main.process_release(root)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
+                else:
+                    main.process_release(root)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
+    def test_printable_cp437_scene_symbols_are_cleaned_without_binary_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            art = "┌───┐\n│ ¼ «Fixture» ∙ ⌐ │\n└───┘\n".encode("cp437")
+            files = {"song.flac": b"fLaC" + bytes(32), "unknown.nfo": art + b"\xffbinary",
+                     "control.nfo": art + b"\x08binary", "drawing.txt": art}
+            for name, payload in {**files, "scene.nfo": art}.items():
+                (root / name).write_bytes(payload)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
 
     def test_additional_sidecars_from_postings_are_removed(self) -> None:
         posting = "release.1234abcd___123456abcdef_ [newzNZB] [4_22] - yEnc  1393 (1_1)"
