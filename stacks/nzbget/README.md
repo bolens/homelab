@@ -168,7 +168,9 @@ retained. Recognition accepts UTF-8, BOM-marked UTF-16 and explicit Windows-1252
 lists up to 1 MiB with local audio paths;
 it does not fetch URLs or infer completeness from unrelated text.
 A complete local `.m3u` or `.m3u8` can also establish disc boundaries for FLACs
-without disc tags. Every same-folder track in one tagged album must have a
+without disc tags. The album artist must agree across the group, using track
+artist only when album-artist tags are absent. Every same-folder track in one
+tagged album must have a
 three-digit `DTT` filename prefix matching its track number, with discs starting
 at 1 and consecutive tracks starting at 1 within each disc. The playlist must
 resolve exactly once to every track in that group. Missing identity tags,

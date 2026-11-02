@@ -1345,6 +1345,28 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 main.process_release(root, require_completeness=strict)
                 self.assertEqual(self.snapshot(root), before)
 
+    def test_disc_inference_does_not_partition_mixed_artists_into_cohorts(self) -> None:
+        for split in (False, True):
+            with self.subTest(split=split), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                names = []
+                for disc, artist in ((1, "Artist"), (2, "Artist"), (3, "Other")):
+                    for track in (1, 2):
+                        name = f"{disc}{track:02d}-song.flac"
+                        (root / name).write_bytes(self.tagged_flac(
+                            {"ALBUM": "Example", "ARTIST": artist, "TITLE": "Song",
+                             "TRACKNUMBER": str(track), "TRACKTOTAL": "2"}))
+                        names.append(name)
+                if split:
+                    (root / "first.m3u").write_text("\n".join(names[:4]) + "\n")
+                    (root / "other.m3u").write_text("\n".join(names[4:]) + "\n")
+                else:
+                    (root / "album.m3u").write_text("\n".join(names) + "\n")
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
     def test_discless_scene_groups_require_unambiguous_complete_evidence(self) -> None:
         for problem in ("no playlist", "partial playlist", "duplicate entry", "wrong track",
                         "disc gap", "track gap", "explicit disc", "explicit total", "missing title",

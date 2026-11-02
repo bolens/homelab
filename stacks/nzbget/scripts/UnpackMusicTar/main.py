@@ -759,7 +759,7 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
         artists = [tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
                    if tags.get(key, "").strip()]
         key = (path.parent, tags.get("ALBUM", "").strip().casefold(),
-               artists[0] if artists else tags.get("ARTIST", "").strip().casefold())
+               artists[0] if artists else "")
         cohorts.setdefault(key, []).append((path, tags))
     inferred = {}
     playlists = [path for path in files if path.suffix.casefold() in {".m3u", ".m3u8"}]
@@ -769,6 +769,7 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
             continue
         groups: dict[int, list[int]] = {}
         positions = {}
+        performers = set()
         for path, tags in records:
             artists = {tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
                        if tags.get(key, "").strip()}
@@ -781,11 +782,12 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                     or int(track) != int(match[2]) or int(track) == 0
                     or any(not tags.get(key, "").strip() for key in ("ALBUM", "ARTIST", "TITLE"))):
                 break
+            performers.add(next(iter(artists)) if artists else tags["ARTIST"].strip().casefold())
             number = int(match[1])
             groups.setdefault(number, []).append(int(track))
             positions[path] = str(number)
         else:
-            if (len(groups) < 2 or set(groups) != set(range(1, len(groups) + 1))
+            if (len(performers) != 1 or len(groups) < 2 or set(groups) != set(range(1, len(groups) + 1))
                     or any(sorted(tracks) != list(range(1, len(tracks) + 1)) for tracks in groups.values())):
                 continue
             for playlist in playlists:
