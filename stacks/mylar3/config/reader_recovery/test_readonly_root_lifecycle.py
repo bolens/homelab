@@ -70,7 +70,7 @@ class LifecycleVectors(unittest.TestCase):
                 m._protected_vectors(self.roots, files, nodes)
 
     def test_node_mode_and_regular_file_vectors_refuse(self):
-        os.chmod(self.live, 0o711)
+        os.chmod(self.live, 0o500)
         with self.assertRaises(m.Held):
             m._protected_vectors(self.roots, self.files, self.nodes)
         malformed = list(self.files[0][1]); malformed[5] = 0o100600
@@ -116,7 +116,7 @@ class LifecycleVectors(unittest.TestCase):
     def test_cleanup_node_mode_drift_refuses_before_unlink(self):
         fixture = self.fixture()
         with self.assertRaises(m.Held):
-            self.cleanup(fixture, lambda: os.chmod(self.live, 0o711))
+            self.cleanup(fixture, lambda: os.chmod(self.live, 0o500))
         self.assertTrue((Path(fixture[1]['path']) / 'result.json').exists())
 
 

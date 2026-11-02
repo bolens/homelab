@@ -781,16 +781,16 @@
       "sha256": "c9adf86614b9352aaeca1f3dc91488f56bbf61b619c06f7f433cb87fdfe47e90"
     },
     "test_readonly_root_lifecycle.py": {
-      "sha256": "715b0c5cb6a7183003d71d8842ed6c4624a3f483096294b582c3cae370c7a26f"
+      "sha256": "50faa4e68147a56116c551bc5946b790f805f7158950bd84229937a2bd6c8de1"
     },
     "test_readonly_root_mounts.py": {
       "sha256": "5506a395da5dbdd68fbbc13193320755ff0c860a3ebcc2b857774c84c8695487"
     },
     "test_readonly_root_parent.py": {
-      "sha256": "0f8a319506de572db21f9d828b8a968bcc7234120cbba172023bb4aef2a27729"
+      "sha256": "8e5cebafa3c468307b672b1d1bb989c011e63126a8812836b0315db3d60291b0"
     },
     "test_readonly_root_vectors.py": {
-      "sha256": "f3f8929e6e6a736e3a9bd5262e7554681cd29e342705d5da9b9d5ec5493a67bd"
+      "sha256": "5f98d9062f152563df835ff9c7cbace15ad1c6f0f726ed6eff4f895dfff4e5e1"
     },
     "test_retained_nfs_boundary.py": {
       "sha256": "0cfcfa9e4250b2e45bbbcf51338951d2fd697ee260c70611b4b9e48b8ee3e3c2"

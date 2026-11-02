@@ -72,7 +72,7 @@ class RootVectors(unittest.TestCase):
     def test_replacement_mode_owner_or_identity_refuses(self):
         def body(lease):
             files, nodes = active.protected_root_vectors(self.roots, self.roles, lease)
-            os.chmod(self.live, 0o711)
+            os.chmod(self.live, 0o500)
             with self.assertRaisesRegex(active.Held, 'forbidden-root-node-drift'):
                 active.close_protected_roots(files, nodes)
             with self.assertRaisesRegex(active.Held, 'readonly-original-root-node'):

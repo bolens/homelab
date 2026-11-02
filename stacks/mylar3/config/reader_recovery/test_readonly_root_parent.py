@@ -116,7 +116,7 @@ class ParentReply(unittest.TestCase):
         self.call()
         # A distinct attempt, not replay of the admitted reply.
         self.m._NFS_READONLY_ROOTS.pop(self.owner); self.dialogue.sequence = 0
-        self.callback = lambda: os.chmod(self.protected, 0o711)
+        self.callback = lambda: os.chmod(self.protected, 0o500)
         with self.assertRaisesRegex(self.m.Held, 'original-host-node'):
             self.call()
 
@@ -185,7 +185,7 @@ class NamespaceCollector(unittest.TestCase):
             self.call()
 
     def test_protected_node_mode_change_during_observation_refuses(self):
-        self.callback = lambda _: os.chmod(self.roots[0], 0o711)
+        self.callback = lambda _: os.chmod(self.roots[0], 0o500)
         with self.assertRaisesRegex(observer.Held, 'original-mounted-node'):
             self.call()
 
