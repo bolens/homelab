@@ -1964,13 +1964,13 @@ class ScopedDocker:
   launches[cid]=(birth,process,_DIALOGUE_SEALS[self][cid])
   return process
 
- def library_get(self,image,reader,route,body,seconds,guard,record):
+ def library_get(self,image,reader,route,body,seconds,guard,record,remaining):
   """One source-owned GET, no application mounts or replay; separate helper identity."""
   nfs_remote_guard(self)
   need(type(self)is ScopedDocker and type(image)is str and re.fullmatch(r'sha256:[a-f0-9]{64}',image)
        and type(reader)is dict and digest(reader.get('Id')) and reader['State']['Running']is True
        and route in('/api/v2/users/me','/api/v1/libraries') and type(body)is bytes and len(body)<=65536
-       and type(seconds)in(int,float)and 0<seconds<=30,'library-helper-fixed-input')
+       and type(seconds)in(int,float)and 0<seconds<=30 and callable(remaining),'library-helper-fixed-input')
   value=decode(body);need(set(value)=={'base','key','route','seconds'}and value['route']==route
        and value['seconds']==seconds,'library-helper-original-input')
   token=os.urandom(16).hex();name='reader-library-'+token;prefix='library-query-'+token
@@ -1981,7 +1981,7 @@ class ScopedDocker:
   def command(args,data=None):
    nonlocal sequence
    nfs_remote_guard(self);guard();need(NATIVE_LIBRARY_GET==program,'library-helper-client-source')
-   left=end-time.monotonic();need(left>0,'library-helper-deadline');sequence+=1
+   left=min(end-time.monotonic(),remaining());need(left>0,'library-helper-deadline');sequence+=1
    try:r=subprocess.run([*DOCKER,*args],input=data,capture_output=True,timeout=min(left,seconds+5 if args[0]=='start'else 15),env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
    except (OSError,subprocess.TimeoutExpired):
     note('unknown-'+str(sequence),dict(command=args[0],automatic_replay=False,publication_authority=False))
@@ -3442,6 +3442,8 @@ class LifecycleParent:
         files=dict(self.files);nodes=dict(self.nodes)
         def guard():
             nfs_remote_guard(self.engine);session.close();self.left()
+            need(session.state not in ('failed','finished') and not session.pump.failed
+                 and not session.pump.finished,'nfs-library-original-session')
             need(_NFS_LIBRARY_QUERIES.get(self) is original and _NFS_LIVE_SESSIONS.get(self) is session
                  and encode(configuration_ref)==configuration_raw and encode(lock_ref)==lock_raw
                  and encode(self.baselines['reader'])==reader_raw,'nfs-library-original-query-seal')
@@ -3464,6 +3466,11 @@ class LifecycleParent:
                 need(encode(self.baselines.get('held_worker'))==worker_raw,'nfs-library-original-worker-seal')
                 current=self.inspect(worker['Id'])
                 need(static(current)==static(worker)and lifecycle_state(current)==lifecycle_state(worker),'nfs-library-original-worker-epoch')
+        def remaining():
+            session.pump.check()
+            value=min(self.left(),session.pump.deadline-time.monotonic())
+            need(value>0,'nfs-library-original-deadline')
+            return value
         retained=_NFS_LIBRARY_REPLIES.get(self)
         if retained is None:
             need(session.lease_replies.lease is None and not session.lease_replies.done,
@@ -3487,7 +3494,7 @@ class LifecycleParent:
         def helper_get(route,seconds):
             need(type(self.engine)is ScopedDocker,'nfs-library-fixed-helper-transport');guard()
             body=encode(dict(base=base,key=key,route=route,seconds=seconds))
-            result=self.engine.library_get(worker['Image'],reader,route,body,seconds,guard,self.emit)
+            result=self.engine.library_get(worker['Image'],reader,route,body,seconds,guard,self.emit,remaining)
             guard();return result
         def native_get(route,seconds):
             need(type(self.engine) is ScopedDocker and transport[0]=='native-exec-v1'
@@ -3496,7 +3503,7 @@ class LifecycleParent:
             need(len(body)<=65536,'nfs-library-native-input-bound')
             result=self.engine.canary([*DOCKER,'exec','-i','--user','1000:1000',native['Id'],
                                       '/lsiopy/bin/python3','-I','-B','-c',program],
-                                      input=body,capture_output=True,timeout=min(self.left(),seconds+5),check=False)
+                                      input=body,capture_output=True,timeout=min(remaining(),seconds+5),check=False)
             guard();need(result.returncode==0 and len(result.stdout)<=8*1024**2
                          and len(result.stderr)<=65536,'nfs-library-native-query-held')
             return result.stdout
@@ -3507,11 +3514,28 @@ class LifecycleParent:
             need(nine(os.fstat(lock_fd))==lock_ref['signature9']
                  and nine(nfs_lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD')
             try:fcntl.flock(lock_fd,fcntl.LOCK_SH|fcntl.LOCK_NB)
-            except BlockingIOError:raise Held('nfs-library-exclusive-Writer-held') from None
+            except BlockingIOError:
+                # Wait on the same open description, not a readiness snapshot.
+                # The child exits without unlocking; this FD retains the shared
+                # lock. subprocess.run kills and reaps a stalled waiter before
+                # the enclosing finally closes the original description.
+                guard()
+                lock_program="import fcntl,sys;fcntl.flock(int(sys.argv[1]),fcntl.LOCK_SH)"
+                need(Path(sys.executable).is_absolute(),'nfs-library-original-interpreter')
+                try:
+                    waited=subprocess.run([sys.executable,'-I','-B','-c',lock_program,str(lock_fd)],
+                                          stdin=subprocess.DEVNULL,capture_output=True,
+                                          pass_fds=(lock_fd,),timeout=remaining(),check=False,
+                                          env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+                except subprocess.TimeoutExpired:
+                    raise Held('nfs-library-writer-acquisition-deadline') from None
+                need(waited.returncode==0 and waited.stdout==waited.stderr==b'',
+                     'nfs-library-shared-lock-wait-held')
+            guard();remaining()
             before=self.inspect(reader['Id'])
             need(static(before)==static(reader) and lifecycle_state(before)==lifecycle_state(reader),
                  'nfs-library-original-reader-before')
-            options=dict(guard=guard,seconds=self.left)
+            options=dict(guard=guard,seconds=remaining)
             if transport[0]=='native-exec-v1':options['fetch']=native_get
             elif transport[0]=='reader-net-helper-v1':options['fetch']=helper_get
             documents=module.library_documents(base,key,**options)
