@@ -18,8 +18,18 @@ class Entry(unittest.TestCase):
         def leaves(path):
             return {n.name:ast.dump(n,include_attributes=False) for n in ast.parse(path.read_text()).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
         before,after=leaves(OLD),leaves(ROOT/'comic_negative_nfs_active_parent.py')
-        for name in ('run_active_factual','WriterLease','SourceCohort','validate','mount_identity','configured_writer_mapping','native_gate'):
+        for name in ('run_active_factual','SourceCohort','validate','mount_identity','configured_writer_mapping','native_gate'):
             self.assertEqual(before[name],after[name],name)
+        def methods(path):
+            node=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.ClassDef)and n.name=='WriterLease')
+            return {n.name:ast.dump(n,include_attributes=False) for n in node.body if isinstance(n,ast.FunctionDef)}
+        old,new=methods(OLD),methods(ROOT/'comic_negative_nfs_active_parent.py')
+        self.assertEqual(set(new)-set(old),{'writer_snapshot'})
+        self.assertEqual(set(old)-set(new),set())
+        # Namespace capture/checking deliberately changed; all launch, protocol,
+        # release and lifecycle methods remain exact predecessor implementations.
+        for name in set(old)-{'__init__','profile'}:
+            self.assertEqual(old[name],new[name],name)
     def test_only_canary_static_loop_changes_for_owned_reader_stop(self):
         def canary(path):return next(n for n in ast.parse(path.read_bytes()).body if isinstance(n,ast.ClassDef) and n.name=='ActiveNFSCanaryObservation')
         old,new=canary(OLD),canary(ROOT/'comic_negative_nfs_active_parent.py')

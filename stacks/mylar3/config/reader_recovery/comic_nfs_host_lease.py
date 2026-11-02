@@ -1,5 +1,6 @@
 """Host-owned real Writer lease process; no child RemotePopen or copied grant."""
 import copy
+from comic_negative_nfs_active_lifecycle import namespace as writer_namespace
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ import time
 import uuid
 import weakref
 
-HELPER_SHA='2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21'
+HELPER_SHA='9f63ff76823db5dbfcb15c4724566ee9d12bce331d49b607e6e4905b3808b88b'
 _WINDOWS=weakref.WeakKeyDictionary()
 _FULL_PROFILES=weakref.WeakKeyDictionary()
 _PROFILE_CONTRACTS=weakref.WeakKeyDictionary()
@@ -34,15 +35,14 @@ def decode(raw):
 def ticks(pid):
     raw=Path('/proc',str(pid),'stat').read_bytes();tail=raw[raw.rfind(b') ')+2:].split()
     need(len(tail)>=20,'lease-client-stat');return int(tail[19])
-def namespace(root):
-    root=Path(root);z=os.lstat(root);need(stat.S_ISDIR(z.st_mode) and z.st_uid==1000 and stat.S_IMODE(z.st_mode)==0o700,'lease-writer-root')
-    rows=[]
-    for name in sorted(os.listdir(root)):
-        need(name in ('writer-v1.lock','normalizer-v1.pending','tagger-v2.pending','release-v1.pending','publication-v1.json'),'lease-writer-marker')
-        p=root/name;v=nine(os.lstat(p));need(stat.S_ISREG(v[5]) and v[6]==1000 and stat.S_IMODE(v[5])==0o600 and v[8]==1 and v[2]<=1024**2,'lease-writer-original')
-        rows.append((str(p),v))
-    need(any(Path(p).name=='writer-v1.lock' for p,_ in rows),'lease-writer-lock')
-    return five(z),tuple(rows)
+def namespace(root, _snapshot=writer_namespace, _code=writer_namespace.__code__):
+    need(_snapshot is writer_namespace and _snapshot.__code__ is _code, 'lease-namespace-source')
+    rows, identity = _snapshot(root, owner=1000)
+    need(_snapshot is writer_namespace and _snapshot.__code__ is _code, 'lease-namespace-source')
+    root = Path(root);z = os.lstat(root)
+    need((z.st_dev,z.st_ino) == tuple(identity), 'lease-writer-root')
+    return five(z), tuple((str(root/name), tuple(value)) for name, value in sorted(rows.items()))
+
 
 def required_label(labels,name):
     need(type(labels) is dict and labels.get('com.homelab.nfs.lease')==name,'lease-own-label')
@@ -73,7 +73,9 @@ class LeaseChannel:
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('lease-original-node')
         z=os.lstat(self.root)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=self.root5:raise Held('lease-original-root')
-        if tuple(sorted(os.listdir(self.root)))!=tuple(sorted(Path(p).name for p,_ in self.files)):raise Held('lease-original-namespace')
+        if set(os.listdir(self.root))!={Path(p).relative_to(self.root).parts[0] for p,_ in self.files}:raise Held('lease-original-namespace')
+        ledger=self.root/'identity-adoptions-v1'
+        if any(Path(p)==ledger for p,_ in self.files) and set(os.listdir(ledger))!={Path(p).name for p,_ in self.files if Path(p).parent==ledger}:raise Held('lease-original-namespace')
         for p,v in self.files:
             z=os.lstat(p)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('lease-original-file')

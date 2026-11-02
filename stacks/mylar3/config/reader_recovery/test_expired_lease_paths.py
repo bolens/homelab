@@ -79,7 +79,7 @@ class AdmittedEmpty(unittest.TestCase):
   parent._NFS_SOURCE_CONTEXTS[owner]=(refs,raws,parent.encode({}),parent.encode({}),'/fixture')
   parent._NFS_SOURCE_SEALS[owner]=parent.encode(dict(refs=refs,raw_sha={k:hashlib.sha256(v).hexdigest() for k,v in raws.items()},active={},probe={},output='/fixture',effective_absences=[]))
   method=module.RetainedChild.close
-  modules={'comic_nfs_parent_session.py':module};entry=('comic_nfs_parent_session.py',module,module.__name__,((module.RetainedChild,'close',method,method.__code__),))
+  modules={'comic_nfs_parent_session.py':module};entry=('comic_nfs_parent_session.py',module,module.__name__,((module.RetainedChild,'close',method,method.__code__,method.__defaults__,method.__kwdefaults__),))
   parent._NFS_HOST_MODULES[owner]=modules;parent._NFS_HOST_MODULE_SEALS[owner]=(tuple(modules.items()),(entry,))
   parent._NFS_LIVE_SESSIONS[owner]=session;session.original_pid=os.getpid()
   self.row=('/_operation/empty',self.lease.empty,self.lease.empty9,tuple(parent.parents(Path(self.lease.empty)).items()),session,session.cid,session.original_pid,owner.plan['nonce'])

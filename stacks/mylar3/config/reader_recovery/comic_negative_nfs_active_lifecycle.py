@@ -293,16 +293,59 @@ def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
         if pf is not None:os.close(pf)
 
 
-def namespace(root):
+def namespace(root, *, owner=None):
+    """Metadata preservation only; identity records confer no adoption rights."""
     root = canonical(root)
-    require(stamp(root)[6] == os.geteuid() and stat.S_IMODE(stamp(root)[5]) == 0o700,
-            'writer-private')
+    owner = os.geteuid() if owner is None else owner
+    require(type(owner) is int and owner >= 0, 'writer-owner')
+    original = stamp(root)
+    require(stat.S_ISDIR(original[5]) and original[6:8] == [owner, owner]
+            and stat.S_IMODE(original[5]) == 0o700, 'writer-private')
+    markers = {'writer-v1.lock', 'normalizer-v1.pending', 'tagger-v2.pending',
+               'release-v1.pending', 'publication-v1.json'}
+    identities = {'normalizer-state-v1.identity', 'release-state-v1.identity',
+                  'tagger-state-v2.identity', 'normalizer-state-adoption-v1.json'}
+    ledger = 'identity-adoptions-v1'
     names = set(os.listdir(root))
-    require('writer-v1.lock' in names and names <= {
-        'writer-v1.lock', 'normalizer-v1.pending', 'tagger-v2.pending', 'release-v1.pending',
-        'publication-v1.json'},
-        'writer-namespace')
-    return ({name: stamp(root / name) for name in names}, stamp(root)[:2])
+    require('writer-v1.lock' in names and names <= markers | identities | {ledger},
+            'writer-namespace')
+    rows = {}
+    for name in sorted(names):
+        value = stamp(root/name)
+        if name == ledger:
+            require(stat.S_ISDIR(value[5]) and value[6:8] == [owner, owner]
+                    and stat.S_IMODE(value[5]) == 0o700, 'writer-ledger-private')
+            rows[name] = value
+            children = set(os.listdir(root/name))
+            require(1 <= len(children) <= 8 and all(re.fullmatch(r'[a-f0-9]{64}\.json', child)
+                    for child in children), 'writer-ledger-namespace')
+            for child in sorted(children):
+                relative = name+'/'+child
+                leaf = stamp(root/relative)
+                require(stat.S_ISREG(leaf[5]) and leaf[6:8] == [owner, owner]
+                        and stat.S_IMODE(leaf[5]) == 0o600 and leaf[8] == 1
+                        and 0 < leaf[2] <= 256*1024, 'writer-ledger-record')
+                rows[relative] = leaf
+        else:
+            require(stat.S_ISREG(value[5]) and value[6:8] == [owner, owner]
+                    and stat.S_IMODE(value[5]) == 0o600 and value[8] == 1
+                    and 0 <= value[2] <= 1024**2 and (name in markers or value[2] > 0), 'writer-private-record')
+            require(not name.endswith('.identity') or value[2] == 65, 'writer-identity-size')
+            rows[name] = value
+    censuses = namespace_censuses(root, rows)
+    close_vector({root/name: value for name, value in rows.items()}, {}, censuses)
+    require(stamp(root) == original, 'writer-root-drift')
+    return rows, original[:2]
+
+
+def namespace_censuses(root, rows):
+    """Separate top-level names from the one supported flat history ledger."""
+    names = {name.split('/')[0] for name in rows}
+    result = {Path(root): names}
+    if 'identity-adoptions-v1' in rows:
+        result[Path(root)/'identity-adoptions-v1'] = {
+            name.split('/')[1] for name in rows if '/' in name}
+    return result
 
 
 def lease_child(writer_source, writer_root, token, input_stream=sys.stdin, output_stream=sys.stdout, *, writer_sha256, seconds=None, defer_acquire=False):
@@ -359,7 +402,7 @@ def lease_child(writer_source, writer_root, token, input_stream=sys.stdin, outpu
         raw_ack = (json.dumps(value, sort_keys=True) + '\n').encode()
         ack_fd = output_stream.fileno()
         output_stream.flush()
-        close_vector({src: source_sig, **{root / n: s for n, s in before.items()}}, ancestors, {root: set(before)})
+        close_vector({src: source_sig, **{root / n: s for n, s in before.items()}}, ancestors, namespace_censuses(root, before))
         if deadline is not None:
             require(ack_fd==descriptors[1][0],'lease-original-ACK-pipe')
             pipe_guard();require(len(raw_ack)<=4096 and select.select([],[descriptors[1][0]],[],max(0,deadline-time.monotonic()))[1],'lease-ACK-deadline');pipe_guard()
