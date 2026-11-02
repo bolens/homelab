@@ -19,6 +19,7 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from dataclasses import dataclass
+from typing import BinaryIO
 
 SUCCESS = 93
 FAILURE = 94
@@ -90,9 +91,43 @@ def is_archive(path: Path) -> bool:
     return any(name.endswith(suffix) for suffix in ARCHIVE_SUFFIXES)
 
 
+def flac_stream_offset(stream: BinaryIO) -> int | None:
+    """Locate native FLAC or a bounded ID3v2-prefixed FLAC without changing bytes."""
+    stream.seek(0)
+    header = stream.read(10)
+    if header.startswith(b"fLaC"):
+        return 0
+    if len(header) != 10 or header[:3] != b"ID3" or header[3] not in (2, 3, 4) or header[4] == 255:
+        return None
+    allowed_flags = {2: 0xc0, 3: 0xe0, 4: 0xf0}[header[3]]
+    if header[5] & ~allowed_flags or any(value & 128 for value in header[6:10]):
+        return None
+    size = sum(value << shift for value, shift in zip(header[6:10], (21, 14, 7, 0)))
+    if size > 16 * 1024**2:
+        return None
+    offset = 10 + size
+    if header[3] == 4 and header[5] & 16:
+        stream.seek(offset)
+        if stream.read(10) != b"3DI" + header[3:]:
+            return None
+        offset += 10
+    stream.seek(offset)
+    prefix = stream.read(42)
+    if len(prefix) != 42 or prefix[:4] != b"fLaC" or prefix[4] & 127 or prefix[5:8] != b"\x00\x00\x22":
+        return None
+    info = prefix[8:]
+    minimum, maximum = int.from_bytes(info[:2], "big"), int.from_bytes(info[2:4], "big")
+    audio = int.from_bytes(info[10:18], "big")
+    if not (16 <= minimum <= maximum and audio >> 44 and 4 <= ((audio >> 36) & 31) + 1 <= 32):
+        return None
+    return offset
+
+
 def detected_suffix(path: Path) -> str | None:
     with path.open("rb") as stream:
         header = stream.read(4096)
+        if header.startswith(b"ID3") and flac_stream_offset(stream) is not None:
+            return ".flac"
     for signature, suffix in MEDIA_SIGNATURES:
         if header.startswith(signature):
             return suffix
@@ -435,6 +470,8 @@ def disposable(path: Path) -> bool:
 
 
 def extension_target(path: Path) -> Path:
+    if path.suffix.casefold() == ".mp3" and detected_suffix(path) == ".flac":
+        return path.with_suffix(".flac")
     if path.suffix.casefold() in KNOWN_MEDIA_SUFFIXES:
         return path
     suffix = detected_suffix(path)
@@ -449,7 +486,8 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
     if len(entry.parts) != 1 or entry.suffix.casefold() != ".wav":
         return None
     candidates = [p for p in files if p.parent == cue.parent and detected_suffix(p) == ".flac"]
-    aliases = [p for p in candidates if p.name.casefold() == entry.with_suffix(".flac").name.casefold()]
+    expected = entry.with_suffix(".flac").name.casefold()
+    aliases = [p for p in candidates if expected in {p.name.casefold(), extension_target(p).name.casefold()}]
     if aliases:
         return aliases[0] if len(aliases) == 1 else None
 
@@ -567,8 +605,10 @@ def flac_album_metadata(path: Path) -> tuple[dict[str, str], bool]:
     tags: dict[str, str] = {}
     embedded_cue = False
     with path.open("rb") as stream:
-        if stream.read(4) != b"fLaC":
+        offset = flac_stream_offset(stream)
+        if offset is None:
             return tags, embedded_cue
+        stream.seek(offset + 4)
         for _ in range(128):
             header = stream.read(4)
             if len(header) != 4:
