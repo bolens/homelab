@@ -57,6 +57,45 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             main.process_release(root)
             self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"cover.jpeg": payload, "album.cue": cue})
 
+    def test_html_and_website_sidecars_preserve_media_and_unknown_binary(self) -> None:
+        for archive in (False, True):
+            for suffix in (".htm", ".HTML", ".website"):
+                with self.subTest(archive=archive, suffix=suffix), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = b"fLaC" + bytes(32)
+                    text = ("<html><body>Newsletter</body></html>" if suffix.lower() != ".website"
+                            else "[InternetShortcut]\r\nURL=https://example.com/release\r\n")
+                    files = {"sidecar" + suffix: text.encode(), "unicode" + suffix: text.encode("utf-16"),
+                             "song" + suffix: audio, "unknown" + suffix: b"\x00binary"}
+                    if archive:
+                        with zipfile.ZipFile(root / "release.zip", "w") as output:
+                            for name, payload in files.items():
+                                output.writestr(name, payload)
+                    else:
+                        for name, payload in files.items():
+                            (root / name).write_bytes(payload)
+                    main.process_release(root)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                     {"song" + suffix + ".flac": audio, "unknown" + suffix: b"\x00binary"})
+                    main.process_release(root)
+
+    def test_html_and_website_sidecars_keep_cleanup_and_cue_guards(self) -> None:
+        for suffix in (".htm", ".html", ".website"):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                sidecar = root / ("sidecar" + suffix)
+                payload = b"[InternetShortcut]\nURL=https://example.com/\n"
+                sidecar.write_bytes(payload)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root)
+                main.process_release(root, cleanup=False)
+                self.assertEqual(sidecar.read_bytes(), payload)
+                cue = ('FILE "' + sidecar.name + '" BINARY\n').encode()
+                (root / "album.cue").write_bytes(cue)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                 {sidecar.name: payload, "album.cue": cue})
+
     @staticmethod
     def decorated_posting_nfo() -> str:
         return ("┌──────────────────────────────┐\n"
