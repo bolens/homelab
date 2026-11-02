@@ -41,6 +41,7 @@ DISC_DIRECTORY = re.compile(
 UNWANTED_SUFFIXES = {
     ".accurip",
     ".jpg",
+    ".jpeg",
     ".log",
     ".lrc",
     ".m3u",
@@ -66,7 +67,7 @@ MEDIA_SIGNATURES = (
     (b"%PDF-", ".pdf"),
 )
 KNOWN_MEDIA_SUFFIXES = {
-    ".aac", ".aif", ".aiff", ".alac", ".ape", ".avi", ".flac", ".jpeg", ".m4a",
+    ".aac", ".aif", ".aiff", ".alac", ".ape", ".avi", ".flac", ".m4a",
     ".m4v", ".mka", ".mkv", ".mov", ".mp3", ".mp4", ".ogg", ".opus",
     ".wav", ".webm", ".wma", ".wmv",
 }

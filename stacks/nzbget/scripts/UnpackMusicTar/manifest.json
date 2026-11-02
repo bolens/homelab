@@ -17,7 +17,7 @@
     "Extracts zip, tar, tar.gz, tgz, tar.bz2, tbz2, tar.xz, and txz files.",
     "Flattens archive and existing release folders while retaining numbered CD, Disc, and Disk directories, including mix and edition labels.",
     "Restores missing or misleading extensions for recognizable media, including files named like sidecars.",
-    "Removes confirmed image, PDF, or text sidecars with accurip, jpg, log, lrc, m3u, m3u8, md5, nfo, nzb, pdf, pls, png, sfv, srr, toc, txt, and url extensions.",
+    "Removes confirmed image, PDF, or text sidecars with accurip, jpg, jpeg, log, lrc, m3u, m3u8, md5, nfo, nzb, pdf, pls, png, sfv, srr, toc, txt, and url extensions.",
     "Recognises binary SRR recovery sidecars by their bounded ReScene marker and application header even with obfuscated names, retaining unknown binary content and cue-referenced files.",
     "Matches scene playlist hash suffixes and featured-artist labels, and accepts repeated ancillary MusicBrainz tags without discarding album completeness metadata.",
     "Rejects zero-byte audio files before any cleanup or publication, even without track totals or optional decoding verification.",

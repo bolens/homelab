@@ -23,6 +23,40 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
 
+    def test_jpeg_sidecar_extension_cleanup_protects_disguised_audio_and_binary(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                files = {"cover.jpeg": b"\xff\xd8\xff" + bytes(32),
+                         "cover.JPEG": b"\x89PNG\r\n\x1a\n" + bytes(32),
+                         "song.jpeg": audio, "unknown.jpeg": b"\x00binary"}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                 {"song.jpeg.flac": audio, "unknown.jpeg": files["unknown.jpeg"]})
+                main.process_release(root)
+
+    def test_jpeg_sidecar_keeps_cue_empty_output_and_cleanup_disabled_guards(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = b"\xff\xd8\xff" + bytes(32)
+            (root / "cover.jpeg").write_bytes(payload)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            main.process_release(root, cleanup=False)
+            self.assertEqual((root / "cover.jpeg").read_bytes(), payload)
+            cue = b'FILE "cover.jpeg" BINARY\n'
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"cover.jpeg": payload, "album.cue": cue})
+
     @staticmethod
     def decorated_posting_nfo() -> str:
         return ("┌──────────────────────────────┐\n"
