@@ -14,7 +14,7 @@
     "Optional VerifyAudio setting requires ffmpeg in the NZBGet runtime"
   ],
   "description": [
-    "Separates discless FLAC track groups only with a complete distinct local M3U playlist and contiguous DTT filenames matching tagged track numbers; explicit disc metadata remains authoritative and audio/tags stay unchanged.",
+    "Separates discless FLAC track groups only with a complete distinct local M3U playlist and contiguous DTT filenames matching tagged track numbers; explicit disc metadata remains authoritative, required playlists stay retained for repeat processing and audio/tags stay unchanged.",
     "Removes bounded desktop.ini music-folder metadata with a ShellClassInfo section, MusicArtist or MusicAlbum FolderType and MusicBuyUrl, including a single trailing NUL and BOM-marked UTF-16; preserves unknown INI content and cue references.",
     "Repairs renamed local FLAC cue references using exact numbered track identity; guest tracks may match an explicit album artist only when the global cue album title also matches and album-artist aliases agree.",
     "Extracts zip, tar, tar.gz, tgz, tar.bz2, tbz2, tar.xz, and txz files.",

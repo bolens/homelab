@@ -175,7 +175,9 @@ resolve exactly once to every track in that group. Missing identity tags,
 partial or duplicate references, gaps, mixed album identities, conflicting
 album-artist aliases and any explicit disc metadata or numbered disc folder
 prevent this fallback. Existing track totals still apply within
-each disc. This affects validation only and preserves audio, tags and filenames.
+each disc. Playlists used for this fallback remain retained even without strict
+completeness, so repeat processing keeps the same evidence. This affects
+validation only and preserves audio, tags and filenames.
 
 Retained, resolvable playlists have their references updated whenever files move
 or gain extensions, including cleanup-disabled helpers and cue-protected lists.

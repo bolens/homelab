@@ -1325,8 +1325,8 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.snapshot(root), before)
 
     def test_covering_playlist_resolves_discless_scene_track_numbers(self) -> None:
-        for totals in (False, True):
-            with self.subTest(totals=totals), tempfile.TemporaryDirectory() as temp:
+        for totals, strict in ((False, False), (False, True), (True, False), (True, True)):
+            with self.subTest(totals=totals, strict=strict), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 names = []
                 for disc, count in ((1, 2), (2, 3)):
@@ -1340,9 +1340,9 @@ class MusicProcessingSeamTest(unittest.TestCase):
                         names.append(name)
                 (root / "album.m3u").write_text("\n".join(names) + "\n")
                 before = self.snapshot(root)
-                main.process_release(root, require_completeness=True)
+                main.process_release(root, require_completeness=strict)
                 self.assertEqual(self.snapshot(root), before)
-                main.process_release(root, require_completeness=True)
+                main.process_release(root, require_completeness=strict)
                 self.assertEqual(self.snapshot(root), before)
 
     def test_discless_scene_groups_require_unambiguous_complete_evidence(self) -> None:

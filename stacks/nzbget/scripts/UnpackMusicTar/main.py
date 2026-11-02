@@ -746,7 +746,8 @@ def album_directory(path: Path, root: Path) -> Path:
     return path.parent
 
 
-def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path) -> dict[Path, str]:
+def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
+                         required_playlists: set[Path] | None = None) -> dict[Path, str]:
     """Use a covering playlist and matching DTT names to separate untagged discs."""
     cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
     for path in files:
@@ -799,12 +800,15 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path) ->
                 resolved = [available.get(entry.as_posix().casefold(), set()) for entry in entries]
                 if all(len(matches) == 1 for matches in resolved) and len({next(iter(matches)) for matches in resolved}) == len(records):
                     inferred.update(positions)
+                    if required_playlists is not None:
+                        required_playlists.add(playlist)
                     break
     return inferred
 
 
-def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> set[Path]:
-    filename_discs = playlist_disc_groups(files, protected, root)
+def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
+                       required_playlists: set[Path] | None = None) -> set[Path]:
+    filename_discs = playlist_disc_groups(files, protected, root, required_playlists)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
     proven = set(protected)
@@ -1048,7 +1052,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     cues = read_cues(files, root)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
     completeness_cues = cue_image_targets(cues) if require_completeness else protected
-    proven = check_album_tracks(files, completeness_cues, root) if cleanup or require_completeness else set()
+    disc_playlists: set[Path] = set()
+    proven = check_album_tracks(files, completeness_cues, root, disc_playlists) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
     playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
@@ -1090,7 +1095,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     for path in files:
         target = extension_target(path) if extensions else path
         sidecar = path in playlists or (path.suffix.casefold() not in {".m3u", ".m3u8"} and disposable(path))
-        if (cleanup and path not in protected and not (require_completeness and path in playlists)
+        if (cleanup and path not in protected and path not in disc_playlists
+                and not (require_completeness and path in playlists)
                 and (sidecar or detected_suffix(path) in CLEANUP_SIGNATURE_SUFFIXES)):
             # Only recognized images/documents without an established media suffix are
             # disposable. Do not delete a named audio/video file on a sniff alone.
