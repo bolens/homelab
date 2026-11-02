@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import errno
 import argparse
+import datetime
 import fcntl
 import hashlib
 import json
@@ -408,8 +409,9 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         r"\[\d{1,8}\]-\[FULL\]-\[\#a\.b\.flac@EFNet\]-\[ [^\[\]\r\n]{1,256} \]-"
         r"\[\d{1,5}_\d{1,5}\] - _[^/\\\r\n]{1,256}\.(?:nfo|sfv)_ yEnc \(\d{1,5}_\d{1,5}\)(?: \(\d{1,5}_\d{1,5}\))?",
         path.name, re.IGNORECASE)
-    if not legacy and not re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
-                                    path.name, re.IGNORECASE):
+    modern = re.search(r"\.[0-9a-f]{8}(?:___|-_-_--_)[0-9a-f]{12}_ \[(?:newzNZB|WtFnZb)\] \[\d+_\d+\] - yEnc +\d+ \(\d+_\d+\)$",
+                       path.name, re.IGNORECASE)
+    if not legacy and not modern:
         return False
     with path.open("rb") as stream:
         raw = stream.read(65537)
@@ -424,6 +426,33 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         return (({"artist", "album"} <= fields or legacy is not None and {"artist", "title"} <= fields)
                 and len(fields - {"artist", "album", "title"}) >= 2
                 and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
+
+    def posting_info(text: str) -> bool:
+        if modern is None:
+            return False
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        releases = [match[1] for line in lines
+                    if (match := re.fullmatch(r"RELEASE[ \t]*:[ \t]*(.*)", line, re.IGNORECASE))]
+        uploaded = [match[1] for line in lines
+                    if (match := re.fullmatch(r"UPLOADED DATE[ \t]*:[ \t]*(.*)", line, re.IGNORECASE))]
+        if len(releases) != 1 or len(uploaded) != 1 or not lines or lines[-1] != ".::newz[NZB]::.":
+            return False
+        def identity(value: str) -> str:
+            value = re.sub(r"[-_. ]xpost$", "", value.strip(), flags=re.IGNORECASE)
+            return "".join(char for char in value.casefold() if char.isalnum())
+        expected = identity(path.name[:modern.start()])
+        if not expected or identity(releases[0]) != expected:
+            return False
+        match = re.fullmatch(r"([0-9]{4})-([A-Za-z]+)-([0-9]{2})", uploaded[0].strip())
+        months = ("january", "february", "march", "april", "may", "june", "july", "august",
+                  "september", "october", "november", "december")
+        if not match or match[2].casefold() not in months:
+            return False
+        try:
+            datetime.date(int(match[1]), months.index(match[2].casefold()) + 1, int(match[3]))
+        except ValueError:
+            return False
+        return True
 
     try:
         text = raw.decode("utf-8-sig")
@@ -440,7 +469,7 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         if lines and all((match := re.fullmatch(r"(.+) +[0-9a-fA-F]{8}", line))
                          and playlist_reference(match[1]) is not None for line in lines):
             return True
-        if structured_nfo(text):
+        if structured_nfo(text) or posting_info(text):
             return True
     if utf8:
         return False
@@ -449,7 +478,7 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         return "\u2500" <= char <= "\u259f" or char == "\u25a0"
     return (any(drawing(left) and drawing(right) for left, right in zip(text, text[1:]))
             and all((" " <= char <= "~") or char in "\t\r\n\f·∙¼«»⌐" or char.isalpha() or drawing(char) for char in text)
-            and structured_nfo(text))
+            and (structured_nfo(text) or posting_info(text)))
 
 
 def is_windows_folder_metadata(path: Path) -> bool:

@@ -136,6 +136,15 @@ text, unsafe checksum paths and unidentified binary files are retained. Binary
 controls and unsupported legacy bytes fail recognition. The empty-output
 guard still retains releases containing only disposable sidecars.
 
+The same modern posting names also support posting-info text ending in the
+exact `.::newz[NZB]::.` footer. Recognition requires exactly one `RELEASE:` field
+matching the filename's release prefix, ignoring punctuation, case and an
+optional terminal `xpost` label, plus exactly one valid `UPLOADED DATE:` in
+`YYYY-Month-DD` form with a full English month name. Full-file text validation
+and the 64 KiB limit still apply. Wrong identities, dates, duplicate fields,
+trailing content and binary controls remain retained. Cue references stay
+protected.
+
 Legacy `[number]-[FULL]-[#a.b.flac@EFNet]` posting wrappers are also recognised
 when the complete filename identifies an NFO or SFV, part counters and yEnc
 fields. The same 64 KiB content and unsafe-path checks apply. These legacy NFOs
