@@ -15,6 +15,8 @@ BACKUP_SECONDS = 1800
 ROLES = ('native_state', 'reader_state', 'retained_source', 'existing_target')
 PRIMITIVES_SHA256 = 'cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
 _OBSERVATIONS = weakref.WeakKeyDictionary()
+_BACKUP_SEALS = weakref.WeakKeyDictionary()
+_PRIMITIVES = weakref.WeakKeyDictionary()
 
 
 def _directory_names(fd):
@@ -163,8 +165,65 @@ def load_primitives(path, original_frame):
     module = importlib.util.module_from_spec(importlib.util.spec_from_loader('standalone_neutral_backup', loader=None))
     module.__file__ = str(path)
     exec(compile(data, str(path), 'exec'), module.__dict__)
+    methods=tuple((name,function,function.__code__,function.__defaults__,function.__kwdefaults__,
+                   None if function.__kwdefaults__ is None else tuple((key,type(value),value) for key,value in sorted(function.__kwdefaults__.items())))
+                  for name,function in vars(module).items()
+                  if type(function).__name__=='function' and function.__globals__ is vars(module))
+    constants=tuple((name,vars(module)[name]) for name in ('MAX_FILES','MAX_MANIFEST','MAX_BYTES','DEADLINE','Held'))
+    _PRIMITIVES[module]=(_PRIMITIVES,methods,constants)
     raw(original_frame)
+    _primitive_original(module)
     return module
+
+
+def _primitive_original(module,expected=None):
+    original=_PRIMITIVES.get(module)
+    if original is None or original[0] is not _PRIMITIVES or (expected is not None and original is not expected):
+        raise ValueError('backup-original-primitive-registry')
+    for name,function,code,defaults,kwdict,kwdefaults in original[1]:
+        current=vars(module).get(name)
+        if (current is not function or current.__code__ is not code or current.__defaults__ is not defaults
+                or current.__kwdefaults__ is not kwdict
+                or (kwdict is not None and (len(kwdict)!=len(kwdefaults) or any(type(key) is not str for key in kwdict)
+                    or any(key not in kwdict or type(kwdict[key]) is not kind or kwdict[key]!=value for key,kind,value in kwdefaults)))):
+            raise ValueError('backup-original-primitive-callable')
+    for name,wanted in original[2]:
+        current=vars(module).get(name)
+        if type(current) is not type(wanted) or current!=wanted:raise ValueError('backup-original-primitive-constant')
+    return original
+
+
+def _primitive_call(module,original,name,*args,**kwargs):
+    _primitive_original(module,original)
+    function=next(function for key,function,*_ in original[1] if key==name)
+    result=function(*args,**kwargs)
+    _primitive_original(module,original)
+    return result
+
+def _projection(value):
+    pending=[value];result=[]
+    while pending:
+        item=pending.pop();kind=type(item)
+        if kind is dict:
+            keys=tuple(sorted(item));result.append(('dict',keys));pending.extend(item[k] for k in reversed(keys))
+        elif kind in (list,tuple):
+            result.append((kind.__name__,len(item)));pending.extend(reversed(item))
+        elif kind in (str,int,float,bool,bytes,type(None)):
+            result.append((kind.__name__,item))
+        else:result.append(('identity',id(kind),id(item)))
+    return tuple(result)
+
+
+def _witness(value,expected=None):
+    original=_BACKUP_SEALS.get(value)
+    if type(original) is not tuple or len(original)!=5:raise ValueError('backup-original-persistent-seal')
+    state,table,seals,logical,primitive=original
+    if (_OBSERVATIONS is not table or _BACKUP_SEALS is not seals or table.get(value) is not state
+            or (expected is not None and original is not expected) or _projection(state)!=logical):
+        raise ValueError('backup-original-persistent-custody')
+    _primitive_original(state['module'],primitive)
+    return original
+
 
 
 class BackupObservation:
@@ -174,8 +233,8 @@ class BackupObservation:
         raise ValueError('Original in-process backup observation required')
 
     def close(self, sources=True):
-        need(type(sources) is bool, 'backup-close-mode')
-        state = _OBSERVATIONS.get(self)
+        if type(sources) is not bool:raise ValueError('backup-close-mode')
+        persistent=_witness(self);state=persistent[0]
         need(state is not None and state['pid'] == os.getpid() and
              state['thread'] == threading.get_ident(), 'backup-original-owner')
         seal = state
@@ -187,24 +246,25 @@ class BackupObservation:
         source_content = tuple(state['source_content']); content = tuple(state['content'])
         source_databases = tuple((path, encode(logical)) for path, logical in state['source_databases'])
         databases = tuple((path, encode(logical)) for path, logical in state['databases'])
-        module = state['module']; database_function = module.database
+        module = state['module']; database_function = module.database;primitive=persistent[4]
         need(time.monotonic() < state['deadline'], 'backup-deadline')
         for path, original_hash, original_attrs in content:
             stamp = dict(state['copies'][0])[path]
             need(read_hash(path, stamp, state['deadline']) == original_hash and
                  attributes(path) == original_attrs, 'backup-copy-content')
         for path, logical in databases:
-            need(encode(database_function(Path(path))) == logical, 'backup-copy-database')
+            need(encode(_primitive_call(module,primitive,'database',Path(path))) == logical, 'backup-copy-database')
         if sources:
             for path, digest, attrs in source_content:
                 need(read_hash(path, dict(state['source'][0])[path], state['deadline']) == digest and
                      attributes(path) == attrs, 'backup-source-content')
             for path, logical in source_databases:
-                need(encode(database_function(Path(path))) == logical, 'backup-source-database')
+                need(encode(_primitive_call(module,primitive,'database',Path(path))) == logical, 'backup-source-database')
         result = dict(kind='standalone-private-backup-v1', roles=list(ROLES),
                       bytes=state['bytes'], entries=len(state['source'][0]),
                       digest=state['digest'], ordinary_import=False, cleanup=False,
                       index=False, resume=False, replay=False)
+        _witness(self,persistent)
         for frame in frames:
             raw(frame)
         current_owner = (os.getpid(), threading.get_ident())
@@ -230,11 +290,40 @@ class BackupObservation:
                 or (seal['bytes'], seal['digest']) != summary_original
                 or owner_original[:2] != current_owner):
             raise ValueError('backup-final-owner')
+        # Inline primitive projection: no replaceable checker/serializer runs after
+        # the physical tail and before original-table/entry comparison.
+        pending=[state];observed=[]
+        while pending:
+            item=pending.pop();kind=type(item)
+            if kind is dict:
+                keys=tuple(sorted(item));observed.append(('dict',keys));pending.extend(item[k] for k in reversed(keys))
+            elif kind in (list,tuple):
+                observed.append((kind.__name__,len(item)));pending.extend(reversed(item))
+            elif kind in (str,int,float,bool,bytes,type(None)):
+                observed.append((kind.__name__,item))
+            else:observed.append(('identity',id(kind),id(item)))
+        primitive=persistent[4]
+        if _PRIMITIVES is not primitive[0] or _PRIMITIVES.get(state['module']) is not primitive:
+            raise ValueError('backup-original-final-primitive-registry')
+        for name,function,code,defaults,kwdict,kwdefaults in primitive[1]:
+            current=vars(state['module']).get(name)
+            if (current is not function or current.__code__ is not code or current.__defaults__ is not defaults
+                    or current.__kwdefaults__ is not kwdict
+                    or (kwdict is not None and (len(kwdict)!=len(kwdefaults) or any(type(key) is not str for key in kwdict)
+                        or any(key not in kwdict or type(kwdict[key]) is not kind or kwdict[key]!=value for key,kind,value in kwdefaults)))):
+                raise ValueError('backup-original-final-primitive-callable')
+        for name,wanted in primitive[2]:
+            current=vars(state['module']).get(name)
+            if type(current) is not type(wanted) or current!=wanted:raise ValueError('backup-original-final-primitive-constant')
+        if (tuple(observed)!=persistent[3] or _OBSERVATIONS is not persistent[1]
+                or _BACKUP_SEALS is not persistent[2] or _OBSERVATIONS.get(self) is not state
+                or _BACKUP_SEALS.get(self) is not persistent
+                or time.monotonic()>=owner_original[2]):raise ValueError('backup-original-final-custody')
         return result
 
     def original_source_frame(self):
         """Copied original preservation facts; no mutation or ready authority."""
-        state = _OBSERVATIONS.get(self)
+        persistent=_witness(self);state=persistent[0]
         if state is None:
             raise ValueError('backup-original-frame-owner')
         original = state['source']; owner = (state['pid'],state['thread'],state['deadline'])
@@ -244,6 +333,7 @@ class BackupObservation:
                 (state['pid'],state['thread'],state['deadline']) != owner or
                 owner[:2] != current_owner):
             raise ValueError('backup-original-frame-final')
+        _witness(self,persistent)
         return original
 
     def close_copies(self):
@@ -327,7 +417,7 @@ def copy_and_verify(scopes, out):
     capacity = os.statvfs(out.parent)
     need(capacity.f_bavail * capacity.f_frsize >= 2 * total + 1024 ** 2, 'backup-two-copy-space')
     raw(source); raw(code_original)
-    module = load_primitives(primitive_path, code_original)
+    module = load_primitives(primitive_path, code_original);primitive=_primitive_original(module)
     source_content = []; source_databases = []
     original_files = dict(source[0])
     for path, stamp in source[0]:
@@ -337,7 +427,7 @@ def copy_and_verify(scopes, out):
         for relative in row['databases']:
             path = root / relative
             need(str(path) in original_files, 'backup-database-original')
-            source_databases.append((str(path), module.database(path)))
+            source_databases.append((str(path), _primitive_call(module,primitive,'database',path)))
     raw(source); raw(code_original)
     need(nine(os.lstat(out.parent)) == parent_original9 and
          tuple(sorted(os.listdir(out.parent))) == parent_names and not os.path.lexists(out), 'backup-output-parent-drift')
@@ -497,7 +587,7 @@ def copy_and_verify(scopes, out):
             for relative in row['databases']:
                 destination = phase_root / row['role'] / relative
                 logical = dict(source_databases)[str(root / relative)]
-                need(module.database(destination) == logical, 'backup-detached-readback')
+                need(_primitive_call(module,primitive,'database',destination) == logical, 'backup-detached-readback')
                 databases.append((str(destination), logical))
         check_created(); raw(source); raw(code_original)
     # No refreshed leaf or directory incarnation is used to establish copies.
@@ -508,6 +598,8 @@ def copy_and_verify(scopes, out):
                                     source=source, copies=copied, code=code_original, module=module,
                                     source_content=source_content, source_databases=source_databases,
                                     content=content, databases=databases, bytes=total, digest=digest)
+    state=_OBSERVATIONS[observation]
+    _BACKUP_SEALS[observation]=(state,_OBSERVATIONS,_BACKUP_SEALS,_projection(state),primitive)
     observation.close()
     if (type(requested_scopes) is not list or len(requested_scopes)!=4 or
             any(type(row) is not dict or set(row)!={'role','root','databases'} or

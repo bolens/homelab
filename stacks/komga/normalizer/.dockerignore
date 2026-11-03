@@ -1,5 +1,10 @@
 **
 !Dockerfile
 !*.py
+!standalone_launch_auth/
+standalone_launch_auth/**
+!standalone_launch_auth/standalone_launch_auth.py
+!standalone_launch_auth/v3_auth_core.py
+!standalone_launch_auth/private_crypto.py
 !ordinary_observation_fixtures/
 !ordinary_observation_fixtures/**

@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 import subprocess
 import sys
+import os
 import tempfile
 from unittest.mock import patch
 import test_retained_delivery_api as fixture
@@ -39,7 +40,24 @@ class Export(unittest.TestCase):
    result=subprocess.run([sys.executable,'-I','-B',str(normalizer/'check_retained_pack_export.py'),str(inp)],
        cwd=normalizer,capture_output=True,text=True)
    self.assertEqual(result.returncode,0,result.stderr)
-   self.assertEqual(json.loads(result.stdout),dict(actual_SQL_verified=True,negative_controls=6,mutation_authority=False))
+   self.assertEqual(json.loads(result.stdout),dict(actual_SQL_verified=True,negative_controls=7,mutation_authority=False))
+ def test_native_export_against_independent_backup_and_Root_SQL(self):
+  sys.path.insert(0,str(Path(__file__).parent/'reader_recovery'))
+  import comic_retained_pack_parent as parent
+  import comic_retained_standalone_parent as observer
+  import comic_reader_backup_primitives as primitives
+  with self.base.c.writer.hold():
+   before=observer.sql_snapshot(self.c.database,observer.nine(os.lstat(self.c.database)))
+   catalog=observer.sql_snapshot(self.c.native_database,observer.nine(os.lstat(self.c.native_database)))
+   backup_workflow=primitives.database(self.c.database);backup_catalog=primitives.database(self.c.native_database)
+  reply=self.base.call()
+  with self.base.c.writer.hold():
+   current=observer.sql_snapshot(self.c.database,observer.nine(os.lstat(self.c.database)))
+   current_catalog=observer.sql_snapshot(self.c.native_database,observer.nine(os.lstat(self.c.native_database)))
+   observed=parent.verify_retained_sql(before,catalog,backup_workflow=backup_workflow,
+    backup_catalog=backup_catalog,request=self.base.c.case.body,reply=reply,current=current,current_catalog=current_catalog)
+  self.assertFalse(observed['mutation_authority']);self.assertFalse(observed['ordinary_import_grant'])
+  self.assertFalse(observed['historical_import_ack']);self.assertFalse(observed['reader_index_acceptance'])
  def test_same_daemon_status_export_is_identical(self):
   answer=self.base.call();self.assertEqual(self.base.call('retainedDeliveryStatus'),answer)
  def test_saved_export_cannot_mint_typed_receipt(self):
@@ -55,7 +73,10 @@ class Export(unittest.TestCase):
    self.assertFalse(self.base.call()['success'])
  def test_foreign_original_event_cannot_status_export(self):
   answer=self.base.call()['data'];key=(str(self.c.root),answer['token']);old=self.f._FINALS.pop(key)
-  try:self.assertFalse(self.base.call('retainedDeliveryStatus')['success'])
+  try:
+   result=self.base.call('retainedDeliveryStatus');self.assertTrue(result['success'])
+   self.assertEqual(result['data']['outcome'],'retained-durable-state-observed')
+   self.assertNotIn(key,self.f._FINALS)
   finally:self.f._FINALS[key]=old
 
 if __name__=='__main__':unittest.main()

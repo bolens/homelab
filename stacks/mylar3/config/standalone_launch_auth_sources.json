@@ -1,19 +1,19 @@
 [
   {
     "path": "patch_publication_launch_auth.py",
-    "sha256": "b7fe6c4a9da16e8515237615b4ad19e25c0a2fc5fbfb4148f3394ba34bc1d689"
+    "sha256": "984fbe57262d11ac3e0c8b55a2d2185ebb74efe66e4aae3ff44232db9b1aa8a2"
   },
   {
     "path": "test_publication_launch_auth.py",
-    "sha256": "3410d5d5b3f8202d5729866a3f75d2a4a9f32a7d3e347f7c74129a7d7ded0ee9"
+    "sha256": "79a00de1eceab712303a02642ca4e13b284d2dfbf3ab23b3e9a7eb7c4c030dd2"
   },
   {
     "path": "standalone_launch_auth/standalone_launch_auth.py",
-    "sha256": "fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8"
+    "sha256": "e990dd15ab2a5d44d6d9f3903642f1198219cf82b89bb630f2d5c7bedc488145"
   },
   {
     "path": "standalone_launch_auth/v3_auth_core.py",
-    "sha256": "b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93"
+    "sha256": "7d5e783c2ac74c3a307f1447e89fd9acb02fab33e365dd443fbf7b133282a1f3"
   },
   {
     "path": "standalone_launch_auth/private_crypto.py",

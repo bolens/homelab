@@ -693,6 +693,96 @@ class NamingWorkerTest(unittest.TestCase):
         self.assertEqual(result, {'issues:1':dict(issueid='1',comicid='2',source=str(self.source))})
         authority.mapped.assert_called_once_with('/native/comics/'+self.source.name)
 
+    def test_cleanup_resumes_after_either_unlink_and_directory_sync(self):
+        from contextlib import ExitStack
+        for boundary in ('original.cbz','restore.cbz','sync'):
+            with self.subTest(boundary=boundary), ExitStack():
+                if boundary!='original.cbz':
+                    self.tearDown() if hasattr(self,'tearDown') else None
+                    self.setUp()
+                self.publish();self.job['phase']='reader-pending';save(self.folder/'receipt.json',self.job)
+                unlink=Path.unlink
+                def interrupt(path,*args,**kwargs):
+                    result=unlink(path,*args,**kwargs)
+                    if path.name==boundary:raise OSError('synthetic crash after unlink')
+                    return result
+                with patch('naming_worker.all_books',return_value=[self.book]):
+                    if boundary=='sync':
+                        import naming_worker
+                        sync=naming_worker.sync_directory
+                        def fail_sync(path):
+                            sync(path)
+                            if not (self.folder/'original.cbz').exists():raise OSError('synthetic directory sync failure')
+                        with patch('naming_worker.sync_directory',side_effect=fail_sync):
+                            with self.assertRaises(OSError):self.naming.advance(self.folder)
+                    else:
+                        with patch.object(Path,'unlink',interrupt):
+                            with self.assertRaises(OSError):self.naming.advance(self.folder)
+                    self.assertEqual(self.naming.read_receipt(self.folder)['phase'],'cleanup-pending')
+                    self.assertEqual(self.naming.advance(self.folder)['phase'],'done')
+                    self.assertFalse((self.folder/'original.cbz').exists())
+                    self.assertFalse((self.folder/'restore.cbz').exists())
+                    self.assertEqual(self.naming.advance(self.folder)['phase'],'done')
+
+    def test_cleanup_rechecks_source_absence_after_reader_callback(self):
+        self.publish();self.job['phase']='reader-pending';save(self.folder/'receipt.json',self.job)
+        def changed_reader(*args,**kwargs):
+            if self.naming.read_receipt(self.folder)['phase']=='cleanup-pending':self.source.write_bytes(b'foreign')
+            return [self.book]
+        with patch('naming_worker.all_books',side_effect=changed_reader):
+            with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertEqual(self.naming.read_receipt(self.folder)['phase'],'cleanup-pending')
+        self.assertTrue(self.source.exists());self.assertTrue((self.folder/'original.cbz').exists())
+        self.assertTrue((self.folder/'restore.cbz').exists())
+
+    def test_reader_census_uses_bounded_HTTP_and_aggregate_bytes(self):
+        from normalize import Reader,complete_reader_books,READER_PAGE_BYTES
+        reader=Reader(dict(url='http://unused',api_key='fixture'))
+        response=Mock();response.read.return_value=b'x'*(READER_PAGE_BYTES+1)
+        response.__enter__=Mock(return_value=response);response.__exit__=Mock(return_value=False)
+        with patch('normalize.urllib.request.urlopen',return_value=response):
+            with self.assertRaises(ValueError):reader.books()
+        response.read.assert_called_once_with(READER_PAGE_BYTES+1)
+        with patch.object(reader,'call',return_value=dict(content=[self.book],last=True)), \
+             patch('normalize.READER_CATALOG_BYTES',1):
+            with self.assertRaises(ValueError):complete_reader_books(reader)
+
+    def test_cleanup_refuses_foreign_remaining_copy(self):
+        self.publish();self.job['phase']='reader-pending';save(self.folder/'receipt.json',self.job)
+        unlink=Path.unlink
+        def interrupt(path,*args,**kwargs):
+            if path.name=='restore.cbz':raise OSError('synthetic interruption')
+            return unlink(path,*args,**kwargs)
+        with patch('naming_worker.all_books',return_value=[self.book]):
+            with patch.object(Path,'unlink',interrupt):
+                with self.assertRaises(OSError):self.naming.advance(self.folder)
+            remaining=self.folder/'restore.cbz';remaining.unlink();remaining.write_bytes(b'original')
+            with self.assertRaises(ValueError):self.naming.advance(self.folder)
+            self.assertTrue(remaining.exists())
+            self.assertEqual(self.naming.read_receipt(self.folder)['phase'],'cleanup-pending')
+
+    def test_reader_collectors_require_explicit_complete_pages(self):
+        from normalize import Reader
+        from naming_worker import all_books
+        reader = Reader({'url':'http://unused','api_key':'fixture'})
+        book = dict(self.book)
+        for collect in (lambda:all_books(reader), reader.books):
+            for response in (dict(content=[book]), dict(content=[book],last=1),
+                             dict(content=[book,book],last=True),
+                             dict(content=[],last=False)):
+                with self.subTest(response=response), patch.object(reader,'call',return_value=response):
+                    with self.assertRaises(ValueError):collect()
+            other=dict(book,id='second',url=str(self.root/'second.cbz'))
+            with patch.object(reader,'call',side_effect=[dict(content=[book],last=False),dict(content=[other],last=True)]):
+                self.assertEqual(len(collect()),2)
+
+    def test_completion_rejects_partial_reader_catalog(self):
+        self.publish();self.job['phase']='reader-pending';save(self.folder/'receipt.json',self.job)
+        self.worker.reader.call.return_value=dict(content=[self.book])
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertEqual(self.naming.read_receipt(self.folder)['phase'],'reader-pending')
+        self.assertTrue((self.folder/'original.cbz').exists())
+
     def test_reader_catalog_bounds_and_false_protocol_do_not_truncate_proof(self):
         from naming_worker import all_books
         self.worker.reader.call.return_value = dict(content=[],last='false')

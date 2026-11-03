@@ -24,6 +24,8 @@ KIND = 'retained-ddl-existing-target-v1'
 FIELDS = {'version','kind','ddl_id','pack_id','member_id','source_generation',
           'source_sha256','target_sha256','owner','review_sha256'}
 _CORES = weakref.WeakKeyDictionary()
+_CORE_ADMISSIONS = weakref.WeakKeyDictionary()
+_UNMINTED = object()
 _EVENTS = {}  # Only actual successful accept publishes; never JSON hydration.
 PENDING_NAMES = ('normalizer-v1.pending','tagger-v2.pending','release-v1.pending',
                  'tagger-publication-v1.json','nested-derivative-v1.json','tagger-recovery-v1.pending',
@@ -329,7 +331,23 @@ def _vectors(core):
             'claims':list(core['claims'].items())}
 
 
-def _validate(core):
+def _core_admission(core):
+    o.check(type(_CORE_ADMISSIONS) is weakref.WeakKeyDictionary,'retained-core-admission-table')
+    originals=tuple((cap,seal) for cap,seal in _CORE_ADMISSIONS.items() if seal[0] is core)
+    o.check(len(originals)==1,'retained-core-original-admission')
+    cap,seal=originals[0]
+    o.check(_CORES.get(cap) is core and _CORE_ADMISSIONS.get(cap) is seal
+            and seal[2] is _CORES and seal[3] is _CORE_ADMISSIONS
+            and core.get('api_admission') is seal[1],'retained-core-original-admission')
+    return seal[1]
+
+
+def _validate(core,*,initial_admission=_UNMINTED):
+    admission=_core_admission(core) if initial_admission is _UNMINTED else initial_admission
+    o.check(core.get('api_admission') is admission,'retained-core-original-admission')
+    if admission is not None:
+        from mylar import publication_retained_api as api
+        api.check_admission(admission,core['controller'],core['writer'],core['request'],mutating=True)
     o.check(time.monotonic()<core['deadline'],'retained-deadline')
     for path,digest in core['hashes'].items():
         actual=hashlib.sha256()
@@ -342,12 +360,20 @@ def _validate(core):
     o.check(g.media_snapshot(controller.database,writer.root/'publication-v1.json')[0]==core['census'],'retained-current-census')
     decision=controller._check({'owner':core['request']['owner'],'payload':core['source_inventory']['payload']},writer)
     o.check(decision['decision'] in ('allowed','unknown'),'retained-owner-rejected')
+    if admission is not None:
+        api.check_admission(admission,controller,writer,core['request'],mutating=True)
     _raw(core['files'],core['nodes'],core['absent'],core['namespaces'],core['claims'])
+    if core.get('api_admission') is not admission:raise o.Held('retained-core-final-admission')
+    if initial_admission is _UNMINTED and _core_admission(core) is not admission:
+        raise o.Held('retained-core-final-admission')
 
 
-def prepare_existing(controller,writer,value):
+def prepare_existing(controller,writer,value,*,admission=None):
     """Only this exact live factory admits unchanged current-target acceptance."""
-    o.check(ENABLED,'retained-default-disabled')
+    if admission is not None:
+        from mylar import publication_retained_api as api
+        api.consume_admission(admission,controller,writer,value,'prepare')
+    else:o.check(ENABLED,'retained-default-disabled')
     modules=o.sdk();roots,_=o.writer_pair(controller,writer,modules);g=modules[2]
     value=request(value);owner=g.exact_owner(value['owner']);value['owner']=owner
     import mylar
@@ -438,7 +464,7 @@ def prepare_existing(controller,writer,value):
           'phase':'prepared','request':value,'token':token,'folder':folder,'source':str(selected),'target':str(target),
           'files':files,'hashes':hashes,'nodes':nodes,'absent':tuple(absent),'namespaces':namespaces,
           'source_inventory':source_inventory,'target_inventory':target_inventory,'preservation':preservation,
-          'catalog_before_sha256':hashes[str(controller.native_database)],'catalog_row':catalog_row,
+          'api_admission':admission,'catalog_before_sha256':hashes[str(controller.native_database)],'catalog_row':catalog_row,
           'sql':sql,'census':census,'deadline':deadline,'writer_binding':writer_binding,'controller_binding':controller_binding,'claims':{str(p):None if v is None else tuple(v) for p,v in claims.items()}}
     intent={'version':1,'kind':KIND,'request':value,'token':token,'ddl_row_sha256':o.digest(row),
             'source':str(selected),'target':str(target),'original_vectors':_vectors(core),
@@ -447,9 +473,10 @@ def prepare_existing(controller,writer,value):
     files[str(folder/'intent.json')]=stamp;hashes[str(folder/'intent.json')]=digest
     namespaces[str(folder)]=tuple(sorted(Path(p).name for p in files if Path(p).parent==folder))
     originals=copy.deepcopy(_vectors(core))
-    _validate(core)
+    _validate(core,initial_admission=admission)
     o.check(_vectors(core)==originals,'retained-helper-baseline-replacement')
     obj=RetainedDeliveryAcceptance.__new__(RetainedDeliveryAcceptance);_CORES[obj]=core
+    _CORE_ADMISSIONS[obj]=(core,admission,_CORES,_CORE_ADMISSIONS)
     # Final kernel-only original closure after registry publication/last helper.
     for path,names in tuple(namespaces.items()):
         if tuple(sorted(os.listdir(path)))!=names:raise o.Held('retained-factory-census')
@@ -483,6 +510,29 @@ def prepare_existing(controller,writer,value):
     return obj
 
 
+def validate_ack_body(body, value, token):
+    """Pure durable schema check shared by live verification and passive status."""
+    o.check(type(body) is dict and set(body)=={'version','kind','token','request','source','target',
+            'target_preservation','target_inventory','source_inventory','catalog_before_sha256',
+            'fresh_catalog_event','historical_import_ack','original_vectors','mutation_authority',
+            'publication_acceptance','reader_index_acceptance','automatic_replay'}
+            and type(body['version']) is int and body['version']==1
+            and body['kind']=='fresh-retained-delivery-acceptance' and body['token']==token
+            and body['request']==value and body['fresh_catalog_event'] is True
+            and all(body[k] is False for k in ('historical_import_ack','mutation_authority','publication_acceptance',
+                                              'reader_index_acceptance','automatic_replay')),'retained-ACK-contract')
+
+
+def validate_issued_body(body, value, token, stamp, ack, intent):
+    o.check(type(body) is dict and set(body)=={'version','kind','token','request_sha256','ack','intent','created_fd_identity6'}
+            and type(body['version']) is int and body['version']==1
+            and body['kind']=='retained-delivery-issued-reference' and body['token']==token
+            and body['request_sha256']==o.digest(value) and body['ack']==ack and body['intent']==intent
+            and tuple(body['created_fd_identity6'])==(stamp[0],stamp[1],*stamp[5:])
+            and stamp[5]&0o170000==0o100000 and stamp[5]&0o7777==0o600
+            and stamp[6:]==(os.geteuid(),os.getegid(),1),'retained-original-issued-reference')
+
+
 def verify_ack(controller,writer,value,reference):
     """Fresh factual read of an ORIGINAL emitted ACK ref; never recreate a cap."""
     # Caller may supply an original reference, never a pathname/baseline grant.
@@ -506,15 +556,7 @@ def verify_ack(controller,writer,value,reference):
         for key,item in items:o.check(key not in result,'retained-duplicate-ACK-key');result[key]=item
         return result
     body=json.loads(raw,object_pairs_hook=pairs)
-    o.check(type(body) is dict and set(body)=={'version','kind','token','request','source','target',
-            'target_preservation','target_inventory','source_inventory','catalog_before_sha256',
-            'fresh_catalog_event','historical_import_ack','original_vectors','mutation_authority',
-            'publication_acceptance','reader_index_acceptance','automatic_replay'}
-            and type(body['version']) is int and body['version']==1
-            and body['kind']=='fresh-retained-delivery-acceptance' and body['token']==token
-            and body['request']==value and body['fresh_catalog_event'] is True
-            and all(body[k] is False for k in ('historical_import_ack','mutation_authority','publication_acceptance',
-                                              'reader_index_acceptance','automatic_replay')),'retained-ACK-contract')
+    validate_ack_body(body,value,token)
     vectors=body['original_vectors']
     # Producer event retains final vectors independently from this saved record.
     o.check(type(vectors) is dict and set(vectors)=={'files9','nodes5','absent','namespaces','claims'}
@@ -538,13 +580,7 @@ def verify_ack(controller,writer,value,reference):
     issued=path.parent/'issued.json';issued_stamp=tuple(o.signature(issued))
     issued_raw=o.read_checked(issued,list(issued_stamp),16384,deadline)
     issuance=json.loads(issued_raw,object_pairs_hook=pairs)
-    o.check(type(issuance) is dict and set(issuance)=={'version','kind','token','request_sha256','ack','intent','created_fd_identity6'}
-            and type(issuance['version']) is int and issuance['version']==1
-            and issuance['kind']=='retained-delivery-issued-reference' and issuance['token']==token
-            and issuance['request_sha256']==o.digest(value) and issuance['ack']==reference
-            and tuple(issuance['created_fd_identity6'])==(issued_stamp[0],issued_stamp[1],*issued_stamp[5:])
-            and issued_stamp[5]&0o170000==0o100000 and issued_stamp[5]&0o7777==0o600
-            and issued_stamp[6:]==(os.geteuid(),os.getegid(),1),'retained-original-issued-reference')
+    validate_issued_body(issuance,value,token,issued_stamp,reference,issuance.get('intent'))
     o.check((str(issued),hashlib.sha256(issued_raw).hexdigest(),issued_stamp)==event[4]
             and (issuance['intent']['path'],issuance['intent']['sha256'],tuple(issuance['intent']['signature9']))==event[3],
             'retained-original-event-issuance')
@@ -719,6 +755,7 @@ def _begin_finalization(cap):
     o.check(type(cap) is RetainedDeliveryAcceptance and core is not None
             and core['phase']=='accepted' and core['thread']==threading.get_ident()
             and core['pid']==os.getpid(),'retained-finalize-live-owner')
+    admission=_core_admission(core)
     event=_owning_event(core['controller'],core['writer'],core['request'],core['token'])
     # The immutable producer bytes, rather than mutable registry DTOs, own facts.
     o.check(o.compact(_vectors(core))==event[5],'retained-finalize-original-event')
@@ -726,4 +763,4 @@ def _begin_finalization(cap):
     return {'controller':core['controller'],'writer':core['writer'],'modules':core['modules'],
             'request':copy.deepcopy(core['request']),'token':core['token'],'event':event,
             'vectors':json.loads(event[5]),'hashes':dict(core['hashes']),
-            'deadline':core['deadline'],'core':core}
+            'deadline':core['deadline'],'core':core,'api_admission':admission}

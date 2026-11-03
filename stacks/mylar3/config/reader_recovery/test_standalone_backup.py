@@ -1,4 +1,5 @@
 from contextlib import closing
+import hashlib
 import importlib.util
 import os
 from pathlib import Path
@@ -65,6 +66,42 @@ class BackupTests(unittest.TestCase):
                             os.lstat(self.out/'restore/native_state/source.cbz').st_ino)
         for phase in ('backup', 'restore'):
             self.assertEqual(os.lstat(self.out/phase/'retained_source').st_mode & 0o777, 0o600)
+
+    def rebase_copies(self, observation):
+        state=b._OBSERVATIONS[observation];changed={}
+        for phase in ('backup','restore'):
+            path=self.out/phase/'existing_target';path.write_bytes(b'foreign preserved bytes')
+            changed[str(path)]=hashlib.sha256(path.read_bytes()).hexdigest()
+        state['content']=tuple((path,changed.get(path,digest),attrs) for path,digest,attrs in state['content'])
+        state['copies'],_=b.capture([self.out/'backup',self.out/'restore'])
+
+    def test_factory_original_copy_witness_cannot_be_rebased_between_calls(self):
+        observation=self.run_backup();self.rebase_copies(observation)
+        with self.assertRaisesRegex(ValueError,'backup-original'):observation.close()
+
+    def test_equal_original_registry_entry_replacement_holds(self):
+        observation=self.run_backup();b._OBSERVATIONS[observation]=dict(b._OBSERVATIONS[observation])
+        with self.assertRaisesRegex(ValueError,'backup-original'):observation.close_copies()
+
+    def test_factory_first_serialization_cannot_adopt_foreign_copies(self):
+        original=b.encode;fired=[]
+        def mutate(value):
+            pending=[observation for observation in b._OBSERVATIONS if str(self.out) in str(b._OBSERVATIONS[observation].get('copies'))]
+            if pending and not fired:
+                fired.append(True);self.rebase_copies(pending[0])
+            return original(value)
+        with patch.object(b,'encode',mutate),self.assertRaises(ValueError):self.run_backup()
+        self.assertTrue(fired)
+
+    def test_final_raw_closure_must_still_meet_original_deadline(self):
+        observation=self.run_backup();deadline=b._OBSERVATIONS[observation]['deadline']
+        original=b.raw;clock=b.time.monotonic;fired=[]
+        def late(frame):
+            original(frame);fired.append(True)
+        def now():return deadline+1 if fired else clock()
+        with patch.object(b,'raw',late),patch.object(b.time,'monotonic',now):
+            with self.assertRaisesRegex(ValueError,'backup-original-final'):observation.close_copies()
+        self.assertTrue(fired)
     def test_source_drift_after_backup_holds(self):
         result = self.run_backup(); self.source.write_bytes(b'foreign')
         with self.assertRaises(ValueError): result.close()

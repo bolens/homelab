@@ -58,6 +58,78 @@ class Controls(unittest.TestCase):
         self.assertFalse(evidence['publication_acceptance'])
         self.assertEqual(self.route(repaired)['status'], 'verified-no-repair')
 
+    def test_case_aliases_and_implicit_parent_aliases_refuse_repair(self):
+        for names in ([('page.jpg',b'one'),('PAGE.jpg',b'two')],
+                      [('Folder/page.jpg',b'one'),('folder/other.jpg',b'two')],
+                      [('item',b'file'),('ITEM/page.jpg',b'page')]):
+            with self.subTest(names=names):
+                self.build()
+                with zipfile.ZipFile(self.p,'a') as archive:
+                    for name,content in names:archive.writestr(name,content)
+                self.assert_review()
+
+    def test_namespace_prefix_proof_has_a_finite_resource_bound(self):
+        from publication_archive_derivative import strict_namespace
+        rows=[dict(name='/'.join([str(i)]+['x']*300+['page.jpg']),directory=False) for i in range(64)]
+        with self.assertRaisesRegex(ValueError,'namespace-proof-bound'):
+            strict_namespace(rows,guard,time.monotonic()+10)
+        with self.assertRaisesRegex(ValueError,'deadline'):
+            strict_namespace(rows[:1],guard,time.monotonic()-1)
+
+    def test_stream_draining_and_compressed_input_chunk_boundary(self):
+        import io,random
+        from publication_archive_derivative import compressed_chunks
+        payload=random.Random(47).randbytes(2*1024**2+17)
+        stream=io.BytesIO()
+        with zipfile.ZipFile(stream,'w') as archive:
+            archive.writestr('page.jpg',payload,compress_type=zipfile.ZIP_DEFLATED)
+        raw=stream.getvalue()
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:info=archive.infolist()[0]
+        self.assertEqual(b''.join(compressed_chunks(raw,info,time.monotonic()+10)),payload)
+        # Stored DEFLATE blocks make an exact 64KiB compressed range. Its EOF
+        # must still reject data supplied in the following input iteration.
+        import zlib
+        block=b'\0'+struct.pack('<HH',65526,9)+b'x'*65526+b'\x01\0\0\xff\xff'
+        self.assertEqual(len(block),65536)
+        decoder=zlib.decompressobj(-15);self.assertEqual(len(decoder.decompress(block)),65526)
+        self.assertTrue(decoder.eof)
+        local=bytearray(30);struct.pack_into('<HH',local,26,0,0)
+        info.header_offset=0;info.compress_size=len(block)
+        self.assertEqual(len(b''.join(compressed_chunks(bytes(local)+block,info,time.monotonic()+10))),65526)
+        info.compress_size+=1
+        with self.assertRaisesRegex(ValueError,'trailing'):
+            b''.join(compressed_chunks(bytes(local)+block+b'x',info,time.monotonic()+10))
+
+    def test_explicit_directory_can_follow_identical_implicit_parent(self):
+        self.simple([('folder/page.jpg',b'page'),('folder/',b'')])
+        self.assertEqual(self.route()['status'],'verified-no-repair')
+
+    def test_deflate_requires_exact_complete_stream(self):
+        import io,zlib
+        for variant in ('truncated','junk','second','valid'):
+            self.build()
+            with zipfile.ZipFile(self.p,'a') as archive:
+                archive.writestr('compressed.jpg',b'hello world'*100,compress_type=zipfile.ZIP_DEFLATED)
+            raw=bytearray(self.p.read_bytes())
+            with zipfile.ZipFile(io.BytesIO(raw)) as archive:entry=archive.infolist()[-1]
+            start=entry.header_offset+30+sum(struct.unpack_from('<HH',raw,entry.header_offset+26))
+            end=start+entry.compress_size
+            compressed=bytes(raw[start:end])
+            replacement={'truncated':compressed[:-1], 'junk':compressed+b'junk',
+                         'second':compressed+compressed, 'valid':compressed}[variant]
+            raw[start:end]=replacement
+            struct.pack_into('<L',raw,entry.header_offset+18,len(replacement))
+            central=raw.index(b'PK\x01\x02');pos=central
+            for _ in range(3):pos+=46+sum(struct.unpack_from('<HHH',raw,pos+28))
+            struct.pack_into('<L',raw,pos+20,len(replacement))
+            struct.pack_into('<L',raw,raw.rindex(b'PK\x05\x06')+16,central)
+            if variant=='truncated':
+                decoder=zlib.decompressobj(-15);decoded=decoder.decompress(replacement)
+                self.assertFalse(decoder.eof);self.assertEqual(len(decoded),entry.file_size)
+                self.assertEqual(zlib.crc32(decoded)&0xffffffff,entry.CRC)
+            if variant=='valid':self.assertEqual(self.route(bytes(raw))['status'],'repair-candidate')
+            else:self.assert_review(bytes(raw))
+
     def test_ordinary_zip_needs_no_repair(self):
         self.simple([('page01.png', b'page'), ('sidecar.txt', b'sidecar')])
         original = self.p.read_bytes()

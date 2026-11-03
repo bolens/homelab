@@ -341,5 +341,8 @@ mutation after namespace callbacks as well as cross-call drift.
 Retain bounded, sanitized original exception-context frames, including contexts
 suppressed by a wrapper. Bound examined nodes and exception depth; do not read
 exception-subclass properties or emit messages, locals or raw paths. Keep
-diagnostics informational. Preserve the 120-second scope/runtime limit and prove
-actual configured latency with a fresh generation before claiming acceptance.
+diagnostics informational. Preserve the 120-second detached first-admission
+window. Configured continuation requires the original authenticated ReaderEpoch
+binding to both exact scope documents and the unchanged source, channel, role
+and monotonic operation deadline checks; do not reapply document wall-clock age
+after admission. Prove the configured path before claiming acceptance.

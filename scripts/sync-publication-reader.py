@@ -148,6 +148,12 @@ def outputs():
                  'publication_archive_repair.py', 'publication_archive_diagnostics.py',
                  'test_publication_archive_repair.py', 'test_publication_archive_diagnostics.py'):
         result[name] = (NATIVE / name).read_text()
+    # The selected retained worker uses the same fixed public verifier as native.
+    # Keep its independent build context byte-exact; no deployment/key material
+    # is generated or copied into either image.
+    result['patch_publication_launch_auth.py'] = (NATIVE / 'patch_publication_launch_auth.py').read_text()
+    for name in ('standalone_launch_auth.py', 'v3_auth_core.py', 'private_crypto.py'):
+        result['standalone_launch_auth/' + name] = (NATIVE / 'standalone_launch_auth' / name).read_text()
     return result
 
 
@@ -159,6 +165,8 @@ def main():
     # Current installer controls must be self-contained in Mylar's Docker context.
     # Keep the historical worker separate and preserve exact canonical bytes.
     targets[NATIVE / 'reader_recovery/_current_worker_source/archive_terminal_observation.py'] = (WORKER / 'archive_terminal_observation.py').read_text()
+    targets[NATIVE / 'reader_recovery/retained_pack_control.py'] = (WORKER / 'retained_pack_control.py').read_text()
+    targets[NATIVE / 'reader_recovery/comic_retained_standalone_backup.py'] = (NATIVE / 'standalone_launch_host/comic_retained_standalone_backup.py').read_text()
     for path, content in targets.items():
         if args.check:
             if not path.is_file() or path.read_text() != content:

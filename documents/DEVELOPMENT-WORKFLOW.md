@@ -93,10 +93,14 @@ repository list ignored. Verify remote refs and the service result after a sync.
 
 ## 3. Local CI before pushing
 
-`make ci-local` runs the same complete Mylar portable publication suite as the
-image build, including private-copy recovery controls, through
-`make mylar-source-check`. The gate also runs workflow intake and archive
-adoption and NFS source tests.
+`make ci-local` runs Mylar's portable publication controls through
+`make mylar-source-check`: private-copy reader recovery, retained API and worker
+handoffs, authenticated launch, workflow intake, archive adoption and NFS checks.
+Set `ARCHIVING_UTILS_ROOT` to the checked archive SDK directory containing
+`lib/archive_backend.py`; the complete gate refuses a missing SDK rather than
+skipping its integration tests. `PUBLICATION_AUTH_BACKEND` selects the existing
+fixture backend: `host` on the supported Arch host, or `target` in the Ubuntu
+verification image.
 They use disposable local files and SQLite, require no Docker access, and preserve
 tracked source files. `MYLAR_PYTHON` selects the interpreter (default `python3`);
 use Python 3.10 to match the native runtime. These source checks do not replace

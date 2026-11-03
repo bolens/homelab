@@ -34,7 +34,9 @@ case "$mode" in
     exec gitleaks git --redact --verbose "$@" .
     ;;
   dir)
-    exec gitleaks dir --redact --verbose "$@" "$REPO"
+    # Match the repository-relative fingerprints used by git mode and hooks.
+    cd "$REPO"
+    exec gitleaks dir --redact --verbose "$@" .
     ;;
   *)
     echo "Usage: $0 [git|dir] [gitleaks options]" >&2

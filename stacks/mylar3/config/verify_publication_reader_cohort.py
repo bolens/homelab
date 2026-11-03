@@ -72,7 +72,11 @@ def main():
         assert Path(module.__file__) == Path('/app/mylar3/mylar') / (name + '.py')
         assert Path(module.__file__).read_bytes() == (fixes / (name + '.py')).read_bytes()
     assert observer.ENABLED is False and callable(observer.observe)
-    assert retained_api.ENABLED is False and callable(retained_api.execute) and callable(retained_api.owns)
+    assert not hasattr(retained_api, 'ENABLED') and callable(retained_api.execute) and callable(retained_api.owns)
+    assert callable(retained_api.check_admission) and callable(retained_api.consume_admission)
+    try:retained_api.NativeRetainedAdmission()
+    except ValueError:pass
+    else:raise AssertionError('Retained admission constructor must stay closed')
     assert writers.SELF_ADMITTED_API == ('retainedDeliveryFinalize', 'retainedDeliveryStatus')
     assert writers.PASSIVE_API == ('publicationControl', 'getHealth', 'getVersion', 'restart', 'shutdown', 'ordinaryImportObservation')
     assert callable(finalizer.response_existing) and callable(finalizer.response_sources)

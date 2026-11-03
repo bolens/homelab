@@ -209,7 +209,8 @@ class DirectoryTests(unittest.TestCase):
         def changed(frame):
             original(frame)
             if not fired:fired.append(True);b._OBSERVATIONS[self.backup]=dict(b._OBSERVATIONS[self.backup])
-        with patch.object(p,'raw',changed),self.assertRaisesRegex(ValueError,'standalone-successor-final-backup-seal'):self.call()
+        # The factory-persistent backup witness now refuses before the parent tail.
+        with patch.object(p,'raw',changed),self.assertRaisesRegex(ValueError,'backup-original-persistent-custody'):self.call()
         self.assertTrue(fired)
     def test_last_raw_original_backup_code_leaf_holds(self):
         original=p.raw;fired=[];path=Path(b.__file__);mode=path.stat().st_mode&0o7777

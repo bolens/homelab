@@ -18,10 +18,12 @@ class Install(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name); self.source = self.root / 'sources'
-        shutil.copytree(ROOT / 'standalone_launch_auth', self.source)
         self.target = self.root / 'public-install' / 'auth'
         spec = importlib.util.spec_from_file_location('auth_install_under_test', ROOT / 'patch_publication_launch_auth.py')
         self.installer = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.installer)
+        self.source.mkdir()
+        for name in self.installer.SOURCES:
+            shutil.copyfile(ROOT / 'standalone_launch_auth' / name, self.source / name)
         self.installer.ROOT = self.source
         # The production predicate requires UID/GID0; fixtures are explicitly
         # non-root and preserve readonly/non-symlink conditions in private trees.
@@ -41,6 +43,18 @@ class Install(unittest.TestCase):
         self.assertEqual(set(before), set(self.installer.SOURCES))
         self.assertEqual(set(p.name for p in self.target.parent.iterdir()), {'auth'})
         for p in self.target.iterdir(): self.assertEqual(stat.S_IMODE(p.stat().st_mode), 0o444)
+
+    def test_interrupted_publication_retains_private_partial_source(self):
+        write=self.installer.os.write;created=[]
+        def interrupted(fd,data):
+            self.assertEqual(stat.S_IMODE(os.fstat(fd).st_mode),0o600)
+            write(fd,data[:1]);created.append(True)
+            raise OSError('interrupted synthetic write')
+        with patch.object(self.installer.os,'write',interrupted):
+            with self.assertRaisesRegex(OSError,'interrupted synthetic write'):self.install()
+        self.assertTrue(created)
+        self.assertEqual(len(list(self.target.iterdir())),1)
+        self.assertEqual(stat.S_IMODE(next(self.target.iterdir()).stat().st_mode),0o600)
 
     def test_production_security_refuses_unprivileged_fixture(self):
         self.security.stop()

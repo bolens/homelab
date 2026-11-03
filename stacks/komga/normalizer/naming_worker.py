@@ -10,7 +10,7 @@ import stat
 import time
 import tempfile
 
-from normalize import api_path, digest, identity, save, sync_directory
+from normalize import api_path, digest, identity, save, sync_directory, complete_reader_books
 from release_naming import policy, render
 from maintenance import Maintenance, scoped_file
 from media_writer import Writer
@@ -32,17 +32,7 @@ def token(request):
 
 
 def all_books(reader):
-    result = []; page = 0
-    while True:
-        data = reader.call(f'/api/v1/books/list?page={page}&size=500', {})
-        if (not isinstance(data, dict) or not isinstance(data.get('content'), list)
-                or len(data['content']) > 500 or len(result)+len(data['content']) > 100000):
-            raise ValueError('Reader catalog exceeds naming proof bounds')
-        result.extend(data['content'])
-        if type(data.get('last', True)) is not bool:raise ValueError('Invalid reader pagination proof')
-        if data.get('last', True):return result
-        if page >= 199:raise ValueError('Reader pagination exceeds naming proof bounds')
-        page += 1
+    return complete_reader_books(reader)
 
 
 class Naming:
@@ -115,7 +105,7 @@ class Naming:
                 or set(request) != ({'version','source','target','sha256','issueid','comicid'}
                                   | ({'retry_of'} if request['version'] == 2 else set()))
                 or job.get('key') != token(request) or folder.name != job.get('key')
-                or job.get('phase') not in ('prepared','native-uncertain','native-committed','reader-pending','done','review')):
+                or job.get('phase') not in ('prepared','native-uncertain','native-committed','reader-pending','cleanup-pending','done','review')):
             raise ValueError('Naming receipt binding changed')
         if not isinstance(request['source'], str):raise ValueError('Invalid naming source spelling')
         path = Path(request['source'])
@@ -373,10 +363,72 @@ class Naming:
             staging.rename(folder); sync_directory(self.root)
         return folder
 
+    def cleanup(self, folder, job):
+        """Resume only the exact pair authorized by a verified completion receipt."""
+        request=job['request'];destination=Path(request['source']).with_name(request['target'])
+        facts=job.get('cleanup_files')
+        if (type(facts) is not dict or set(facts)!={'original.cbz','restore.cbz'}
+                or any(type(v) is not list or len(v)!=9 or any(type(x) is not int for x in v)
+                       for v in facts.values())):
+            raise ValueError('Missing original naming cleanup identities')
+        if os.path.lexists(request['source']):raise ValueError('Original naming path reappeared before cleanup')
+        baseline=self.publication(destination,request)
+        books=all_books(self.worker.reader)
+        book=self.completed_reader(destination,job,books)
+        if book is None:return job
+        if book['id']!=job['reader_bookid']:raise ValueError('Naming cleanup reader identity changed')
+        with Writer(self.worker.config['writer_state']).hold(timeout=0):
+            if (self.read_receipt(folder)!=job or digest(destination)!=request['sha256']
+                    or not evidence.same_json(baseline,self.publication(destination,request))):
+                raise ValueError('Naming cleanup completion changed')
+            if os.path.lexists(request['source']):raise ValueError('Original naming path reappeared before cleanup')
+            # Validate ALL remaining members before deleting any. A missing member
+            # is permitted only by this previously durable exact cleanup intent.
+            for name,stamp in facts.items():
+                path=folder/name
+                try:info=path.lstat()
+                except FileNotFoundError:continue
+                if (evidence.signature(info)!=stamp or not stat.S_ISREG(info.st_mode)
+                        or info.st_uid!=os.geteuid() or info.st_nlink!=1
+                        or path.is_symlink() or digest(path)!=request['sha256']
+                        or evidence.signature(path.lstat())!=stamp):
+                    raise ValueError('Naming cleanup copy changed')
+            for name,stamp in facts.items():
+                path=folder/name
+                try:info=path.lstat()
+                except FileNotFoundError:continue
+                if evidence.signature(info)!=stamp:raise ValueError('Naming cleanup identity changed')
+                if os.path.lexists(request['source']):raise ValueError('Original naming path reappeared during cleanup')
+                path.unlink();sync_directory(folder)
+            sync_directory(folder)
+            if any(os.path.lexists(folder/name) for name in facts):
+                raise ValueError('Naming cleanup final absence changed')
+            if os.path.lexists(request['source']):raise ValueError('Original naming path reappeared during cleanup')
+            job.update(phase='done',cleanup_complete=True);save(folder/'receipt.json',job)
+        return job
+
+    def completed_reader(self, destination, job, books):
+        request=job['request'];old=job['reader'];progress=old['progress']
+        matches=[b for b in books if not b.get('deleted') and api_path(b['url'])==destination]
+        if len(matches)!=1 or matches[0].get('media',{}).get('status')!='READY':return None
+        book=matches[0]
+        if (book.get('fileHash')!=old['hash'] or book['media']['pagesCount']!=old['pages']
+                or any(old.get(key) is not None and book.get(actual)!=old[key]
+                       for key,actual in (('libraryid','libraryId'),('seriesid','seriesId')))
+                or sum(b.get('fileHash')==old['hash'] for b in books)!=1):
+            raise ValueError('Renamed reader content mismatch')
+        current=book.get('readProgress')
+        if progress and (not current or current.get('page',0)<progress.get('page',0)
+                         or (progress.get('completed') and not current.get('completed'))):
+            raise ValueError('Renamed reader progress lost')
+        if any(not b.get('deleted') and api_path(b['url'])==Path(request['source']) for b in books):return None
+        return book
+
     def advance(self, folder, *, defer_scan=False, reader_books=None):
         remote_unlocked(self.worker)
         receipt = folder/'receipt.json'; job = self.read_receipt(folder)
         if job['phase'] in ('done', 'review'):return job
+        if job['phase']=='cleanup-pending':return self.cleanup(folder,job)
         kept = self.copies(folder, job['request'])
         recorded = job.get('preservation_facts')
         if recorded is not None and not evidence.same_json(recorded, kept):
@@ -424,22 +476,9 @@ class Naming:
             baseline = self.publication(destination, request)
             kept = self.copies(folder, request)
             books = reader_books if reader_books is not None else all_books(self.worker.reader)
-            matches = [b for b in books if not b.get('deleted') and api_path(b['url']) == destination]
-            if len(matches) != 1 or matches[0].get('media', {}).get('status') != 'READY':
-                if time.time()-job.get('scan_at',0) > 300:
-                    self.scan(folder, job)
-                return job
-            book = matches[0]; old = job['reader']; progress = old['progress']
-            if (book.get('fileHash') != old['hash'] or book['media']['pagesCount'] != old['pages']
-                    or any(old.get(key) is not None and book.get(actual) != old[key]
-                           for key, actual in (('libraryid','libraryId'), ('seriesid','seriesId')))
-                    or sum(b.get('fileHash') == old['hash'] for b in books) != 1):
-                raise ValueError('Renamed reader content mismatch')
-            current = book.get('readProgress')
-            if progress and (not current or current.get('page',0) < progress.get('page',0)
-                             or (progress.get('completed') and not current.get('completed'))):
-                raise ValueError('Renamed reader progress lost')
-            if any(not b.get('deleted') and api_path(b['url']) == Path(request['source']) for b in books):
+            book=self.completed_reader(destination,job,books)
+            if book is None:
+                if time.time()-job.get('scan_at',0)>300:self.scan(folder,job)
                 return job
             if digest(destination) != request['sha256']:raise ValueError('Renamed release changed during reader verification')
             with Writer(self.worker.config['writer_state']).hold(timeout=0):
@@ -448,11 +487,9 @@ class Naming:
                         or self.read_receipt(folder) != job
                         or digest(destination) != request['sha256']):
                     raise ValueError('Naming completion evidence changed')
-                job.update(phase='done', reader_bookid=book['id'], verified_at=time.time()); save(receipt, job)
-                # Only this proven preservation pair is eligible. Interrupted
-                # preparation folders retain their own independent evidence.
-                (folder/'original.cbz').unlink(); (folder/'restore.cbz').unlink()
-                sync_directory(folder)
+                job.update(phase='cleanup-pending',reader_bookid=book['id'],verified_at=time.time(),
+                           cleanup_files=kept);save(receipt,job)
+            return self.cleanup(folder,job)
         return job
 
     def apply(self, manifest, limit=1):
@@ -496,7 +533,7 @@ class Naming:
         for receipt in sorted(self.root.glob('*/receipt.json')):
             if receipt.parent.name.startswith('.'):continue
             job = self.read_receipt(receipt.parent)
-            if job['phase'] in ('native-uncertain', 'native-committed', 'reader-pending'):
+            if job['phase'] in ('native-uncertain', 'native-committed', 'reader-pending', 'cleanup-pending'):
                 self.advance(receipt.parent)
 
     def initialize(self):

@@ -120,17 +120,23 @@ def copy_public(source, document, destination):
     return files, nodes
 
 
-def command(mode, private):
+def command(mode, private, *, complete=False):
     if mode == 'mylar':
         return [sys.executable, '-B', str(private / 'verify_image.py')]
     if mode == 'worker':
+        if complete:
+            driver = ("import sys,unittest; "
+                      "suite=unittest.defaultTestLoader.discover(sys.argv[1], pattern='test_*.py'); "
+                      "result=unittest.TextTestRunner(verbosity=1).run(suite); "
+                      "print('Full worker gate requires zero skips',file=sys.stderr) if result.skipped else None; "
+                      "sys.exit(0 if result.testsRun and result.wasSuccessful() and not result.skipped else 1)")
+            return [sys.executable, '-B', '-c', driver, str(private)]
         return [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', str(private), '-p', 'test_*.py']
     raise ValueError('Unknown fixed control mode')
 
 
-def run(mode):
+def _run(mode, source, manifest, *, local=False):
     # The workflow/verifier owns this read-only inventory and fixed input mount.
-    manifest = MANIFEST
     mf, mn = capture(manifest.parent, [manifest.name])
     raw = manifest.read_bytes()
     if len(raw) > MAX_BYTES:
@@ -146,9 +152,25 @@ def run(mode):
         with tempfile.TemporaryDirectory(prefix='comic-controls-private-') as temp:
             try:
                 private = Path(temp) / 'source'
-                files, nodes = copy_public(MOUNTS[mode], document, private)
-                subprocess.run(command(mode, private), cwd=private, check=True,
+                files, nodes = copy_public(source, document, private)
+                options = dict(cwd=private, check=True,
                                env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+                if local:
+                    backend = options['env'].get('ARCHIVING_UTILS_BIN')
+                    if not backend:
+                        sdk = options['env'].get('ARCHIVING_UTILS_ROOT')
+                        if sdk:
+                            backend = str(Path(sdk).resolve() / 'bin' / 'archiving-utils')
+                    if not backend or not Path(backend).is_file() or not os.access(backend, os.X_OK):
+                        raise ValueError('Local worker requires executable ARCHIVING_UTILS_BIN or checked ARCHIVING_UTILS_ROOT/bin/archiving-utils')
+                    options['env']['ARCHIVING_UTILS_BIN'] = str(Path(backend).resolve())
+                if local and os.geteuid() == 0:
+                    os.chown(Path(temp), 1000, 1000)
+                    for path in (private, *private.rglob('*')):
+                        os.chown(path, 1000, 1000, follow_symlinks=False)
+                    options['preexec_fn'] = fixture_identity
+                    options['env']['HOME'] = temp
+                subprocess.run(command(mode, private, complete=local), **options)
             except BaseException as error:
                 primary = error
     except BaseException as error:
@@ -170,9 +192,29 @@ def run(mode):
         raise secondary
 
 
+def fixture_identity():
+    os.setgroups([])
+    os.setgid(1000)
+    os.setuid(1000)
+
+
+def run(mode):
+    return _run(mode, MOUNTS[mode], MANIFEST)
+
+
+def run_local_worker():
+    if os.geteuid() not in (0, 1000):
+        raise ValueError('Local worker fixtures require Root or UID1000')
+    source = Path(__file__).resolve().parents[1] / SCOPES['worker']
+    with tempfile.TemporaryDirectory(prefix='comic-local-inventory-') as directory:
+        manifest = Path(directory) / 'sources.json'
+        inventory('worker', manifest)
+        return _run('worker', source, manifest, local=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('inventory', 'mylar', 'worker'))
+    parser.add_argument('action', choices=('inventory', 'mylar', 'worker', 'local-worker'))
     parser.add_argument('mode', nargs='?', choices=tuple(SCOPES))
     parser.add_argument('output', nargs='?')
     args = parser.parse_args()
@@ -183,7 +225,10 @@ def main():
     else:
         if args.mode is not None or args.output is not None:
             parser.error('Fixed control mode accepts no command or source arguments')
-        run(args.action)
+        if args.action == 'local-worker':
+            run_local_worker()
+        else:
+            run(args.action)
 
 
 if __name__ == '__main__':

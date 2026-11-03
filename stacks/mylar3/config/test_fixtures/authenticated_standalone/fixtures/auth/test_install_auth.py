@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 import standalone_launch_auth as a
 import v3_auth_core as c
 
@@ -128,19 +129,27 @@ class Fixtures(unittest.TestCase):
                 z=self.runtime._execute(['pkeyutl','-sign','-rawin','-provider','default','-propquery','provider=default','-in',m.path,'-inkey','/proc/self/fd/'+str(fd)],(m,),key_fd=fd)
                 self.assertEqual(z.returncode,0);return z.stdout
         finally:os.close(fd)
-    def _worker(self,alter=None,fault=None):
+    def _worker(self,alter=None,fault=None,*,purpose='retained-standalone'):
+        protocol=c.protocol_for(purpose)
+        if purpose=='retained-pack':
+            self.anchor['kind']='pack-installation-anchor-v1'
+            for name in a.required_sources(self.anchor):
+                target=self.native/name
+                if not target.exists():target.write_bytes(b'ENABLED=False\n')
+                self.inventory['sources'][str(target)]=c._hash(target.read_bytes())
+            self.anchor['inventory_sha256']=c._hash(c._canonical(self.inventory));self.write()
         def ref(path):
             path.chmod(0o600);frame=a._OriginalSources([path]);return {'path':str(path),'sha256':c._hash(path.read_bytes()),'signature9':list(frame.leaves[path][0])}
         review=self.root/'review.json';review.write_bytes(c._canonical({'fixture':'NOT GENUINE REVIEW'}))
-        mapping=self.root/'map.json';mapping.write_bytes(c._canonical({n:c._hash(b'ENABLED=False\n') for n in a._REQUIRED}))
+        mapping=self.root/'map.json';mapping.write_bytes(c._canonical({Path(p).name:d for p,d in self.inventory['sources'].items() if Path(p).parent==self.native}))
         config=self.root/'config.json';config.write_bytes(c._canonical({'fixture':'NO CONFIG IMPORT'}))
-        boot={'version':1,'kind':'standalone-retained-bootstrap-v1','nonce':'5'*64,'challenge':'6'*64,'parent_sha256':self.anchor['parent_sha256'],'request':{},'config_ref':ref(config),'data_root':str(self.root),'source_map_ref':ref(mapping),'review_ref':ref(review)}
+        boot={'version':1,'kind':('pack-retained-bootstrap-v1' if purpose=='retained-pack' else 'standalone-retained-bootstrap-v1'),'nonce':'5'*64,'challenge':'6'*64,'parent_sha256':self.anchor['parent_sha256'],'request':{},'config_ref':ref(config),'data_root':str(self.root),'source_map_ref':ref(mapping),'review_ref':ref(review)}
         path=self.root/'input.json';path.write_bytes(c._canonical(boot));boot_ref=ref(path)
-        settings={'backend':str(Path(__file__).parent.parent/'host_crypto/private_crypto.py'),'boot_ref':boot_ref,'fault':fault};(self.root/'settings.json').write_text(json.dumps(settings))
+        settings={'backend':str(Path(__file__).parent.parent/'host_crypto/private_crypto.py'),'boot_ref':boot_ref,'fault':fault,'purpose':purpose};(self.root/'settings.json').write_text(json.dumps(settings))
         worker=subprocess.Popen([sys.executable,'-I','-B','-c',"import sys;sys.path.insert(0,sys.argv[1]);sys.argv=sys.argv[1:];exec(open(sys.argv[0]+'/fixture_worker.py').read())",str(self.auth),str(self.root)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         try:
-            challenge=worker.stdout.readline().rstrip(b'\n');self.assertTrue(challenge);packet=c._parse(challenge)
-            assertion={'domain':c._DOMAIN,'measured':packet['measured'],'challenge':packet['challenge'],'child_pid':packet['child_pid'],'child_start':packet['child_start'],'challenge_frame':c._hash(challenge),'session':'7'*64,'broker_nonce':'8'*64,'purpose':'retained-standalone','lifetime_ms':5000,'host_observation':{'container':'9'*64,'start':'a'*64,'host_pid':worker.pid,'image':'b'*64}}
+            challenge=worker.stdout.readline().rstrip(b'\n');self.assertTrue(challenge,worker.stderr.read().decode() if not challenge else '');packet=c._parse(challenge)
+            assertion={'domain':protocol[2],'measured':packet['measured'],'challenge':packet['challenge'],'child_pid':packet['child_pid'],'child_start':packet['child_start'],'challenge_frame':c._hash(challenge),'session':'7'*64,'broker_nonce':'8'*64,'purpose':purpose,'lifetime_ms':5000,'host_observation':{'container':'9'*64,'start':'a'*64,'host_pid':worker.pid,'image':'b'*64}}
             if alter:alter(assertion)
             raw=c._canonical(assertion);signature=self._sign(raw);worker.stdin.write(c._canonical({'assertion':assertion,'signature':signature.hex()})+b'\n');worker.stdin.flush()
             transcript=__import__('hashlib').sha256(challenge+raw+signature).digest();admission=c._hash(raw+signature)
@@ -148,8 +157,8 @@ class Fixtures(unittest.TestCase):
                 for sequence,kind in ((1,'initialized'),(3,'observed'),(5,'observed-final-ACK')):
                     rawchild=worker.stdout.readline().rstrip(b'\n');child=c._parse(rawchild);self.assertEqual(child['sequence'],sequence)
                     normal=c._canonical({'sequence':sequence,'kind':'final-ACK' if sequence==5 else kind,'payload':child});transcript=__import__('hashlib').sha256(transcript+normal).digest()
-                    wire={'version':3,'protocol':'standalone-retained-repeat-v3','kind':{2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence+1],'nonce':boot['nonce'],'sequence':sequence+1,'challenge':boot['challenge'],'payload':{'fixture':'NO BACKUP AUTHORITY'}}
-                    stage={'domain':'standalone-fixed-stage-v3','session':'7'*64,'admission':admission,'challenge':packet['challenge'],'sequence':sequence+1,'kind':wire['kind'],'previous':transcript.hex(),'payload':wire,'payload_digest':c._hash(c._canonical(wire))}
+                    wire={'version':3,'protocol':protocol[4],'kind':{2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence+1],'nonce':boot['nonce'],'sequence':sequence+1,'challenge':boot['challenge'],'payload':{'fixture':'NO BACKUP AUTHORITY'}}
+                    stage={'domain':protocol[3],'session':'7'*64,'admission':admission,'challenge':packet['challenge'],'sequence':sequence+1,'kind':wire['kind'],'previous':transcript.hex(),'payload':wire,'payload_digest':c._hash(c._canonical(wire))}
                     rawstage=c._canonical(stage);sig=self._sign(rawstage);worker.stdin.write(c._canonical({'assertion':stage,'signature':sig.hex()})+b'\n');worker.stdin.flush();transcript=__import__('hashlib').sha256(transcript+rawstage+sig).digest()
             out,err=worker.communicate(timeout=10)
             return worker.returncode,out,err
@@ -158,6 +167,18 @@ class Fixtures(unittest.TestCase):
             for stream in (worker.stdin,worker.stdout,worker.stderr):stream.close()
     def test_real_fixture_stdio_preauth_mint_once_and_six_signed_rounds(self):
         code,out,err=self._worker();self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
+    def test_pack_purpose_real_signed_six_round_transcript(self):
+        code,out,err=self._worker(purpose='retained-pack');self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
+
+    def test_pack_rejects_signed_standalone_admission(self):
+        code,out,err=self._worker(lambda claim:claim.update(purpose='retained-standalone'),purpose='retained-pack')
+        self.assertNotEqual(code,0);self.assertEqual(out,b'');self.assertIn(b'admission-claims',err)
+
+    def test_protocol_purposes_have_disjoint_domains_and_no_arbitrary_selector(self):
+        self.assertFalse(set(c.protocol_for('retained-pack')) & set(c.protocol_for('retained-standalone')))
+        for value in ('other',True,None):
+            with self.assertRaises(c.Held):c.protocol_for(value)
+
     def test_real_fixture_delayed_initialization_after_typed_consume(self):
         code,out,err=self._worker(fault='delayed');self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
     def test_real_fixture_expired_consume_no_native_round(self):

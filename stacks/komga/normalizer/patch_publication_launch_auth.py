@@ -1,0 +1,197 @@
+"""Build-only exact public verifier installation; no deployment or key provisioning."""
+import hashlib
+import os
+from pathlib import Path
+import stat
+import sys
+
+ROOT = Path(__file__).parent / 'standalone_launch_auth'
+SOURCES = {name: digest.removeprefix('sha256:') for name, digest in {
+    'standalone_launch_auth.py': 'sha256:e990dd15ab2a5d44d6d9f3903642f1198219cf82b89bb630f2d5c7bedc488145',
+    'v3_auth_core.py': 'sha256:7d5e783c2ac74c3a307f1447e89fd9acb02fab33e365dd443fbf7b133282a1f3',
+    'private_crypto.py': 'sha256:3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab',
+}.items()}
+
+
+def full(z):
+    return (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
+            z.st_mode, z.st_uid, z.st_gid, z.st_nlink)
+
+
+def node(z):
+    return (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid)
+
+
+def security(z):
+    if z.st_uid != 0 or z.st_gid != 0 or z.st_mode & 0o022:
+        raise ValueError('Auth installation requires root-owned non-writable originals')
+
+
+def verify_installed(directory, *, allow_empty_targets=False):
+    if type(allow_empty_targets) is not bool:raise ValueError('Auth layout selector type')
+    target = Path(directory).absolute()
+    if target.name != 'auth':
+        raise ValueError('Auth destination basename')
+    files = {}; nodes = {}
+    for path in (target, *target.parents):
+        z = os.lstat(path); security(z)
+        if not stat.S_ISDIR(z.st_mode): raise ValueError('Auth directory original')
+        nodes[path] = node(z)
+    parent_names=set(os.listdir(target.parent))
+    empty_names={'installation-v1.json','inventory-v1.json','public-ed25519.der'}
+    if set(os.listdir(target)) != set(SOURCES) or not (parent_names=={'auth'} or allow_empty_targets and parent_names=={'auth',*empty_names}):
+        raise ValueError('Auth public-only namespace')
+    if parent_names!={'auth'}:
+        for name in sorted(empty_names):
+            path=target.parent/name;z=os.lstat(path);security(z)
+            if not stat.S_ISREG(z.st_mode) or z.st_nlink!=1 or z.st_size!=0 or stat.S_IMODE(z.st_mode)!=0o444:raise ValueError('Auth empty readonly bind target')
+            files[path]=full(z)
+    for name in SOURCES:
+        path = target / name; z = os.lstat(path); security(z)
+        if not stat.S_ISREG(z.st_mode) or z.st_nlink != 1 or stat.S_IMODE(z.st_mode) != 0o444:
+            raise ValueError('Auth readonly regular original')
+        files[path] = full(z)
+    for name, digest in SOURCES.items():
+        path = target / name
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            if full(os.fstat(fd)) != files[path]: raise ValueError('Auth original FD')
+            data = bytearray()
+            while chunk := os.read(fd, 65536):
+                data.extend(chunk)
+                if len(data) > 1024**2: raise ValueError('Auth source bound')
+            if hashlib.sha256(data).hexdigest() != digest: raise ValueError('Auth installed byte pin')
+            if full(os.fstat(fd)) != files[path]: raise ValueError('Auth original FD final')
+        finally:
+            os.close(fd)
+    if set(os.listdir(target)) != set(SOURCES) or set(os.listdir(target.parent)) != parent_names:
+        raise ValueError('Auth final public-only namespace')
+    for path, original in nodes.items():
+        z = os.lstat(path)
+        if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != original:
+            raise ValueError('Auth final original ancestor')
+    for path, original in files.items():
+        z = os.lstat(path)
+        if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
+                z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != original:
+            raise ValueError('Auth final original installed source')
+
+
+def verify_required_targets(directory):
+    """Final image gate: unlike checked stage, all three targets are mandatory."""
+    target=Path(directory).absolute()
+    originals={}
+    for name in ('installation-v1.json','inventory-v1.json','public-ed25519.der'):
+        path=target.parent/name;z=os.lstat(path);security(z)
+        if not stat.S_ISREG(z.st_mode) or z.st_size or z.st_nlink!=1 or stat.S_IMODE(z.st_mode)!=0o444:raise ValueError('Auth required empty target')
+        originals[path]=full(z)
+    verify_installed(target,allow_empty_targets=True)
+    if set(os.listdir(target.parent))!={'auth',*(p.name for p in originals)}:raise ValueError('Auth required target namespace')
+    for path,original in originals.items():
+        if full(os.lstat(path))!=original:raise ValueError('Auth required target original')
+
+
+def main(directory):
+    # Generic apply_patches never calls this installer. Docker supplies the one
+    # fixed image destination; source tests use disposable explicit destinations.
+    target = Path(directory).absolute()
+    if target.name != 'auth' or not target.parent.parent.is_dir():
+        raise ValueError('Auth destination parent')
+    files = {}; nodes = {}; destinations = {}; payloads = {}
+    for name in SOURCES:
+        path = ROOT / name; z = os.lstat(path)
+        if not stat.S_ISREG(z.st_mode) or z.st_nlink != 1: raise ValueError('Auth regular source')
+        files[path] = full(z)
+        for ancestor in (path.parent, *path.parent.parents):
+            z = os.lstat(ancestor)
+            if not stat.S_ISDIR(z.st_mode): raise ValueError('Auth source directory')
+            fact = node(z)
+            if ancestor in nodes and nodes[ancestor] != fact: raise ValueError('Auth ancestor conflict')
+            nodes[ancestor] = fact
+    for path in (target, *target.parents):
+        if os.path.lexists(path):
+            z = os.lstat(path); security(z)
+            if not stat.S_ISDIR(z.st_mode): raise ValueError('Auth destination directory')
+            fact = node(z)
+            if path in nodes and nodes[path] != fact: raise ValueError('Auth ancestor conflict')
+            nodes[path] = fact
+    if set(os.listdir(ROOT)) != set(SOURCES): raise ValueError('Auth exact source namespace')
+    if target.parent.exists() and set(os.listdir(target.parent)) != ({'auth'} if target.exists() else set()):
+        raise ValueError('Auth public-only namespace')
+    if target.exists() and set(os.listdir(target)) != set(SOURCES): raise ValueError('Auth existing exact namespace')
+    for name, digest in SOURCES.items():
+        destination = target / name
+        destinations[destination] = full(os.lstat(destination)) if os.path.lexists(destination) else None
+    for name, digest in SOURCES.items():
+        path = ROOT / name; fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            if full(os.fstat(fd)) != files[path]: raise ValueError('Auth source FD')
+            data = bytearray()
+            while chunk := os.read(fd, 65536):
+                data.extend(chunk)
+                if len(data) > 1024**2: raise ValueError('Auth source bound')
+            if full(os.fstat(fd)) != files[path]: raise ValueError('Auth source FD final')
+        finally:
+            os.close(fd)
+        if hashlib.sha256(data).hexdigest() != digest: raise ValueError('Auth source byte pin')
+        payloads[target / name] = bytes(data)
+    # Sources and all original destination leaves are captured before reading.
+    for path, original in files.items():
+        if full(os.lstat(path)) != original: raise ValueError('Auth source original changed')
+    for path, original in destinations.items():
+        if (full(os.lstat(path)) if os.path.lexists(path) else None) != original:
+            raise ValueError('Auth destination original changed')
+        if original is not None and (original[5] & 0o170000 != 0o100000 or original[8] != 1 or
+                                     original[5] & 0o7777 != 0o444 or path.read_bytes() != payloads[path]):
+            raise ValueError('Auth unknown installed predecessor')
+    for path, original in nodes.items():
+        if node(os.lstat(path)) != original: raise ValueError('Auth source ancestor changed')
+    for directory in (target.parent, target):
+        if not directory.exists():
+            os.mkdir(directory, 0o755)
+            z = os.lstat(directory); security(z)
+            if not stat.S_ISDIR(z.st_mode) or stat.S_IMODE(z.st_mode) != 0o755:
+                raise ValueError('Auth created directory')
+            nodes[directory] = node(z)
+    for path, data in payloads.items():
+        if destinations[path] is not None: continue
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            birth = full(os.fstat(fd)); security(os.fstat(fd))
+            if birth[5] & 0o170000 != 0o100000 or birth[5] & 0o7777 != 0o600 or birth[6:9] != (os.geteuid(), os.getegid(), 1):
+                raise ValueError('Auth created private original')
+            view = memoryview(data)
+            while view:
+                count = os.write(fd, view)
+                if count <= 0: raise ValueError('Auth short write')
+                view = view[count:]
+            os.fsync(fd);written = full(os.fstat(fd))
+            if written[:2] + written[5:] != birth[:2] + birth[5:] or written[2] != len(data) or full(os.lstat(path)) != written:
+                raise ValueError('Auth created source changed')
+            # Publish only complete public code. No key or enrollment payload
+            # is admitted by this fixed source inventory.
+            os.fchmod(fd, 0o444);os.fsync(fd);result = full(os.fstat(fd))
+            if (tuple(result[i] for i in (0,1,2,3,6,7,8)) != tuple(written[i] for i in (0,1,2,3,6,7,8))
+                    or result[5] != (written[5] & ~0o7777) | 0o444 or full(os.lstat(path)) != result):
+                raise ValueError('Auth public source publication changed')
+            destinations[path] = result
+        finally:
+            os.close(fd)
+    verify_installed(target)
+    # All hash/read/verification helpers precede retained original source closure.
+    if set(os.listdir(ROOT)) != set(SOURCES) or set(os.listdir(target)) != set(SOURCES) or set(os.listdir(target.parent)) != {'auth'}:
+        raise ValueError('Auth final exact public namespace')
+    for path, original in nodes.items():
+        z = os.lstat(path)
+        if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != original:
+            raise ValueError('Auth final original ancestor')
+    for path, original in (*files.items(), *destinations.items()):
+        z = os.lstat(path)
+        if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
+                z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != original:
+            raise ValueError('Auth final original source')
+
+
+if __name__ == '__main__':
+    if sys.argv[1:2]==['--verify-final'] and len(sys.argv)==3:verify_required_targets(sys.argv[2])
+    else:main(sys.argv[1])

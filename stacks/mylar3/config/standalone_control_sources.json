@@ -361,7 +361,7 @@
   },
   {
     "path": "patch_publication_retained_standalone.py",
-    "sha256": "60291c22d0ab342dd654da1632bd6e09820763655420015ab886d733949dff9d",
+    "sha256": "44a365343635ad915d6ff8d0652c6a8eb86e6723dff696bd50ad549bf7f8f30f",
     "target": "patch_publication_retained_standalone.py"
   },
   {
@@ -486,7 +486,7 @@
   },
   {
     "path": "publication_archive_derivative.py",
-    "sha256": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
+    "sha256": "34e3efa85cc27feeb7560843f466f1f6444f91a4a062e84736d902f9c005e52b",
     "target": "publication_archive_derivative.py"
   },
   {
@@ -531,7 +531,7 @@
   },
   {
     "path": "publication_archive_repair.py",
-    "sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
+    "sha256": "6526febed27e1a67b19b6c85645fb695da885f345f60200193c8a7f620521821",
     "target": "publication_archive_repair.py"
   },
   {
@@ -736,17 +736,17 @@
   },
   {
     "path": "publication_retained_api.py",
-    "sha256": "41df9fc5214d7bb328261582711cfc3dbe673e40ac5568010cde48c660170c08",
+    "sha256": "27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad",
     "target": "publication_retained_api.py"
   },
   {
     "path": "publication_retained_delivery.py",
-    "sha256": "bfbf227b8deff0e37550360ee47a0832019ef1f5cea68e3618d4e0ef0295380b",
+    "sha256": "470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45",
     "target": "publication_retained_delivery.py"
   },
   {
     "path": "publication_retained_finalize.py",
-    "sha256": "1ecc57c8797796c109548b56261427746be54e06ad545e99ea8cfa632369acd3",
+    "sha256": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44",
     "target": "publication_retained_finalize.py"
   },
   {
@@ -781,27 +781,27 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_backup.py",
-    "sha256": "96714f959a86f8fa9b83fda82e795505a93e511eb0ca287326b0d1233970a48b",
+    "sha256": "52d4d3f92971597a9824faaf4a6a120b770f5c49d828dcb31af986b4875b336a",
     "target": "reader_recovery/comic_retained_pack_backup.py"
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "4986e0d4faa0fd2858f216b884ece13b94e60742838a3c2d91a4cd73284a9ab5",
+    "sha256": "f34a63db595b95c248bce11261c7a1f9c9f573e4937dc1b947e5b970fd7a6e63",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
-    "sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
+    "sha256": "66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411",
     "target": "reader_recovery/comic_retained_standalone_action.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
-    "sha256": "92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e",
+    "sha256": "66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411",
     "target": "comic_retained_standalone_action.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "ab0002992bbb437871201cb46d735a7513bd1a125520199e14f606900cd3f596",
+    "sha256": "bebd384239c0c05222cc563bf9f1f35c9a13400f31f7860a74549fdd435bdb8b",
     "target": "reader_recovery/comic_retained_standalone_backup.py"
   },
   {
@@ -811,12 +811,12 @@
   },
   {
     "path": "reader_recovery/retained_pack_control.py",
-    "sha256": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736",
+    "sha256": "a2a76107aea28261b1ec9ac510b99348c56f9f414b9907417925dd266b521802",
     "target": "reader_recovery/retained_pack_control.py"
   },
   {
     "path": "reader_recovery/test_standalone_backup.py",
-    "sha256": "24e38f8efa8e042c6e200bfb0bd7c62a71d3b4847633b2d1ec6790d184652b2e",
+    "sha256": "ce80644388fce885693650209ae62e6b3abeee398552ff824ff5445d01d31e9f",
     "target": "reader_recovery/test_standalone_backup.py"
   },
   {
@@ -826,7 +826,7 @@
   },
   {
     "path": "reader_recovery/test_standalone_directory_joins.py",
-    "sha256": "5a3e44e145ac47e593f2eb2739661fd763e46e9f381ea7c63efcd86d9b4c9228",
+    "sha256": "1acf44d14a24a1e324601697f668435e7a3297d04f0cd4d2f9163044cd504f75",
     "target": "reader_recovery/test_standalone_directory_joins.py"
   },
   {
@@ -861,12 +861,12 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "af2835781964164a3078435343382e73565f354a5731b9fa6c7c09a5f4dbe34a",
+    "sha256": "167abc17104db533e3789b8c19db1829b73ac832e8d1187cd1fd5fc02981c5c1",
     "target": "run_reader_recovery_controls.py"
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "f345281a18b1b636d16190592eefd825f7330829bf2c1d803ffce89122fa4c30",
+    "sha256": "6e553870ee24c9b8bc07f48afc986b6716cbfd00871c6a0abdb5bd935bdd9d5e",
     "target": "run_standalone_controls.py"
   },
   {
@@ -1181,12 +1181,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py",
-    "sha256": "b00331d89fe7c55c67f7c06db9c1dac81f79d44a4047beceb024fd711e371041",
+    "sha256": "76990ecb10f039c08debc5c4b10d94f677f88ebae62c5926c2b14ed390e311cc",
     "target": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/check_retained_pack_export.py",
-    "sha256": "0dbd9825cc63fe42fe8d5f5a605eac85eb24df4c900d677eacc1f952c78dd9d0",
+    "sha256": "1dd5511b1ce45cbf158ce812f1d121060c7c0cd563287e4b948295157b71f93e",
     "target": "test_fixtures/retained_pack_worker/check_retained_pack_export.py"
   },
   {
@@ -1211,7 +1211,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/import_match.py",
-    "sha256": "1504a3761fe4d5bfced2f5d59c2e9052e909be96b5d626d5989c6b00280fc523",
+    "sha256": "f27da92e2baf8469c4b2f22ed5760c8ee701b08028ab2bb05af0b7982ac2aee3",
     "target": "test_fixtures/retained_pack_worker/import_match.py"
   },
   {
@@ -1231,12 +1231,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/media_writer.py",
-    "sha256": "6187fe15991d7047088ebce319f597278db6d3c62cd25535d1b6e9e1f2fc7b45",
+    "sha256": "a68691fccb85d1bd136353e3340e66ea84f0b7affab92699084ac8c6b4c9ab60",
     "target": "test_fixtures/retained_pack_worker/media_writer.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/naming_worker.py",
-    "sha256": "1a455d613a5c9107bea7403a99345b14d8d3de66f87b4bf9375c5d19e7f5c94b",
+    "sha256": "8beb59a17811a786b959a83b8c42f1d4e98217ac15055d356eb233d80c2569eb",
     "target": "test_fixtures/retained_pack_worker/naming_worker.py"
   },
   {
@@ -1246,7 +1246,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/normalize.py",
-    "sha256": "812996132dacf5fc5c0bc22e0cac291a77f9f298a8a653ad90e9d462ca774034",
+    "sha256": "f91aaa70eacacb7f1ef4a37e6dbb0c4081695129b3c0f920d83192c30eb99a64",
     "target": "test_fixtures/retained_pack_worker/normalize.py"
   },
   {
@@ -1276,7 +1276,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_archive_derivative.py",
-    "sha256": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
+    "sha256": "34e3efa85cc27feeb7560843f466f1f6444f91a4a062e84736d902f9c005e52b",
     "target": "test_fixtures/retained_pack_worker/publication_archive_derivative.py"
   },
   {
@@ -1291,7 +1291,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_archive_repair.py",
-    "sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
+    "sha256": "6526febed27e1a67b19b6c85645fb695da885f345f60200193c8a7f620521821",
     "target": "test_fixtures/retained_pack_worker/publication_archive_repair.py"
   },
   {
@@ -1301,12 +1301,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_evidence.py",
-    "sha256": "1bc537d38a2bf939257673290bf80f23edd442c8fc5c6f2c7ff4969cf3e66710",
+    "sha256": "5c367cfddfd8e05496a2d466ec0253fccdb87f2f85d1619eb45d0b5f76e531d1",
     "target": "test_fixtures/retained_pack_worker/publication_evidence.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_guard.py",
-    "sha256": "2833487ef351ab1556264a52dd6d72b668b2f63cc900341b764f30f584b9b229",
+    "sha256": "dbd7b23fa7200295b4ea546f80dbf14594f149bc864a27822de3bf0cec47b67b",
     "target": "test_fixtures/retained_pack_worker/publication_guard.py"
   },
   {
@@ -1341,27 +1341,27 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_control.py",
-    "sha256": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736",
+    "sha256": "a2a76107aea28261b1ec9ac510b99348c56f9f414b9907417925dd266b521802",
     "target": "test_fixtures/retained_pack_worker/retained_pack_control.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "89b3a72b518867e3c5856ceebdd08f268f286ca63a6b4aebd533cadfcc1571b9",
+    "sha256": "bda7098754ef8dcf1dca5d52ee8b8d55f4e66c30debc497376aa3ad03f2df771",
     "target": "test_fixtures/retained_pack_worker/retained_pack_handoff.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_operations.py",
-    "sha256": "faf03dea0bb016484c41d021fa62617af9790ddb23f278eb240680435b6c3a65",
+    "sha256": "01513d97e510312294a9493d61d5990c3c7323f1b2670c5ceb6aa512f543d981",
     "target": "test_fixtures/retained_pack_worker/retained_pack_operations.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "1feba14f545b779cf5c9b5dc4936b15ced959ffd9c758d5028dc2787f21d9294",
+    "sha256": "af7221a1249e558c491e46338baeb41cf4f5254f07eb810f0b1f993f9fc967d6",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
-    "sha256": "7b03a493d8acb85e31fb8c7f7788216dce396e18bb2b55ddead357de6df5a14c",
+    "sha256": "f9e8b1008f295fcf335e7f1fb192da7e03e81722b738c7a00356cfe1d95d02e2",
     "target": "test_fixtures/retained_pack_worker/writer_cycle.py"
   },
   {
@@ -1486,7 +1486,7 @@
   },
   {
     "path": "test_preproof.py",
-    "sha256": "00a31b5383595ea78431ccede363f6d018acc69e7a8c05dc291919b0e4a526c4",
+    "sha256": "cd9e0a9a7fe74f9120f1e07e8dd430d618b7e2167bd852ebfe8aab2780a47f2b",
     "target": "test_preproof.py"
   },
   {
@@ -1561,7 +1561,7 @@
   },
   {
     "path": "test_publication_archive_repair.py",
-    "sha256": "da5256a8c46a40ea51514e68b2c3053cbdbf329bbdfc37c9d5ca7a57ca4b9877",
+    "sha256": "cbfeba47669ae078764d534847a2936e65f29a3c17a03420875b6aac4280f929",
     "target": "test_publication_archive_repair.py"
   },
   {
@@ -1771,7 +1771,7 @@
   },
   {
     "path": "test_publication_retained_finalize.py",
-    "sha256": "0cddb300aaf08b39d8d1663a5104e209f78660e90fd1b88c32e69a8fb76a4f9c",
+    "sha256": "8156576001e92b875d16d8b622c720b5575016b465fe84abcf62ed85f9bcbfcc",
     "target": "test_publication_retained_finalize.py"
   },
   {
@@ -1836,7 +1836,7 @@
   },
   {
     "path": "test_retained_delivery_api.py",
-    "sha256": "bee83d4d50c05cadd91f95dd79303a38f9b0a81b812102759b4429a44072b6f6",
+    "sha256": "ab60a920f410b1c231189134b8c32a5a7db474e133105c63834db4f1c7ee6019",
     "target": "test_retained_delivery_api.py"
   },
   {
@@ -1846,12 +1846,12 @@
   },
   {
     "path": "test_retained_pack_composed.py",
-    "sha256": "cd4d8b2962dfb373b32687e66ed4d826029b2ed16905e6129326bac25f19b14b",
+    "sha256": "a8acf07c78a5a7d681bf14b8c1620fd3c39483ba489437bdfa8836e576b7e514",
     "target": "test_retained_pack_composed.py"
   },
   {
     "path": "test_retained_pack_export.py",
-    "sha256": "e538ee0caa1f60c9a471535e2df547cff4c30999cb1cd7300a7fa72dee48d6da",
+    "sha256": "3108afa1171a2b1f768931d1c4db79a430ee126ec5d5147ffa219fc95a0e4230",
     "target": "test_retained_pack_export.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "44bbd11fb8636b51803d360fa32b6b5c5696917877b3195a51cdb4d59497ba1f",
+    "sha256": "e8cc2a97ff7acfa4ae81818f8d71d5ae7e54c743e2a38a6c4f203cc0156eb2e2",
     "target": "verify_publication_reader_cohort.py"
   },
   {
@@ -2061,7 +2061,7 @@
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
-    "sha256": "213e20c168bff65bcf43459c63d1eca2c9bed9b647917f19db10eb999f7167d6",
+    "sha256": "c440cb382d7ecf50d92c322d8e1ae2801a88990774190cd4c333890a211d9d26",
     "target": "standalone_launch_host/BOOTSTRAP.py"
   },
   {
@@ -2076,7 +2076,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "ab0002992bbb437871201cb46d735a7513bd1a125520199e14f606900cd3f596",
+    "sha256": "bebd384239c0c05222cc563bf9f1f35c9a13400f31f7860a74549fdd435bdb8b",
     "target": "standalone_launch_host/comic_retained_standalone_backup.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "a7a5366bb68c5873b710e7cc9842cc9d9e04695340348bf6a8aa3eb321416cd2",
+    "sha256": "9d53791b47e8e39cae8f8efc772cacdf1c76dd8f4633476e40335e6c74c93302",
     "target": "tagging_stage_sources.json"
   },
   {

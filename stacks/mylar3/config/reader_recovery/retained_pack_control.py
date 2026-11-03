@@ -19,6 +19,8 @@ FRAME_BYTES=65536
 MEMBERS=1
 _STATE=weakref.WeakKeyDictionary()
 _TERMINAL_SEND=weakref.WeakKeyDictionary()
+_RELEASE_SEND=weakref.WeakKeyDictionary()
+_WRITER_HOLDS=weakref.WeakKeyDictionary()
 
 
 def need(value,reason):
@@ -28,6 +30,48 @@ def need(value,reason):
 def encode(v):return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 def nine(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
 def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+
+
+def _writer_hold_original(function,owner=None):
+    """Retain both contextmanager wrapper and its actual generator closure."""
+    import types
+    generator=getattr(function,'__wrapped__',None)
+    need(type(function) is types.FunctionType and type(generator) is types.FunctionType,
+         'control-original-Writer-contextmanager')
+    need(owner is None or type(owner) is type and owner.hold is function,'control-original-Writer-class')
+    rows=[]
+    for fn in (function,generator):
+        cells=tuple((cell,cell.cell_contents) for cell in (fn.__closure__ or ()))
+        defaults=fn.__defaults__;keywords=fn.__kwdefaults__
+        need(defaults is None or all(type(v) in (str,int,float,bool,type(None)) for v in defaults),
+             'control-Writer-default-shape')
+        need(keywords is None or all(type(k) is str and type(v) in (str,int,float,bool,type(None))
+                                    for k,v in keywords.items()),'control-Writer-keyword-shape')
+        rows.append((fn,fn.__code__,fn.__globals__,fn.__closure__,cells,defaults,
+                     None if defaults is None else tuple((type(v),v) for v in defaults),
+                     keywords,None if keywords is None else tuple(sorted((k,type(v),v) for k,v in keywords.items()))))
+    need(any(value is generator for _,value in rows[0][4]),'control-original-Writer-generator')
+    return function,generator,tuple(rows),owner
+
+
+def _check_writer_hold(original,writer=None):
+    function,generator,rows,owner=original
+    need(getattr(function,'__wrapped__',None) is generator,'control-original-Writer-generator')
+    need(owner is None or owner.hold is function,'control-original-Writer-class')
+    if writer is not None:
+        need((owner is None or type(writer) is owner)
+             and getattr(writer.hold,'__func__',None) is function,'control-original-Writer-method')
+    for fn,code,namespace,closure,cells,defaults,values,keywords,items in rows:
+        # Reject subclass dispatch before sorting or comparing mutable defaults.
+        need(fn.__kwdefaults__ is keywords and (keywords is None or all(type(k) is str
+             and type(v) in (str,int,float,bool,type(None)) for k,v in keywords.items())),
+             'control-original-Writer-keyword-types')
+        need(fn.__code__ is code and fn.__globals__ is namespace and fn.__closure__ is closure
+             and fn.__defaults__ is defaults and fn.__kwdefaults__ is keywords
+             and all(cell.cell_contents is value for cell,value in cells)
+             and (None if fn.__defaults__ is None else tuple((type(v),v) for v in fn.__defaults__))==values
+             and (None if fn.__kwdefaults__ is None else tuple(sorted((k,type(v),v) for k,v in fn.__kwdefaults__.items())))==items,
+             'control-original-Writer-implementation')
 
 
 class Pipe:
@@ -64,13 +108,101 @@ class Pipe:
         self.close_originals();self.last_received=raw;self.sequence+=1;return body['payload']
 
 
+_AUTH_PIPES=weakref.WeakKeyDictionary()
+
+class AuthenticatedPipe(Pipe):
+    """Original fixed-anchor pack transcript; never a caller-enabled Pipe."""
+    def __init__(self,*args,**kwargs):raise ValueError('Original pack admission required')
+    @classmethod
+    def from_binding(cls,binding,boot_ref,boot):
+        import standalone_launch_auth as auth
+        need(type(binding) is auth.ActionBinding and binding.purpose=='retained-pack','pack-original-auth-purpose')
+        module=sys.modules[__name__];binding.check_action(module,boot_ref,0,1)
+        original=binding.original_identity()
+        value=object.__new__(cls)
+        Pipe.__init__(value,0,1,boot['nonce'],time.monotonic()+TOTAL_SECONDS)
+        value.sequence=1
+        _AUTH_PIPES[value]=(auth,binding,original,module,encode(boot_ref),encode(boot),
+                            binding.parent_sha256,binding.source_map_sha256,_AUTH_PIPES)
+        value.close_originals();return value
+    def close_originals(self):
+        Pipe.close_originals(self)
+        original=_AUTH_PIPES.get(self);need(original is not None,'pack-auth-original-pipe')
+        auth,binding,identity,module,boot_ref,boot,parent_sha,map_sha,table=original
+        need(_AUTH_PIPES is table,'pack-auth-original-table')
+        need(type(binding) is auth.ActionBinding,'pack-auth-original-binding')
+        binding.check_action(module,json.loads(boot_ref),self.read_fd,self.write_fd)
+        need(binding.original_identity() is identity and binding.purpose=='retained-pack'
+             and binding.parent_sha256==parent_sha and binding.source_map_sha256==map_sha,
+             'pack-auth-original-admission')
+        need(_AUTH_PIPES.get(self) is original,'pack-auth-original-registry')
+    def send(self,kind,challenge,payload):
+        self.close_originals();original=_AUTH_PIPES[self];binding=original[1]
+        terminal_table=_TERMINAL_SEND;release_table=_RELEASE_SEND
+        terminal=terminal_table.get(self);released=release_table.get(self)
+        need((kind=='observed') is (terminal is not None)
+             and (kind=='observed-final-ACK') is (released is not None),
+             'pack-auth-original-send-guard')
+        need(kind=={1:'initialized',3:'observed',5:'observed-final-ACK'}.get(self.sequence),
+             'pack-auth-child-order')
+        raw=encode(dict(version=3,protocol='pack-retained-repeat-v1',kind=kind,nonce=self.nonce,
+                        sequence=self.sequence,challenge=challenge,payload=payload))
+        need(len(raw)<FRAME_BYTES,'pack-auth-frame-bound');binding.child_frame(raw)
+        self.close_originals()
+        # The delimiter commits the frame. Reclose the genuine consumed action
+        # immediately before every partial write and separately before newline.
+        for part in (raw,b'\n'):
+            view=memoryview(part)
+            while view:
+                need(select.select([], [self.write_fd],[],max(0,self.deadline-time.monotonic()))[1],
+                     'pack-auth-write-deadline')
+                self.close_originals()
+                need(_TERMINAL_SEND is terminal_table and _RELEASE_SEND is release_table
+                     and terminal_table.get(self) is terminal and release_table.get(self) is released,
+                     'pack-auth-original-terminal-send')
+                if terminal is not None:_close(terminal,terminal=True)
+                if released is not None:_close(released,released=True)
+                count=os.write(self.write_fd,view);need(count>0,'pack-auth-short-write')
+                view=view[count:]
+        self.sequence+=1;return raw
+    def receive(self,kind,challenge):
+        self.close_originals();original=_AUTH_PIPES[self];binding=original[1]
+        need(kind=={2:'backup-ready',4:'observed-release',6:'observed-exit'}.get(self.sequence),
+             'pack-auth-host-order')
+        data=bytearray()
+        while True:
+            need(select.select([self.read_fd],[],[],max(0,self.deadline-time.monotonic()))[0],
+                 'pack-auth-read-deadline')
+            part=os.read(self.read_fd,1);need(part,'pack-auth-unknown-host-reply');data.extend(part)
+            need(len(data)<=FRAME_BYTES,'pack-auth-envelope-bound')
+            if part==b'\n':break
+        raw=binding.host_frame(bytes(data[:-1]));body=json.loads(raw)
+        need(body['kind']==kind and body['sequence']==self.sequence and body['nonce']==self.nonce
+             and body['challenge']==challenge,'pack-auth-original-host-frame')
+        self.close_originals();self.last_received=raw;self.sequence+=1;return body['payload']
+
+
+def _owning_parent_pipe(pipe,parent_sha):
+    if type(pipe) is Pipe:
+        return ENABLED is True and type(parent_sha) is str and parent_sha==PARENT_SOURCE_SHA
+    if type(pipe) is AuthenticatedPipe:
+        pipe.close_originals();record=_AUTH_PIPES.get(pipe)
+        return record is not None and type(parent_sha) is str and parent_sha==record[6]
+    return False
+
+
 class WaitingSession:
     __slots__=('__weakref__',)
     def __init__(self,*a,**k):raise ValueError('Original same-live worker required')
 
 
-def _close(value,*,terminal=False):
+def _close(value,*,terminal=False,released=False):
+    if type(value) is not WaitingSession:raise ValueError('original-waiting-session')
     c=_STATE.get(value);need(c is not None and (c['pid'],c['thread'])==(os.getpid(),threading.get_ident()),'original-waiting-session')
+    hold_original=_WRITER_HOLDS.get(value)
+    need(hold_original is not None and hold_original[0] is c
+         and hold_original[1] is c['writer_hold'] and hold_original[2] is _STATE
+         and hold_original[3] is _WRITER_HOLDS,'control-original-Writer-registry')
     owned_session=c['session'];original_pipe=c['pipe']
     c['pipe'].close_originals()
     from retained_pack_operations import existing
@@ -79,14 +211,24 @@ def _close(value,*,terminal=False):
     # Verify them before allowing a parent message to advance selection.
     from retained_pack_operations import _initial_originals,_core
     owned=_core(c['session'])
+    _check_writer_hold(hold_original[1],owned.get('writer'))
     if terminal:
         import retained_pack_handoff as handoff
         from publication_guard import scope
         need(owned['phase']=='retained-observed' and handoff._core(owned['action'],'consumed')['maintenance'] is c['maintenance'],'control-original-consumed-action')
         original_action=owned['action'];original_terminal=handoff._TERMINAL_EXPORTS.get(original_action);original_core=handoff._CORES.get(original_action)
         need(original_terminal is not None and original_terminal[0] is original_core,'control-original-terminal-seal')
-        with owned['writer'].hold(timeout=0),scope(c['maintenance'].worker,owned['writer']):
+        from publication_guard import current,Unavailable
+        try:active=current(c['maintenance'].worker)
+        except Unavailable:
+            with hold_original[1][0](owned['writer'],timeout=0),scope(c['maintenance'].worker,owned['writer']):
+                terminal_frame=handoff.close_terminal(owned['action'])
+        else:
+            need(active.writer is owned['writer'],'control-original-held-Writer')
             terminal_frame=handoff.close_terminal(owned['action'])
+    elif released:
+        need(owned['phase']=='retained-observed' and getattr(owned['writer'].local[1],'depth',0)==0,
+             'control-original-Writer-release')
     else:_initial_originals(owned)
     for path,wanted in c['source_files']:
         z=os.lstat(path);need((z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)==wanted,'control-original-source')
@@ -143,13 +285,18 @@ def _close(value,*,terminal=False):
         if tuple(projection)!=record[4] or core['token']!=record[5] or core['reply_bytes'] is not record[6]:raise ValueError('control-terminal-action-original')
         if _STATE.get(value) is not c or c['maintenance'] is not m or c['session'] is not owned_session or c['pipe'] is not original_pipe:raise ValueError('control-terminal-original-registry')
         if (m.state,m.worker,tuple(m.worker.roots),m.worker.config['writer_state'],m.settings.get('ddl_cache'),m.settings.get('mylar_ddl_cache'),m.worker.config['mylar'].get('url'),m.worker.config['mylar'].get('config_dir','/mylar'),tuple((row['native'],row['worker']) for row in m.worker.config['publication_roots']))!=binding:raise ValueError('control-terminal-final-Maintenance')
+    _check_writer_hold(c['writer_hold'],owned.get('writer'))
+    need(_WRITER_HOLDS.get(value) is hold_original and hold_original[1] is c['writer_hold']
+         and hold_original[2] is _STATE and hold_original[3] is _WRITER_HOLDS,
+         'control-final-Writer-registry')
+    if released:need(getattr(owned['writer'].local[1],'depth',0)==0,'control-final-Writer-release')
     return c
 
 
 def initialize(maintenance,pipe,parent_sha,source_files,source_nodes,worker_lock_fd=None):
-    need(ENABLED is True and type(parent_sha) is str and parent_sha==PARENT_SOURCE_SHA and len(parent_sha)==64,'parent-activation-required')
+    need(_owning_parent_pipe(pipe,parent_sha) and len(parent_sha)==64,'parent-activation-required')
     from maintenance import Maintenance
-    need(type(maintenance) is Maintenance and type(pipe) is Pipe,'original-Maintenance-channel')
+    need(type(maintenance) is Maintenance and type(pipe) in (Pipe,AuthenticatedPipe),'original-Maintenance-channel')
     import fcntl
     need(type(worker_lock_fd) is int,'owning-worker-lock-FD-required')
     lock_path=maintenance.worker.state/'worker.lock';lock9=nine(os.lstat(lock_path));need(lock9[5]&0o170000==0o100000 and lock9[8]==1 and nine(os.fstat(worker_lock_fd))==lock9,'original-worker-lock-FD')
@@ -157,10 +304,15 @@ def initialize(maintenance,pipe,parent_sha,source_files,source_nodes,worker_lock
     # Freeze arguments BEFORE initialization callbacks; require actual source hashes at caller.
     originals=tuple((str(p),tuple(s)) for p,s in source_files);nodes=tuple((str(p),tuple(s)) for p,s in source_nodes)
     methods=tuple((name,getattr(Maintenance,name),getattr(Maintenance,name).__code__) for name in ('initialize_retained_pack','select_retained_pack','run_retained_pack','reconcile_retained_pack','retained_pack_view'))
+    from media_writer import Writer
+    writer_hold=_writer_hold_original(Writer.hold,Writer)
+    writer_table=_WRITER_HOLDS;state_table=_STATE
     pipe.close_originals();session=maintenance.initialize_retained_pack()
     from retained_pack_operations import _core
     initial_binding=tuple(_core(session)['initial'][3])
-    value=object.__new__(WaitingSession);_STATE[value]=dict(maintenance=maintenance,session=session,pipe=pipe,pid=os.getpid(),thread=threading.get_ident(),source_files=originals,source_nodes=nodes,worker_lock=(worker_lock_fd,str(lock_path),lock9),phase='waiting',deadline=time.monotonic()+WAITING_SECONDS,methods=methods,initial_binding=initial_binding)
+    value=object.__new__(WaitingSession);_STATE[value]=dict(maintenance=maintenance,session=session,pipe=pipe,pid=os.getpid(),thread=threading.get_ident(),source_files=originals,source_nodes=nodes,worker_lock=(worker_lock_fd,str(lock_path),lock9),phase='waiting',deadline=time.monotonic()+WAITING_SECONDS,methods=methods,initial_binding=initial_binding,writer_hold=writer_hold)
+    need(_WRITER_HOLDS is writer_table and _STATE is state_table,'control-initial-Writer-registry')
+    _WRITER_HOLDS[value]=(_STATE[value],writer_hold,state_table,writer_table)
     _close(value);return value
 
 
@@ -185,6 +337,7 @@ def wait_and_run(value,challenge,pack_id,member_id):
         action=core(c['session'])['action']
         if action is None or h.live_state(action)!='dispatching':raise
         result=m.reconcile_retained_pack()
+    if type(c['pipe']) is AuthenticatedPipe:return _authenticated_complete(value,result,challenge,pack_id,member_id)
     c['phase']='terminal';c['pipe'].close_originals();_TERMINAL_SEND[c['pipe']]=value
     result_raw=c['pipe'].send('worker-result',challenge,result)
     expected=dict(result_sha256=hashlib.sha256(result_raw).hexdigest(),pack_id=pack_id,member_id=member_id,worker_pid=os.getpid(),publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)
@@ -196,6 +349,88 @@ def wait_and_run(value,challenge,pack_id,member_id):
     _close(value,terminal=True);c['phase']='released'
     # Parent cannot grant cleanup/import/index through this factual result.
     return result
+
+
+def _authenticated_complete(value,result,challenge,pack_id,member_id):
+    """One six-stage original transcript, with a continuous Writer observation."""
+    if type(value) is not WaitingSession:raise ValueError('pack-original-authenticated-session')
+    c=_STATE.get(value);need(c is not None and type(c['pipe']) is AuthenticatedPipe,'pack-original-authenticated-session')
+    from retained_pack_operations import _core
+    import retained_pack_handoff as handoff
+    from publication_guard import scope
+    owned=_core(c['session']);need(owned['phase']=='retained-observed','pack-original-consumed-result')
+    writer=owned['writer'];hold=c['writer_hold'];_check_writer_hold(hold,writer)
+    result_bytes=encode(result);c['phase']='terminal'
+    _check_writer_hold(hold,writer)
+    with hold[0](writer,timeout=0),scope(c['maintenance'].worker,writer):
+        _close(value,terminal=True)
+        frame=handoff.close_terminal(owned['action']);action=handoff._core(owned['action'],'consumed')
+        done=str(action['done']);reference=dict(path=done,signature9=list(frame['files'][done]),sha256=frame['hashes'][done])
+        header=dict(version=1,kind='retained-pack-terminal-observation',pack_id=pack_id,member_id=member_id,
+            token=action['token'],worker_pid=os.getpid(),result=json.loads(result_bytes),artifact_ref=reference,
+            frame_sha256=hashlib.sha256(handoff.compact(frame)).hexdigest(),
+            request_sha256=hashlib.sha256(action['request_bytes']).hexdigest(),
+            reply_sha256=hashlib.sha256(action['reply_bytes']).hexdigest(),
+            writer_lock=dict(path=str(writer.lock),signature9=list(frame['files'][str(writer.lock)])),
+            ordinary_import_grant=False,cleanup_grant=False,reader_index_acceptance=False,
+            historical_import_ack=False,reader_resume_grant=False,automatic_replay=False)
+        _TERMINAL_SEND[c['pipe']]=value
+        try:
+            raw=c['pipe'].send('observed',challenge,header)
+            release=c['pipe'].receive('observed-release',challenge)
+            expected=dict(observed_sha256=hashlib.sha256(raw).hexdigest(),frame_sha256=header['frame_sha256'],
+                          artifact_sha256=reference['sha256'],token=action['token'])
+            need(type(release) is dict and encode(release)==encode(expected),'pack-original-observation-ACK')
+            _close(value,terminal=True)
+        finally:
+            _TERMINAL_SEND.pop(c['pipe'],None)
+    # The exact source-owned hold has returned after kernel unlock. No reacquire,
+    # HTTP or refreshed data baseline can stand in for this original release.
+    _check_writer_hold(hold,writer)
+    need(getattr(writer.local[1],'depth',0)==0,'pack-original-Writer-release-ACK')
+    _close(value,released=True)
+    released=dict(expected,writer_released=True)
+    _RELEASE_SEND[c['pipe']]=value
+    try:c['pipe'].send('observed-final-ACK',challenge,released)
+    finally:_RELEASE_SEND.pop(c['pipe'],None)
+    final=c['pipe'].receive('observed-exit',challenge)
+    need(type(final) is dict and encode(final)==encode(released),'pack-original-exit-ACK')
+    _close(value,released=True);c['phase']='released'
+    return result
+
+
+def authenticated_main(original_preimport,admission):
+    """Only the fixed source/installation loader supplies a live pack admission."""
+    import standalone_launch_auth as auth
+    need(type(admission) is auth.LaunchAdmission,'pack-original-launch-admission')
+    need(type(original_preimport) is dict and set(original_preimport)=={'files','nodes','hashes','input_bytes'},
+         'pack-original-preimport')
+    need(len(sys.argv)==5 and sys.argv[1]=='--input' and sys.argv[3]=='--input-sha256','pack-original-bootstrap-argv')
+    path=Path(sys.argv[2]);data=bytes(original_preimport['input_bytes']);boot=json.loads(data)
+    need(encode(boot)==data and hashlib.sha256(data).hexdigest()==sys.argv[4]
+         and boot.get('kind')=='pack-retained-bootstrap-v1','pack-original-bootstrap-input')
+    boot_ref=dict(path=str(path),signature9=list(original_preimport['files'][str(path)]),sha256=sys.argv[4])
+    binding=admission.claim_action(sys.modules[__name__],boot_ref,0,1)
+    pipe=AuthenticatedPipe.from_binding(binding,boot_ref,boot)
+    reference=boot['config_ref'];config_bytes=_read_original(reference['path'],tuple(reference['signature9']),1024**2)
+    need(hashlib.sha256(config_bytes).hexdigest()==reference['sha256'],'pack-original-configuration')
+    from normalize import Normalizer
+    from maintenance import Maintenance
+    import retained_pack_handoff as handoff
+    import fcntl
+    worker=Normalizer(json.loads(config_bytes));maintenance=Maintenance(worker)
+    lock_path=worker.state/'worker.lock';stamp=nine(os.lstat(lock_path))
+    need(stamp[5]&0o170000==0o100000 and stamp[8]==1 and stamp[6:8]==(1000,1000),'pack-original-worker-lock')
+    fd=os.open(lock_path,os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK)
+    with os.fdopen(fd,'r+b') as lock:
+        need(nine(os.fstat(lock.fileno()))==stamp,'pack-original-worker-lock-FD')
+        fcntl.flock(lock.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+        handoff.authenticate_control(maintenance,pipe,boot)
+        files=tuple((name,tuple(value)) for name,value in original_preimport['files'].items())+((str(lock_path),stamp),)
+        nodes=tuple((name,tuple(value)) for name,value in original_preimport['nodes'].items())
+        session=initialize(maintenance,pipe,binding.parent_sha256,files,nodes,lock.fileno())
+        wait_and_run(session,boot['challenge'],boot['request']['pack_id'],boot['request']['member_id'])
+    return 0
 
 
 def _regular(path,expected):
@@ -215,7 +450,9 @@ def _read_original(path,stamp,limit):
     finally:os.close(fd)
 
 
-def main():
+def main(*,original_preimport=None,admission=None):
+    if admission is not None:return authenticated_main(original_preimport,admission)
+    need(original_preimport is None,'pack-unadmitted-preimport')
     parser=argparse.ArgumentParser();parser.add_argument('--input',required=True);parser.add_argument('--input-sha256',required=True);args=parser.parse_args()
     need(ENABLED is True and PARENT_SOURCE_SHA is not None,'retained-control-default-disabled')
     path=Path(args.input);original=nine(os.lstat(path));own=Path(__file__).absolute()

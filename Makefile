@@ -1,8 +1,11 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local source-lint mylar-source-check komga-source-check hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local source-lint mylar-source-check komga-source-check komga-worker-check hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 JAVA_HOME_21 ?= $(JAVA_HOME_21_X64)
 MYLAR_PYTHON ?= python3
 SOURCE_LINT_TOOLING ?=
+ARCHIVING_UTILS_ROOT ?= /opt/archiving-utils
+PUBLICATION_AUTH_BACKEND ?= host
+export ARCHIVING_UTILS_ROOT
 
 help:
 	@echo "Homelab repository targets:"
@@ -14,6 +17,7 @@ help:
 	@echo "  source-lint        Run pinned shared lint; requires SOURCE_LINT_TOOLING"
 	@echo "  mylar-source-check Run Mylar recovery/archive source controls without Docker"
 	@echo "  komga-source-check Run the Komga source/compile gate; requires JAVA_HOME_21"
+	@echo "  komga-worker-check Run the full worker suite with the checked archive SDK"
 	@echo "  hooks-install      Install repository pre-commit hooks"
 	@echo "  hooks-install-site Opt in to Pages browser tests before push"
 	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
@@ -48,6 +52,7 @@ ci-local:
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
 	$(MAKE) source-lint
 	$(MAKE) mylar-source-check
+	$(MAKE) komga-worker-check
 	$(MAKE) komga-source-check
 	pre-commit run --all-files
 	bash scripts/scan-secrets-gitleaks.sh git --log-opts=HEAD
@@ -56,18 +61,28 @@ source-lint:
 	python3 scripts/source-lint-local.py "$(SOURCE_LINT_TOOLING)"
 
 mylar-source-check:
+	@test -f "$(ARCHIVING_UTILS_ROOT)/lib/archive_backend.py" || { echo "The complete publication gate requires ARCHIVING_UTILS_ROOT pointing to the checked archive SDK." >&2; exit 1; }
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_health.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_verify_status_routing.py
+	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_publication_launch_auth.py
 	# Match the image's owning portable suites, including complete recovery controls.
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_publication_reader_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_import_api_controls.py --family all
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_standalone_controls.py --family all
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_authenticated_standalone_controls.py --backend "$(PUBLICATION_AUTH_BACKEND)"
 
 komga-source-check:
 	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_naming_worker.py
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_retained_pack_control.py
 	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_archive_terminal_observation.py
 	python3 -I -B stacks/komga/effective_scope/run_source_tests.py --java-home "$(JAVA_HOME_21)"
+
+komga-worker-check:
+	$(MYLAR_PYTHON) -B scripts/run-private-comic-controls.py local-worker
 
 hooks-install:
 	pre-commit install --install-hooks

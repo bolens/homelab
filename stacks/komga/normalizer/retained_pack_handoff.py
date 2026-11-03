@@ -17,7 +17,7 @@ from publication_guard import current, scope, remote_unlocked, evidence
 ENABLED=False
 NATIVE_SOURCE_ROOT='/app/mylar3/mylar'
 NATIVE_API_SHA=None  # Root must prove final installed canonical API bytes.
-NATIVE_SOURCE_PINS={'native_writers.py': '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74', 'publication_retained_api.py': '41df9fc5214d7bb328261582711cfc3dbe673e40ac5568010cde48c660170c08', 'publication_retained_delivery.py': 'bfbf227b8deff0e37550360ee47a0832019ef1f5cea68e3618d4e0ef0295380b', 'publication_retained_finalize.py': '1ecc57c8797796c109548b56261427746be54e06ad545e99ea8cfa632369acd3'}
+NATIVE_SOURCE_PINS={'native_writers.py': '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74', 'publication_retained_api.py': '27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad', 'publication_retained_delivery.py': '470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
 # Missing installed api.py source pin keeps operational export consumption held.
 
 _RETURN=Maintenance.retained_pack_return
@@ -28,9 +28,70 @@ _CORES=weakref.WeakKeyDictionary()
 _TERMINAL_EXPORTS=weakref.WeakKeyDictionary()
 _SELECTED={}
 _LIMIT=4*1024**2
+TERMINAL_ARTIFACT_BYTES=64*1024**2
+NATIVE_VECTOR_ROWS=8192
 _MARKERS=('normalizer-v1.pending','tagger-v2.pending','release-v1.pending','tagger-publication-v1.json',
  'nested-derivative-v1.json','tagger-recovery-v1.pending','negative-retirement-v1.pending',
  'negative-retirement-v1.terminal-pending','archive-repair-v1.pending','archive-repair-v1.terminal-pending')
+
+
+_AUTH_OPERATIONS=weakref.WeakKeyDictionary()
+_AUTH_OWNERS=weakref.WeakKeyDictionary()
+
+
+def authenticate_control(maintenance,pipe,boot):
+    """One original signed pack launch; no enable flag or saved admission."""
+    import retained_pack_control as control
+    check(type(maintenance) is Maintenance and type(pipe) is control.AuthenticatedPipe,
+          'retained-owning-authenticated-control')
+    pipe.close_originals();origin=control._AUTH_PIPES.get(pipe)
+    check(origin is not None and control.encode(boot)==origin[5],'retained-authenticated-original-boot')
+    binding=origin[1]
+    check(maintenance not in _AUTH_OPERATIONS and binding not in _AUTH_OWNERS,'retained-authenticated-once')
+    reference=boot['review_ref'];raw=_read(reference['path'],reference['signature9'],_LIMIT)
+    check(hashlib.sha256(raw).hexdigest()==reference['sha256'],'retained-authenticated-review-bytes')
+    review=evidence.decode_json(raw)
+    check(type(review) is dict and set(review)=={'version','kind','request','native_api_sha256','native_sources','native_image'}
+          and type(review['version']) is int and review['version']==1
+          and review['kind']=='retained-pack-reviewed-native-cohort'
+          and native_compact(review['request'])==native_compact(boot['request'])
+          and review['native_sources']==NATIVE_SOURCE_PINS
+          and all(type(review[k]) is str and re.fullmatch('[a-f0-9]{64}',review[k])
+                  for k in ('native_api_sha256','native_image')),'retained-authenticated-native-cohort')
+    record=(pipe,origin,maintenance,_binding(maintenance),compact(review['request']),review['native_api_sha256'],
+            tuple(sorted(review['native_sources'].items())),compact(reference),bytes(raw),(_AUTH_OPERATIONS,_AUTH_OWNERS))
+    pipe.close_originals();_AUTH_OPERATIONS[maintenance]=record;_AUTH_OWNERS[binding]=maintenance
+    _authorization(maintenance)
+
+
+def _authorization(maintenance):
+    if type(maintenance) is not Maintenance:return None
+    record=_AUTH_OPERATIONS.get(maintenance)
+    if record is None:return None
+    pipe,origin,m,binding,request_bytes,api_sha,pins,reference_bytes,review_bytes,tables=record
+    check(_AUTH_OPERATIONS is tables[0] and _AUTH_OWNERS is tables[1],'retained-original-authenticated-tables')
+    import retained_pack_control as control
+    pipe.close_originals()
+    check(control._AUTH_PIPES.get(pipe) is origin and _AUTH_OWNERS.get(origin[1]) is maintenance
+          and m is maintenance and _binding(maintenance)==binding
+          and tuple(sorted(NATIVE_SOURCE_PINS.items()))==pins,'retained-original-authenticated-owner')
+    reference=json.loads(reference_bytes)
+    check(_read(reference['path'],reference['signature9'],_LIMIT)==review_bytes,
+          'retained-original-authenticated-review')
+    pipe.close_originals()
+    check(_AUTH_OPERATIONS.get(maintenance) is record,'retained-original-authenticated-registry')
+    return record
+
+
+def enabled(maintenance):
+    return ENABLED is True or _authorization(maintenance) is not None
+
+
+def _native_api_sha(maintenance):
+    record=_authorization(maintenance)
+    value=record[5] if record is not None else NATIVE_API_SHA
+    check(type(value) is str and re.fullmatch('[a-f0-9]{64}',value),'retained-installed-API-pin-unproven')
+    return value
 
 
 def compact(v):return json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
@@ -244,7 +305,7 @@ def initialize(maintenance):
 
 
 def select(maintenance,pack_id,member_id):
-    if not ENABLED:raise ValueError('Retained worker disabled')
+    if not enabled(maintenance):raise ValueError('Retained worker disabled')
     check(type(maintenance) is Maintenance and all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-exact-selector')
     check(id(maintenance) not in _SELECTED,'retained-one-selected-action')
     _SELECTED[id(maintenance)]=(maintenance,os.getpid(),threading.get_ident(),pack_id,member_id)
@@ -284,12 +345,43 @@ def _core(action,phase):
     c=_CORES.get(action)
     check(type(action) is RetainedPackAction and c is not None and c['phase']==phase
           and c['pid']==os.getpid() and c['thread']==threading.get_ident() and time.monotonic()<c['deadline'],'retained-live-action')
+    if c.get('authorization') is not None:
+        check(_AUTH_OPERATIONS.get(c['maintenance']) is c['authorization'],'retained-original-action-authorization')
+        check(_authorization(c['maintenance']) is c['authorization'],'retained-original-action-admission')
     return c
 
 
+def terminal_budget(frame,catalog,maintenance,request):
+    """Prove the artifact's finite upper bound before intent or remote mutation.
+
+    The native reply is <=4MiB with <=8192 entries per original vector. Each
+    projected pathname grows by at most one declared worker prefix. Reserve
+    full JSON escaping, hashes, row punctuation and signed 21-digit stat fields.
+    These are wire/resource bounds, not readiness or operation durations.
+    """
+    config=maintenance.worker.config
+    prefixes=[config['writer_state'],config['mylar']['config_dir'],maintenance.settings['ddl_cache']]
+    prefixes.extend(row['worker'] for row in config['publication_roots'])
+    growth=max(len(compact(str(prefix))) for prefix in prefixes)
+    reserve=6*_LIMIT+6*NATIVE_VECTOR_ROWS*(growth+256)+len(compact(request))+65536
+    bound=len(compact(frame))+len(compact(catalog))+reserve
+    check(bound<=TERMINAL_ARTIFACT_BYTES,'retained-terminal-precommit-capacity')
+    check(all(type(v) is int and abs(v)<=2**64-1 for stamp in frame['files'].values() for v in stamp),
+          'retained-terminal-stat-width')
+    return bound
+
+
+def terminal_artifact(c,frame):
+    return compact(dict(version=2,kind='retained-pack-terminal-artifact',token=c['token'],
+        request=c['request'],reply_text=c['reply_bytes'].decode('utf-8'),reply_sha256=hashlib.sha256(c['reply_bytes']).hexdigest(),
+        catalog_before=c['catalog'],frame=_detached(frame),
+        historical_import_ack=False,ordinary_import_grant=False,cleanup_grant=False,
+        reader_index_acceptance=False,automatic_replay=False,reader_resume_grant=False))
+
+
 def prepare(maintenance,pack_id,member_id,*,initialized=None):
-    check(ENABLED and type(maintenance) is Maintenance,'retained-default-disabled')
-    check(type(NATIVE_API_SHA) is str and re.fullmatch('[a-f0-9]{64}',NATIVE_API_SHA),'retained-installed-API-pin-unproven')
+    check(type(maintenance) is Maintenance and enabled(maintenance),'retained-default-disabled')
+    _native_api_sha(maintenance)
     check(all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-selected-identities')
     _transport(maintenance);maintenance_binding=_binding(maintenance)
     a=current(maintenance.worker)
@@ -328,6 +420,7 @@ def prepare(maintenance,pack_id,member_id,*,initialized=None):
         source_generation=local['source_generation'],source_sha256=member['sha256'],target_sha256=member['destination_sha256'],owner=owner,
         review_sha256=hashlib.sha256(compact({'receipt_sha256':hashlib.sha256(raw).hexdigest(),'pack_before':row,'owner':owner})).hexdigest())
     check(first['hashes'][str(target)]==request['target_sha256'] and first['hashes'][str(source)]==request['source_sha256'],'retained-payload-original')
+    _original_pack(request,row,workflow,native_path(maintenance,target))
     token=hashlib.sha256((request['ddl_id']+'\0'+pack_id+'\0'+member_id).encode()).hexdigest()
     intent=journal/(token+'.intent.json');done=journal/(token+'.done.json')
     _nodes(first,intent);first['absent']+=tuple(map(str,(intent,done)));first['nodes'][str(journal)]=five(z)
@@ -340,12 +433,15 @@ def prepare(maintenance,pack_id,member_id,*,initialized=None):
         for path,v in original_nodes:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise ValueError('retained-init-node-original')
+    authorization=_authorization(maintenance)
+    if authorization is not None:check(compact(request)==authorization[4],'retained-root-original-request')
+    artifact_bound=terminal_budget(first,catalog,maintenance,request)
     body=compact(dict(version=1,kind='retained-pack-dispatch-intent',request=request,receipt_sha256=hashlib.sha256(raw).hexdigest(),historical_import_ack=False,cleanup_grant=False))
     stamp=_journal_write(intent,body,first['nodes'][str(journal)])
     first['absent']=tuple(p for p in first['absent'] if p!=str(intent));first['files'][str(intent)]=stamp;first['hashes'][str(intent)]=hashlib.sha256(body).hexdigest();first['names'][str(journal)]=tuple(sorted((*first['names'][str(journal)],intent.name)))
-    c=dict(maintenance=maintenance,maintenance_binding=maintenance_binding,authority=a,writer=a.writer,frame_bytes=compact(first),request_bytes=compact(request),request=request,token=token,
+    c=dict(authorization=authorization,maintenance=maintenance,maintenance_binding=maintenance_binding,authority=a,writer=a.writer,frame_bytes=compact(first),request_bytes=compact(request),request=request,token=token,
            native_target=native_path(maintenance,target),native_source=native_path(maintenance,source),receipt=receipt,receipt_bytes=raw,local_bytes=compact(local),workflow=workflow,catalog=catalog,census=census,
-           intent=intent,done=done,database=str(a.database),catalog_path=str(a.catalog),writer_binding=(a.writer.root,a.writer.lock,a.writer.pending,a.writer.tagger_pending,a.writer.release_pending,tuple(a.writer.lock_identity),tuple(a.writer.root_identity),a.writer.local),pid=os.getpid(),thread=threading.get_ident(),deadline=time.monotonic()+90,phase='prepared')
+           intent=intent,done=done,terminal_budget=artifact_bound,database=str(a.database),catalog_path=str(a.catalog),writer_binding=(a.writer.root,a.writer.lock,a.writer.pending,a.writer.tagger_pending,a.writer.release_pending,tuple(a.writer.lock_identity),tuple(a.writer.root_identity),a.writer.local),pid=os.getpid(),thread=threading.get_ident(),deadline=time.monotonic()+90,phase='prepared')
     action=object.__new__(RetainedPackAction);_CORES[action]=c
     _transport(maintenance);check(_binding(maintenance)==maintenance_binding,'retained-original-Maintenance')
     # Final direct original closure follows registry/copy/serialization helpers.
@@ -418,7 +514,7 @@ def live_state(action):
 
 
 def validate_selection(maintenance,pack_id,member_id):
-    check(ENABLED and type(maintenance) is Maintenance and all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-exact-selector')
+    check(type(maintenance) is Maintenance and enabled(maintenance) and all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-exact-selector')
     return (pack_id,member_id)
 
 
@@ -434,16 +530,49 @@ def _map(c,data,path):
     return a.mapped(str(p))
 
 
+def _original_pack(request,row,workflow,target):
+    """Native finalizer preconditions, before dispatch and independent consumption."""
+    check(type(row) is list and len(row)==4 and row[:2]==['pack',request['pack_id']],
+          'retained-selected-original-row')
+    selected=[json.loads(raw) for raw in workflow['rows']['records']
+              if json.loads(raw)[:2]==['pack',request['pack_id']]]
+    check(len(selected)==1 and compact(selected[0])==compact(row),'retained-selected-original-row')
+    pack=evidence.decode_json(row[2])
+    check(type(pack) is dict and pack.get('id')==request['pack_id']
+          and pack.get('ddl_id')==request['ddl_id'] and pack.get('source_generation')==request['source_generation']
+          and not pack.get('cleanup_started') and not pack.get('cleanup_complete'),'retained-original-capture')
+    members=pack.get('members')
+    check(type(members) is list and len(members)<=2000 and all(type(m) is dict for m in members),
+          'retained-original-members')
+    found=[m for m in members if m.get('id')==request['member_id']]
+    check(len(found)==1,'retained-exact-member');member=found[0];owner=request['owner']
+    check(member.get('kind')==('annual' if owner['table']=='annuals' else 'issue')
+          and member.get('issueid')==owner['issueid'] and member.get('comicid')==owner['parentcomicid']
+          and member.get('releasecomicid')==owner['releasecomicid']
+          and member.get('phase') in ('review','ready','submitted','confirmed')
+          and not member.get('ordinary_import_token') and not member.get('retained_finalization'),
+          'retained-original-member-owner')
+    check(member.get('destination',target)==target
+          and member.get('destination_sha256',request['target_sha256'])==request['target_sha256']
+          and member.get('sha256',request['source_sha256'])==request['source_sha256'],
+          'retained-original-member-payload')
+    return pack
+
+
 def _transition(c,answer):
     request=c['request'];t=answer['transition'];check(type(t) is dict and set(t)=={'version','kind','request','native_data_root','record_bytes','pack_before_row','pack_after_row','workflow_before','original_vectors','committed_vectors','committed_hashes','native_source_root','native_sources'},'retained-export-schema')
     check(type(t['version']) is int and t['version']==1 and t['kind']=='retained-pack-two-row-transition' and compact(t['request'])==c['request_bytes'],'retained-export-request')
     check(compact(t['workflow_before'])==compact(c['workflow']),'retained-original-allSQL')
     before=t['pack_before_row'];after=t['pack_after_row'];check(type(before) is list and len(before)==4 and type(after) is list and len(after)==4 and after[:2]==before[:2] and compact(after[3])==compact(before[3]),'retained-exact-pack-row')
-    pack=evidence.decode_json(before[2]);wanted=json.loads(compact(pack));found=[m for m in wanted['members'] if m.get('id')==request['member_id']];check(len(found)==1,'retained-exact-member')
+    check(c['token']==hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode()).hexdigest(),
+          'retained-original-token')
+    pack=_original_pack(request,before,c['workflow'],c['native_target']);wanted=json.loads(compact(pack));found=[m for m in wanted['members'] if m.get('id')==request['member_id']]
     original=evidence.decode_json(t['record_bytes'])
-    record_keys={'version','kind','token','request','source','target','original_event','original_vectors','pack_before','pack_after','historical_import_ack','ordinary_import_grant','cleanup_grant','mutation_authority','publication_acceptance','reader_index_acceptance','automatic_replay'}
-    check(type(original) is dict and set(original)==record_keys and type(original['version']) is int and original['version']==1 and original['kind']=='fresh-retained-backend-finalization','retained-original-record-schema')
+    record_keys={'version','kind','token','request','source','target','original_event','original_vectors','pack_before','pack_after','pack_before_row','workflow_before_sha256','historical_import_ack','ordinary_import_grant','cleanup_grant','mutation_authority','publication_acceptance','reader_index_acceptance','automatic_replay'}
+    check(type(original) is dict and set(original)==record_keys and type(original['version']) is int and original['version']==2 and original['kind']=='fresh-retained-backend-finalization','retained-original-record-schema')
     check(compact(original['request'])==c['request_bytes'] and compact(original['original_vectors'])==compact(t['original_vectors']),'retained-original-record-types')
+    check(original['workflow_before_sha256']==hashlib.sha256(native_compact(c['workflow'])).hexdigest()
+          and native_compact(original['pack_before_row'])==native_compact(before),'retained-durable-original-SQL')
     target=original['target'];check(target==c['native_target'],'retained-exact-current-target')
     journal=Path(t['native_data_root'])/'retained-delivery-v1'/c['token']
     check(original['source']==c['native_source'] or (Path(original['source']).parent==journal and Path(original['source']).name.startswith('source.')),'retained-owning-source-copy')
@@ -478,8 +607,8 @@ def consume(action):
     frame={k:(dict(v) if type(v) is dict else tuple(v)) for k,v in original_frame.items()}
     for p,v in ((str(a.database),current_db),(str(a.catalog),native_now)):frame['files'][p]=v
     check(a.admission()==c['census'],'retained-census-preserved')
-    check(type(NATIVE_API_SHA) is str and re.fullmatch('[a-f0-9]{64}',NATIVE_API_SHA),'retained-installed-API-pin-unproven')
-    source_pins=dict(NATIVE_SOURCE_PINS,**{'api.py':NATIVE_API_SHA})
+    _native_api_sha(c['maintenance'])
+    source_pins=dict(NATIVE_SOURCE_PINS,**{'api.py':_native_api_sha(c['maintenance'])})
     image_rows=t['native_sources'];source_root=Path(t['native_source_root'])
     check(str(source_root)==NATIVE_SOURCE_ROOT and type(image_rows) is list and {Path(r['path']).name for r in image_rows}==set(source_pins) and len(image_rows)==5,'retained-exact-installed-source-graph')
     image_files={};image_nodes=set(map(str,(source_root,*source_root.parents)))
@@ -549,8 +678,11 @@ def consume(action):
         stamp=actual  # Sole owned rename ctime transition; all other fields unchanged.
     finally:os.close(d)
     frame['files'].pop(str(temp));frame['attrs'].pop(str(temp));frame['names'][str(receipt.parent)]=tuple(n for n in frame['names'][str(receipt.parent)] if n!=temp.name);frame['files'][str(receipt)]=stamp;frame['hashes'][str(receipt)]=hashlib.sha256(encoded).hexdigest();frame['absent']+=tuple([str(temp)])
+    report=terminal_artifact(c,frame)
+    check(len(report)<=c['terminal_budget']<=TERMINAL_ARTIFACT_BYTES,'retained-terminal-proven-size')
     done_stamp=_journal_write(c['done'],report,frame['nodes'][str(c['done'].parent)])
     frame['absent']=tuple(p for p in frame['absent'] if p!=str(c['done']));frame['files'][str(c['done'])]=done_stamp;frame['names'][str(c['done'].parent)]=tuple(sorted((*frame['names'][str(c['done'].parent)],c['done'].name)))
+    frame['hashes'][str(c['done'])]=hashlib.sha256(report).hexdigest()
     check(_read(receipt,stamp,_LIMIT)==encoded,'retained-receipt-readback')
     _transport(c['maintenance']);check(_binding(c['maintenance'])==c['maintenance_binding'],'retained-original-Maintenance')
     # Preserve the genuine owned successor before final callbacks; no recapture.

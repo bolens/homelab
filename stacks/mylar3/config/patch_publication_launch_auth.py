@@ -7,8 +7,8 @@ import sys
 
 ROOT = Path(__file__).parent / 'standalone_launch_auth'
 SOURCES = {name: digest.removeprefix('sha256:') for name, digest in {
-    'standalone_launch_auth.py': 'sha256:fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8',
-    'v3_auth_core.py': 'sha256:b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93',
+    'standalone_launch_auth.py': 'sha256:e990dd15ab2a5d44d6d9f3903642f1198219cf82b89bb630f2d5c7bedc488145',
+    'v3_auth_core.py': 'sha256:7d5e783c2ac74c3a307f1447e89fd9acb02fab33e365dd443fbf7b133282a1f3',
     'private_crypto.py': 'sha256:3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab',
 }.items()}
 
@@ -155,19 +155,25 @@ def main(directory):
             nodes[directory] = node(z)
     for path, data in payloads.items():
         if destinations[path] is not None: continue
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o444)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         try:
             birth = full(os.fstat(fd)); security(os.fstat(fd))
-            if birth[5] & 0o170000 != 0o100000 or birth[5] & 0o7777 != 0o444 or birth[6:9] != (os.geteuid(), os.getegid(), 1):
-                raise ValueError('Auth created readonly original')
+            if birth[5] & 0o170000 != 0o100000 or birth[5] & 0o7777 != 0o600 or birth[6:9] != (os.geteuid(), os.getegid(), 1):
+                raise ValueError('Auth created private original')
             view = memoryview(data)
             while view:
                 count = os.write(fd, view)
                 if count <= 0: raise ValueError('Auth short write')
                 view = view[count:]
-            os.fsync(fd);result = full(os.fstat(fd))
-            if result[:2] + result[5:] != birth[:2] + birth[5:] or result[2] != len(data) or full(os.lstat(path)) != result:
+            os.fsync(fd);written = full(os.fstat(fd))
+            if written[:2] + written[5:] != birth[:2] + birth[5:] or written[2] != len(data) or full(os.lstat(path)) != written:
                 raise ValueError('Auth created source changed')
+            # Publish only complete public code. No key or enrollment payload
+            # is admitted by this fixed source inventory.
+            os.fchmod(fd, 0o444);os.fsync(fd);result = full(os.fstat(fd))
+            if (tuple(result[i] for i in (0,1,2,3,6,7,8)) != tuple(written[i] for i in (0,1,2,3,6,7,8))
+                    or result[5] != (written[5] & ~0o7777) | 0o444 or full(os.lstat(path)) != result):
+                raise ValueError('Auth public source publication changed')
             destinations[path] = result
         finally:
             os.close(fd)

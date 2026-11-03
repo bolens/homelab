@@ -13,6 +13,7 @@ from private_crypto import _OriginalSources, _SOURCE_FRAMES, Held
 _INSTALL=Path('/opt/mylar-publication-launch')
 _AUTH=_INSTALL/'auth'
 _NATIVE=Path('/app/mylar3/mylar')
+_PACK=Path('/app')
 _ANCHOR=_INSTALL/'installation-v1.json'
 _INVENTORY=_INSTALL/'inventory-v1.json'
 _KEY=_INSTALL/'public-ed25519.der'
@@ -23,6 +24,24 @@ _BINDING_SEALS=weakref.WeakKeyDictionary()
 _ADMISSION_SEALS=weakref.WeakKeyDictionary()
 _ADMISSIONS=weakref.WeakKeyDictionary()
 _BINDINGS=weakref.WeakKeyDictionary()
+
+def installation_purpose(anchor):
+    kind=anchor.get('kind')
+    if kind=='standalone-installation-anchor-v1':return 'retained-standalone'
+    if kind=='pack-installation-anchor-v1':return 'retained-pack'
+    raise Held('installation-purpose')
+
+
+def source_root(anchor):
+    return _PACK if installation_purpose(anchor)=='retained-pack' else _NATIVE
+
+
+def required_sources(anchor):
+    if installation_purpose(anchor)=='retained-pack':
+        return ('normalize.py','maintenance.py','publication_guard.py','publication_evidence.py',
+                'media_writer.py','retained_pack_control.py','retained_pack_handoff.py','retained_pack_operations.py')
+    return _REQUIRED
+
 
 def _root_security(frame):
     for path in (*frame.leaves,*frame.nodes):
@@ -78,15 +97,15 @@ def load_original_installation():
     anchor_raw=_read(_ANCHOR);inventory_raw=_read(_INVENTORY);public=_read(_KEY,44)
     anchor=c._parse(anchor_raw);inventory=c._parse(inventory_raw)
     fields={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'}
-    if set(anchor)!=fields or type(anchor['version']) is not int or anchor['version']!=1 or anchor['kind']!='standalone-installation-anchor-v1' or not all(c._hex(anchor[k]) for k in fields-{'version','kind'}):raise Held('installation-anchor-schema')
+    if set(anchor)!=fields or type(anchor['version']) is not int or anchor['version']!=1 or anchor['kind'] not in ('standalone-installation-anchor-v1','pack-installation-anchor-v1') or not all(c._hex(anchor[k]) for k in fields-{'version','kind'}):raise Held('installation-anchor-schema')
     if anchor['inventory_sha256']!=c._hash(inventory_raw) or anchor['key_sha256']!=c._hash(public) or len(public)!=44 or public[:12]!=bytes.fromhex('302a300506032b6570032100'):raise Held('installation-anchor-pins')
     if set(inventory)!={'version','kind','sources'} or type(inventory['version']) is not int or inventory['version']!=1 or inventory['kind']!='standalone-leaf-inventory-v1' or type(inventory['sources']) is not dict or not 12<=len(inventory['sources'])<=512:raise Held('installation-inventory-schema')
     sources=inventory['sources'];source_paths=[]
     for name,digest in sources.items():
         path=Path(name)
-        if not path.is_absolute() or str(path)!=name or '..' in path.parts or not c._hex(digest) or path in paths or not (path.is_relative_to(_AUTH) or path.is_relative_to(_NATIVE)):raise Held('installation-inventory-path')
+        if not path.is_absolute() or str(path)!=name or '..' in path.parts or not c._hex(digest) or path in paths or not (path.is_relative_to(_AUTH) or (path.parent==_PACK if installation_purpose(anchor)=='retained-pack' else path.is_relative_to(_NATIVE))):raise Held('installation-inventory-path')
         source_paths.append(path)
-    required={str(_NATIVE/n) for n in _REQUIRED}|{str(_AUTH/n) for n in ('standalone_launch_auth.py','v3_auth_core.py','private_crypto.py')}
+    required={str(source_root(anchor)/n) for n in required_sources(anchor)}|{str(_AUTH/n) for n in ('standalone_launch_auth.py','v3_auth_core.py','private_crypto.py')}
     if not required<=set(sources) or Path(__file__).resolve()!=_AUTH/'standalone_launch_auth.py' or Path(c.__file__).resolve()!=_AUTH/'v3_auth_core.py' or Path(crypto.__file__).resolve()!=_AUTH/'private_crypto.py':raise Held('installation-canonical-auth-origins')
     graph=_OriginalSources(source_paths,absent=(_AUTH/'__pycache__',*(_AUTH/(n+'.pyc') for n in ('standalone_launch_auth','v3_auth_core','private_crypto'))));graph_original=_SOURCE_FRAMES[graph];_root_security(graph)
     if graph.links:raise Held('installation-no-alias')
@@ -95,7 +114,7 @@ def load_original_installation():
     first.close();graph.close();_root_security(first);_root_security(graph)
     _physical(first,original);_physical(graph,graph_original)
     result=object.__new__(_Installation)
-    _INSTALLATIONS[result]={'frames':((first,original),(graph,graph_original)),'anchor':anchor,'anchor_raw':anchor_raw,'inventory':inventory,'public':public,'native_map':{Path(p).name:d for p,d in sources.items() if Path(p).parent==_NATIVE}}
+    _INSTALLATIONS[result]={'frames':((first,original),(graph,graph_original)),'anchor':anchor,'anchor_raw':anchor_raw,'inventory':inventory,'public':public,'native_map':{Path(p).name:d for p,d in sources.items() if Path(p).parent==source_root(anchor)}}
     row=_INSTALLATIONS[result]
     _INSTALLATION_SEALS[result]=(row,anchor_raw,inventory_raw,public,tuple(sorted(row['native_map'].items())),row['frames'],logical)
     return result
@@ -190,7 +209,7 @@ class LaunchAdmission:
         seal=_ADMISSION_SEALS.get(self)
         if row is None or seal is None or seal[0] is not row or seal[1] is not row['identity'] or row['used']:raise Held('launch-admission-once')
         _close(row)
-        expected=_NATIVE/'comic_retained_standalone_action.py'
+        expected=source_root(row['anchor'])/('retained_pack_control.py' if installation_purpose(row['anchor'])=='retained-pack' else 'comic_retained_standalone_action.py')
         if Path(action_module.__file__).resolve()!=expected or action_module is not sys.modules.get(action_module.__name__) or boot_ref!=row['boot_ref'] or (input_fd,output_fd)!=(0,1) or row['fds']!=(0,1):raise Held('admission-action-originals')
         if c._hash(_read(expected))!=row['installation'].close()['inventory']['sources'][str(expected)]:raise Held('admission-action-source')
         _close(row);row['verifier']._begin_action();_close(row)
@@ -240,13 +259,15 @@ class ActionBinding:
             nodes[key]=v
         self.close();return {'files':dict(files),'nodes':dict(nodes),'links':dict(links),'absent':tuple(sorted(absent))}
     @property
+    def purpose(self):self.close();return _BINDINGS[self]['context'][0][14][0]
+    @property
     def parent_sha256(self):self.close();return _BINDINGS[self]['anchor']['parent_sha256']
     @property
     def boot_sha256(self):self.close();return _BINDINGS[self]['boot_ref']['sha256']
     @property
     def source_map_sha256(self):self.close();return _BINDINGS[self]['boot']['source_map_ref']['sha256']
     def child_frame(self,raw):
-        self.close();row=_BINDINGS[self];value=_wire(raw)
+        self.close();row=_BINDINGS[self];value=_wire(raw,row['context'][0][14][4])
         if value['nonce']!=row['boot']['nonce'] or value['challenge']!=row['boot']['challenge']:raise Held('auth-original-regular-header')
         kinds={1:'initialized',3:'observed',5:'observed-final-ACK'}
         if value['kind']!=kinds.get(value['sequence']):raise Held('auth-child-kind')
@@ -254,13 +275,13 @@ class ActionBinding:
         row['verifier'].child_frame(c._canonical({'sequence':value['sequence'],'kind':kind,'payload':value}));self.close()
     def host_frame(self,raw):
         self.close();row=_BINDINGS[self];assertion,signature=_envelope(raw)
-        value=row['verifier'].host_frame(assertion,signature);answer=c._canonical(value);_wire(answer)
+        value=row['verifier'].host_frame(assertion,signature);answer=c._canonical(value);_wire(answer,row['context'][0][14][4])
         if value['nonce']!=row['boot']['nonce'] or value['challenge']!=row['boot']['challenge']:raise Held('auth-original-regular-header')
         self.close();return answer
 
-def _wire(raw):
+def _wire(raw,protocol='standalone-retained-repeat-v3'):
     value=c._parse(raw)
-    if set(value)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(value['version']) is not int or value['version']!=3 or value['protocol']!='standalone-retained-repeat-v3' or type(value['sequence']) is not int or type(value['payload']) is not dict or not c._hex(value['nonce']) or not c._hex(value['challenge']):raise Held('auth-regular-wire')
+    if set(value)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(value['version']) is not int or value['version']!=3 or value['protocol']!=protocol or type(value['sequence']) is not int or type(value['payload']) is not dict or not c._hex(value['nonce']) or not c._hex(value['challenge']):raise Held('auth-regular-wire')
     return value
 
 def authenticate_original(boot_ref,input_fd,output_fd,original_preimport):
@@ -272,6 +293,8 @@ def authenticate_original(boot_ref,input_fd,output_fd,original_preimport):
     input_frame,input_raw=_ref(boot_ref);boot=c._parse(input_raw)
     if type(original_preimport) is not dict or set(original_preimport)!={'files','nodes','hashes','input_bytes'} or original_preimport['input_bytes']!=input_raw or boot.get('parent_sha256')!=anchor['parent_sha256']:raise Held('auth-preimport-original')
     if set(boot)!={'version','kind','nonce','challenge','parent_sha256','request','config_ref','data_root','source_map_ref','review_ref'}:raise Held('auth-boot-schema')
+    purpose=installation_purpose(anchor)
+    if boot.get('kind')!=('pack-retained-bootstrap-v1' if purpose=='retained-pack' else 'standalone-retained-bootstrap-v1'):raise Held('auth-boot-purpose')
     review_frame,review_raw=_ref(boot['review_ref']);map_frame,map_raw=_ref(boot['source_map_ref']);config_frame,config_raw=_ref(boot['config_ref'])
     controls=(boot_ref,boot['review_ref'],boot['source_map_ref'],boot['config_ref'])
     if len({x['path'] for x in controls})!=4 or len({tuple(x['signature9'][:2]) for x in controls})!=4:raise Held('auth-distinct-control-originals')
@@ -281,7 +304,7 @@ def authenticate_original(boot_ref,input_fd,output_fd,original_preimport):
     preframe=_OriginalSources(prepaths)
     if {str(p):v for p,(v,d) in preframe.leaves.items()}!={p:tuple(v) for p,v in original_preimport['files'].items()} or any(preframe.leaves[Path(p)][1]!=d for p,d in original_preimport['hashes'].items()) or any(tuple(v)!=preframe.nodes[Path(p)] for p,v in original_preimport['nodes'].items()):raise Held('auth-preimport-source-originals')
     measured={'installation':c._hash(installed['anchor_raw']),'key':anchor['key_sha256'],'broker_sources':anchor['broker_sources'],'child_sources':anchor['inventory_sha256'],'bootstrap':anchor['bootstrap_sha256'],'input':boot_ref['sha256'],'review':c._hash(review_raw),'deployment':anchor['deployment'],'profile':anchor['profile']}
-    verifier=c._TranscriptVerifier(measured,installed['public'],input_fd,output_fd)
+    verifier=c._TranscriptVerifier(measured,installed['public'],input_fd,output_fd,purpose=purpose)
     frames=(input_frame,review_frame,map_frame,config_frame,preframe)
     row={'installation':installation,'anchor':anchor,'verifier':verifier,'data':tuple((f,_SOURCE_FRAMES[f]) for f in frames),'boot_ref':dict(boot_ref),'boot':boot,'fds':(input_fd,output_fd),'used':False}
     table=verifier._runtime._verify.__func__.__globals__['_SOURCE_FRAMES']

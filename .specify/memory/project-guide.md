@@ -83,6 +83,14 @@ hold, including separate NFS devices whose server spelling/address matches.
 Regression fixtures must reproduce actual kernel source/root encoding and
 include writable aliases, siblings and nested mounts.
 
+Backup observations retain their factory's original registry, entry, complete
+expected facts, source functions and deadline across every later check. Capture
+these before serialization or verification callbacks. A current entry or a
+matching summary digest cannot replace that witness. Check original function
+identity, code and typed defaults before dispatch, then close both physical and
+logical originals after callbacks. Source checks may end after an authorized
+mutation, but the original backup and restore copies remain unchanged.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

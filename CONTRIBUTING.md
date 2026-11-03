@@ -18,8 +18,14 @@ workflow intake and authenticated health regressions and the complete portable
 publication suite used by the image build, including its recovery controls.
 Local health patch checks use the saved public API predecessor; the image gate
 also checks the assembled application source.
-The Komga gate includes the canonical worker pipe protocol tests before its
-compiled observer checks.
+`make ci-local` runs the worker's full suite through `komga-worker-check` in a
+private copy, alongside the portable `komga-source-check` and compiled observer
+checks. The full worker and Mylar gates require `ARCHIVING_UTILS_ROOT` pointing
+to the checked archive SDK; the worker uses its executable `bin/archiving-utils`
+unless `ARCHIVING_UTILS_BIN` explicitly selects the checked backend. The Mylar
+gate runs the retained API, worker handoff and authenticated launch controls too.
+The full worker gate refuses skipped controls.
+The Mylar gate also runs the complete standalone installation, backup and terminal suites.
 Prepare the shared source-lint checkout and locked dependencies as described in
 [local CI setup](documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).
 Its revision and Ruff version must match the hosted workflow.
