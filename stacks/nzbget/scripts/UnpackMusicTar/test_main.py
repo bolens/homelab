@@ -191,6 +191,73 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             main.process_release(root, cleanup=False)
             self.assertEqual((root / name).read_bytes(), payload)
 
+    def test_posting_dotted_and_arrow_fields_require_complete_structured_text(self) -> None:
+        name = "Fixture-Example.1234abcd___123456abcdef_ [newzNZB] [2_6] - yEnc  1140 (1_1)"
+        for text in ("artist....... Fixture\ntitle........ Example\nsource....... CD\ngenre........ Rock\n01 Example Song 03:00\n",
+                     "||| Artist Name_____> Fixture |||\n||| Album Name______> Example |||\n||| Genre___________> Rock |||\n||| Encoder_________> FLAC |||\n| 1 Example Song 03:00 |\n"):
+            for archive in (False, True):
+                with self.subTest(text=text, archive=archive), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    retained = {"song.flac": b"fLaC" + bytes(32),
+                                "notes": text.encode(),
+                                name + ".flac": text.encode(),
+                                name.replace("1140", "1141"): text.encode() + b"\x00",
+                                name.replace("1140", "1142"): text.replace("Fixture", "").encode(),
+                                name.replace("1140", "1143"): text.replace("Rock", "").encode(),
+                                name.replace("1140", "1144"): text.replace("1 Example Song 03:00", "").encode()}
+                    files = {**retained, name: text.encode()}
+                    if archive:
+                        with zipfile.ZipFile(root / "release.zip", "w") as output:
+                            for filename, payload in files.items():
+                                output.writestr(filename, payload)
+                    else:
+                        for filename, payload in files.items():
+                            (root / filename).write_bytes(payload)
+                    main.process_release(root)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, retained)
+                    main.process_release(root)
+
+    def test_about_album_requires_bounded_album_artist_and_tracklist(self) -> None:
+        text = b"Album: Example\nArtist: Fixture\nTracklist:\n01 Example Song (3:00)\n"
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                retained = {"song.flac": b"fLaC" + bytes(32), "notes": text,
+                            "about_album.flac": text, "bad_about_album": text,
+                            "post_album_info": text.replace(b"Artist: Fixture", b"Artist: ")}
+                files = {**retained, "about_album": text}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for filename, payload in files.items():
+                            output.writestr(filename, payload)
+                else:
+                    for filename, payload in files.items():
+                        (root / filename).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, retained)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for payload in (text + b"\0", text + b"x" * 65536, text.replace(b"01 Example Song (3:00)\n", b""),
+                            text.replace(b"Album: Example", b"Album: "), b"fLaC" + bytes(32)):
+                (root / "about_album").write_bytes(payload)
+                self.assertFalse(main.is_album_info_sidecar(root / "about_album"))
+
+    def test_new_posting_layouts_keep_cleanup_cue_and_empty_output_guards(self) -> None:
+        posting = "Fixture-Example.1234abcd___123456abcdef_ [newzNZB] [2_6] - yEnc  1140 (1_1)"
+        payloads = {"about_album": b"Album: Example\nArtist: Fixture\nTracklist:\n01 Song\n",
+                    posting: b"artist... Fixture\ntitle... Example\nsource... CD\ngenre... Rock\n01 Song\n"}
+        for name, text in payloads.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(text)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root)
+                main.process_release(root, cleanup=False)
+                self.assertEqual((root / name).read_bytes(), text)
+                (root / "album.cue").write_text(f'FILE "{name}" BINARY\n')
+                main.process_release(root)
+                self.assertEqual((root / name).read_bytes(), text)
+
     def test_posting_info_requires_matching_release_date_and_footer(self) -> None:
         name = "Artist-Example-xpost.1234abcd-_-_--_123456abcdef_ [WtFnZb] [8_8] - yEnc 1515 (1_1)"
         payload = b"ASCII art\nRELEASE: Artist_Example\nUPLOADED DATE: 2024-February-29\n.::newz[NZB]::.\n"
