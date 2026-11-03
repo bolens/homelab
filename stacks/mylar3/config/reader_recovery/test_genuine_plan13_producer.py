@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent))
 import genuine_plan13_producer as g
@@ -339,5 +340,37 @@ class Tests(unittest.TestCase):
         self.assertEqual({keyword.arg for keyword in owning[0].keywords}, {'engine', 'configured', 'nfs_sources', 'nfs_intents'})
         self.assertFalse(any(isinstance(node.func, ast.Attribute) and node.func.attr == 'install' for node in calls))
 
+
+    def test_slow_installation_does_not_expire_same_original_preparation(self):
+        document=copy.deepcopy(self.f.doc);ref=self.f.put(document);clock=[time.time()];real=g.checked_installation
+        def slow(*args):
+            result=real(*args);clock[0]+=3600;return result
+        with patch.object(g.time,'time',lambda:clock[0]),patch.object(g,'checked_installation',slow):
+            owner=g.Producer(ref,self.root/'slow-attempt')
+            try:
+                self.assertEqual(owner.document,document);self.assertEqual(owner.tape,g.p.encode(document))
+                with self.assertRaisesRegex(ValueError,'schema'):
+                    g.compose(document,None,None)
+                with self.assertRaisesRegex(ValueError,'schema'):
+                    g.Producer(ref,self.root/'second-attempt')
+            finally:g.p.release_owner_reads(owner.owner_reads)
+        self.assertFalse(owner.output.exists())
+
+    def test_stale_and_future_requests_refuse_before_installation_checks(self):
+        for delta in (-121,3600):
+            with self.subTest(delta=delta):
+                document=copy.deepcopy(self.f.doc);document['observed']+=delta;ref=self.f.put(document)
+                with patch.object(g,'checked_installation',side_effect=AssertionError('installation before admission'))as checked:
+                    with self.assertRaisesRegex(ValueError,'schema'):g.Producer(ref,self.root/'unentered')
+                    checked.assert_not_called()
+                self.assertFalse((self.root/'unentered').exists())
+
+    def test_request_replaced_during_installation_refuses_original_identity(self):
+        ref=self.f.put(copy.deepcopy(self.f.doc));real=g.checked_installation
+        def changed(*args):
+            result=real(*args);path=Path(ref['path']);other=path.with_suffix('.replacement')
+            other.write_bytes(path.read_bytes());other.chmod(0o600);os.replace(other,path);return result
+        with patch.object(g,'checked_installation',changed),self.assertRaises(ValueError):g.Producer(ref,self.root/'unentered-replaced')
+        self.assertFalse((self.root/'unentered-replaced').exists())
 
 if __name__ == '__main__':unittest.main()

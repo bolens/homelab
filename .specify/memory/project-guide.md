@@ -1069,11 +1069,18 @@ and installed incarnations through the real cohort consumer. A vanished helper
 PID during the host's final pipe check can follow a child provenance refusal;
 read its original failure record before attributing the failure to a timeout.
 
-Check original scope/runtime observation ages against the helper's recorded start
-and failure times before changing a transport deadline. Stale inputs may already
-exceed their 120-second admission window before launch. Never retimestamp sealed
-facts or enlarge freshness limits to admit them. Measure complete staging and
-reduce repeated immutable work or move it before genuine fresh capture. Metadata
+Check original scope/runtime observation ages and the helper's retained failure
+before changing a transport deadline. Detached inputs retain their 120-second
+admission window. Configured continuation instead requires the original Parent's
+authenticated ReaderEpoch binding to both exact scope documents, original
+configuration/absence custody and the existing source/channel/deadline checks.
+Derive projected scope bindings from the retained projection ledger without
+creating missing copies. Use the same explicit canonical bytes on both ends,
+including Unicode paths. Never retimestamp facts or admit a first document under
+the Writer. Facts-only assembly and Producer objects admit fresh requests before
+expensive setup, then retain the original bytes and identities; a new instance
+or detached composition must pass fresh admission again. These objects grant no
+reader or mutation authority. Metadata
 deduplication must retain exact-path conflict checks, both closure passes and
 post-callback identity checks without caching across calls. Local syscall counts
 do not establish configured Root/NFS latency. Bounded failure diagnostics should

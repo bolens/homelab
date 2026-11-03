@@ -202,7 +202,7 @@ context chain, including suppressed contexts. Each traceback examines at most 64
 nodes and emits at most eight fixed source labels and line numbers. Slot access
 bypasses exception-subclass callbacks. Messages, locals, dynamic class names and
 raw paths are omitted. These records grant no terminal or replay authority.
-The original 120-second scope/runtime freshness limit remains unchanged. Fewer
+Detached scope/runtime admission retains its 120-second freshness limit. Fewer
 metadata checks do not prove that a configured packet reaches admission in time.
 
 Each owning Tree pass may close one immutable metadata vector containing at most
@@ -243,8 +243,9 @@ iterables or equality callbacks cannot validate the original ledger.
 The configured retained transport receives at most 900 seconds, derived again
 from the owning Parent's remaining lifetime after packet preparation. Its
 registered dialogue and pump retain the original absolute Parent deadline. This
-transport lifetime does not extend the 120-second captured-scope freshness or
-the separate 120-second kernel probe limit.
+transport lifetime does not extend detached captured-scope admission or the
+separate 120-second kernel probe limit. Configured scope continuation requires
+the original ReaderEpoch/document binding described below.
 
 The original child may exit immediately after sending its final release frame.
 Only the source-owned release transition, sealed to the original pump, kernel
@@ -322,6 +323,25 @@ The retained proof slot uses object identity, is consumed before transport and
 cannot be retried after a lost response. No saved JSON, standalone invocation or
 caller flag can select the relaxed directory comparison. Under the Writer,
 continuation uses the retained local facts and performs no mount/Docker query.
+
+The existing ReaderEpoch exchange binds both original scope documents in its
+version-2 reply. Root derives the projected active scope from the existing
+projection ledger and reads the unchanged original effective runtime. It closes
+the original reader profile/start epoch, configuration files, absences and source
+references before returning their canonical document hashes. Both ends use the
+same ASCII-escaped canonical JSON, including non-ASCII paths. A configured child
+may first admit only either exact bound document, then must retain its identical
+bytes, original reader epoch, methods, channel and deadline. First admission
+under the Writer refuses; already admitted documents use the existing heartbeat.
+Legacy/version-1 and detached callers retain the age check. No timestamp is
+refreshed and no ReaderEpoch reply grants publication or reader acceptance.
+
+Facts-only Assembly and Producer preparation checks freshness before expensive
+setup and freezes the original request. Continued preparation checks original
+bytes, full9, source and directory/absence custody rather than repeatedly aging
+the same admission. New objects and direct composition still require fresh
+input. Genuine Parent admission and all operational preservation gates remain
+separate.
 
 The configured probe command carries the owning Parent's original retention
 binding through `--retention-binding`. This factual descriptor contains its exact

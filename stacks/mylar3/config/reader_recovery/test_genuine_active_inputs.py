@@ -376,10 +376,11 @@ class ActiveInputsTests(unittest.TestCase):
         self.assertFalse(result['actual_nfs_verified'])
         self.assertFalse(result['installed_factories_verified'])
 
-    def test_expiry_after_validation_and_unknown_outcome_never_replay(self):
-        f = self.fixture(); actor = g.Assembly(self.request(f), f.output)
-        with patch.object(g.time, 'time', return_value=f.document['observed'] + 121), self.assertRaises(ValueError):actor.execute()
-        self.assertFalse(f.output.exists())
+    def test_admitted_preparation_continues_but_unknown_outcome_never_replays(self):
+        f = self.fixture(); ref=self.request(f);actor = g.Assembly(ref, f.output)
+        with patch.object(g.time, 'time', return_value=f.document['observed'] + 121):result=actor.execute()
+        self.assertFalse(result['publication_acceptance']);self.assertFalse(result['actual_nfs_verified'])
+        with self.assertRaises(ValueError):g.assemble(ref,f.output)
         f = self.fixture(); ref = self.request(f)
         with patch.object(g.composer, 'nested_originals', side_effect=TimeoutError('unknown composer validation outcome')):
             with self.assertRaises(TimeoutError):g.assemble(ref, f.output)
@@ -496,5 +497,47 @@ class ActiveInputsTests(unittest.TestCase):
                 else:(f.grandparent/'foreign').write_bytes(b'explicit-disposable-mutation')
                 with self.assertRaises(ValueError):actor.execute()
                 self.assertFalse(f.output.exists())
+
+    def test_slow_setup_retains_original_admission_without_timestamp_rebase(self):
+        f=self.fixture();ref=self.request(f);clock=[time.time()];before=copy.deepcopy(f.document)
+        real=g.Assembly._validate
+        def slow(owner,admitted_at):
+            clock[0]+=3600
+            return real(owner,admitted_at)
+        with patch.object(g.time,'time',lambda:clock[0]),patch.object(g.Assembly,'_validate',slow):
+            owner=g.Assembly(ref,f.output)
+            try:
+                owner.close();self.assertEqual(owner.document,before)
+                with self.assertRaisesRegex(ValueError,'active-input-expired'):
+                    g.Assembly(ref,f.output.with_name('second-unentered-output'))
+                result=owner.execute()
+                self.assertFalse(result['publication_acceptance']);self.assertFalse(result['actual_nfs_verified'])
+            finally:owner.release()
+
+    def test_stale_and_future_requests_refuse_before_reading_source_graph(self):
+        for delta in (-121,3600):
+            with self.subTest(delta=delta):
+                f=self.fixture();f.document['observed']+=delta;ref=self.request(f);reads=[];real=g.composer.Originals.read
+                def observed(owner,value,*args,**kwargs):
+                    reads.append(value['path']);return real(owner,value,*args,**kwargs)
+                with patch.object(g.composer.Originals,'read',observed),self.assertRaisesRegex(ValueError,'active-input-expired'):
+                    g.Assembly(ref,f.output)
+                self.assertEqual(set(reads),{ref['path']});self.assertFalse(f.output.exists())
+
+    def test_same_byte_request_replacement_after_setup_is_not_adopted(self):
+        f=self.fixture();ref=self.request(f);real=g.Assembly._validate
+        def changed(owner,admitted_at):
+            result=real(owner,admitted_at);path=Path(ref['path']);other=path.with_suffix('.replacement')
+            other.write_bytes(path.read_bytes());other.chmod(0o600);os.replace(other,path);return result
+        with patch.object(g.Assembly,'_validate',changed),self.assertRaises(ValueError):g.Assembly(ref,f.output)
+        self.assertFalse(f.output.exists())
+
+    def test_request_memory_change_during_setup_cannot_become_original_tape(self):
+        f=self.fixture();ref=self.request(f);real=g.Assembly._validate
+        def changed(owner,admitted_at):
+            result=real(owner,admitted_at);owner.document['nonce']='f'*64;return result
+        with patch.object(g.Assembly,'_validate',changed),self.assertRaisesRegex(ValueError,'active-request-changed'):
+            g.Assembly(ref,f.output)
+        self.assertFalse(f.output.exists())
 
 if __name__ == '__main__':unittest.main()

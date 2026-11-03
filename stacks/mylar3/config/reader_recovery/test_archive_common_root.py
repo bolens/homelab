@@ -662,7 +662,7 @@ class OwnerReadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory,mock.patch.object(p.os,'geteuid',return_value=1000):
             fixture=fixture_source.Fixture(Path(directory));actor=composer.p.GeometryOwnerReads(self.geometry);held=tuple(actor.handles)
             def bind(geometry):composer.p._OWNER_READS=actor;return actor
-            with mock.patch.object(p.os,'geteuid',return_value=1000),mock.patch.object(composer.p,'bind_owner_reads',side_effect=bind),mock.patch.object(composer,'compose',side_effect=ValueError('disposable original refusal')):
+            with mock.patch.object(p.os,'geteuid',return_value=1000),mock.patch.object(composer.p,'bind_owner_reads',side_effect=bind),mock.patch.object(composer,'_compose',side_effect=ValueError('disposable original refusal')):
                 with self.assertRaisesRegex(ValueError,'disposable original refusal'):composer.Producer(fixture.put(fixture.doc),Path(directory)/'proposal-output')
             self.assertIsNone(composer.p._OWNER_READS);self.assertFalse(actor.handles)
             for fd in held:

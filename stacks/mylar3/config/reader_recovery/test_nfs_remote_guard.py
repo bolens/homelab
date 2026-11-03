@@ -2,6 +2,8 @@
 No Parent constructor, registered session, NFS or installed authority is claimed.
 """
 import importlib.util
+import copy
+import hashlib
 from pathlib import Path
 import sqlite3
 import os
@@ -15,6 +17,7 @@ ROOT=Path(__file__).parent
 def load(path,name):
  spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);exec(compile(path.read_bytes(),str(path),'exec'),m.__dict__);return m
 p=load(ROOT/'comic_reader_lifecycle_parent.py','owned_parent')
+a=load(ROOT/'comic_negative_nfs_active_parent.py','scope_canonicalization')
 w=load(ROOT.parent/'media_writer.py','actual_writer')
 
 class RemoteGuard(unittest.TestCase):
@@ -78,6 +81,111 @@ class RemoteGuard(unittest.TestCase):
   original=p._NFS_READER_EPOCHS[owner];p._NFS_READER_EPOCHS[owner]=(*original[:4],original[4]+1)
   frame['sequence']=2
   with self.assertRaisesRegex(p.Held,'postrelease-original'):owner.nfs_reader_epoch_reply(frame)
+
+ def scope_epoch_fixture(self, missing_projection=False, runtime_change=None, unicode_fixture=False):
+  # Actual files, projection ledger and kernel process ticks; owning Parent,
+  # original inspector and session boundaries are explicit predicate doubles.
+  owner,session=self.epoch_fixture();owner.op=self.root/'epoch-operation';owner.op.mkdir(mode=0o700)
+  owner.files={};owner.generated={};originals=[]
+  def put(name,value):
+   path=self.root/name;path.write_bytes(p.encode(value));path.chmod(0o600)
+   ref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()))
+   owner.files[str(path)]=tuple(ref['signature9']);originals.append(ref);return ref
+  pair=lambda ref:{key:ref[key]for key in ('path','sha256')}
+  if unicode_fixture:owner.baselines['reader']['Config']['fixture']='café/漫画'
+  source=put('source-é.json' if unicode_fixture else 'source.json',dict(original='source'))
+  scope=dict(kind='root-reviewed-nfs-active-disposable-scope',observed=10,sources={'original':pair(source)})
+  scope_ref=put('scope.json',scope)
+  runtime=dict(kind='reviewed-komga-effective-scope-runtime',observed=9,container=copy.deepcopy(owner.baselines['reader']))
+  if runtime_change is not None:runtime_change(runtime)
+  runtime_ref=put('runtime.json',runtime);review=put('review.json',dict(runtime=pair(runtime_ref)))
+  c=load(ROOT/'comic_child_control_projection.py','scope_epoch_projection')
+  tree=c.Tree(self.root/'scope-child','/_operation',owner.op,lambda ref,private=True:p.read(ref,private=private),uid=os.geteuid(),gid=os.getegid())
+  if not missing_projection:
+   tree.reserve_nfs_control(source);child=tree.projected(source);projected=dict(scope,sources={'original':pair(child)})
+  else:projected=dict(scope,sources={'original':dict(path='/_operation/foreign',sha256=source['sha256'])})
+  path=owner.op/'nfs-scope-input.json';path.write_bytes(p.encode(projected));path.chmod(0o600)
+  generated=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=p.nine(path.lstat()));owner.generated[str(path)]=generated
+  config=put('config.json',dict(original='config'));absent=self.root/'absent-config'
+  def close():
+   for ref in originals:p.read(ref)
+   p.need(not os.path.lexists(absent),'fixture-original-config-absence');tree.check()
+  owner.left=close;session.close=close;session.owner=owner;session.g=p.__dict__
+  p._CHILD_TREES[owner]=tree;p._NFS_SOURCE_CONTEXTS[owner]=({}, {}, p.encode(dict(active_scope=pair(scope_ref),effective_observer_review=pair(review))),b'',str(self.root/'unused'))
+  p._NFS_EFFECTIVE_ABSENCES[owner]=p.encode([str(absent)])
+  for registry in (p._CHILD_TREES,p._NFS_SOURCE_CONTEXTS,p._NFS_EFFECTIVE_ABSENCES):self.addCleanup(registry.pop,owner,None)
+  frame=dict(type='nfs-reader-epoch',nonce=owner.plan['nonce'],sequence=1,payload={})
+  return owner,session,frame,scope,runtime,generated,runtime_ref,config,absent,tree
+ def test_scope_epoch_derives_both_old_originals_from_actual_projection(self):
+  owner,session,frame,scope,runtime,generated,*_=self.scope_epoch_fixture()
+  result=owner.nfs_reader_epoch_reply(frame)['payload'];projected=p.decode(Path(generated['path']).read_bytes())
+  self.assertEqual(result['version'],2)
+  self.assertEqual(result['original_scopes'],{value['kind']:hashlib.sha256(a.encode(value)).hexdigest()for value in (projected,runtime)})
+  self.assertEqual(result['pid'],os.getpid());self.assertGreater(result['start_ticks'],0)
+ def test_scope_epoch_unicode_documents_match_actual_child_canonicalization(self):
+  owner,session,frame,scope,runtime,generated,*_=self.scope_epoch_fixture(unicode_fixture=True)
+  result=owner.nfs_reader_epoch_reply(frame)['payload'];projected=p.decode(Path(generated['path']).read_bytes())
+  self.assertNotEqual(p.encode(projected),a.encode(projected));self.assertNotEqual(p.encode(runtime),a.encode(runtime))
+  self.assertEqual(result['original_scopes'],{value['kind']:hashlib.sha256(a.encode(value)).hexdigest()for value in (projected,runtime)})
+  # Pass this actual Root-method reply through the genuine source-checked
+  # child interface/lifetime; only its transport and owner boundary are doubles.
+  import __main__,types
+  protocol=load(ROOT/'test_nfs_scope_lifetime.py','scope_epoch_protocol_fixture')
+  channel=protocol.Channel();channel.epoch=result
+  with patch.object(__main__,'Channel',protocol.Channel,create=True):lease=protocol.interface.ChildLeaseInterface(channel)
+  path=Path(protocol.interface.__file__);ref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=protocol.active.stamp(path))
+  class Observed(Exception):pass
+  def enter(*args):
+   for document in (projected,runtime):protocol.active.fresh_scope(document,args[-1])
+   raise Observed()
+  with patch.object(protocol.active,'_execute_factual',enter),self.assertRaises(Observed):
+   protocol.active.run_active_host_factual(types.SimpleNamespace(execute=True),channel.engine,interface_module=protocol.interface,lease_interface=lease,interface_ref=ref)
+ def test_scope_epoch_never_creates_a_missing_projection(self):
+  owner,session,frame,*rest=self.scope_epoch_fixture(missing_projection=True);tree=rest[-1];before=tree.pairs
+  with self.assertRaisesRegex(p.Held,'existing-scope-projection'):owner.nfs_reader_epoch_reply(frame)
+  self.assertEqual(tree.pairs,before)
+ def test_scope_epoch_cannot_borrow_another_parent_session(self):
+  owner,session,frame,*_=self.scope_epoch_fixture();session.owner=object()
+  with self.assertRaisesRegex(p.Held,'owning-scope-session'):owner.nfs_reader_epoch_reply(frame)
+  self.assertNotIn(owner,p._NFS_READER_EPOCHS)
+ def test_scope_epoch_substituted_generated_document_refuses_even_with_current_ref(self):
+  owner,session,frame,scope,runtime,generated,*_=self.scope_epoch_fixture()
+  path=Path(generated['path']);value=p.decode(path.read_bytes());value['observed']=999999;path.write_bytes(p.encode(value));generated.update(signature9=p.nine(path.lstat()),sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+  with self.assertRaisesRegex(p.Held,'original-projected-scope'):owner.nfs_reader_epoch_reply(frame)
+ def test_scope_epoch_runtime_other_profile_or_process_refuses(self):
+  for change in (lambda r:r['container'].update(Image='sha256:'+'e'*64),lambda r:r['container']['State'].update(Pid=os.getpid()+1),lambda r:r['container']['State'].update(StartedAt='another-start')):
+   with self.subTest(change=change),tempfile.TemporaryDirectory() as tmp:
+    old=self.root;self.root=Path(tmp)
+    try:
+     owner,session,frame,*_=self.scope_epoch_fixture(runtime_change=change)
+     with self.assertRaisesRegex(p.Held,'original-effective-runtime'):owner.nfs_reader_epoch_reply(frame)
+    finally:self.root=old
+ def test_scope_epoch_config_or_absence_drift_refuses(self):
+  owner,session,frame,scope,runtime,generated,runtime_ref,config,absent,tree=self.scope_epoch_fixture()
+  absent.write_bytes(b'foreign')
+  with self.assertRaisesRegex(p.Held,'config-absence'):owner.nfs_reader_epoch_reply(frame)
+  absent.unlink();Path(config['path']).write_bytes(b'changed')
+  with self.assertRaises(p.Held):owner.nfs_reader_epoch_reply(frame)
+ def test_scope_epoch_same_byte_runtime_replacement_during_inspect_refuses(self):
+  owner,session,frame,scope,runtime,generated,runtime_ref,*_=self.scope_epoch_fixture();real=owner.inspect;fired=[]
+  def inspect(cid):
+   value=real(cid)
+   if not fired:
+    path=Path(runtime_ref['path']);other=path.with_suffix('.other');other.write_bytes(path.read_bytes());other.chmod(0o600);os.replace(other,path);fired.append(True)
+   return value
+  owner.inspect=inspect
+  with self.assertRaises(p.Held):owner.nfs_reader_epoch_reply(frame)
+  self.assertTrue(fired)
+ def test_scope_epoch_writer_reuses_exact_binding_without_remote_calls(self):
+  owner,session,frame,*_=self.scope_epoch_fixture();before=owner.nfs_reader_epoch_reply(frame)
+  with self.writer.hold():
+   p._NFS_REMOTE_WINDOWS[self.engine]=('test-window',);owner.inspect=lambda cid:(_ for _ in ()).throw(AssertionError('inspect-under-Writer'))
+   frame['sequence']=2;after=owner.nfs_reader_epoch_reply(frame);self.assertEqual(after['payload'],before['payload'])
+ def test_scope_epoch_bound_cache_cannot_survive_missing_original_context(self):
+  owner,session,frame,*_=self.scope_epoch_fixture();owner.nfs_reader_epoch_reply(frame)
+  p._NFS_SOURCE_CONTEXTS.pop(owner);frame['sequence']=2
+  owner.inspect=lambda cid:(_ for _ in ()).throw(AssertionError('inspect after lost context'))
+  with self.assertRaisesRegex(p.Held,'original-scope-context'):owner.nfs_reader_epoch_reply(frame)
 
 class OuterReleaseCustody(unittest.TestCase):
  def exercise(self,mutation=None,expired=False):

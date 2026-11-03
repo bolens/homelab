@@ -188,8 +188,7 @@ def nested_originals(originals, active_ref, supplied):
     return active, docs
 
 
-def compose(document, originals, installation):
-    """Assemble a plan; no effect, transport callback or admission is performed."""
+def _admit_document(document):
     required = {'version', 'kind', 'nonce', 'observed', 'seconds', 'bootstrap_plan', 'bootstrap_result',
         'catalog', 'installation', 'base_manifest', 'current_roles', 'publication_geometry', 'native',
         'mounts', 'bounds', 'operation', 'archive_request', 'archive_scopes', 'nfs_active_input',
@@ -199,6 +198,15 @@ def compose(document, originals, installation):
          and p.digest(document['nonce']) and type(document['observed']) is int
          and 0 <= time.time() - document['observed'] <= 120
          and type(document['seconds']) is int and 1 <= document['seconds'] <= 900, 'producer-input-schema-freshness')
+
+
+def compose(document, originals, installation):
+    """Fresh detached request composition; no runtime admission or transport."""
+    _admit_document(document)
+    return _compose(document, originals, installation)
+
+
+def _compose(document, originals, installation):
     old = originals.json(document['bootstrap_plan'], private=False)
     result = originals.json(document['bootstrap_result'], private=False)
     catalog = originals.json(document['catalog'], private=False)
@@ -333,6 +341,7 @@ class Producer:
     def __init__(self, request_ref, output):
         self.originals = Originals(); self.request_ref = copy.deepcopy(request_ref)
         self.document = self.originals.json(request_ref)
+        _admit_document(self.document);original_tape=p.encode(self.document)
         self.output = p.absolute(str(output)); self.entered = False
         need(not os.path.lexists(self.output), 'producer-output-no-adoption')
         parent = os.lstat(self.output.parent)
@@ -341,6 +350,8 @@ class Producer:
         # Missing prerequisites refuse before writes, loading Parent or engine.
         need(type(self.document) is dict and {'installation', 'base_manifest'} <= set(self.document), 'producer-installation-required')
         installation = checked_installation(self.originals, self.document['installation'], self.document['base_manifest'])
+        need(p.encode(self.document)==original_tape, 'producer-original-admitted-document')
+        self.originals.close()
         old = self.originals.json(self.document['bootstrap_plan'], private=False)
         geometry = self.document['publication_geometry']
         need(old.get('nonce') == self.document.get('nonce') and all(
@@ -348,8 +359,9 @@ class Producer:
             and geometry[role]['path'] == old['geometry'][role]['path'] for role in ('common_root', 'library', 'retention')), 'producer-owner-read-bootstrap-identity')
         self.owner_reads = p.bind_owner_reads(geometry)
         try:
-            self.plan, self.source, self.configured, self.nfs_sources = compose(self.document, self.originals, installation)
-            self.tape = p.encode(self.document); self.deadline = time.monotonic() + self.document['seconds']
+            self.plan, self.source, self.configured, self.nfs_sources = _compose(self.document, self.originals, installation)
+            need(p.encode(self.document)==original_tape, 'producer-original-admitted-document')
+            self.tape = original_tape; self.deadline = time.monotonic() + self.document['seconds']
             self.bound = p.encode(dict(plan=self.plan, source=self.source, configured=self.configured, nfs_sources=self.nfs_sources))
             catalog = self.originals.json(self.document['catalog'], private=False)
             self.target = next(row['path'] for row in catalog['files'] if row['role'] == 'target')

@@ -22,8 +22,8 @@ p = composer.p
 need = p.need
 HERE = Path(__file__).absolute().parent
 PINS = {
-    'genuine_plan13_producer.py': '9094219b99b1c157294bb778c15b6c0250be681c8bca0050f68158180dd0998a',
-    'comic_negative_nfs_active_parent.py': '0483e442db0f5ede80d505d4e6a819ae8e970c209519c52b7e6e0f8ed1ac823a',
+    'genuine_plan13_producer.py': '6fa59805b6c311de0f2d0da81912433870d2cb0730199590c884a5d2bafc99d4',
+    'comic_negative_nfs_active_parent.py': '04aa93c4ff79218687209cdb63cd082cd4c5af1f41e49939c8113e0896cb0b61',
     'genuine_source_cohort.py': '9e9d4ec487d243025f8d46cc487f3333c8a5b4a37b003c48eb83d242b4636d6d',
 }
 RIGHTS = ('backup_verified', 'publication_acceptance', 'mutation_authority')
@@ -33,12 +33,14 @@ def pair(ref):
     return {key: ref[key] for key in ('path', 'sha256')}
 
 
-def fresh(value):
-    need(type(value) is int and 0 <= time.time() - value <= 120, 'active-input-expired')
+def fresh(value, admitted_at=None):
+    current=time.time() if admitted_at is None else admitted_at
+    need(type(value) is int and 0 <= current - value <= 120, 'active-input-expired')
 
 
 class Assembly:
     def __init__(self, request_ref, output, *, owner_reads=None):
+        admitted_at=time.time()
         need(owner_reads is None or type(owner_reads) is p.GeometryOwnerReads and p._OWNER_READS is owner_reads, 'active-owning-read-scope')
         self.owner_reads = owner_reads
         self.originals = composer.Originals(); self.parent_fd = self.fd = None
@@ -52,19 +54,24 @@ class Assembly:
         try:
             need(p.five(os.fstat(self.parent_fd)) == self.parent5, 'active-parent-open')
             self.document = self.originals.json(request_ref)
-            self.validate()
-            self.tape = p.encode(self.document); self.close()
+            original_tape=p.encode(self.document);self.tape=original_tape
+            self._validate(admitted_at)
+            need(self.tape==original_tape and p.encode(self.document)==original_tape, 'active-request-changed')
+            self.close()
         except BaseException:
             self.release(); raise
 
     def validate(self):
+        return self._validate(time.time())
+
+    def _validate(self, admitted_at):
         q = self.document
         configured=type(q) is dict and q.get('version')==2 and q.get('kind')=='configured-original-active-input-assembly'
         need(type(q) is dict and set(q) == ({'version', 'kind', 'nonce', 'observed', 'current_roles',
              'active_scope', 'query', 'native_controls', 'effective_observer_review', 'source_cohort',
              'parent_admission', 'probe_plan', 'operation_output', 'originals', 'sources'}|({'geometry','mounts'} if configured else set()))
              and type(q['version']) is int and (configured or q['version']==1 and q['kind']=='disposable-original-active-input-assembly') and p.digest(q['nonce']), 'active-input-schema')
-        fresh(q['observed'])
+        fresh(q['observed'],admitted_at)
         need(type(q['sources']) is dict and set(q['sources']) == {*PINS, 'genuine_active_inputs.py'}, 'active-source-set')
         modules = {'genuine_plan13_producer.py': composer, 'comic_negative_nfs_active_parent.py': active,
                    'genuine_source_cohort.py': cohort_source}
@@ -104,7 +111,7 @@ class Assembly:
             need(type(ref) is dict and set(ref) == {'path', 'sha256'} and ref['path'] in refs, 'active-missing-original')
             full = refs[ref['path']]
             need(full.get('path') == ref['path'] and full.get('sha256') == ref['sha256'], 'active-original-conflict')
-            self.used.add(ref['path']); raw = self.originals.read(full, private=private); fresh(q['observed']); return raw
+            self.used.add(ref['path']); raw = self.originals.read(full, private=private); fresh(q['observed'],admitted_at); return raw
         self.follow = follow
         docs = {name: p.decode(follow(pair(q[name]))) for name in composer.NESTED}
         for name in composer.NESTED:
@@ -121,7 +128,7 @@ class Assembly:
              and q['probe_plan'].get('scope') == pair(q['active_scope'])
              and q['parent_admission'].get('expected_device') == q['probe_plan'].get('expected_device')
              and q['parent_admission'].get('mount_identity') == q['probe_plan'].get('mount_identity'), 'active-probe-parent-join')
-        self.host_scope(scope, q['probe_plan'])
+        self.host_scope(scope, q['probe_plan'], admitted_at=admitted_at)
         operation = p.absolute(q['operation_output'])
         need(not os.path.lexists(operation) and operation != self.output
              and self.output not in operation.parents and operation not in self.output.parents, 'active-operation-output')
@@ -137,7 +144,7 @@ class Assembly:
         need(type(review) is dict and set(review) == set(composer.EFFECTIVE), 'active-effective-seven')
         effective = {name: follow(ref, private=name not in ('producer', 'parent_source')) for name, ref in review.items()}
         report, runtime, ack, acceptance, parent_ack = (p.decode(effective[k]) for k in ('report', 'runtime', 'ack', 'acceptance', 'parent_ack'))
-        reader = roles['reader']; fresh(runtime['observed'])
+        reader = roles['reader']; fresh(runtime['observed'],admitted_at)
         need(runtime.get('kind') == 'reviewed-komga-effective-scope-runtime'
              and runtime['container']['Id'] == reader['id'] and runtime['container']['Image'] == reader['image']
              and p.static(runtime['container']) == reader['profile']
@@ -176,7 +183,7 @@ class Assembly:
             full = refs[value['path']]
             if role == 'stderr' and full['signature9'][2] == 0:
                 need(full['sha256'] == value['sha256'], 'active-original-conflict')
-                self.used.add(full['path']); self.originals.read_cohort_stderr(q['source_cohort'], full); fresh(q['observed'])
+                self.used.add(full['path']); self.originals.read_cohort_stderr(q['source_cohort'], full); fresh(q['observed'],admitted_at)
             else:follow(value)
         receipt = p.decode(follow(cohort['receipt']))
         need(receipt.get('kind') == 'owned-nfs-current-source-fixture-readiness' and receipt.get('images') == images
@@ -198,7 +205,7 @@ class Assembly:
             need(name not in self.originals.nodes or self.originals.nodes[name] == value, 'active-original-ancestor-conflict')
             self.originals.nodes[name] = value
 
-    def host_scope(self, scope, probe):
+    def host_scope(self, scope, probe, *, admitted_at=None):
         # Host originals retain their actual owner. The genuine UID1000 child
         # validate() runs later under Parent's existing checked projection.
         active.exact(scope, ('version', 'kind', 'approved_disposable_diagnostic', 'observed',
@@ -211,7 +218,7 @@ class Assembly:
              and scope['future_mylar_destination_verified'] is False
              and scope['future_mylar_destination'] is None
              and scope['writer_lifecycle_resume_authorized'] is False, 'active-existing-reviewed-scope')
-        fresh(scope['observed'])
+        fresh(scope['observed'],admitted_at)
         need(type(scope['forbidden_roots']) is list and 1 <= len(scope['forbidden_roots']) <= 32
              and len(set(scope['forbidden_roots'])) == len(scope['forbidden_roots']), 'active-scope-roots')
         roots = [p.absolute(x) for x in scope['forbidden_roots']]
@@ -275,7 +282,6 @@ class Assembly:
                  and p.nine(p.nfs_lstat(self.neutral_parent.parent)) == self.grandparent9,
                  'active-precreation-parent-closure')
         need(p.five(os.fstat(self.parent_fd)) == self.parent5 == p.five(p.nfs_lstat(self.output.parent)), 'active-output-parent')
-        fresh(self.document['observed'])
         if hasattr(self, 'tape'):need(p.encode(self.document) == self.tape, 'active-request-changed')
         if self.fd is not None:
             need(p.five(os.fstat(self.fd)) == self.output5 == p.five(p.nfs_lstat(self.output))
