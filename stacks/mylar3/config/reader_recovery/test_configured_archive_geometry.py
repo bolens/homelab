@@ -102,6 +102,7 @@ class ConfiguredFilesystem(unittest.TestCase):
         self.library = self.root / 'comics'; self.library.mkdir(mode=0o777)
         self.retention = self.root / '.private-repair'; self.retention.mkdir(mode=0o700)
         self.other = self.root / 'manga'; self.other.mkdir(mode=0o775)
+        for path,mode in ((self.root,0o777),(self.library,0o777),(self.other,0o775)):path.chmod(mode)
         self.value = dict(version=3, kind='configured-common-root-nfs',
             **{name: dict(path=str(path), signature9=p.nine(path.lstat())) for name, path in
                (('common_root', self.root), ('library', self.library), ('retention', self.retention))},
@@ -147,6 +148,7 @@ class ConfiguredOwnerReads(unittest.TestCase):
         legacy.OwnerReadTests.setUp(self)
         self.parent=legacy.p; self.actor.release(); self.parent._OWNER_READS=None
         self.root.chmod(0o777);(self.root/'L').chmod(0o777);(self.root/'manga').mkdir(mode=0o775)
+        (self.root/'manga').chmod(0o775)
         self.geometry=dict(version=3,kind='configured-common-root-nfs',
             **{role:dict(path=str(path),signature9=self.parent.nine(path.lstat())) for role,path in
                (('common_root',self.root),('library',self.root/'L'),('retention',self.root/'R'))},

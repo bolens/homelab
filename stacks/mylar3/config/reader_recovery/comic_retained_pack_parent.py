@@ -542,6 +542,19 @@ class ConfiguredRuntime:
     def static(self,row):
         # Config may contain credentials; retain privately, never emit it.
         return encode(dict(Id=row['Id'],Image=row['Image'],Config=row['Config'],HostConfig=row['HostConfig'],Mounts=row['Mounts'],Networks={k:v['NetworkID'] for k,v in row['NetworkSettings']['Networks'].items()}))
+    @staticmethod
+    def state_epoch(state):
+        # Health logs advance on every probe without changing process identity.
+        # Retain every other state/health field, including failures and status.
+        need(type(state) is dict,'runtime-state-shape')
+        observed=dict(state)
+        if 'Health' in observed:
+            health=observed['Health']
+            need(type(health) is dict and ('Log' not in health or type(health['Log']) is list),
+                 'runtime-health-shape')
+            observed['Health']={key:value for key,value in health.items() if key!='Log'}
+        return encode(observed)
+
     def quiesce(self):
         need(not self.quiescent,'runtime-quiesce-once')
         self.command(['pause',self.ids['native']]);self.command(['stop','--timeout','30',self.ids['reader']]);self.quiescent=True
@@ -563,7 +576,7 @@ class ConfiguredRuntime:
             need(self in _TERMINALS and _TERMINALS[self] is terminal_original,'runtime-own-terminal-original')
         for key,cid in self.ids.items():
             row=self.inspect(cid);need(self.static(row)==self.static(self.baseline[key]),'runtime-original-profile')
-            if not self.quiescent:need(row['State']==self.baseline[key]['State'],'runtime-before-owned-quiescence')
+            if not self.quiescent:need(self.state_epoch(row['State'])==self.state_epoch(self.baseline[key]['State']),'runtime-before-owned-quiescence')
             elif key=='reader':need(row['State']==self.stopped_reader and row['State']['Running'] is False,'reader-stopped-incarnation')
             elif key=='worker':need(row['State']==self.baseline[key]['State'],'normal-worker-stays-stopped')
             else:

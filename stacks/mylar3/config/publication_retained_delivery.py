@@ -42,6 +42,13 @@ def request(value):
             'retained-ddl-key')
     for key in ('pack_id','member_id','source_generation','source_sha256','target_sha256','review_sha256'):
         o.check(type(value[key]) is str and re.fullmatch('[0-9a-f]{64}',value[key]),'retained-digest')
+    owner=value['owner']
+    o.check(type(owner) is dict and set(owner)=={'table','issueid','parentcomicid','releasecomicid'}
+            and owner['table'] in ('issues','annuals')
+            and all(type(owner[k]) is str and re.fullmatch('[1-9][0-9]{0,15}',owner[k])
+                    for k in ('issueid','parentcomicid','releasecomicid'))
+            and (owner['table']!='issues' or owner['parentcomicid']==owner['releasecomicid']),
+            'retained-request-owner')
     o.check(len(o.compact(value))<4096,'retained-request-bound')
     return copy.deepcopy(value)
 

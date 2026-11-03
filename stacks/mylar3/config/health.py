@@ -31,7 +31,7 @@ def assess(snapshot, previous, now, stall_seconds=900):
     errors = []
     observations = {}
     if snapshot.get('publication',{}).get('state')=='held':
-        if snapshot['publication'].get('reason')=='writer-busy':
+        if snapshot['publication'].get('reason') in ('writer-busy','retained-session'):
             return _busy(snapshot,previous,now,stall_seconds)
         return dict(checked_at=now,observations=copy.deepcopy(previous),
                     errors=['Publication authority held; authenticated review and native restart required'])

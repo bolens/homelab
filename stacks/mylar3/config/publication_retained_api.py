@@ -1,6 +1,6 @@
 """Explicit primary-key retained API admission; no Reader or import grants."""
 
-COMMANDS=('retainedDeliveryFinalize','retainedDeliveryStatus')
+COMMANDS=('retainedDeliveryFinalize','retainedDeliveryStatus','retainedDeliverySession')
 _LIMIT=4*1024*1024
 
 API_METHODS='''    # homelab-retained-delivery-api-v1
@@ -17,6 +17,14 @@ API_METHODS='''    # homelab-retained-delivery-api-v1
             self.data = publication_retained_api.execute(self, kwargs.get('request'))
         except (ValueError, OSError, RuntimeError, TypeError, KeyError, publication_retained_delivery.o.Held, publication_guard.Unavailable, publication_native.Review):
             self.data = self._failureResponse('Retained status held; original same-process witness required')
+
+
+    def _retainedDeliverySession(self, **kwargs):
+        from mylar import publication_retained_api, publication_guard
+        try:
+            self.data = publication_retained_api.session_execute(self, kwargs.get('request'))
+        except (ValueError, OSError, RuntimeError, TypeError, KeyError, publication_guard.Unavailable):
+            self.data = self._failureResponse('Retained session held; preserve the original operation and review')
 
 '''
 
@@ -41,25 +49,46 @@ def owns(handler):
             and _code_facts(expected.__code__)==_code_facts(_HOOK_CODES['_'+command]))
 
 
-def execute(handler,raw):
+def _http_original(handler,raw):
     import mylar
-    from mylar import native_writers,publication_guard as guard,publication_retained_delivery as retained,publication_retained_finalize as finalizer
-    from mylar.publication_api import Controller
+    import cherrypy
     if not owns(handler):raise ValueError('Exact owning API handler required')
     command=handler.cmd;method=getattr(handler,'_'+command).__func__;method_code=method.__code__
-    admission_clock=time.monotonic
-    original_caller=(handler,type(handler),command,method,method_code,raw,handler.kwargs,
-                     (handler.apitype,handler.img,handler.file,handler.comicrn))
+    caller=(handler,type(handler),command,method,method_code,raw,handler.kwargs,
+            (handler.apitype,handler.img,handler.file,handler.comicrn))
     key=mylar.CONFIG.API_KEY
     if (mylar.CONFIG.API_ENABLED is not True or type(key) is not str or len(key)!=32
             or handler.apikey!=key or getattr(handler,'apitype',None)!='normal'):
         raise ValueError('Primary normal API key required')
     if (getattr(handler,'img',None) or getattr(handler,'file',None) or getattr(handler,'comicrn',False)
             or set(handler.kwargs)!={'request'}):raise ValueError('Exact finite API response required')
-    import cherrypy
     if cherrypy.request.method!='POST':raise ValueError('Exact retained POST required')
     if type(raw) is not str or not 0<len(raw.encode())<4096:raise ValueError('Finite retained request required')
-    original_config=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,mylar.CONFIG.API_ENABLED,key)
+    config=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,mylar.CONFIG.API_ENABLED,key)
+    return caller,config
+
+
+def _http_close(caller,config):
+    import mylar
+    handler,kind,command,method,code,raw,kwargs,formatting=caller
+    if (not owns(handler) or type(handler) is not kind or handler.cmd!=command
+            or getattr(handler,'_'+command).__func__ is not method or method.__code__ is not code
+            or handler.kwargs is not kwargs or handler.kwargs!={'request':raw}
+            or tuple(type(v) for v in (handler.apitype,handler.img,handler.file,handler.comicrn))!=tuple(type(v) for v in formatting)
+            or (handler.apitype,handler.img,handler.file,handler.comicrn)!=formatting
+            or handler.apikey!=config[4] or mylar.CONFIG.API_ENABLED is not True
+            or (mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,
+                mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)!=config):
+        raise ValueError('Original retained HTTP caller changed')
+
+
+def execute(handler,raw):
+    import mylar
+    from mylar import native_writers,publication_guard as guard,publication_retained_delivery as retained,publication_retained_finalize as finalizer
+    from mylar.publication_api import Controller
+    admission_clock=time.monotonic
+    original_caller,original_config=_http_original(handler,raw)
+    command=original_caller[2];method=original_caller[3];method_code=original_caller[4]
     value=retained.request(guard.decode_json(raw));request_bytes=retained.o.compact(value)
     frame=finalizer.response_sources()
     source_table=finalizer._SOURCE_FRAMES;source=source_table.get(frame)
@@ -74,7 +103,7 @@ def execute(handler,raw):
     try:
         # The original strict outer hold outlives inner exit-admission callbacks.
         with writer.hold(timeout=0):
-            with native_writers.operation(ordinary=True) as original_writer:
+            with native_writers.operation(ordinary=True,retained_session=session_for_request(value)) as original_writer:
                 controller=Controller(mylar.DATA_DIR,[mylar.CONFIG.DESTINATION_DIR])
                 if (finalizer._SOURCE_FRAMES is not source_table or source_table.get(frame) is not source
                         or source[:2]!=(os.getpid(),threading.get_ident())
@@ -218,3 +247,276 @@ def admission_request(admission):
     if type(admission) is not NativeRetainedAdmission or seal is None or _ADMISSIONS.get(admission) is not seal[0]:
         raise ValueError('Original retained admission request required')
     return json.loads(seal[7])
+
+
+# A source-owned reservation excludes background native operations while the
+# owning Root controller verifies backup, terminal SQL and Reader resumption.
+# A saved marker is a fence, never a reconstructed live reservation.
+from collections import namedtuple
+from pathlib import Path
+import re
+
+_SESSION_SECONDS=3600
+if __package__:
+    from .media_writer import NATIVE_SESSION_PENDING as _SESSION_PENDING
+else:
+    from media_writer import NATIVE_SESSION_PENDING as _SESSION_PENDING
+if __package__:
+    from .media_writer import NATIVE_SESSION_CLOSED as _SESSION_CLOSED
+else:
+    from media_writer import NATIVE_SESSION_CLOSED as _SESSION_CLOSED
+_NativeSession=namedtuple('_NativeSession','root root5 nonce request_bytes config pid deadline marker_bytes marker9 files nodes hashes')
+_ROOT_SESSION=None
+_NativeCompleted=namedtuple('_NativeCompleted','session closed_bytes closed9')
+_ROOT_COMPLETED=None
+
+
+def _session_nine(value):
+    return (value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns,value.st_ctime_ns,
+            value.st_mode,value.st_uid,value.st_gid,value.st_nlink)
+
+
+def _session_five(value):
+    return (value.st_dev,value.st_ino,value.st_mode,value.st_uid,value.st_gid)
+
+
+def _session_read(path,stamp):
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        if _session_nine(os.fstat(fd))!=stamp or not 0<stamp[2]<=4096:
+            raise ValueError('Original native reservation file required')
+        data=os.read(fd,4097)
+        if (len(data)!=stamp[2] or _session_nine(os.fstat(fd))!=stamp
+                or _session_nine(os.lstat(path))!=stamp):
+            raise ValueError('Native reservation file changed')
+        return data
+    finally:os.close(fd)
+
+
+def _session_save(root,name,data):
+    path=root/name;fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+    try:
+        born=_session_nine(os.fstat(fd))
+        if born[5]&0o177777!=0o100600 or born[6:]!=(os.geteuid(),os.getegid(),1):
+            raise ValueError('Private native reservation birth required')
+        view=memoryview(data)
+        while view:
+            count=os.write(fd,view)
+            if count<=0:raise ValueError('Native reservation short write')
+            view=view[count:]
+        os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);stamp=_session_nine(os.fstat(fd))
+        if (stamp[:2]+stamp[5:]!=born[:2]+born[5:] or stamp[2]!=len(data)
+                or os.read(fd,len(data)+1)!=data or _session_nine(os.lstat(path))!=stamp):
+            raise ValueError('Native reservation created file changed')
+    finally:os.close(fd)
+    d=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:os.fsync(d)
+    finally:os.close(d)
+    return stamp
+
+
+def session_pending():
+    """Negative authority only: live custody never becomes a readiness grant."""
+    return _ROOT_SESSION is not None
+
+
+def session_fenced(root):
+    try:return _session_fenced(root)
+    except (OSError,ValueError,TypeError,AttributeError):return True
+
+
+def _session_fenced(root):
+    """Only original in-process completion may exempt its retained marker.
+
+    The marker remains untouched through completion. Restart, absent/replaced
+    markers, or unknown close state are held; saved JSON never restores custody.
+    """
+    import mylar
+    root=Path(root)
+    if _ROOT_SESSION is not None:return True
+    completed=_ROOT_COMPLETED
+    if completed is None:return any(os.path.lexists(root/name) for name in (_SESSION_PENDING,_SESSION_CLOSED))
+    if type(completed) is not _NativeCompleted:return True
+    record=completed.session
+    if (type(record) is not _NativeSession or record.pid!=os.getpid() or root!=record.root
+            or _session_five(os.lstat(root))!=record.root5
+            or record.config!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,
+                              mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)):
+        return True
+    if (_session_read(root/_SESSION_PENDING,record.marker9)!=record.marker_bytes
+            or _session_read(root/_SESSION_CLOSED,completed.closed9)!=completed.closed_bytes):return True
+    for path,stamp in record.files:
+        if _session_nine(os.lstat(path))!=stamp:return True
+    for path,stamp in record.nodes:
+        if _session_five(os.lstat(path))!=stamp:return True
+    return (_ROOT_COMPLETED is not completed or _ROOT_SESSION is not None
+            or _session_nine(os.lstat(root/_SESSION_PENDING))!=record.marker9
+            or _session_nine(os.lstat(root/_SESSION_CLOSED))!=completed.closed9
+            or _session_five(os.lstat(root))!=record.root5)
+
+
+def session_mode(record):
+    """Called under native _MODE_LOCK before counting a new operation."""
+    from .media_writer import Busy
+    current=_ROOT_SESSION
+    if current is None:
+        if record is not None:raise ValueError('No live native reservation')
+        return
+    if (type(current) is not _NativeSession or record is not current
+            or current.pid!=os.getpid() or time.monotonic()>=current.deadline):
+        raise Busy('Native operations reserved for the owning retained request')
+
+
+def session_file(writer,record):
+    """Persistent presence also fences startup after loss of live custody."""
+    import mylar
+    from .media_writer import Busy
+    session_mode(record)
+    if record is None:
+        if session_fenced(writer.root):
+            raise Busy('Retained native reservation requires original-process review')
+        return
+    if (writer.root!=record.root or _session_five(os.lstat(record.root))!=record.root5
+            or record.config!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,
+                              mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)
+            or _session_read(record.root/_SESSION_PENDING,record.marker9)!=record.marker_bytes):
+        raise ValueError('Original native reservation changed')
+    for path,digest in record.hashes:
+        if hashlib.sha256(_session_source_read(path,dict(record.files)[path],record.deadline)).hexdigest()!=digest:
+            raise ValueError('Native reservation source bytes changed')
+    for path,stamp in record.nodes:
+        if _session_five(os.lstat(path))!=stamp:raise ValueError('Native reservation source node changed')
+    for path,stamp in record.files:
+        if _session_nine(os.lstat(path))!=stamp:raise ValueError('Native reservation source file changed')
+    if (_ROOT_SESSION is not record or _session_nine(os.lstat(record.root/_SESSION_PENDING))!=record.marker9
+            or _session_five(os.lstat(record.root))!=record.root5):
+        raise ValueError('Native reservation final custody changed')
+    session_mode(record)
+
+
+def _session_source_read(path,stamp,deadline):
+    from mylar import publication_retained_delivery as retained
+    return retained.o.read_checked(path,list(stamp),1048576,deadline)
+
+
+def session_for_request(value):
+    from mylar import publication_retained_delivery as retained
+    record=_ROOT_SESSION
+    if record is None:return None
+    if type(record) is not _NativeSession or retained.o.compact(value)!=record.request_bytes:
+        raise ValueError('Only the exact reserved retained request may enter')
+    return record
+
+
+def _session_packet(raw):
+    from mylar import publication_guard as guard,publication_retained_delivery as retained
+    body=guard.decode_json(raw)
+    if (type(body) is not dict or set(body)!={'version','kind','action','nonce','request','proof'}
+            or type(body['version']) is not int or body['version']!=1
+            or body['kind']!='retained-native-session-v1' or body['action'] not in ('open','observe','close')
+            or type(body['nonce']) is not str or not re.fullmatch('[0-9a-f]{64}',body['nonce'])):
+        raise ValueError('Exact retained native session request required')
+    value=retained.request(body['request'])
+    if body['action']!='close':
+        if body['proof'] is not None:raise ValueError('No session proof is admitted before close')
+    else:
+        proof=body['proof']
+        if (type(proof) is not dict or set(proof)!={'workflow_sha256','catalog_sha256','record_sha256',
+                'root_release_nonce','worker_ack_sha256'}
+                or any(type(v) is not str or not re.fullmatch('[0-9a-f]{64}',v) for v in proof.values())
+                or proof['root_release_nonce']==body['nonce']):
+            raise ValueError('Exact original Root terminal proof required')
+    return body,value
+
+
+def _session_sql(data_root,request,proof_items):
+    from mylar import publication_retained_delivery as retained
+    proof=dict(proof_items)
+    paths=(Path(data_root)/'workflow.sqlite',Path(data_root)/'mylar.db')
+    files={str(p):tuple(retained.o.signature(p)) for p in paths}
+    nodes=retained._nodes(paths)
+    absent=[str(p)+suffix for p in paths for suffix in ('-wal','-shm','-journal')]
+    retained._raw(files,nodes,absent,{})
+    workflow,catalog=(retained._sql(p,files[str(p)]) for p in paths)
+    digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+    if digest(workflow)!=proof['workflow_sha256'] or digest(catalog)!=proof['catalog_sha256']:
+        raise ValueError('Root terminal SQL does not match current reserved originals')
+    token=hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode()).hexdigest()
+    rows=[json.loads(row) for row in workflow['rows'].get('records',[]) if json.loads(row)[:2]==['retained_delivery_final',token]]
+    if (len(rows)!=1 or len(rows[0])!=4 or type(rows[0][2]) is not str
+            or hashlib.sha256(rows[0][2].encode()).hexdigest()!=proof['record_sha256']
+            or json.loads(rows[0][2]).get('request')!=request):
+        raise ValueError('Original finalized retained record required before native release')
+    retained._raw(files,nodes,absent,{})
+
+
+def session_execute(handler,raw):
+    """Primary POST control for one exact request; no Reader or import grants."""
+    global _ROOT_SESSION,_ROOT_COMPLETED
+    from mylar import native_writers,publication_retained_delivery as retained,publication_retained_finalize as finalizer
+    deadline=time.monotonic()+_SESSION_SECONDS
+    caller,config=_http_original(handler,raw)
+    if caller[2]!='retainedDeliverySession':raise ValueError('Owning session handler required')
+    body,value=_session_packet(raw);request_bytes=retained.o.compact(value)
+    action,nonce=body['action'],body['nonce']
+    proof_items=tuple(sorted(body['proof'].items())) if action=='close' else ()
+    frame=finalizer.response_sources();source=finalizer._SOURCE_FRAMES[frame]
+    vector=json.loads(source[3]);files=tuple((p,tuple(v)) for p,v in vector['files9'])
+    nodes=tuple((p,tuple(v)) for p,v in vector['nodes5']);hashes=tuple(source[4].items())
+    writer=native_writers.owner();root=writer.root
+    with native_writers._MODE_LOCK:
+        if native_writers._OPERATIONS!=0:raise ValueError('Native operations must settle before reservation control')
+        if action=='observe':
+            record=_ROOT_SESSION
+            state='factual-held' if os.path.lexists(root/_SESSION_PENDING) else 'factual-unreserved'
+            if record is not None:
+                if record.nonce!=nonce or record.request_bytes!=request_bytes:raise ValueError('Original reservation selector required')
+                session_file(writer,record);state='active-original-process'
+            answer=dict(version=1,kind='retained-native-session-observation',state=state,nonce=nonce)
+        elif action=='open':
+            if (_ROOT_SESSION is not None or not native_writers.publication_mode()
+                    or os.path.lexists(root/_SESSION_PENDING) or os.path.lexists(root/_SESSION_CLOSED)):
+                raise ValueError('Retained native reservation already present or publication unavailable')
+            with writer.hold(timeout=0):
+                native_writers.admission(writer);_http_close(caller,config)
+                marker=retained.o.compact(dict(version=1,kind='retained-native-session-fence-v1',nonce=nonce,
+                    request_sha256=hashlib.sha256(request_bytes).hexdigest(),pid=os.getpid()))
+                stamp=_session_save(root,_SESSION_PENDING,marker)
+                record=_NativeSession(root,_session_five(os.lstat(root)),nonce,request_bytes,config,
+                    os.getpid(),deadline,marker,stamp,files,nodes,hashes)
+                if _ROOT_SESSION is not None:raise ValueError('Original native reservation absence changed')
+                _ROOT_SESSION=record;session_file(writer,record)
+                answer=dict(version=1,kind='retained-native-session-opened',nonce=record.nonce,
+                    request_sha256=hashlib.sha256(request_bytes).hexdigest(),pid=record.pid,
+                    marker_sha256=hashlib.sha256(marker).hexdigest(),marker_signature9=list(stamp))
+        else:
+            record=_ROOT_SESSION
+            if (record is None or record.nonce!=nonce or record.request_bytes!=request_bytes):
+                raise ValueError('Only original live native reservation can close')
+            with writer.hold(timeout=0):
+                session_file(writer,record);_http_close(caller,config)
+                _session_sql(config[0],value,proof_items);session_file(writer,record)
+                answer=dict(version=1,kind='retained-native-session-closed',nonce=record.nonce,
+                    request_sha256=hashlib.sha256(request_bytes).hexdigest(),proof=dict(proof_items),pid=record.pid)
+                closed=retained.o.compact(answer);closed9=_session_save(root,_SESSION_CLOSED,closed)
+                completed=_NativeCompleted(record,closed,closed9)
+                answer.update(mutation_authority=False,reader_resume_grant=False,ordinary_import_grant=False,cleanup_grant=False)
+                result=retained.o.compact(dict(success=True,data=answer)).decode()
+                _http_close(caller,config)
+                _session_sql(config[0],value,proof_items)
+                session_file(writer,record)
+                if (_session_read(root/_SESSION_CLOSED,closed9)!=closed or _ROOT_COMPLETED is not None):
+                    raise ValueError('Native reservation close uncertainty')
+                _http_close(caller,config);session_file(writer,record)
+                if _session_nine(os.lstat(root/_SESSION_CLOSED))!=closed9:
+                    raise ValueError('Original native completion record changed')
+                # No marker removal and no callback after the original closure.
+                # Unknown replies cannot replay close. Restart retains the hold.
+                _ROOT_COMPLETED=completed;_ROOT_SESSION=None
+                return result
+        answer.update(mutation_authority=False,reader_resume_grant=False,ordinary_import_grant=False,cleanup_grant=False)
+        _http_close(caller,config)
+        result=retained.o.compact(dict(success=True,data=answer)).decode()
+        _http_close(caller,config)
+        if action=='open':session_file(writer,record)
+        return result

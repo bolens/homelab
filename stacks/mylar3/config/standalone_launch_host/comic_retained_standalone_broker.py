@@ -30,6 +30,39 @@ NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
          'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py',
          'comic_retained_standalone_broker.py','comic_native_process_probe.py',
          'publication_native_configured_scope.py','BOOTSTRAP.py')
+PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
+              'comic_retained_pack_backup.py','comic_retained_pack_observation.py','retained_pack_control.py','comic_retained_pack_parent.py','comic_retained_native_control.py',
+              'comic_retained_standalone_broker.py','comic_native_process_probe.py',
+              'publication_native_configured_scope.py','BOOTSTRAP.py')
+PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v1:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
+
+
+def installation_contract(document):
+    # Only reviewed finite kinds select modules or profiles; no caller paths.
+    if document.get('kind')=='standalone-root-deployment-v1':
+        return NAMES,'comic_retained_standalone_parent.py','comic_retained_standalone_backup.py','retained-standalone',LOGICAL_PROFILE_SHA
+    if document.get('kind')=='pack-root-deployment-v1':
+        return PACK_NAMES,'comic_retained_pack_parent.py','comic_retained_pack_backup.py','retained-pack',PACK_PROFILE_SHA
+    raise Held('fixed-installation-kind')
+
+
+def owning_parent(row):
+    return row['modules'][installation_contract(row['document'])[1]]
+
+
+def launch_protocol(document):
+    purpose=installation_contract(document)[3]
+    if purpose=='retained-pack':
+        return purpose,'pack-launch-challenge-v1','pack-fixed-launch-admission-v1','pack-fixed-stage-v1','pack-retained-repeat-v1'
+    return purpose,'standalone-launch-challenge-v3','standalone-fixed-launch-admission-v1','standalone-fixed-stage-v3','standalone-retained-repeat-v3'
+
+
+def phase_original(state):
+    values=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    if state.get('purpose')=='retained-pack':values+=(state['writer_interval'],)
+    return values
+
+
 _INSTALLATIONS = weakref.WeakKeyDictionary()
 _LAUNCHES = weakref.WeakKeyDictionary()
 _INSTALLATION_SEALS = weakref.WeakKeyDictionary()
@@ -49,6 +82,21 @@ def sha(data):return hashlib.sha256(data).hexdigest()
 def hexadecimal(value):return type(value) is str and len(value)==64 and all(c in '0123456789abcdef' for c in value)
 def nine(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
 def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+
+def control_reference(value):
+    if (type(value) is not dict or set(value)!={'path','sha256','signature9'}
+            or type(value['path']) is not str or not hexadecimal(value['sha256'])
+            or type(value['signature9']) not in (list,tuple) or len(value['signature9'])!=9
+            or any(type(v) is not int for v in value['signature9'])):raise Held('fixed-child-control-reference')
+    path=Path(value['path'])
+    if (not path.is_absolute() or str(path)!=value['path'] or value['path'].startswith('//')
+            or '..' in path.parts):raise Held('fixed-child-control-path')
+    return value
+
+def native_config_reference(value):
+    control_reference(value);stamp=value['signature9']
+    if stamp[5]&0o170000!=0o100000 or stamp[8]!=1 or not 0<stamp[2]<=2*1024**2:raise Held('fixed-native-config-file')
+    return value
 
 def parse(data):
     def pairs(rows):
@@ -101,21 +149,25 @@ def read(path,frame):
 
 def reviewed_deployment(frame):
     marker=parse(read(ENROLLMENT,frame))
-    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind']!='standalone-root-enrollment-v1' or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
+    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind'] not in ('standalone-root-enrollment-v1','pack-root-enrollment-v1') or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
     data=read(INSTALLATION,frame)
     if sha(data)!=marker['deployment_sha256']:raise Held('fixed-installation-digest')
     value=parse(data)
     fields={'version','kind','deployment','image','profile','runtime_profile_sha256','broker_sources','parent_sha256',
             'bootstrap_sha256','inventory_sha256','anchor_sha256','key_sha256','public_der','host_sources','daemon_sources','ids'}
-    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind']!='standalone-root-deployment-v1':raise Held('fixed-installation-schema')
-    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids'}):raise Held('fixed-installation-claims')
-    if value['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
+    if value.get('kind')=='pack-root-deployment-v1':fields=fields|{'native_config_ref'}
+    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind'] not in ('standalone-root-deployment-v1','pack-root-deployment-v1'):raise Held('fixed-installation-schema')
+    names,parent_name,_,purpose,policy=installation_contract(value)
+    if marker['kind']!=('pack-root-enrollment-v1' if purpose=='retained-pack' else 'standalone-root-enrollment-v1'):raise Held('fixed-enrollment-purpose')
+    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids','native_config_ref'}):raise Held('fixed-installation-claims')
+    if value['profile']!=policy:raise Held('fixed-source-owned-logical-policy')
     public=bytes.fromhex(value['public_der'])
     if len(public)!=44 or public[:12]!=bytes.fromhex('302a300506032b6570032100') or sha(public)!=value['key_sha256']:raise Held('fixed-installation-public-key')
-    if set(value['host_sources'])!=set(NAMES) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
+    if set(value['host_sources'])!=set(names) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
     if type(value['daemon_sources']) is not dict or set(value['daemon_sources'])!={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'} or not all(hexadecimal(x) for x in value['daemon_sources'].values()):raise Held('fixed-daemon-source-pins')
-    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources']['comic_retained_standalone_parent.py']!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
+    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources'][parent_name]!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
     if set(value['ids'])!={'native','reader','worker'} or not all(hexadecimal(x) for x in value['ids'].values()) or len(set(value['ids'].values()))!=3:raise Held('fixed-installation-runtime-IDs')
+    if purpose=='retained-pack':native_config_reference(value['native_config_ref'])
     return value,public,data
 
 
@@ -125,7 +177,7 @@ def anchor_payloads(document, directory, frame):
     anchor,inventory=parse(values[0]),parse(values[1])
     fields={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'}
     if (set(anchor)!=fields or type(anchor['version']) is not int or anchor['version']!=1
-            or anchor['kind']!='standalone-installation-anchor-v1'
+            or anchor['kind']!=('pack-installation-anchor-v1' if installation_contract(document)[3]=='retained-pack' else 'standalone-installation-anchor-v1')
             or any(anchor[key]!=document[key] for key in fields-{'version','kind'})
             or sha(values[0])!=document['anchor_sha256']
             or sha(values[1])!=document['inventory_sha256']
@@ -134,15 +186,25 @@ def anchor_payloads(document, directory, frame):
     if (set(inventory)!={'version','kind','sources'} or type(inventory['version']) is not int
             or inventory['version']!=1 or inventory['kind']!='standalone-leaf-inventory-v1'
             or type(inventory['sources']) is not dict or not 12<=len(inventory['sources'])<=512):raise Held('fixed-anchor-inventory-schema')
-    auth=Path('/opt/mylar-publication-launch/auth');native=Path('/app/mylar3/mylar')
+    auth=Path('/opt/mylar-publication-launch/auth');pack=installation_contract(document)[3]=='retained-pack';native=Path('/app' if pack else '/app/mylar3/mylar')
     for name,digest in inventory['sources'].items():
         path=Path(name)
         if (str(path)!=name or not path.is_absolute() or '..' in path.parts or not hexadecimal(digest)
-                or not (path.is_relative_to(auth) or path.is_relative_to(native))):raise Held('fixed-anchor-inventory-path')
+                or not (path.is_relative_to(auth) or (path.parent==native if pack else path.is_relative_to(native)))):raise Held('fixed-anchor-inventory-path')
     if not {str(auth/name) for name in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')}<=set(inventory['sources']):raise Held('fixed-anchor-auth-inventory')
     if len(values[2])!=44 or values[2][:12]!=bytes.fromhex('302a300506032b6570032100'):raise Held('fixed-anchor-public-key')
     raw(frame)
     return values
+
+
+def capture_installed_sources(anchor_directory):
+    authority=capture((ENROLLMENT,INSTALLATION,KEY))
+    document,_,_=reviewed_deployment(authority)
+    names=installation_contract(document)[0]
+    frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in names],
+                   *[anchor_directory/name for name in ANCHOR_NAMES]))
+    if any(dict(frame[0]).get(path)!=fact for path,fact in authority[0]):raise Held('fixed-installation-authority-recapture')
+    raw(authority);return frame
 
 
 def provision_original_anchors():
@@ -153,9 +215,9 @@ def provision_original_anchors():
     No caller source/destination, callback, command or mounting API is accepted.
     """
     if os.geteuid()!=ROOT_UID:raise Held('fixed-root-provision-required')
-    frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[REVIEWED_ANCHORS/name for name in ANCHOR_NAMES]))
+    frame=capture_installed_sources(REVIEWED_ANCHORS)
     document,_,_=reviewed_deployment(frame)
-    for name in NAMES:
+    for name in installation_contract(document)[0]:
         if sha(read(PACKAGE/name,frame))!=document['host_sources'][name]:raise Held('fixed-installation-source-digest')
     if Path(__file__).absolute()!=PACKAGE/'comic_retained_standalone_broker.py':raise Held('fixed-broker-original-installation-origin')
     values=anchor_payloads(document,REVIEWED_ANCHORS,frame)
@@ -246,11 +308,11 @@ class Installation:
 def load_original_installation():
     if os.geteuid()!=ROOT_UID:raise Held('fixed-root-broker-process-required')
     # All fixed root sources are originals before the first read/parse/import.
-    try:frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[CHILD_ANCHORS/name for name in ANCHOR_NAMES]))
+    try:frame=capture_installed_sources(CHILD_ANCHORS)
     except FileNotFoundError:raise Held('reviewed-root-installation-unprovisioned') from None
     value,public,data=reviewed_deployment(frame)
     modules={}
-    for name in NAMES:
+    for name in installation_contract(value)[0]:
         source=read(PACKAGE/name,frame)
         if sha(source)!=value['host_sources'][name]:raise Held('fixed-installation-source-digest')
         if name=='comic_retained_standalone_broker.py':
@@ -293,23 +355,28 @@ class OriginalLaunch:
         seal=_LAUNCH_SEALS.get(self)
         if state is None or seal is None or seal[0] is not state:raise Held('fixed-launch-original-registry')
         original=seal[1];phase=_PHASES.get(self)
-        if phase is None or tuple(state.get(key) for key in ('deadline','admission','sequence','previous','auth_challenge'))!=phase:raise Held('fixed-launch-original-phase')
+        if phase is None or phase_original(state)!=phase:raise Held('fixed-launch-original-phase')
         if any(state.get(key) is not value for key,value in original['objects']):raise Held('fixed-launch-original-objects')
         if any(state.get(key)!=value for key,value in original['values']):raise Held('fixed-launch-original-values')
-        installation=state['installation'];row=installation.close();runtime=state['runtime']
+        installation=state['installation'];row=installation.close();runtime=state['runtime'];parent=owning_parent(row)
+        if (type(runtime) is not parent.ConfiguredRuntime or parent._RUNTIMES is not original['runtime_table']
+                or parent._RUNTIMES.get(runtime) is not original['runtime_registry']):raise Held('fixed-launch-original-runtime-registry')
         terminal_present=self in _EXITS;terminal_original=_EXITS[self] if terminal_present else None
+        local_interval=(installation_contract(row['document'])[3]=='retained-pack'
+                        and state.get('writer_interval') is True)
         if terminal_present:
             if type(terminal_original) is not tuple or len(terminal_original)!=4:raise Held('fixed-own-terminal-shape')
-            runtime.close(terminal_original)
-        else:runtime.close()
+            parent.ConfiguredRuntime.close(runtime,terminal_original)
+        elif local_interval:parent.ConfiguredRuntime.close_local(runtime)
+        else:parent.ConfiguredRuntime.close(runtime)
         process=state['process'];now=time.monotonic()
-        if type(runtime) is not row['modules']['comic_retained_standalone_parent.py'].ConfiguredRuntime or runtime.process is not process or runtime.selected!=state['cid'] or runtime.selected_started!=state['started'] or runtime.selected_pid!=state['selected_pid']:raise Held('fixed-launch-runtime-identity')
+        if type(runtime) is not owning_parent(row).ConfiguredRuntime or runtime.process is not process or runtime.selected!=state['cid'] or runtime.selected_started!=state['started'] or runtime.selected_pid!=state['selected_pid']:raise Held('fixed-launch-runtime-identity')
         if process.pid!=state['attach_pid'] or (not terminal_present and (process.poll() is not None or process_start(state['selected_pid'])!=state['start'])) or (terminal_present and process.poll()!=0):raise Held('fixed-launch-process-incarnation')
         if (os.getpid(),threading.get_ident())!=state['owner'] or now>state['deadline']:raise Held('fixed-launch-owner-lifetime')
         if process.stdin is not state['stdin'] or process.stdout is not state['stdout']:raise Held('fixed-launch-pipe-objects')
         for fd,fact in state['pipes']:
             if nine(os.fstat(fd))!=fact:raise Held('fixed-launch-original-pipe')
-        parent=row['modules']['comic_retained_standalone_parent.py']
+        parent=owning_parent(row)
         parent.raw(state['bootframe']);parent.raw(state['inputframe']);raw(row['frame'])
         # No replaceable closure helper after these original physical checks.
         for frame in (state['bootframe'],state['inputframe']):
@@ -338,9 +405,9 @@ class OriginalLaunch:
             elif actual!=expected:raise Held('fixed-launch-original-boot-value')
         if any(state.get(key) is not value for key,value in original['objects']) or any(state.get(key)!=value for key,value in original['values']):raise Held('fixed-launch-final-originals')
         if (self in _EXITS)!=terminal_present or (terminal_present and _EXITS[self] is not terminal_original):raise Held('fixed-launch-final-exit-registry')
-        if row['modules']['comic_retained_standalone_parent.py']._RUNTIMES is not original['runtime_table'] or row['modules']['comic_retained_standalone_parent.py']._TERMINALS is not original['terminal_table'] or row['modules']['comic_retained_standalone_parent.py']._RUNTIMES.get(runtime) is not original['runtime_registry']:raise Held('fixed-launch-final-runtime-registry')
+        if owning_parent(row)._RUNTIMES is not original['runtime_table'] or owning_parent(row)._TERMINALS is not original['terminal_table'] or owning_parent(row)._RUNTIMES.get(runtime) is not original['runtime_registry']:raise Held('fixed-launch-final-runtime-registry')
         if (runtime in parent._TERMINALS)!=terminal_present or (terminal_present and parent._TERMINALS[runtime] is not terminal_original):raise Held('fixed-launch-final-terminal-registry')
-        if _LAUNCHES.get(self) is not state or _LAUNCH_SEALS.get(self) is not seal or _PHASES.get(self) is not phase or tuple(state.get(key) for key in ('deadline','admission','sequence','previous','auth_challenge'))!=phase:raise Held('fixed-launch-final-registry')
+        if _LAUNCHES.get(self) is not state or _LAUNCH_SEALS.get(self) is not seal or _PHASES.get(self) is not phase or phase_original(state)!=phase:raise Held('fixed-launch-final-registry')
         return state
 
 def _image(value):
@@ -350,7 +417,7 @@ def _image(value):
 
 def _host_original_ref(reference, mounts):
     """Translate a CHILD pathname only; preserve its original bytes/hash/full9."""
-    if type(reference) is not dict or set(reference)!={'path','sha256','signature9'} or type(reference['path']) is not str or not hexadecimal(reference['sha256']) or type(reference['signature9']) not in (list,tuple) or len(reference['signature9'])!=9 or any(type(v) is not int for v in reference['signature9']):raise Held('fixed-child-control-reference')
+    control_reference(reference)
     reference_original=(reference['path'],reference['sha256'],tuple(reference['signature9']))
     mount_original=tuple((row.get('Type'),row.get('Source'),row.get('Destination'),row.get('RW'),row.get('Name')) for row in mounts)
     child=Path(reference['path'])
@@ -401,18 +468,66 @@ def _close_unpaused_original(runtime,parent):
 
 
 def _verify_runtime_receipt(document,runtime):
-    if document['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
-    before=runtime.baseline['native']
+    _,_,_,purpose,policy=installation_contract(document)
+    if document['profile']!=policy:raise Held('fixed-source-owned-logical-policy')
+    before=runtime.baseline['worker' if purpose=='retained-pack' else 'native']
     if _image(before['Image'])!=document['image']:raise Held('fixed-external-image-receipt')
     # Real ConfiguredRuntime.static is already canonical encoded bytes.
     profile=runtime.static(before)
     if type(profile) is not bytes or sha(profile)!=document['runtime_profile_sha256']:raise Held('fixed-external-profile-receipt')
 
 
+def native_control_original(installation,runtime,session):
+    """Invoke only the installed loopback observer as the Native file owner.
+
+    This transport returns a checked observation, never reader-resume authority.
+    The owning pack conversation must call it outside its Writer interval.
+    """
+    if type(installation) is not Installation:raise Held('fixed-root-installation-type')
+    row=installation.close();document=row['document']
+    if installation_contract(document)[3]!='retained-pack':raise Held('fixed-native-control-purpose')
+    parent=owning_parent(row)
+    if type(runtime) is not parent.ConfiguredRuntime or runtime not in parent._RUNTIMES:raise Held('fixed-native-control-original-runtime')
+    if runtime.ids!=document['ids']:raise Held('fixed-native-control-runtime-IDs')
+    parent.ConfiguredRuntime.close(runtime)
+    _verify_runtime_receipt(document,runtime)
+    code=read(PACKAGE/'comic_retained_native_control.py',row['frame'])
+    if sha(code)!=document['host_sources']['comic_retained_native_control.py']:raise Held('fixed-native-control-source')
+    reference=document['native_config_ref']
+    _,config_frame=parent.read_original(_host_original_ref(reference,runtime.baseline['native']['Mounts']))
+    # Freeze request bytes before any subprocess callback, and retain the owning
+    # installation deadline rather than minting a new observation lifetime.
+    packet=canonical(dict(version=1,kind='root-retained-native-control-v1',nonce=session['nonce'],
+        config_ref=reference,session=session,deadline=row['deadline']))
+    if len(packet)>4096:raise Held('fixed-native-control-input-bound')
+    parent.raw(config_frame);parent.ConfiguredRuntime.close(runtime);installation.close()
+    remaining=row['deadline']-time.monotonic()
+    if remaining<=0:raise Held('fixed-native-control-deadline')
+    try:
+        result=subprocess.run(['docker','exec','--interactive','--user','1000:1000',document['ids']['native'],
+            'python3','-I','-B','-c',code.decode()],input=packet,capture_output=True,
+            timeout=min(60,remaining),check=True)
+    except (subprocess.SubprocessError,OSError):raise Held('fixed-native-control-held') from None
+    if not 1<len(result.stdout)<=4097 or not result.stdout.endswith(b'\n') or result.stderr:raise Held('fixed-native-control-output')
+    answer=parse(result.stdout[:-1]);frozen=parse(packet)
+    if (set(answer)!={'version','kind','nonce','config_signature9','response_sha256','response'}
+            or type(answer['version']) is not int or answer['version']!=1
+            or answer['kind']!='root-retained-native-control-result-v1' or answer['nonce']!=frozen['nonce']
+            or answer['config_signature9']!=frozen['config_ref']['signature9']
+            or not hexadecimal(answer['response_sha256'])):raise Held('fixed-native-control-result')
+    # The exact installed child validates the API response. Reclose all owning
+    # originals after decoding and Docker observations, before returning bytes.
+    encoded=canonical(answer)
+    parent.ConfiguredRuntime.close(runtime);installation.close();parent.raw(config_frame)
+    raw(row['frame'])
+    return encoded
+
+
 def launch_original(installation, input_ref, input_child):
     """No caller command/key/profile/image. Root receipt owns every launch pin."""
     if type(installation) is not Installation:raise Held('fixed-root-installation-type')
-    row=installation.close();document=row['document'];parent=row['modules']['comic_retained_standalone_parent.py']
+    row=installation.close();document=row['document'];parent=owning_parent(row)
+    if installation_contract(document)[3]=='retained-pack':raise Held('fixed-pack-launch-not-yet-integrated')
     runtime=parent.ConfiguredRuntime.observe(document['ids'], installed_anchors=True)
     _verify_runtime_receipt(document,runtime)
     bootstrap=read(PACKAGE/'BOOTSTRAP.py',row['frame'])
@@ -482,12 +597,13 @@ def launch_original(installation, input_ref, input_child):
                        pipes=pipes,stdin=process.stdin,stdout=process.stdout,owner=(os.getpid(),threading.get_ident()),
                        deadline=time.monotonic()+PREAUTH_SECONDS,total_deadline=row['deadline'],bootframe=bootframe,inputframe=inputframe,
                        recovery=recovery,preflight=preflight,boot=boot,input_sha256=input_ref['sha256'],input_bytes=inputs,bootstrap=bootstrap,
-                       nonce=nonce,session=os.urandom(32).hex(),admission=None,sequence=0,previous=b'',auth_challenge=None)
+                       nonce=nonce,session=os.urandom(32).hex(),admission=None,sequence=0,previous=b'',auth_challenge=None,
+                       purpose=installation_contract(document)[3],writer_interval=False)
     state=_LAUNCHES[obj]
     object_keys=('installation','runtime','process','stdin','stdout')
-    value_keys=('cid','started','selected_pid','start','attach_pid','pipes','owner','total_deadline','bootframe','inputframe','input_sha256','input_bytes','bootstrap','nonce','session')
+    value_keys=('cid','started','selected_pid','start','attach_pid','pipes','owner','total_deadline','bootframe','inputframe','input_sha256','input_bytes','bootstrap','nonce','session','purpose')
     _LAUNCH_SEALS[obj]=(state,dict(objects=tuple((key,state[key]) for key in object_keys),values=tuple((key,state[key]) for key in value_keys),boot=json.loads(inputs),preflight=copy.deepcopy(preflight),recovery=copy.deepcopy(recovery),runtime_registry=parent._RUNTIMES[runtime],runtime_table=parent._RUNTIMES,terminal_table=parent._TERMINALS))
-    _PHASES[obj]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[obj]=phase_original(state)
     parent.raw(bootframe);parent.raw(inputframe);obj.close();return obj
 
 
@@ -507,16 +623,16 @@ def _packet(launch):
 def _signed(launch, assertion):
     state=launch.close();row=state['installation'].close();crypto=row['modules']['private_crypto.py']
     if type(assertion) is not dict:raise Held('fixed-signer-owned-assertion')
-    domain=assertion.get('domain')
-    if domain=='standalone-fixed-launch-admission-v1':
-        if set(assertion)!={'domain','measured','challenge','child_pid','child_start','challenge_frame','session','broker_nonce','purpose','lifetime_ms','host_observation'} or state['admission'] is not None or assertion['session']!=state['session'] or assertion['broker_nonce']!=state['nonce'] or assertion['child_pid']!=1 or assertion['child_start']!=state['start'] or assertion['purpose']!='retained-standalone' or type(assertion['lifetime_ms']) is not int or assertion['lifetime_ms']!=5000 or not hexadecimal(assertion['challenge']) or not hexadecimal(assertion['challenge_frame']):raise Held('fixed-signer-owned-admission')
+    protocol=launch_protocol(row['document']);domain=assertion.get('domain')
+    if domain==protocol[2]:
+        if set(assertion)!={'domain','measured','challenge','child_pid','child_start','challenge_frame','session','broker_nonce','purpose','lifetime_ms','host_observation'} or state['admission'] is not None or assertion['session']!=state['session'] or assertion['broker_nonce']!=state['nonce'] or assertion['child_pid']!=1 or assertion['child_start']!=state['start'] or assertion['purpose']!=protocol[0] or type(assertion['lifetime_ms']) is not int or assertion['lifetime_ms']!=5000 or not hexadecimal(assertion['challenge']) or not hexadecimal(assertion['challenge_frame']):raise Held('fixed-signer-owned-admission')
         expected=dict(installation=row['document']['anchor_sha256'],key=row['document']['key_sha256'],broker_sources=row['document']['broker_sources'],child_sources=row['document']['inventory_sha256'],bootstrap=row['document']['bootstrap_sha256'],input=state['input_sha256'],review=state['boot']['review_ref']['sha256'],deployment=row['document']['deployment'],profile=row['document']['profile'])
         if assertion['measured']!=expected or assertion['host_observation']!=dict(container=state['cid'],start=sha(state['started'].encode()),host_pid=os.getpid(),image=row['document']['image']):raise Held('fixed-signer-original-observations')
-    elif domain=='standalone-fixed-stage-v3':
+    elif domain==protocol[3]:
         sequence=state['sequence']+1
         if set(assertion)!={'domain','session','admission','challenge','sequence','kind','previous','payload','payload_digest'} or sequence not in (2,4,6) or type(assertion['sequence']) is not int or assertion['sequence']!=sequence or assertion['kind']!={2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence] or assertion['session']!=state['session'] or assertion['admission']!=state['admission'] or assertion['challenge']!=state['auth_challenge'] or assertion['previous']!=state['previous'].hex():raise Held('fixed-signer-owned-stage')
         wire=assertion['payload']
-        if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!='standalone-retained-repeat-v3' or wire['kind']!=assertion['kind'] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or assertion['payload_digest']!=sha(canonical(wire)):raise Held('fixed-signer-original-stage-wire')
+        if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!=protocol[4] or wire['kind']!=assertion['kind'] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or assertion['payload_digest']!=sha(canonical(wire)):raise Held('fixed-signer-original-stage-wire')
     else:raise Held('fixed-signer-finite-domain')
     data=canonical(assertion);key_original=dict(row['frame'][0])[KEY]
     fd=os.open(KEY,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
@@ -543,28 +659,33 @@ def authenticate_original(launch):
     state=launch.close()
     if state['admission'] is not None:raise Held('fixed-preauth-once')
     challenge_raw=_packet(launch);challenge=parse(challenge_raw);row=state['installation'].close();doc=row['document']
+    purpose,challenge_domain,admission_domain,_,_=launch_protocol(doc)
+    protocol=launch_protocol(doc)
     expected=dict(installation=doc['anchor_sha256'],key=doc['key_sha256'],broker_sources=doc['broker_sources'],
                   child_sources=doc['inventory_sha256'],bootstrap=doc['bootstrap_sha256'],input=state['input_sha256'],
                   review=state['boot']['review_ref']['sha256'],deployment=doc['deployment'],profile=doc['profile'])
-    if set(challenge)!={'domain','challenge','child_pid','child_start','measured'} or challenge['domain']!='standalone-launch-challenge-v3' or not hexadecimal(challenge['challenge']) or challenge['child_pid']!=1 or challenge['child_start']!=state['start'] or challenge['measured']!=expected:raise Held('fixed-original-child-challenge')
-    assertion=dict(domain='standalone-fixed-launch-admission-v1',measured=expected,challenge=challenge['challenge'],
+    if set(challenge)!={'domain','challenge','child_pid','child_start','measured'} or challenge['domain']!=protocol[1] or not hexadecimal(challenge['challenge']) or challenge['child_pid']!=1 or challenge['child_start']!=state['start'] or challenge['measured']!=expected:raise Held('fixed-original-child-challenge')
+    assertion=dict(domain=protocol[2],measured=expected,challenge=challenge['challenge'],
                    child_pid=1,child_start=state['start'],challenge_frame=sha(challenge_raw),session=state['session'],
-                   broker_nonce=state['nonce'],purpose='retained-standalone',lifetime_ms=5000,
+                   broker_nonce=state['nonce'],purpose=protocol[0],lifetime_ms=5000,
                    host_observation=dict(container=state['cid'],start=sha(state['started'].encode()),host_pid=os.getpid(),image=doc['image']))
     packet,raw_signature,signature=_signed(launch,assertion)
     _send_original(launch,packet)
     state['admission']=sha(raw_signature+signature);state['previous']=hashlib.sha256(challenge_raw+raw_signature+signature).digest()
     state['deadline']=min(state['total_deadline'],_PHASES[launch][0]-PREAUTH_SECONDS+1800);state['auth_challenge']=challenge['challenge']
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[launch]=phase_original(state)
     launch.close();return state['admission']
 
 
 def _send_original(launch,packet):
-    state=launch.close();view=memoryview(packet+b'\n')
+    state=launch.close();view=memoryview(packet)
     while view:
+        launch.close()
         count=os.write(state['stdin'].fileno(),view)
         if count<=0:raise Held('fixed-original-short-write')
         view=view[count:]
+    launch.close()
+    if os.write(state['stdin'].fileno(),b'\n')!=1:raise Held('fixed-original-delimiter-write')
     launch.close()
 
 
@@ -577,7 +698,7 @@ def _recovery_publication(value):
 
 
 def observe_recovery_original(installation,runtime,boot):
-    row=installation.close();parent=row['modules']['comic_retained_standalone_parent.py']
+    row=installation.close();parent=owning_parent(row)
     if type(runtime) is not parent.ConfiguredRuntime or runtime.quiescent:raise Held('fixed-recovery-before-pause')
     scope=row['modules']['publication_native_configured_scope.py']
     probe=read(PACKAGE/'comic_native_process_probe.py',row['frame'])
@@ -745,7 +866,7 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
     import configparser
     import sqlite3
     from contextlib import closing
-    row=installation.close();parent=row['modules']['comic_retained_standalone_parent.py']
+    row=installation.close();parent=owning_parent(row)
     helper=row['modules']['comic_retained_standalone_backup.py']
     native_mounts=runtime.baseline['native']['Mounts'];reader_mounts=runtime.baseline['reader']['Mounts']
     data=parent.mapped_host(native_mounts,boot['data_root'])
@@ -843,31 +964,38 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
 
 
 def _receive_stage(launch, sequence, kind):
-    state=launch.close();data=_packet(launch);wire=parse(data)
-    if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!='standalone-retained-repeat-v3' or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['kind']!=kind or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or state['sequence']!=sequence-1:raise Held('fixed-original-child-stage')
+    state=launch.close();protocol=launch_protocol(state['installation'].close()['document']);data=_packet(launch);wire=parse(data)
+    if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!=protocol[4] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['kind']!=kind or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or state['sequence']!=sequence-1:raise Held('fixed-original-child-stage')
     normalized=canonical(dict(sequence=sequence,kind='final-ACK' if sequence==5 else kind,payload=wire))
     launch.close()
     state['previous']=hashlib.sha256(state['previous']+normalized).digest();state['sequence']=sequence
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[launch]=phase_original(state)
     launch.close();return data,wire
 
 
 def _send_stage(launch, sequence, kind, payload, *, exit_permission=False):
-    state=launch.close()
+    state=launch.close();protocol=launch_protocol(state['installation'].close()['document'])
+    purpose=protocol[0]
     if state['sequence']!=sequence-1 or sequence not in (2,4,6) or kind!={2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence] or exit_permission is not (sequence==6):raise Held('fixed-own-host-stage')
-    regular=dict(version=3,protocol='standalone-retained-repeat-v3',kind=kind,nonce=state['boot']['nonce'],sequence=sequence,challenge=state['boot']['challenge'],payload=payload)
-    assertion=dict(domain='standalone-fixed-stage-v3',session=state['session'],admission=state['admission'],challenge=state['auth_challenge'],sequence=sequence,kind=kind,previous=state['previous'].hex(),payload=regular,payload_digest=sha(canonical(regular)))
+    regular=dict(version=3,protocol=protocol[4],kind=kind,nonce=state['boot']['nonce'],sequence=sequence,challenge=state['boot']['challenge'],payload=payload)
+    assertion=dict(domain=protocol[3],session=state['session'],admission=state['admission'],challenge=state['auth_challenge'],sequence=sequence,kind=kind,previous=state['previous'].hex(),payload=regular,payload_digest=sha(canonical(regular)))
     packet,data,signature=_signed(launch,assertion)
     # Every encoding/signature callback completes while the original child is held.
     launch.close()
+    if purpose=='retained-pack' and sequence==2:
+        if state['writer_interval'] is not False:raise Held('fixed-pack-Writer-interval-once')
+        state['writer_interval']=True;_PHASES[launch]=phase_original(state)
     if exit_permission:
-        parent=state['installation'].close()['modules']['comic_retained_standalone_parent.py'];runtime=state['runtime']
+        parent=owning_parent(state['installation'].close());runtime=state['runtime']
         if launch in _EXITS or runtime in parent._TERMINALS:raise Held('fixed-original-terminal-absence')
-        view=memoryview(packet+b'\n')
+        view=memoryview(packet)
         while view:
+            launch.close()
             count=os.write(state['stdin'].fileno(),view)
             if count<=0:raise Held('fixed-original-exit-short-write')
             view=view[count:]
+        launch.close()
+        if os.write(state['stdin'].fileno(),b'\n')!=1:raise Held('fixed-original-exit-delimiter-write')
         # Only the exact original child may exit after the complete signed sixth frame.
         code=state['process'].wait(timeout=min(180,max(0.001,state['deadline']-time.monotonic())))
         if code!=0 or launch in _EXITS or runtime in parent._TERMINALS:raise Held('fixed-original-natural-exit')
@@ -875,15 +1003,17 @@ def _send_stage(launch, sequence, kind, payload, *, exit_permission=False):
         parent._TERMINALS[runtime]=terminal;_EXITS[launch]=terminal
     else:_send_original(launch,packet)
     state['previous']=hashlib.sha256(state['previous']+data+signature).digest();state['sequence']=sequence
-    if sequence==2:state['deadline']=min(state['total_deadline'],time.monotonic()+180)
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    if sequence==2 and purpose=='retained-standalone':state['deadline']=min(state['total_deadline'],time.monotonic()+180)
+    _PHASES[launch]=phase_original(state)
     launch.close()
 
 
 def run_original(launch):
     """Fixed six-frame owner; no caller signer, ready payload, job, or grant callback."""
     if type(launch) is not OriginalLaunch:raise Held('fixed-original-run-type')
-    state=launch.close();parent=state['installation'].close()['modules']['comic_retained_standalone_parent.py']
+    state=launch.close();parent=owning_parent(state['installation'].close())
+    if installation_contract(state['installation'].close()['document'])[3]=='retained-pack':
+        raise Held('pack-independent-terminal-owner-not-installed')
     if state['sequence']!=0 or state['admission'] is not None:raise Held('fixed-original-run-once')
     mounts=json.loads(canonical(state['runtime'].baseline['native']['Mounts']))
     boot=json.loads(canonical(state['boot']));hostboot=dict(boot,input_sha256=state['input_sha256'])

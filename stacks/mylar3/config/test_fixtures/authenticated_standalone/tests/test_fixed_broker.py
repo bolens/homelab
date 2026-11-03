@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 HERE=Path(__file__).resolve().parent.parent
@@ -96,6 +97,22 @@ class BrokerTests(unittest.TestCase):
         with self.assertRaisesRegex(self.m.Held,'logical-policy'):self.m._verify_runtime_receipt(bad,runtime)
         self.assertEqual(document['profile'],self.m.LOGICAL_PROFILE_SHA)
         self.assertNotEqual(document['profile'],document['runtime_profile_sha256'])
+    def test_pack_receipt_binds_worker_image_and_profile(self):
+        parent=self.m.load_original_installation().close()['modules']['comic_retained_standalone_parent.py']
+        runtime=object.__new__(parent.ConfiguredRuntime)
+        worker=dict(Id='5'*64,Image='sha256:'+'e'*64,Config={},HostConfig={},Mounts=[],NetworkSettings=dict(Networks={}))
+        native=dict(worker,Id='3'*64,Image='sha256:'+'6'*64)
+        runtime.baseline=dict(native=native,worker=worker)
+        document=dict(self.doc,kind='pack-root-deployment-v1',profile=self.m.PACK_PROFILE_SHA,
+                      runtime_profile_sha256=self.m.sha(runtime.static(worker)))
+        self.m._verify_runtime_receipt(document,runtime)
+        document['image']='6'*64
+        with self.assertRaisesRegex(self.m.Held,'image-receipt'):self.m._verify_runtime_receipt(document,runtime)
+        document['image']='e'*64;document['runtime_profile_sha256']=self.m.sha(runtime.static(native))
+        with self.assertRaisesRegex(self.m.Held,'profile-receipt'):self.m._verify_runtime_receipt(document,runtime)
+        document['profile']=self.m.LOGICAL_PROFILE_SHA
+        with self.assertRaisesRegex(self.m.Held,'logical-policy'):self.m._verify_runtime_receipt(document,runtime)
+
     def test_timestamp_valid_poisoned_bytecode_cannot_replace_verified_source(self):
         import py_compile,marshal
         leaf=self.pkg/'private_crypto.py';cache=Path(py_compile.compile(str(leaf),doraise=True));header=cache.read_bytes()[:16]
@@ -184,7 +201,8 @@ class BrokerTests(unittest.TestCase):
         process=subprocess.Popen([sys.executable,'-I','-B','-c','pass'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE);process.wait(timeout=10)
         self.addCleanup(process.stdin.close);self.addCleanup(process.stdout.close);self.addCleanup(process.stderr.close)
         runtime=object.__new__(parent.ConfiguredRuntime);runtime.process=process;runtime.selected='6'*64;runtime.selected_started='original-start';runtime.selected_pid=process.pid;runtime.selected_static=b'original-profile'
-        runtime.close=lambda *args: None  # Declared runtime observation fixture only.
+        observation=patch.object(parent.ConfiguredRuntime,'close',lambda *args: None)
+        observation.start();self.addCleanup(observation.stop)  # Declared class observation double only.
         terminal=(runtime.selected,runtime.selected_started,runtime.selected_static,process);registry=b'original-runtime-seal'
         parent._RUNTIMES[runtime]=registry;parent._TERMINALS[runtime]=terminal
         obj=object.__new__(self.m.OriginalLaunch);frame=((),(),())
@@ -202,6 +220,57 @@ class BrokerTests(unittest.TestCase):
             self.assertTrue(fired);parent._TERMINALS[runtime]=terminal;parent._RUNTIMES[runtime]=registry
 
 
+class WriteOrderingTests(unittest.TestCase):
+    """Actual pipe mechanics with explicit signer/runtime doubles; no launch grant."""
+    def setUp(self):
+        self.m=load(HERE/'source/comic_retained_standalone_broker.py','ordering_fixture')
+        self.read_fd,self.write_fd=os.pipe()
+        self.addCleanup(os.close,self.read_fd);self.addCleanup(os.close,self.write_fd)
+        self.written=False;self.waited=False
+        owner=self
+        class Stream:
+            def fileno(inner):return owner.write_fd
+        class Process:
+            def wait(inner,**kwargs):owner.waited=True;return 0
+        class Runtime:pass
+        runtime=Runtime();runtime.selected='selected';runtime.selected_started='started'
+        runtime.selected_static=b'profile'
+        class Installation:
+            def close(inner):
+                class Parent:pass
+                parent=Parent();parent._TERMINALS={}
+                return dict(document=dict(kind='standalone-root-deployment-v1'),
+                            modules={'comic_retained_standalone_parent.py':parent})
+        import time
+        self.state=dict(stdin=Stream(),process=Process(),runtime=runtime,installation=Installation(),
+            sequence=5,boot=dict(nonce='a'*64,challenge='b'*64),session='c'*64,admission='d'*64,
+            auth_challenge='e'*64,previous=b'',deadline=time.monotonic()+30)
+        class Launch:
+            def close(inner):
+                if owner.written:raise owner.m.Held('synthetic original drift')
+                return owner.state
+        self.launch=Launch()
+        write=os.write
+        def changed(fd,data):
+            result=write(fd,data)
+            if fd==self.write_fd:self.written=True
+            return result
+        self.writer=patch.object(self.m.os,'write',changed)
+        self.writer.start();self.addCleanup(self.writer.stop)
+    def test_original_frame_closes_before_delimiter(self):
+        with self.assertRaisesRegex(self.m.Held,'synthetic original drift'):
+            self.m._send_original(self.launch,b'original')
+        os.set_blocking(self.read_fd,False)
+        self.assertEqual(os.read(self.read_fd,1024),b'original')
+    def test_exit_permission_closes_before_delimiter_and_wait(self):
+        with patch.object(self.m,'_signed',return_value=(b'original',b'assertion',b'signature')):
+            with self.assertRaisesRegex(self.m.Held,'synthetic original drift'):
+                self.m._send_stage(self.launch,6,'observed-exit',{},exit_permission=True)
+        os.set_blocking(self.read_fd,False)
+        self.assertEqual(os.read(self.read_fd,1024),b'original')
+        self.assertFalse(self.waited)
+
+
 class MappingTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name)
@@ -210,6 +279,101 @@ class MappingTests(unittest.TestCase):
         self.ref=dict(path='/data/config.ini',sha256=hashlib.sha256(b'original').hexdigest(),signature9=list(self.m.nine(self.file.lstat())))
         self.mounts=[dict(Type='bind',Source=str(self.root),Destination='/data',RW=True)]
     def tearDown(self):self.tmp.cleanup()
+    def native_transport(self):
+        # Explicit installation/runtime/CLI doubles test transport closure only.
+        # They grant no Root enrollment, real HTTP or lifecycle acceptance.
+        m=self.m;helper=self.root/'comic_retained_native_control.py';helper.write_bytes(b'# public fixed helper\n')
+        frame=(((helper,m.nine(helper.lstat())),),tuple((p,m.five(p.lstat())) for p in helper.parents))
+        config_frame=(((self.file,m.nine(self.file.lstat())),),tuple((p,m.five(p.lstat())) for p in self.file.parents))
+        parent=SimpleNamespace(read_original=lambda ref:(b'original',config_frame),raw=m.raw)
+        worker=dict(Image='sha256:'+'e'*64,Mounts=[]);native=dict(Image='sha256:'+'f'*64,Mounts=self.mounts)
+        self.closed=[]
+        owner=self
+        class Runtime:
+            static=staticmethod(m.canonical)
+            def close(inner):owner.closed.append('runtime')
+        runtime=Runtime();runtime.ids=dict(native='1'*64,reader='2'*64,worker='3'*64)
+        runtime.baseline=dict(native=native,worker=worker)
+        parent.ConfiguredRuntime=Runtime;parent._RUNTIMES={runtime:b'explicit-test-registry'}
+        document=dict(kind='pack-root-deployment-v1',profile=m.PACK_PROFILE_SHA,image='e'*64,
+            runtime_profile_sha256=m.sha(runtime.static(worker)),ids=runtime.ids,native_config_ref=self.ref,
+            host_sources={'comic_retained_native_control.py':m.sha(helper.read_bytes())})
+        row=dict(document=document,modules={'comic_retained_pack_parent.py':parent},frame=frame,deadline=m.time.monotonic()+30)
+        installation=object.__new__(m.Installation)
+        def original(_):self.closed.append('installation');return row
+        for context in (patch.object(m,'PACKAGE',self.root),patch.object(m.Installation,'close',original)):
+            context.start();self.addCleanup(context.stop)
+        session=dict(nonce='a'*64,version=1,kind='retained-native-session-v1',action='observe',request={},proof=None)
+        answer=dict(version=1,kind='root-retained-native-control-result-v1',nonce=session['nonce'],
+            config_signature9=self.ref['signature9'],response_sha256='b'*64,response={'success':True,'data':{}})
+        return installation,runtime,session,answer,helper
+
+    def test_native_transport_fixed_owner_original_deadline_and_closed_sources(self):
+        installation,runtime,session,answer,_=self.native_transport()
+        calls=[]
+        def run(args,**kwargs):
+            calls.append((args,kwargs));return SimpleNamespace(stdout=self.m.canonical(answer)+b'\n',stderr=b'')
+        with patch.object(self.m.subprocess,'run',run):
+            self.assertEqual(self.m.parse(self.m.native_control_original(installation,runtime,session)),answer)
+        args,options=calls[0]
+        self.assertEqual(args[:6],['docker','exec','--interactive','--user','1000:1000',runtime.ids['native']])
+        self.assertEqual(args[6:10],['python3','-I','-B','-c'])
+        packet=self.m.parse(options['input']);self.assertEqual(packet['config_ref'],self.ref)
+        self.assertEqual(packet['session'],session);self.assertGreater(packet['deadline'],self.m.time.monotonic())
+        self.assertTrue(options['check']);self.assertTrue(options['capture_output']);self.assertGreaterEqual(self.closed.count('runtime'),3)
+
+    def test_native_transport_refuses_incomplete_or_failed_child_without_replay(self):
+        installation,runtime,session,answer,_=self.native_transport()
+        for result in (SimpleNamespace(stdout=self.m.canonical(answer),stderr=b''),
+                       SimpleNamespace(stdout=self.m.canonical(dict(answer,nonce='c'*64))+b'\n',stderr=b''),
+                       SimpleNamespace(stdout=self.m.canonical(answer)+b'\n',stderr=b'private diagnostic')):
+            with self.subTest(result=result),patch.object(self.m.subprocess,'run',return_value=result) as run:
+                with self.assertRaises(self.m.Held):self.m.native_control_original(installation,runtime,session)
+                run.assert_called_once()
+        with patch.object(self.m.subprocess,'run',side_effect=self.m.subprocess.CalledProcessError(2,['docker'])) as run:
+            with self.assertRaisesRegex(self.m.Held,'native-control-held'):self.m.native_control_original(installation,runtime,session)
+            run.assert_called_once()
+
+    def test_native_transport_recloses_helper_after_response(self):
+        installation,runtime,session,answer,helper=self.native_transport()
+        def changed(*args,**kwargs):
+            helper.chmod(0o600 if helper.stat().st_mode&0o777!=0o600 else 0o400)
+            return SimpleNamespace(stdout=self.m.canonical(answer)+b'\n',stderr=b'')
+        with patch.object(self.m.subprocess,'run',changed),self.assertRaisesRegex(self.m.Held,'original-file'):
+            self.m.native_control_original(installation,runtime,session)
+
+    def test_native_transport_refuses_foreign_runtime_before_its_callback(self):
+        installation,runtime,session,_,_=self.native_transport()
+        foreign=SimpleNamespace(**runtime.__dict__,close=lambda:self.fail('foreign callback'))
+        with patch.object(self.m.subprocess,'run') as run:
+            with self.assertRaisesRegex(self.m.Held,'original-runtime'):self.m.native_control_original(installation,foreign,session)
+            run.assert_not_called()
+        parent=installation.close()['modules']['comic_retained_pack_parent.py'];parent._RUNTIMES.pop(runtime)
+        self.closed.clear()
+        with self.assertRaisesRegex(self.m.Held,'original-runtime'):self.m.native_control_original(installation,runtime,session)
+        self.assertNotIn('runtime',self.closed)
+        parent._RUNTIMES[runtime]=b'explicit-test-registry';runtime.ids=dict(runtime.ids,native='9'*64)
+        self.closed.clear()
+        with self.assertRaisesRegex(self.m.Held,'runtime-IDs'):self.m.native_control_original(installation,runtime,session)
+        self.assertNotIn('runtime',self.closed)
+
+    def test_control_reference_refuses_noncanonical_or_nonfile_before_mapping(self):
+        self.assertIs(self.m.native_config_reference(self.ref),self.ref)
+        variants=[dict(self.ref,path=p) for p in ('relative','//data/config.ini','/data/../config.ini','/data//config.ini')]
+        variants+=[dict(self.ref,sha256=True),dict(self.ref,signature9=[True]*9),dict(self.ref,foreign=True)]
+        for index,value in ((2,0),(2,2*1024**2+1),(5,0o40700),(8,2)):
+            vector=list(self.ref['signature9']);vector[index]=value;variants.append(dict(self.ref,signature9=vector))
+        for value in variants:
+            with self.subTest(reference=value),self.assertRaises(self.m.Held):self.m.native_config_reference(value)
+    def test_archive_mapping_preserves_large_hardlinked_original_refs(self):
+        # This mapper also serves standalone source/target archives. Native INI
+        # limits must not silently narrow those existing exact-ref contracts.
+        with self.file.open('r+b') as stream:stream.truncate(self.m.SOURCE_LIMIT+1)
+        os.link(self.file,self.root/'retained-alias')
+        reference=dict(self.ref,signature9=list(self.m.nine(self.file.lstat())),
+                       sha256=hashlib.sha256(self.file.read_bytes()).hexdigest())
+        self.assertEqual(self.m._host_original_ref(reference,self.mounts)['signature9'],reference['signature9'])
+        with self.assertRaisesRegex(self.m.Held,'native-config-file'):self.m.native_config_reference(reference)
     def test_differing_paths_preserve_child_reference(self):
         original=json.dumps(self.ref,sort_keys=True)
         host=self.m._host_original_ref(self.ref,self.mounts)

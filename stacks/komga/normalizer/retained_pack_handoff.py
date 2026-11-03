@@ -17,7 +17,7 @@ from publication_guard import current, scope, remote_unlocked, evidence
 ENABLED=False
 NATIVE_SOURCE_ROOT='/app/mylar3/mylar'
 NATIVE_API_SHA=None  # Root must prove final installed canonical API bytes.
-NATIVE_SOURCE_PINS={'native_writers.py': '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74', 'publication_retained_api.py': '27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad', 'publication_retained_delivery.py': '470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
+NATIVE_SOURCE_PINS={'native_writers.py': 'ca683bd94d3284770c912fcb73fb10cf450a4844b4b4f25f41de8257a9310954', 'publication_retained_api.py': '1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9', 'publication_retained_delivery.py': 'e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
 # Missing installed api.py source pin keeps operational export consumption held.
 
 _RETURN=Maintenance.retained_pack_return

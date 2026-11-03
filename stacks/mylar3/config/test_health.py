@@ -317,7 +317,7 @@ class BusyHealthTest(unittest.TestCase):
         self.assertTrue(assess(sample,{},sample['time'])['errors'])
 
     def test_ready_probe_then_real_contention_never_enters_long_operation(self):
-        import threading,time
+        import threading
         from unittest.mock import patch
         entered=threading.Event();release=threading.Event();errors=[]
         def held():
@@ -329,15 +329,23 @@ class BusyHealthTest(unittest.TestCase):
         thread=threading.Thread(target=held)
         actual=self.f.native.startup_status
         sql=patch('sqlite3.connect',side_effect=AssertionError('no SQL after ready-to-busy race'))
+        probes=[];timeouts=[];real_hold=self.f.Writer.hold;main_thread=threading.get_ident()
+        from contextlib import contextmanager
+        @contextmanager
+        def tracked(writer,**kwargs):
+            if threading.get_ident()==main_thread:timeouts.append(kwargs.get('timeout'))
+            with real_hold(writer,**kwargs):yield writer
         def status():
-            value=actual();self.assertEqual(value['state'],'ready')
-            thread.start();self.assertTrue(entered.wait(1));sql.start()
+            value=actual();probes.append(value['state'])
+            if len(probes)==1:
+                self.assertEqual(value['state'],'ready')
+                thread.start();self.assertTrue(entered.wait(1));sql.start()
             return value
-        started=time.monotonic()
         try:
-            with patch.object(self.f.native,'startup_status',side_effect=status),patch.object(self.worker,'_snapshot',side_effect=AssertionError('busy cannot enter full snapshot')):
+            with patch.object(self.f.Writer,'hold',tracked),patch.object(self.f.native,'startup_status',side_effect=status),patch.object(self.worker,'_snapshot',side_effect=AssertionError('busy cannot enter full snapshot')),patch.object(self.f.native,'operation',side_effect=AssertionError('busy cannot enter long operation')):
                 sample=self.worker.snapshot()
-            self.assertLess(time.monotonic()-started,1)
+            self.assertEqual(probes,['ready','held'])
+            self.assertTrue(timeouts);self.assertTrue(all(value==0 for value in timeouts))
             self.assertEqual(sample['publication']['reason'],'writer-busy')
             self.assertFalse(assess(sample,{},sample['time'])['errors'])
         finally:
@@ -406,6 +414,19 @@ class BusyHealthTest(unittest.TestCase):
         sample['time']=start+1000
         new=assess(sample,result['observations'],start+1000)
         self.assertEqual(new['observations']['_publication_busy']['since'],start+1000)
+
+    def test_retained_session_liveness_is_held_and_preserves_failure_clocks(self):
+        sample=self.held_sample();sample['publication']['reason']='retained-session'
+        start=sample['time']
+        self.assertFalse(assess(sample,{},start)['errors'])
+        self.assertEqual(sample['publication']['state'],'held')
+        sample['busy_workers']['queues']['SEARCH-QUEUE']['alive']=False
+        self.assertIn('SEARCH-QUEUE is down',assess(sample,{},start)['errors'])
+        sample['busy_workers']['queues']['SEARCH-QUEUE']['alive']=True
+        previous={'_publication_busy':{'since':start-900}}
+        self.assertTrue(assess(sample,previous,start)['errors'])
+        sample.pop('busy_workers')
+        self.assertTrue(assess(sample,{},start)['errors'])
 
     def test_persistent_and_unknown_publication_holds_never_gain_grace(self):
         sample=self.held_sample()

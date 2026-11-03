@@ -12,6 +12,8 @@ import threading
 import time
 
 PROTOCOL = b'mylar-media-writer-v1\n'
+NATIVE_SESSION_PENDING = 'retained-native-session-v1.pending'
+NATIVE_SESSION_CLOSED = 'retained-native-session-v1.closed'
 _REGISTRY = {}
 _REGISTRY_LOCK = threading.Lock()
 

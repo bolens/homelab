@@ -154,6 +154,24 @@ def request(raw):
     return value
 
 
+def _ordinary_native_session(writer):
+    return _ordinary_native_session_root(writer.root)
+
+
+def _ordinary_native_session_root(root):
+    # publicationControl owns raw Writer paths outside native_writers.operation.
+    # Check under that same lock, including when this module runs standalone.
+    if __package__:
+        from .media_writer import NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED
+        from . import publication_retained_api
+        reserved=publication_retained_api.session_fenced(root)
+    else:
+        from media_writer import NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED
+        reserved=any(os.path.lexists(Path(root)/name) for name in (NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED))
+    if reserved:
+        raise guard.Unavailable('Native operations reserved for retained completion')
+
+
 class Controller:
     """Trusted native configuration only; construct after request validation."""
     def __init__(self, data_dir, library_roots, *, tool_root=guard.TOOL_ROOT):
@@ -187,6 +205,7 @@ class Controller:
                     writer = Writer(self.writer_root, create=False)
                     with writer.hold(allow_pending=True, allow_tagger_pending=True,
                                      allow_release_pending=True, timeout=0):
+                        _ordinary_native_session(writer)
                         result['intent'] = self.receipt(value['token'], writer)
                 except (ValueError, OSError, RuntimeError):
                     result['intent'] = dict(token=value['token'], outcome='unavailable')
@@ -198,6 +217,7 @@ class Controller:
                 import publication_archive_dispatch
             writer=Writer(self.writer_root,create=False)
             with writer.hold(timeout=0):
+                _ordinary_native_session(writer)
                 return publication_archive_dispatch.dispatch(self,writer,value)
         if action in ('prepare-archive-repair','archive-repair-status'):
             if __package__:
@@ -206,18 +226,26 @@ class Controller:
                 import publication_archive_prepare_routes
             writer=Writer(self.writer_root,create=False)
             with writer.hold(timeout=0):
+                _ordinary_native_session(writer)
                 return publication_archive_prepare_routes.dispatch(self,writer,value)
         if action == 'prepare-fresh':
             if __package__:
                 from . import publication_fresh
             else:
                 import publication_fresh
-            token=publication_fresh.prepare(self.root,value['backup'],epoch=value['epoch'])
-            writer=Writer(self.writer_root,create=False)
-            with writer.hold(allow_pending=True,allow_tagger_pending=True,allow_release_pending=True):
-                return dict(version=1,action=action,token=token,outcome='prepared',review=self.receipt(token,writer))
+            from mylar import native_writers
+            # Fresh creation has no Writer yet. Count this whole initialization
+            # so a reservation cannot open between the check and Writer birth.
+            with native_writers._mode():
+                _ordinary_native_session_root(self.writer_root)
+                token=publication_fresh.prepare(self.root,value['backup'],epoch=value['epoch'])
+                writer=Writer(self.writer_root,create=False)
+                with writer.hold(allow_pending=True,allow_tagger_pending=True,allow_release_pending=True):
+                    _ordinary_native_session(writer)
+                    return dict(version=1,action=action,token=token,outcome='prepared',review=self.receipt(token,writer))
         writer = Writer(self.writer_root, create=False)
         with writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
+            _ordinary_native_session(writer)
             return self._dispatch(value, writer)
 
     def _dispatch(self, value, writer):

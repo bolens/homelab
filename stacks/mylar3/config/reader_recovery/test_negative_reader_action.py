@@ -185,6 +185,11 @@ with tempfile.TemporaryDirectory() as temp:
  (sdk/'__init__.py').write_text('import comic_fixture_bundled_dependency\nassert comic_fixture_bundled_dependency.VALUE == "physical-bundled-import"\n')
  (lib/'comic_fixture_bundled_dependency.py').write_text('VALUE="physical-bundled-import"\n')
  for name in names:(sdk/(name+'.py')).write_text('# physical fixture module\n')
+ # Faults below must change the original mode under either public or private
+ # runner umasks; otherwise chmod(0700/0600) can silently inject no fault.
+ for directory in (app,sdk,lib):directory.chmod(0o755)
+ for directory in (sdk,lib):
+  for leaf in directory.iterdir():leaf.chmod(0o644)
  mapping={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sdk.iterdir()};control=root/'sdk-map.json';control.write_text(json.dumps(mapping));control.chmod(0o600)
  ref=dict(path=str(control),sha256=hashlib.sha256(control.read_bytes()).hexdigest())
  if mode=='missing':(lib/'comic_fixture_bundled_dependency.py').unlink()
@@ -193,7 +198,7 @@ with tempfile.TemporaryDirectory() as temp:
  def checked(ref,private=True):
   value=original_checked(ref,private)
   if mode=='first-source-ancestor' and Path(ref['path']).parent==sdk and not changed:
-   sdk.chmod(0o700);changed.append(True)
+   assert sdk.stat().st_mode&0o7777==0o755;sdk.chmod(0o700);changed.append(True)
   if mode=='map-ancestor' and Path(ref['path'])==control and not changed:
    root.chmod(0o750);changed.append(True)
   if mode=='map-leaf' and Path(ref['path'])==control and not changed:
@@ -204,7 +209,9 @@ with tempfile.TemporaryDirectory() as temp:
  def imported(name):
   result=original(name);calls.append(name)
   if name=='mylar.'+names[-1]:
-   if mode=='late-sdk':(sdk/'publication_guard.py').chmod(0o600)
+   if mode=='late-sdk':
+    assert (sdk/'publication_guard.py').stat().st_mode&0o7777==0o644
+    (sdk/'publication_guard.py').chmod(0o600)
    if mode=='late-lib':lib.rename(app/'oldlib');lib.mkdir()
   return result
  m.importlib.import_module=imported

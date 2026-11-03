@@ -142,6 +142,28 @@ symlink/replaced/key/inventory/profile/mount refusals with disposable controls;
 require real image-layout smoke and configured UID1000/pipe/retained-ACK proof
 before operational acceptance. No new signing framework is introduced.
 
+The Root retained run must reserve native operations for the exact selected
+request before taking its paused backup. Reuse the native mode lock and active
+operation counter, and fence ordinary background work and raw
+`publicationControl` Writer routes with a durable, private reservation marker.
+The existing primary normal API key and POST/source checks own this finite
+control; do not change `API_ENABLED` or infer authority from saved JSON. Only
+the same live native process may admit the selected finalize/status calls.
+Restart, expiry, foreign request, busy acquisition and lost custody hold for
+review. Keep the reservation through independent terminal verification, the
+actual Worker release ACK, natural child exit and guarded Reader resumption.
+Close it only against the original nonce, actual final record and complete SQL
+proof, then retain the closed receipt for accepted owning cleanup. This is an
+implementation requirement of T028, not accepted configured execution.
+
+Completion preserves the original pending marker. Only the original native
+process's verified completed object may exempt that exact marker for ordinary
+work. A saved closed receipt, missing marker or daemon restart cannot restore
+that exception. Fresh owning restart reconciliation and eventual marker
+retirement remain required T028 acceptance work. Reservation health reports
+held publication authority with current worker liveness; it does not acquire
+the worker-held Writer, read SQL or grant import/readiness authority.
+
 The participating worker pack stage consumes the effective native policy from the authenticated, prefetched `getHealth` reply. The snapshot binds the existing config bytes, reservation inode and physical cache roots. It is read under the shared Writer without another API call and mapped only through existing `/mylar` and `/ddl-cache` binds. Normal admitted startup initializes the native lock; health never creates it and the worker opens it existing-only through its read-only native config mount. Missing, stale or unmapped policy refuses staging without guessed defaults.
 
 Finalize and verify conversions in independent worker state, then reserve their exact output size plus block/inode overhead before copying into shared cache. Release the cache reservation before import or handoff. Existing verified output may be reused with zero growth above capacity; positive growth still refuses. Partial stages and original payloads remain retained. Independent worker state remains outside this DDL budget and requires its own storage policy. This source design does not establish the actual configured limits or live T030 acceptance.

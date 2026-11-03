@@ -77,7 +77,7 @@
       "owning_adapters": [
         "patch_media_writers.py"
       ],
-      "tracked_source_sha256": "a68691fccb85d1bd136353e3340e66ea84f0b7affab92699084ac8c6b4c9ab60"
+      "tracked_source_sha256": "2fc72bbcdaba09cee44011a097f2ab29a76cc46881643ce927a40f06d361b715"
     },
     "metadata_repair": {
       "owning_adapters": [
@@ -89,7 +89,7 @@
       "owning_adapters": [
         "patch_media_writers.py"
       ],
-      "tracked_source_sha256": "98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74"
+      "tracked_source_sha256": "ca683bd94d3284770c912fcb73fb10cf450a4844b4b4f25f41de8257a9310954"
     },
     "ordinary_import_continuity": {
       "owning_adapters": [
@@ -143,7 +143,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "785f93d90903633ec72570b03926d2581df6fef837f5352a5e1aa651f78ca131"
+      "tracked_source_sha256": "491376875f1ee03c89bb5ade22ad75c2f0595a84ff694cc2e88679de6dbf6795"
     },
     "publication_archive_adoption": {
       "owning_adapters": [
@@ -245,7 +245,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582"
+      "tracked_source_sha256": "01043572a3c8ce1fc899e6264b71d65a12dfd1ca90f8838a69af48185114b20d"
     },
     "publication_identity_adoption": {
       "owning_adapters": [
@@ -306,13 +306,13 @@
       "owning_adapters": [
         "patch_retained_delivery_api.py"
       ],
-      "tracked_source_sha256": "27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad"
+      "tracked_source_sha256": "1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9"
     },
     "publication_retained_delivery": {
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45"
+      "tracked_source_sha256": "e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804"
     },
     "publication_retained_finalize": {
       "owning_adapters": [
@@ -468,7 +468,7 @@
       "owning_adapters": [
         "patch_workflow.py"
       ],
-      "tracked_source_sha256": "9d3998911a9f4e1da2a21e8daaa970566ab6b101589b8e0d541533e1460d41fb"
+      "tracked_source_sha256": "61c6954db6c71718c20d376653e80711ce1b0ffd68d5a6e6fe75c8e6acae7ef3"
     },
     "workflow_nzb": {
       "owning_adapters": [

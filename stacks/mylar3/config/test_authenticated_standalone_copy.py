@@ -88,7 +88,7 @@ class CopyTests(unittest.TestCase):
     def test_last_actual_broker_callback_source_drift_is_refused(self):
         real=subprocess.run;rows=json.loads(self.map.read_bytes());leaf=self.root/rows[0]['path'];fired=[]
         def drift(argv,**kwargs):
-            result=real(argv,**kwargs);self.assertEqual(result.returncode,0);self.assertIn('Ran 26 tests',result.stderr)
+            result=real(argv,**kwargs);self.assertEqual(result.returncode,0);self.assertIn('Ran '+str(self.m.EXPECTED['broker'])+' tests',result.stderr)
             os.chmod(leaf,0o444);fired.append(True);return result
         with patch.object(self.m.subprocess,'run',drift),self.assertRaisesRegex(ValueError,'read drift|original FD'):self.invoke()
         self.assertEqual(fired,[True])

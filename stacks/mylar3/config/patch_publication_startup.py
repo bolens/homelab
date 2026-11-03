@@ -76,7 +76,9 @@ def patched_source(source):
 
 API_BUSY_MARKER = '# homelab-publication-api-startup-busy-v2'
 OLD_API_PREFIX = "        # homelab-publication-api-startup-v1\n        from mylar import native_writers\n        if (native_writers.publication_mode()\n                and self.cmd not in native_writers.PASSIVE_API\n                and native_writers.startup_status()['state'] != 'ready'):\n            self.data = self._failureResponse('Publication authority held; authenticated review required')\n            return\n"
-API_PREFIX = "        # homelab-publication-api-startup-v1\n        # homelab-publication-api-startup-busy-v2\n        from mylar import native_writers\n        if native_writers.publication_mode() and self.cmd not in native_writers.PASSIVE_API:\n            startup = native_writers.startup_status()\n            busy = ((startup['state'], startup.get('reason')) == ('held', 'writer-busy')\n                    and self.cmd not in native_writers.SELF_ADMITTED_API)\n            if startup['state'] != 'ready' and not busy:\n                self.data = self._failureResponse('Publication authority held; authenticated review required')\n                return\n"
+OLD_BUSY_API_PREFIX = "        # homelab-publication-api-startup-v1\n        # homelab-publication-api-startup-busy-v2\n        from mylar import native_writers\n        if native_writers.publication_mode() and self.cmd not in native_writers.PASSIVE_API:\n            startup = native_writers.startup_status()\n            busy = ((startup['state'], startup.get('reason')) == ('held', 'writer-busy')\n                    and self.cmd not in native_writers.SELF_ADMITTED_API)\n            if startup['state'] != 'ready' and not busy:\n                self.data = self._failureResponse('Publication authority held; authenticated review required')\n                return\n"
+API_RETAINED_MARKER = '# homelab-publication-api-retained-session-v1'
+API_PREFIX = "        # homelab-publication-api-startup-v1\n        # homelab-publication-api-startup-busy-v2\n        # homelab-publication-api-retained-session-v1\n        from mylar import native_writers\n        if native_writers.publication_mode() and self.cmd not in native_writers.PASSIVE_API:\n            startup = native_writers.startup_status()\n            busy = ((startup['state'], startup.get('reason')) == ('held', 'writer-busy')\n                    and self.cmd not in native_writers.SELF_ADMITTED_API)\n            retained = ((startup['state'], startup.get('reason')) == ('held', 'retained-session')\n                        and self.cmd in native_writers.SELF_ADMITTED_API)\n            if startup['state'] != 'ready' and not busy and not retained:\n                self.data = self._failureResponse('Publication authority held; authenticated review required')\n                return\n"
 
 def main(directory):
     root=Path(directory)
@@ -90,6 +92,9 @@ def main(directory):
     elif API_BUSY_MARKER not in source:
         if source.count(OLD_API_PREFIX)!=1:raise ValueError('Publication API startup predecessor changed')
         source=source.replace(OLD_API_PREFIX,API_PREFIX,1)
+    elif API_RETAINED_MARKER not in source:
+        if source.count(OLD_BUSY_API_PREFIX)!=1:raise ValueError('Publication API busy predecessor changed')
+        source=source.replace(OLD_BUSY_API_PREFIX,API_PREFIX,1)
     elif source.count(API_PREFIX)!=1:
         raise ValueError('Publication API busy guard changed')
     tree=ast.parse(source)
