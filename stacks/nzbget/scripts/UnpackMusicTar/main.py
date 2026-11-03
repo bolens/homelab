@@ -280,6 +280,36 @@ def flattened_target(path: Path, source: Path, destination: Path) -> Path:
     return destination.joinpath(*discs, path.name)
 
 
+def scene_nfo_controls(path: Path) -> str:
+    """Allow only observed control-byte display forms in bounded scene NFOs."""
+    if path.suffix.casefold() != ".nfo":
+        return ""
+    with path.open("rb") as stream:
+        raw = stream.read(65537)
+    if len(raw) > 65536 or not any(char in raw for char in (7, 22)):
+        return ""
+    text = raw.decode("cp437")
+    fields = set()
+    frame_chars = " \t\u00a0\u25a0" + "".join(chr(code) for code in range(0x2500, 0x25a0))
+
+    def unpad(match: re.Match[str]) -> str:
+        if match[3].strip(frame_chars):
+            fields.add(match[2].strip().casefold())
+        return match[1] + match[2] + ":" + match[3]
+
+    frame = "\u2500-\u259f\u25a0 \t\u00a0"
+    unpadded = re.sub(r"(?m)^([" + frame + r"]*)([A-Za-z][A-Za-z. ]{0,23})\x07+:([^\r\n]*)", unpad, text)
+    allowed = "\x07" if "\x07" not in unpadded and {"artist", "title", "tracks"} <= fields else ""
+    headers = {match[1].casefold() for line in unpadded.splitlines()
+               if (match := re.fullmatch(r"(Artist|Title|Tracks)[ .]*:[ \t\u00a0]*\S.*",
+                                        line.strip(frame_chars), re.IGNORECASE))}
+    art_lines = [line for line in text.splitlines() if "\x16" in line]
+    if ({"artist", "title", "tracks"} <= headers and art_lines
+            and all(re.fullmatch(r"[" + frame + r"\x16]+", line) for line in art_lines)):
+        allowed += "\x16"
+    return allowed
+
+
 def is_text_sidecar(path: Path) -> bool:
     """Check the entire file before treating an explicit sidecar suffix as text."""
     with path.open("rb") as stream:
@@ -288,13 +318,17 @@ def is_text_sidecar(path: Path) -> bool:
     try:
         with path.open(encoding=encoding) as stream:
             while chunk := stream.read(65536):
-                if any(not char.isprintable() and char not in "\t\r\n\f" for char in chunk):
+                if any(not char.isprintable() and char not in "\t\r\n\f"
+                       and not (char == "\u200e" and path.suffix.casefold() == ".txt") for char in chunk):
                     return False
     except UnicodeDecodeError:
         if encoding == "utf-16" or path.suffix.casefold() not in {".nfo", ".txt"}:
             return False
         # Scene NFOs mix drawing glyphs with accented release text. Keep the
-        # drawing alphabet separate from Windows text, and reject binary controls.
+        # drawing alphabet separate from Windows text. Only bounded, framed NFO
+        # header padding may contain BEL and art-only rows may contain SYN;
+        # other binary controls remain rejected.
+        controls = scene_nfo_controls(path)
         drawing = False
         valid_cp437 = True
         drawing_run = False
@@ -307,9 +341,10 @@ def is_text_sidecar(path: Path) -> bool:
                     drawing_run |= glyph and previous_drawing
                     previous_drawing = glyph
                     if not (char.isascii() and (char.isprintable() or char in "\t\r\n\f")
-                            or glyph or char.isalpha() or char in "·∙¼«»⌐÷≤\u00a0"):
+                            or glyph or char.isalpha() or char in "·∙¼«»⌐÷≤\u00a0"
+                            or char in controls):
                         valid_cp437 = False
-        if drawing and valid_cp437 and path.suffix.casefold() == ".nfo":
+        if drawing and valid_cp437 and (not controls or drawing_run) and path.suffix.casefold() == ".nfo":
             return True
         # A lone accented Windows character can resemble a drawing glyph.
         # Keep malformed box art protected rather than retrying it as Windows text.
@@ -423,7 +458,7 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         fields = {match[1].casefold() for line in lines
                   if (match := re.fullmatch(r"(Artist|Album|Title|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
                                             line, re.IGNORECASE))}
-        return (({"artist", "album"} <= fields or legacy is not None and {"artist", "title"} <= fields)
+        return (({"artist", "album"} <= fields or {"artist", "title"} <= fields)
                 and len(fields - {"artist", "album", "title"}) >= 2
                 and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
 
