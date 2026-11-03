@@ -833,6 +833,12 @@ Observe private NFS namespaces as the eventual owning UID. A root-squashed expor
 can refuse UID 0 access to a UID 1000 mode-0700 directory while UID 1000 succeeds.
 Preserve the first refusal and verify the owning principal and mount/device
 bindings before considering a permissions change.
+A configured retention directory is identified by the owning geometry's original
+path and node identity, not the prototype `archive-publication-…/R` name. Carry
+that original binding through the recorded probe command, prepared namespace
+proof and kernel re-observation. Both host and child must compare the actual
+mount and directory against it. Keep undeclared legacy inference strict; do not
+adopt a currently observed directory as a replacement expected binding.
 
 Distinguish a source-original reference from an installed derivative reference.
 The configured installer records both and rederives the derivative bytes;

@@ -1792,8 +1792,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='038d33cc66a8234ca2c23e0f893f56573964a9ee12f452f961cf5d8fa5193995'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b', 'comic_nfs_host_probe.py': '3e5286835d76f3bc0c7ea243c0507ba0a759e46c5c20bb430369bc96acaa712c', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_ACTIVE_SOURCE_SHA='0483e442db0f5ede80d505d4e6a819ae8e970c209519c52b7e6e0f8ed1ac823a'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):

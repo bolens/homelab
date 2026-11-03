@@ -11,7 +11,7 @@ import select
 import sys
 import time
 
-KERNEL_SHA='0571a5926358d9b83efc04e02e956b7514721f61b5e04fb2665daa553732c144'
+KERNEL_SHA='042d2b74f43272e55000272d7e28671499afa0064564a8a620f8c5e69076d843'
 
 def nine(z):
     return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
@@ -45,7 +45,13 @@ def wait_original_execute(token,seconds,source_sha,input_stream=sys.stdin,output
     if remaining or type(value) is not dict or set(value)!={'token','operation'} or value['token']!=token or value['operation']!='execute':raise ValueError('probe-original-gate-command')
     close()
 
-def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
+def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False,retention_binding=None):
+    if retention_binding is not None and defer_execute is not True:raise ValueError('probe-original-binding-needs-gate')
+    binding_tape=None if retention_binding is None else json.dumps(retention_binding,sort_keys=True,separators=(',',':'),allow_nan=False)
+    if binding_tape is not None:
+        value=json.loads(binding_tape)
+        if not (type(value) is dict and set(value)=={'host_root','child_root','root5'} and type(value['host_root']) is str and type(value['child_root']) is str and type(value['root5']) is list and len(value['root5'])==5 and all(type(n) is int for n in value['root5'])):raise ValueError('probe-original-binding-shape')
+        binding_values=(value['host_root'],value['child_root'],tuple(value['root5']))
     own=Path(__file__).absolute();kernel=Path(kernel_path);inp=Path(input_path)
     paths=(own,kernel,inp);files=tuple((str(p),nine(os.lstat(p))) for p in paths)
     nodes={}
@@ -69,7 +75,7 @@ def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
     exec(compile(kraw,str(kernel),'exec'),module.__dict__)
     namespace=None
     if defer_execute:
-        plan=json.loads(raw);namespace=module.observe_namespace(plan)
+        plan=json.loads(raw);namespace=module.observe_namespace(plan,**({} if binding_tape is None else {'expected_binding':json.loads(binding_tape)}))
         namespace_tape=json.dumps(namespace,sort_keys=True,separators=(',',':'),allow_nan=False)
         wait_original_execute(input_sha,plan['seconds'],source_sha,namespace=namespace)
         # Original input/kernel/source tapes close after gate callbacks, before kernel.
@@ -80,7 +86,8 @@ def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise ValueError('probe-original-gate-ancestor5')
     if namespace is not None and json.dumps(namespace,sort_keys=True,separators=(',',':'),allow_nan=False)!=namespace_tape:raise ValueError('probe-original-namespace-tape')
-    observation=module.run(dict(path=str(inp),sha256=input_sha,signature9=files[2][1]),dict(path=str(kernel),sha256=KERNEL_SHA,signature9=files[1][1]),**({'namespace':namespace} if namespace is not None else {}))
+    if retention_binding is not None and json.dumps(retention_binding,sort_keys=True,separators=(',',':'),allow_nan=False)!=binding_tape:raise ValueError('probe-original-binding-tape')
+    observation=module.run(dict(path=str(inp),sha256=input_sha,signature9=files[2][1]),dict(path=str(kernel),sha256=KERNEL_SHA,signature9=files[1][1]),**({'namespace':namespace} if namespace is not None else {}),**({} if binding_tape is None else {'expected_binding':json.loads(binding_tape)}))
     value=observation.binding
     report=Path(json.loads(raw)['root'])/'result.json'
     report9=nine(os.lstat(report));report_raw=read(report,report9)
@@ -103,9 +110,13 @@ def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
     for p,v in (*files,*((q,f['signature9']) for q,f in facts.items()),(str(root),root9),*((str(root/name),v) for name,v in directories.items())):
         z=os.lstat(p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise ValueError('child-final-source')
+    if retention_binding is not None:
+        value=retention_binding
+        if not (type(value) is dict and set(value)=={'host_root','child_root','root5'} and type(value['host_root']) is str and type(value['child_root']) is str and type(value['root5']) is list and len(value['root5'])==5 and all(type(n) is int for n in value['root5'])):raise ValueError('probe-final-binding-tape')
+        if (value['host_root'],value['child_root'],tuple(value['root5']))!=binding_values:raise ValueError('probe-final-binding-tape')
     return encoded
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--input',required=True);p.add_argument('--input-sha256',required=True);p.add_argument('--source-sha256',required=True);p.add_argument('--kernel',required=True)
-    p.add_argument('--defer-execute',action='store_true')
-    a=p.parse_args();print(run(a.input,a.input_sha256,a.source_sha256,a.kernel,defer_execute=a.defer_execute).decode())
+    p.add_argument('--defer-execute',action='store_true');p.add_argument('--retention-binding')
+    a=p.parse_args();print(run(a.input,a.input_sha256,a.source_sha256,a.kernel,defer_execute=a.defer_execute,retention_binding=None if a.retention_binding is None else json.loads(a.retention_binding)).decode())

@@ -56,6 +56,71 @@ class Controls(unittest.TestCase):
         for key in ('actual_library_platform_verified','native_grant','publication_authority','reader_resume_authority','active_parent_custody_verified'):
             self.assertIs(value[key],False)
 
+    def declared_retention(self):
+        retention=self.base/'live-retention';retention.mkdir(mode=0o700)
+        parent=retention/('.comic-nfs-private-'+'b'*32);parent.mkdir(mode=0o700)
+        target=parent/('.comic-nfs-probe-'+'c'*32);self.root.rename(target)
+        self.root=target;self.src=target/'source';self.dst=target/'target'
+        self.mount.update(target=str(self.base),fsroot='/',**{'maj:min':str(os.major(target.stat().st_dev))+':'+str(os.minor(target.stat().st_dev))})
+        self.plan.update(root=str(target),root9=p.nine(target.lstat()),source_parent9=p.nine(self.src.lstat()),target_parent9=p.nine(self.dst.lstat()),mount=self.mount)
+        self.refresh()
+        row=dict(self.mount,source=self.mount['source']+'/'+retention.name,target=str(retention))
+        binding=dict(host_root=str(retention),child_root=str(retention),root5=list(p.five(retention.lstat())))
+        return retention,row,binding
+
+    def test_declared_production_retention_survives_kernel_reobservation(self):
+        retention,row,binding=self.declared_retention()
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding)
+            observation=p.run(self.ref,self.source,namespace=namespace,expected_binding=binding)
+            self.assertFalse(observation.binding['native_grant'])
+            self.assertEqual((self.src/'source.bin').read_bytes(),b'owned NFS hardlink canary\x00')
+
+    def test_kernel_reobservation_does_not_infer_missing_declared_binding(self):
+        retention,row,binding=self.declared_retention()
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding)
+            with self.assertRaisesRegex(p.Held,'binding-required'):p.run(self.ref,self.source,namespace=namespace)
+        self.assertFalse((self.src/'source.bin').exists())
+
+    def test_post_ACK_retention_mode_drift_refuses_before_canary_write(self):
+        retention,row,binding=self.declared_retention()
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding);retention.chmod(0o750)
+            with self.assertRaises(p.Held):p.run(self.ref,self.source,namespace=namespace,expected_binding=binding)
+        self.assertFalse((self.src/'source.bin').exists())
+
+    def test_same_bytes_input_replacement_does_not_borrow_declared_namespace(self):
+        retention,row,binding=self.declared_retention()
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding)
+            replacement=self.base/'replacement';replacement.write_bytes(self.input.read_bytes());replacement.chmod(0o600);os.replace(replacement,self.input)
+            with self.assertRaises(p.Held):p.run(self.ref,self.source,namespace=namespace,expected_binding=binding)
+        self.assertFalse((self.src/'source.bin').exists())
+
+    def test_binding_mutation_during_kernel_observation_refuses(self):
+        retention,row,binding=self.declared_retention()
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding);original=p.observe_namespace
+            def changed(*args,**kwargs):
+                value=original(*args,**kwargs);binding['root5'][1]+=1;return value
+            with patch.object(p,'observe_namespace',side_effect=changed),self.assertRaisesRegex(p.Held,'binding-tape'):
+                p.run(self.ref,self.source,namespace=namespace,expected_binding=binding)
+        self.assertFalse((self.src/'source.bin').exists())
+
+    def test_binding_mutation_during_physical_callbacks_cannot_return_observation(self):
+        retention,row,binding=self.declared_retention();original=p.os.fsync;fired=[]
+        def changed(fd):
+            value=original(fd)
+            if not fired:fired.append(True);binding['root5'][1]+=1
+            return value
+        with patch.object(p,'mount',return_value=row),patch.object(p,'nfs_magic',return_value=0x6969):
+            namespace=p.observe_namespace(self.plan,expected_binding=binding)
+            with patch.object(p.os,'fsync',side_effect=changed),self.assertRaisesRegex(p.Held,'uncertain-fixtures') as caught:
+                p.run(self.ref,self.source,namespace=namespace,expected_binding=binding)
+        self.assertEqual(str(caught.exception.__context__),'namespace-final-binding-tape')
+        self.assertTrue(fired)
+
     def test_no_repeat_existing_fixture(self):
         self.run_probe()
         with self.assertRaises(p.Held):self.run_probe()

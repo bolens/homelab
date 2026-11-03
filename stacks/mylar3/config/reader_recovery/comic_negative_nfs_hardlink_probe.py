@@ -134,7 +134,7 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     need(type(host) is dict and set(host)==keys and type(rows) is dict
          and set(rows)=={'source','target'},'namespace-mount-schema')
     def absolute(value):
-        need(type(value) is str and value.startswith('/') and '\\' not in value
+        need(type(value) is str and value.startswith('/') and not value.startswith('//') and '\\' not in value
              and '\0' not in value and '..' not in value.split('/')
              and str(PurePosixPath(value))==value,'namespace-canonical-path')
         return PurePosixPath(value)
@@ -148,8 +148,7 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     if binding is not None:
         need(type(binding) is dict and set(binding)=={'host_root','child_root','root5'},'namespace-retention-binding-schema')
         bind_original=absolute(binding['host_root']);bind_target=absolute(binding['child_root'])
-        need(original==target and bind_original==bind_target and bind_original.name=='R'
-             and re.fullmatch('archive-publication-[a-f0-9]{64}',bind_original.parent.name) is not None
+        need(original==target and bind_original==bind_target
              and original.parent.parent==bind_original
              and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',original.parent.name) is not None
              and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',original.name) is not None
@@ -216,7 +215,11 @@ def nfs_magic(path):
     return value.kind
 
 
-def observe_namespace(plan):
+def observe_namespace(plan, *, expected_binding=None):
+    # Declared bindings originate in the owning Parent's original geometry.
+    # Undeclared callers retain the historical, dedicated R-only observation.
+    binding_tape=None if expected_binding is None else encode(expected_binding)
+    original_binding=None if binding_tape is None else decode(binding_tape)
     root=canonical(plan['root']);src=root/'source';dst=root/'target'
     original=tuple(plan['root9']);actual=nine(os.lstat(root))
     rows={'source':mount(src),'target':mount(dst)}
@@ -224,10 +227,20 @@ def observe_namespace(plan):
     binding=None;retention9=None
     if rows['source']['target']!=str(root):
         retention=canonical(rows['source']['target']);retention9=nine(os.lstat(retention))
-        binding=dict(host_root=str(retention),child_root=str(retention),root5=[retention9[i] for i in (0,1,5,6,7)])
+        if original_binding is None:
+            need(retention.name=='R' and re.fullmatch('archive-publication-[a-f0-9]{64}',retention.parent.name) is not None,
+                 'namespace-original-retention-binding-required')
+            binding=dict(host_root=str(retention),child_root=str(retention),root5=[retention9[i] for i in (0,1,5,6,7)])
+        else:
+            need(type(original_binding) is dict and set(original_binding)=={'host_root','child_root','root5'}
+                 and original_binding['host_root']==original_binding['child_root']==str(retention),
+                 'namespace-original-retention-binding')
+            binding=original_binding
+    else:need(original_binding is None,'namespace-unrequested-retention-binding')
     proof=mount_namespace(plan['mount'],rows,str(root),str(root),original,actual,binding=binding,retention9=retention9)
     if binding is not None:need(nine(os.lstat(retention))==retention9,'namespace-final-retention9')
     need(nine(os.lstat(root))==original,'namespace-final-original-root9')
+    need(expected_binding is None or encode(expected_binding)==binding_tape,'namespace-original-binding-tape')
     return proof
 
 
@@ -270,8 +283,16 @@ class HardlinkCanaryObservation:
         value = copy.deepcopy(self._binding); self.close(); return value
 
 
-def run(plan_ref, source_ref, *, namespace=None):
+def run(plan_ref, source_ref, *, namespace=None, expected_binding=None):
     """Fresh single diagnostic; existing output/fixtures refuse, never replay."""
+    binding_caller=expected_binding
+    binding_tape=None if expected_binding is None else encode(expected_binding)
+    if expected_binding is not None:
+        need(namespace is not None,'namespace-original-binding-needs-proof')
+        expected_binding=decode(binding_tape)
+        value=expected_binding
+        need(type(value) is dict and set(value)=={'host_root','child_root','root5'} and type(value['host_root']) is str and type(value['child_root']) is str and type(value['root5']) is list and len(value['root5'])==5 and all(type(n) is int for n in value['root5']),'namespace-original-binding-shape')
+        binding_values=(value['host_root'],value['child_root'],tuple(value['root5']))
     namespace_caller=namespace
     namespace_tape=None if namespace is None else encode(namespace)
     if namespace is not None:namespace=decode(namespace_tape)
@@ -316,8 +337,9 @@ def run(plan_ref, source_ref, *, namespace=None):
     if namespace is None:
         need(mount(src) == plan['mount'] == mount(dst) and nfs_magic(src) == nfs_magic(dst) == 0x6969, 'same-nfs-export')
     else:
-        need(type(namespace) is dict and type(namespace.get('version')) is int and namespace==observe_namespace(plan),'namespace-original-local-rows')
+        need(type(namespace) is dict and type(namespace.get('version')) is int and namespace==observe_namespace(plan,**({} if expected_binding is None else {'expected_binding':expected_binding})),'namespace-original-local-rows')
         need(encode(namespace_caller)==namespace_tape,'namespace-original-caller-tape')
+        need(binding_caller is None or encode(binding_caller)==binding_tape,'namespace-original-binding-tape')
     retention_original=() if namespace is None or namespace['version']==1 else ((namespace['binding']['child_root'],tuple(namespace['retention9'])),)
     original = tuple(files.items()) + tuple(roots.items()) + retention_original + ((str(root), root9), (str(src), src9), (str(dst), dst9))
     raw_close(original, tuple(nodes.items()), ((str(root), ('source', 'target')), (str(src), ()), (str(dst), ())), ())
@@ -480,6 +502,10 @@ def run(plan_ref, source_ref, *, namespace=None):
             try:os.lstat(path)
             except FileNotFoundError:continue
             raise Held('absence-final')
+        if binding_caller is not None:
+            value=binding_caller
+            if not (type(value) is dict and set(value)=={'host_root','child_root','root5'} and type(value['host_root']) is str and type(value['child_root']) is str and type(value['root5']) is list and len(value['root5'])==5 and all(type(n) is int for n in value['root5'])):raise Held('namespace-final-binding-tape')
+            if (value['host_root'],value['child_root'],tuple(value['root5']))!=binding_values:raise Held('namespace-final-binding-tape')
         return observation
     except BaseException:
         raise Held('canary-uncertain-fixtures-and-intents-retained-no-replay') from None

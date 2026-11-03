@@ -1,5 +1,5 @@
 """Explicit NFS row fixtures + real pipes; no Docker/NFS/remount claim."""
-import ast,copy,inspect,os,subprocess,sys,tempfile,unittest
+import ast,copy,inspect,json,os,subprocess,sys,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
@@ -122,6 +122,59 @@ class RetentionBridge(unittest.TestCase):
     for row in self.rows.values():row[key]=value
     with self.assertRaises(h.Held):self.call()
   self.rows=original
+
+class DeclaredRetention(unittest.TestCase):
+ setUp=RetentionBridge.setUp
+ call=RetentionBridge.call
+ def production(self):
+  self.retention='/host/.mylar-archive-repair-'+'d'*32
+  self.fixture=self.retention+'/.comic-nfs-private-'+'b'*32+'/.comic-nfs-probe-'+'c'*32
+  self.binding.update(host_root=self.retention,child_root=self.retention)
+  row=dict(self.host,target=self.retention,fsroot='/export/'+self.retention.removeprefix('/host/'))
+  self.rows=dict(source=row,target=dict(row))
+ def observe(self,binding):
+  from types import SimpleNamespace
+  def metadata(path):
+   values=self.retention9 if str(path)==self.retention else self.root9
+   keys=('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')
+   return SimpleNamespace(**dict(zip(keys,values)))
+  with patch.object(k.os,'lstat',side_effect=metadata),patch.object(k,'mount',return_value=self.rows['source']),patch.object(k,'nfs_magic',return_value=0x6969):
+   return k.observe_namespace(dict(root=self.fixture,root9=self.root9,mount=self.host),expected_binding=binding)
+ def test_declared_production_retention_is_not_identified_by_directory_name(self):
+  self.production();proof=self.call()
+  self.assertEqual(k.mount_namespace(self.host,self.rows,self.fixture,self.fixture,self.root9,self.root9,binding=self.binding,retention9=self.retention9),proof)
+  self.assertEqual(self.observe(self.binding),proof)
+ def test_command_carries_exact_original_binding_without_changing_input(self):
+  self.production();original=copy.deepcopy(self.binding)
+  process=h.ProbeProcess.__new__(h.ProbeProcess);process.docker=['docker'];process.name='comic-nfs-probe-'+'e'*32;process.gated=True
+  process.spec=dict(image='sha256:'+'a'*64,mounts=[],probe='/probe.py',kernel='/kernel.py',input='/input.json',input_sha256='b'*64,probe_sha256='c'*64,binding=self.binding)
+  argv=process._command()
+  self.assertEqual(json.loads(argv[argv.index('--retention-binding')+1]),original)
+  self.assertEqual(self.binding,original);self.assertIn('--defer-execute',argv)
+ def test_missing_binding_keeps_legacy_production_mount_held(self):
+  self.production()
+  with self.assertRaisesRegex(k.Held,'binding-required'):self.observe(None)
+ def test_substituted_declared_binding_is_not_replaced_by_observation(self):
+  self.production()
+  for key,value in (('host_root','/foreign'),('child_root','/foreign'),('root5',[1,2,3,4,5])):
+   with self.subTest(key=key),self.assertRaises(k.Held):self.observe(dict(self.binding,**{key:value}))
+ def test_original_node_mode_owner_and_group_are_required(self):
+  self.production()
+  for index in (0,1,5,6,7):
+   original=self.retention9[index];self.retention9[index]+=1
+   with self.subTest(index=index),self.assertRaises(k.Held):self.observe(self.binding)
+   self.retention9[index]=original
+ def test_observation_callback_cannot_rebaseline_declared_identity(self):
+  self.production();binding=copy.deepcopy(self.binding);original=k.mount_namespace
+  def changed(*args,**kwargs):
+   value=original(*args,**kwargs);binding['root5'][1]+=1;return value
+  with patch.object(k,'mount_namespace',side_effect=changed),self.assertRaisesRegex(k.Held,'binding-tape'):self.observe(binding)
+ def test_post_observation_retention_drift_refuses(self):
+  self.production();original=k.mount_namespace
+  def changed(*args,**kwargs):
+   value=original(*args,**kwargs);self.retention9[4]+=1;return value
+  with patch.object(k,'mount_namespace',side_effect=changed),self.assertRaisesRegex(k.Held,'final-retention9'):self.observe(self.binding)
+
 
 class RetentionPrepared(unittest.TestCase):
  setUp=RetentionBridge.setUp
