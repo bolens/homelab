@@ -166,9 +166,14 @@ the complete payload. Similar text, named audio/video, cue and M3U files and
 cue-referenced files remain protected. A marker-only release is retained by the
 existing guard against deleting every file.
 
-Extensionless `album_info` posting sidecars, including a short alphanumeric
-prefix such as `post_album_info`, are removed during music post-processing before
-import. Recognition requires the entire file to be readable UTF-8 text within
+Obfuscated posting NFOs also support dotted field leaders without colons and
+underscore-arrow fields with `Artist Name` and `Album Name` labels. They still
+require artist and album/title, two additional populated metadata fields and a
+numbered track entry.
+
+Extensionless `about_album` and `album_info` posting sidecars, including a short
+alphanumeric prefix on `album_info` such as `post_album_info`, are removed during
+music post-processing before import. Recognition requires the entire file to be readable UTF-8 text within
 64 KiB, with nonempty `Album:` and `Artist:` fields, a `Tracklist:` heading and a
 numbered track entry. Unknown text, recognised media and cue references remain
 protected. An info-only release remains retained by the guard against deleting
