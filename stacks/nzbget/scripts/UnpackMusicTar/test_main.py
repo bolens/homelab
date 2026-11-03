@@ -150,6 +150,28 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             expected = {(filename + ".flac" if filename == name.replace("7533", "7538") else filename): payload for filename, payload in files.items()}
             self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
 
+    def test_modern_posting_title_fields_require_structured_nfo(self) -> None:
+        name = "Fixture-Example.1234abcd___123456abcdef_ [newzNZB] [2_6] - yEnc  1451 (1_1)"
+        text = "Artist.......: Fixture\nTitle........: Example\nGenre........: Rock\nSource.......: Vinyl\n01.Example Song 03:00\n"
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                retained = {"song.flac": b"fLaC" + bytes(32),
+                            name.replace("1451", "1452"): text.replace("Artist.......: Fixture", "Artist.......: ").encode(),
+                            name.replace("1451", "1453"): text.replace("Genre........: Rock\n", "").encode(),
+                            name.replace("1451", "1454"): text.replace("01.Example Song 03:00\n", "").encode(),
+                            name.replace("1451", "1455"): text.encode() + b"\x00"}
+                files = {**retained, name: text.encode()}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for filename, payload in files.items():
+                            output.writestr(filename, payload)
+                else:
+                    for filename, payload in files.items():
+                        (root / filename).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, retained)
+
     def test_posting_art_keeps_cue_empty_output_and_cleanup_disabled_guards(self) -> None:
         name = "release.1234abcd-_-_--_123456abcdef_ [WtFnZb] [2_13] - yEnc  7533 (1_1)"
         payload = self.decorated_posting_nfo().encode("cp437")
@@ -382,6 +404,100 @@ class UnpackMusicArchiveTest(unittest.TestCase):
                 else:
                     main.process_release(root)
                     self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"song.flac": audio})
+
+    def test_padded_cp437_scene_nfo_cleanup_and_guards(self) -> None:
+        art = "███\r\n▐▒▌Artist\x07\x07: Fixture\r\n▐▒▌Title\x07: Example\r\n▐▒▌Tracks\x07: 1\r\n███\r\n".encode("cp437")
+        audio = b"fLaC" + bytes(32)
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                retained = {"song.flac": audio, "drawing.txt": art, "unknown": art,
+                            "trailing.nfo": art + b"\x07", "binary.nfo": art + b"\x00",
+                            "control.nfo": art.replace(b"\x07", b"\x08"),
+                            "missing.nfo": art.replace(b"Title", b"Notes"),
+                            "empty.nfo": art.replace(b": Example", ":      ▐▒▌".encode("cp437")),
+                            "unframed.nfo": b"Artist\x07: Fixture\nTitle\x07: Example\nTracks\x07: 1\n",
+                            "oversize.nfo": art + b" " * 65536,
+                            "audio.nfo": audio}
+                files = {**retained, "release.NFO": art}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                expected = {k: v for k, v in retained.items() if k != "audio.nfo"}
+                expected["audio.nfo.flac"] = audio
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_padded_cp437_scene_nfo_preserves_cue_and_empty_output_guards(self) -> None:
+        art = "██\n▐▒▌Artist\x07: Fixture\n▐▒▌Title\x07: Example\n▐▒▌Tracks\x07: 1\n".encode("cp437")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "release.nfo").write_bytes(art)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            main.process_release(root, cleanup=False)
+            cue = b'FILE "release.nfo" BINARY\n'
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"release.nfo": art, "album.cue": cue})
+
+    def test_cp437_art_row_syn_controls_are_bounded_and_scoped(self) -> None:
+        art = "██\n\xa0\x16░█\n▐▒▌Artist...: Fixture\n▐▒▌Title....: Example\n▐▒▌Tracks...: 1\n".encode("cp437")
+        audio = b"fLaC" + bytes(32)
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                retained = {"song.flac": audio, "drawing.txt": art, "unknown": art,
+                            "text.nfo": art + b"Some\x16text\n", "binary.nfo": art + b"\x00",
+                            "no-title.nfo": art.replace(b"Title", b"Notes"),
+                            "empty-title.nfo": art.replace(b": Example", ":      ▐▒▌".encode("cp437")),
+                            "mixed-invalid.nfo": art.replace(b"....:", b"\x07:").replace(b"...:", b"\x07:") + b"text\x16row\n",
+                            "oversize.nfo": art + b" " * 65536}
+                files = {**retained, "release.nfo": art,
+                         "mixed.nfo": art.replace(b"....:", b"\x07:").replace(b"...:", b"\x07:")}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for filename, payload in files.items():
+                            output.writestr(filename, payload)
+                else:
+                    for filename, payload in files.items():
+                        (root / filename).write_bytes(payload)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, retained)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "release.nfo").write_bytes(art)
+            with self.assertRaisesRegex(ValueError, "no files would remain"):
+                main.process_release(root)
+            main.process_release(root, cleanup=False)
+            cue = b'FILE "release.nfo" BINARY\n'
+            (root / "album.cue").write_bytes(cue)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"release.nfo": art, "album.cue": cue})
+
+    def test_txt_direction_marks_preserve_other_controls_media_and_cues(self) -> None:
+        for encoding in ("utf-8", "utf-16-le", "utf-16-be"):
+            with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                def payload(text):
+                    bom = b"\xff\xfe" if encoding == "utf-16-le" else b"\xfe\xff" if encoding == "utf-16-be" else b""
+                    return bom + text.encode(encoding)
+                text = payload("Artist: \u200eFixture\u200e\nAlbum: Example\n")
+                files = {"song.flac": b"fLaC" + bytes(32), "protected.txt": text,
+                         "drawing.nfo": text, "unknown": text,
+                         "bidi.txt": payload("Artist: \u202eFixture\n"),
+                         "binary.txt": payload("Artist: \u200eFixture\x00\n"),
+                         "album.cue": b'FILE "protected.txt" BINARY\n'}
+                for filename, raw in {**files, "release.txt": text}.items():
+                    (root / filename).write_bytes(raw)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
 
     def test_printable_cp437_scene_symbols_are_cleaned_without_binary_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
