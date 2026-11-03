@@ -834,7 +834,7 @@ def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], pare
 
 def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                          required_playlists: set[Path] | None = None) -> dict[Path, str]:
-    """Use a covering playlist and matching DTT names to separate untagged discs."""
+    """Use covering playlists and matching disc/side prefixes to partition tracks."""
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
     cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
@@ -858,6 +858,7 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
         groups: dict[int, list[int]] = {}
         positions = {}
         performers = set()
+        numbering = None
         for path, tags in records:
             artists = {tags.get(key, "").strip().casefold() for key in ("ALBUMARTIST", "ALBUM ARTIST")
                        if tags.get(key, "").strip()}
@@ -866,12 +867,18 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
             disc, total = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
             track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
             match = re.fullmatch(r"([1-9])([0-9]{2})[ _.-]+.+", path.stem)
+            scheme = "disc"
+            if not match:
+                match = re.fullmatch(r"([A-Za-z])([0-9]{1,2})[ _.-]+.+", path.stem)
+                scheme = "side"
             if (disc or total or not match or not re.fullmatch(r"[0-9]{1,2}", track)
+                    or numbering not in (None, scheme)
                     or int(track) != int(match[2]) or int(track) == 0
                     or any(not tags.get(key, "").strip() for key in ("ALBUM", "ARTIST", "TITLE"))):
                 break
             performers.add(next(iter(artists)) if artists else tags["ARTIST"].strip().casefold())
-            number = int(match[1])
+            numbering = scheme
+            number = int(match[1]) if scheme == "disc" else ord(match[1].upper()) - ord("A") + 1
             groups.setdefault(number, []).append(int(track))
             positions[path] = str(number)
         else:
