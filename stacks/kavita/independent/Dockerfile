@@ -11,7 +11,7 @@ RUN git init . && git remote add origin https://github.com/Kareadita/Kavita.git 
 COPY patch_source.py source.sha256 IndependentProvider.cs IndependentScrobblePolicy.cs independent-actions.ts IndependentOAuth.cs OAuthController.methods.txt ScrobblingService.independent.txt IndependentWantToReadMatcher.cs WantToReadSyncService.independent.txt /patch/
 RUN python3 /patch/patch_source.py /source
 
-FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS web
+FROM node:26.12.0-bookworm-slim@sha256:742a0fe7320e09e0321222b68165e6ac731d30470e7ea7f98f9bfc3a6e1034fe AS web
 WORKDIR /source/UI/Web
 COPY --from=source /source/UI/Web/ ./
 RUN npm ci --legacy-peer-deps && npm run prod
@@ -25,7 +25,7 @@ RUN dotnet publish Kavita.Server/Kavita.Server.csproj -c Release \
     && cp LICENSE /payload/LICENSE.txt
 COPY NOTICE /payload/INDEPENDENT-NOTICE.txt
 
-FROM lscr.io/linuxserver/kavita@sha256:ded5717da004779e52bf51c1acd5ce345c9fe007a22fe97953235ec8072bc2ac
+FROM lscr.io/linuxserver/kavita@sha256:de556f62dadefdd59dc69e04855db91157d774f84b242568c8858251aff1340b
 LABEL org.opencontainers.image.title="Kavita independent provider integration" \
       org.opencontainers.image.version="v0.9.1.4-independent.3" \
       org.opencontainers.image.revision="879b8b73eb41d66f88dde8eb874cc99a3397eb11" \
