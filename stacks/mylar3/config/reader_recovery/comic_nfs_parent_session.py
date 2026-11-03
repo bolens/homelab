@@ -57,7 +57,7 @@ def _readonly_mount_layout(raw,protected,writable):
     need(len(set(protected))==len(protected) and len(set(writable))==2
          and all(not(a==b or a in b.parents or b in a.parents)for a in protected for b in writable),
          'nfs-readonly-scope-disjoint')
-    rows=[];ids=set()
+    rows=[];ids=set();nfs_backing={}
     lines=raw.decode('utf-8',errors='strict').splitlines()
     need(1<=len(lines)<=8192,'nfs-readonly-mount-count')
     for line in lines:
@@ -72,6 +72,15 @@ def _readonly_mount_layout(raw,protected,writable):
              'nfs-readonly-mountinfo-options')
         rows.append(dict(id=mid,parent=int(columns[1]),device=columns[2],root=str(root),point=str(point),readonly='ro'in options,
                          propagation=columns[6:split],filesystem=columns[split+1],source=field(columns[split+2])))
+        if rows[-1]['filesystem']in('nfs','nfs4'):
+            # Linux nfs_show_path always emits '/'. nfs_show_devname instead
+            # reconstructs this mount's complete server pathname via nfs_path.
+            # A shared superblock/device therefore does not make siblings aliases.
+            need(root==PurePosixPath('/'),'nfs-readonly-nfs-root')
+            source=rows[-1]['source']
+            match=re.fullmatch(r'(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9][A-Za-z0-9.-]*):(/.*)',source)
+            need(match is not None,'nfs-readonly-nfs-source')
+            nfs_backing[mid]=path(match[2])
     def exact(point):
         found=[r for r in rows if r['point']==str(point)]
         need(len(found)==1,'nfs-readonly-exact-mount');return found[0]
@@ -103,14 +112,22 @@ def _readonly_mount_layout(raw,protected,writable):
         descendant_rows[p]=descendants
         covered.update((r['id'],r)for r in descendants)
     for original in covered.values():
-        source_root=PurePosixPath(original['root'])
         for row in rows:
             if row['readonly']:continue
             same=row['device']==original['device']
-            same=same or (row['filesystem']in('nfs','nfs4') and original['filesystem']in('nfs','nfs4')
-                          and row['source']==original['source'])
+            original_nfs=nfs_backing.get(original['id']);other_nfs=nfs_backing.get(row['id'])
+            if original_nfs is not None and other_nfs is not None:
+                # Separate NFS superblocks may expose different export views,
+                # even at one peer address. Names/addresses are not an alias
+                # oracle. Only the shared kernel device anchors this comparison.
+                need(same,'nfs-readonly-writable-physical-alias-unproved-nfs-device')
+                need(row['filesystem']==original['filesystem'],'nfs-readonly-nfs-protocol')
+                source_root=original_nfs;other=other_nfs
+            else:
+                need(not same or (original_nfs is None and other_nfs is None),
+                     'nfs-readonly-filesystem-identity')
+                source_root=PurePosixPath(original['root']);other=PurePosixPath(row['root'])
             if not same:continue
-            other=PurePosixPath(row['root'])
             need(not(other==source_root or other in source_root.parents or source_root in other.parents),
                  'nfs-readonly-writable-physical-alias')
     return dict(mountinfo_sha256=hashlib.sha256(raw).hexdigest(),protected=original_roots,

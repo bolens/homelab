@@ -104,9 +104,9 @@ def exercise(case):
         namespace = base/'namespace'; namespace.write_bytes(b'synthetic namespace')
         mountinfo = base/'mountinfo'
         initial = ('1 99 0:1 / / ro - overlay overlay rw\n'
-            '2 1 0:2 /library '+str(protected)+' ro master:7 - nfs4 server:/export rw\n'
+            '2 1 0:2 / '+str(protected)+' ro master:7 - nfs4 server:/export/library rw,addr=192.0.2.1\n'
             '3 1 0:3 /private/tree /work rw - btrfs /dev/disk rw\n'
-            '4 1 0:2 /retention /retention rw - nfs4 server:/export rw\n').encode()
+            '4 1 0:2 / /retention rw - nfs4 server:/export/retention rw,addr=192.0.2.1\n').encode()
         if case == 'writable': initial = initial.replace(b' ro master:7', b' rw master:7')
         if case == 'structure': initial += b'5 1 0:9 / /work rw - tmpfs tmpfs rw\n'
         mountinfo.write_bytes(initial)
@@ -133,7 +133,7 @@ def exercise(case):
             assert kwargs['pass_fds'] == (request['namespace'], request['root'])
             assert request['pid'] == process.pid and request['ticks'] == ticks
             after = initial.replace(b' master:7', b'')
-            if case == 'topology': after = after.replace(b'0:2 /library', b'0:8 /library')
+            if case == 'topology': after = after.replace(b'0:2 /', b'0:8 /')
             mountinfo.write_bytes(after)
             if case == 'profile': profile['State']['StartedAt'] = 'replaced'
             return subprocess.CompletedProcess(argv, 0,
