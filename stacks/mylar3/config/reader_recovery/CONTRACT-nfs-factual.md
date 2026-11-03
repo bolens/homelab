@@ -322,3 +322,15 @@ The retained proof slot uses object identity, is consumed before transport and
 cannot be retried after a lost response. No saved JSON, standalone invocation or
 caller flag can select the relaxed directory comparison. Under the Writer,
 continuation uses the retained local facts and performs no mount/Docker query.
+
+The configured probe command carries the owning Parent's original retention
+binding through `--retention-binding`. This factual descriptor contains its exact
+host/child path and original node5; it grants no mutation or publication right.
+The child checks actual retention metadata before its prepared ACK and passes
+the same original into the kernel's independent re-observation before canary
+writes. Host prepared-ACK verification independently joins it to the original
+geometry. Bound version-3 retention paths need no prototype directory spelling;
+exact private/probe ancestry, mode/owner, distinct inode, device, export and RW
+checks remain. Without a declared binding, legacy retention inference retains
+its dedicated `archive-publication-…/R` constraint. A missing or changed binding,
+source incarnation, namespace or post-ACK identity refuses without replay.

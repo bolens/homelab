@@ -41,7 +41,7 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     need(type(host) is dict and set(host)==keys and type(rows) is dict
          and set(rows)=={'source','target'},'namespace-mount-schema')
     def absolute(value):
-        need(type(value) is str and value.startswith('/') and '\\' not in value
+        need(type(value) is str and value.startswith('/') and not value.startswith('//') and '\\' not in value
              and '\0' not in value and '..' not in value.split('/')
              and str(PurePosixPath(value))==value,'namespace-canonical-path')
         return PurePosixPath(value)
@@ -55,8 +55,7 @@ def mount_namespace(host, rows, host_root, child_root, expected9, actual9, *, bi
     if binding is not None:
         need(type(binding) is dict and set(binding)=={'host_root','child_root','root5'},'namespace-retention-binding-schema')
         bind_original=absolute(binding['host_root']);bind_target=absolute(binding['child_root'])
-        need(original==target and bind_original==bind_target and bind_original.name=='R'
-             and re.fullmatch('archive-publication-[a-f0-9]{64}',bind_original.parent.name) is not None
+        need(original==target and bind_original==bind_target
              and original.parent.parent==bind_original
              and re.fullmatch(r'\.comic-nfs-private-[a-f0-9]{32}',original.parent.name) is not None
              and re.fullmatch(r'\.comic-nfs-probe-[a-f0-9]{32}',original.name) is not None
@@ -195,6 +194,8 @@ class ProbeProcess:
                  '--input-sha256', self.spec['input_sha256'], '--source-sha256',
                  self.spec['probe_sha256'], '--kernel', self.spec['kernel']]
         if self.gated:args+=['--defer-execute']
+        if self.gated and 'binding' in self.spec:
+            args+=['--retention-binding',encode(self.spec['binding']).decode()]
         return args
 
     def command(self):

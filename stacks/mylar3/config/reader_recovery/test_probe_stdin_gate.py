@@ -20,4 +20,31 @@ class Gate(unittest.TestCase):
   p=self.launch();p.stdin.close();self.assertNotEqual(p.wait(timeout=5),0);self.assertFalse(self.marker.exists())
  def test_original_gate_deadline_refuses_without_execution(self):
   p=self.launch(1);self.assertNotEqual(p.wait(timeout=2),0);self.assertFalse(self.marker.exists());self.assertIn(b'probe-original-gate-deadline',p.stderr.read())
+
+class BindingTransport(unittest.TestCase):
+ def setUp(self):
+  import importlib.util,hashlib
+  self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+  source=Path(__file__).with_name('comic_negative_nfs_hardlink_child.py')
+  spec=importlib.util.spec_from_file_location('binding_child_fixture',source);self.child=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.child)
+  self.source_sha=hashlib.sha256(source.read_bytes()).hexdigest()
+  self.binding=dict(host_root='/host/live-retention',child_root='/host/live-retention',root5=[1,2,16832,1000,1000])
+  self.kernel=self.root/'kernel.py';self.kernel.write_text("import json\nEXPECTED="+repr(self.binding)+"\ndef observe_namespace(plan,*,expected_binding=None):\n assert expected_binding==EXPECTED,'missing-in-first-observation'\n return {'fixture_namespace_only':True}\ndef run(*args,namespace=None,expected_binding=None):\n assert namespace=={'fixture_namespace_only':True} and expected_binding==EXPECTED,'missing-in-kernel-reobservation'\n raise RuntimeError('binding-forwarded-to-both-stages')\n")
+  self.input=self.root/'input.json';self.input.write_text(json.dumps(dict(seconds=120)))
+  self.kernel_sha=hashlib.sha256(self.kernel.read_bytes()).hexdigest();self.input_sha=hashlib.sha256(self.input.read_bytes()).hexdigest()
+ def call(self,gate):
+  from unittest.mock import patch
+  with patch.object(self.child,'KERNEL_SHA',self.kernel_sha),patch.object(self.child,'wait_original_execute',side_effect=gate):
+   return self.child.run(str(self.input),self.input_sha,self.source_sha,str(self.kernel),defer_execute=True,retention_binding=self.binding)
+ def test_original_binding_reaches_both_namespace_stages(self):
+  with self.assertRaisesRegex(RuntimeError,'binding-forwarded-to-both-stages'):self.call(lambda *a,**k:None)
+ def test_post_ACK_binding_mutation_refuses_before_kernel(self):
+  def mutate(*args,**kwargs):self.binding['root5'][1]+=1
+  with self.assertRaisesRegex(ValueError,'binding-tape'):self.call(mutate)
+ def test_binding_without_original_gate_refuses_before_source_reads(self):
+  from unittest.mock import patch
+  def forbidden(*args,**kwargs):raise AssertionError('Read before gate admission')
+  with patch.object(self.child.os,'lstat',side_effect=forbidden),self.assertRaisesRegex(ValueError,'binding-needs-gate'):
+   self.child.run('/missing','a'*64,'b'*64,'/missing',retention_binding=self.binding)
+
 if __name__=='__main__':unittest.main()
