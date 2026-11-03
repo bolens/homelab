@@ -435,9 +435,25 @@ config subdirectories, preventing Docker's nested read-only script mount from
 leaving their parent directory owned by root after a container rebuild.
 
 The built-in unpacker reads additional RAR and 7-Zip passwords from the
-read-only `/etc/nzbget/unpack-passwords.txt` file. Keep
-`config/unpack-passwords.txt` limited to non-sensitive release passwords; do
-not commit private credentials.
+read-only `/etc/nzbget/unpack-passwords.txt` file when **Settings → Unpack →
+UnpackPassFile** is set to that path. Set this option after first-run setup;
+mounting the file alone does not enable it. Keep `config/unpack-passwords.txt` limited to release passwords, one per line;
+keep it private and outside Git. After a successful music recovery, preserve any
+newly verified password in this shared file as well as the job's settings.
+Passwords attached to successful archive extractions can be recovered from their
+`*Unpack:Password` history parameters. Deduplicate entries and preserve existing
+values. Back up and verify the file before updating it, append in place to keep
+the single-file bind mount attached to the same inode, then confirm the running
+container sees the updated contents. No restart is needed for an in-place update.
+An explicit password on a job takes precedence: NZBGet does not try the password
+file for that job, so check job settings when diagnosing failed fallback attempts.
+
+When auditing recent completions, also check Lidarr's `downloadFailed` history
+since the previous audit. Failed-download handling can remove a job and its
+source folder before it appears in NZBGet's visible history. Bind recovery to the
+original download ID and release before retrying it. A password warning alone
+does not establish whether already-extracted audio is complete; verify the audio
+and keep unproven encrypted source material available for recovery.
 
 This stack uses a **named config volume** (`nzbget_config`) and a **Usenet downloads bind mount** (`NZBGET_DOWNLOADS_PATH` → `/downloads`, shared with Sonarr/Radarr/Lidarr/Readarr).
 
