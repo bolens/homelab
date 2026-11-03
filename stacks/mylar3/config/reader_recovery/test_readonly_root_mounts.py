@@ -11,9 +11,9 @@ class Mounts(unittest.TestCase):
     def setUp(self):
         self.rows=[
             '1 99 0:1 / / ro - overlay overlay rw',
-            '2 1 0:2 /library /protected ro - nfs4 server:/export rw',
+            '2 1 0:2 / /protected ro - nfs4 server:/export/library rw,addr=192.0.2.1',
             '3 1 0:3 /private/tree /work rw - btrfs /dev/disk rw',
-            '4 1 0:2 /retention /retention rw - nfs4 server:/export rw',
+            '4 1 0:2 / /retention rw - nfs4 server:/export/retention rw,addr=192.0.2.1',
             '5 1 0:4 / /proc rw - proc proc rw',
         ]
 
@@ -45,8 +45,8 @@ class Mounts(unittest.TestCase):
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_writable_descendant_alias_of_readonly_nested_nfs_on_other_superblock_refuses(self):
-        self.rows.extend(['6 2 0:6 /nested /protected/nested ro - nfs4 other:/export rw',
-                          '7 1 0:7 /nested/sub /alias rw - nfs4 other:/export rw'])
+        self.rows.extend(['6 2 0:6 / /protected/nested ro - nfs4 other:/export/nested rw,addr=192.0.2.1',
+                          '7 1 0:7 / /alias rw - nfs4 other:/export/nested/sub rw,addr=192.0.2.1'])
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_readonly_protected_row_hidden_by_writable_ancestor_refuses(self):
@@ -70,19 +70,75 @@ class Mounts(unittest.TestCase):
                                          ['/ancestor/protected'],['/work','/retention'])
 
     def test_writable_alias_of_same_physical_root_refuses(self):
-        self.rows.append('6 1 0:2 /library /alias rw - nfs4 server:/export rw')
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 server:/export/library rw,addr=192.0.2.1')
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_writable_alias_of_physical_descendant_refuses(self):
-        self.rows.append('6 1 0:2 /library/sub /alias rw - nfs4 server:/export rw')
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 server:/export/library/sub rw,addr=192.0.2.1')
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_writable_alias_of_physical_ancestor_refuses(self):
-        self.rows.append('6 1 0:2 / /alias rw - nfs4 server:/export rw')
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 server:/export rw,addr=192.0.2.1')
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_same_nfs_export_on_another_superblock_is_not_assumed_disjoint(self):
-        self.rows.append('6 1 0:9 /library/sub /alias rw - nfs4 server:/export rw')
+        self.rows.append('6 1 0:9 / /alias rw - nfs4 server:/export/library/sub rw,addr=192.0.2.1')
+        with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
+
+    def test_nfs_sibling_name_prefix_is_not_ancestry(self):
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 alias:/export/library-extra rw,addr=192.0.2.1')
+        self.observe()
+
+    def test_same_address_different_dns_spelling_still_detects_alias(self):
+        self.rows.append('6 1 0:9 / /alias rw - nfs4 alias:/export/library/sub rw,addr=192.0.2.1')
+        with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
+
+    def test_same_device_different_address_still_detects_alias(self):
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 alias:/export/library/sub rw,addr=192.0.2.9')
+        with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
+
+    def test_distinct_unproven_server_identity_refuses(self):
+        self.rows[3]=self.rows[3].replace('0:2','0:9').replace('addr=192.0.2.1','addr=192.0.2.9')
+        with self.assertRaisesRegex(p.Held,'unproved-nfs-device'):self.observe()
+
+    def test_nfs_protocol_namespaces_are_not_assumed_equivalent(self):
+        self.rows[3]=self.rows[3].replace('nfs4','nfs')
+        with self.assertRaisesRegex(p.Held,'nfs-protocol'):self.observe()
+
+    def test_nfs_non_nfs_device_collision_refuses(self):
+        self.rows[3]='4 1 0:2 / /retention rw - tmpfs tmpfs rw'
+        with self.assertRaisesRegex(p.Held,'filesystem-identity'):self.observe()
+
+    def test_non_kernel_nfs_root_refuses(self):
+        self.rows[1]=self.rows[1].replace('0:2 / ', '0:2 /library ')
+        with self.assertRaisesRegex(p.Held,'nfs-root'):self.observe()
+
+    def test_same_address_different_port_on_other_device_refuses(self):
+        self.rows[3]=self.rows[3].replace('0:2','0:9')+',port=2050'
+        with self.assertRaisesRegex(p.Held,'unproved-nfs-device'):self.observe()
+
+    def test_ambiguous_nfs_source_refuses(self):
+        for source in ('server:relative','server:/export/../library','server:/export//library',
+                       '[not-an-address]:/export/library','server,other:/export/library'):
+            with self.subTest(source=source):
+                old=self.rows[1];self.rows[1]=old.replace('server:/export/library',source)
+                try:
+                    with self.assertRaises(p.Held):self.observe()
+                finally:self.rows[1]=old
+
+    def test_ipv6_source_spelling_preserves_same_device_alias_checks(self):
+        self.rows=[r.replace('server:', '[2001:db8::1]:').replace('addr=192.0.2.1','addr=2001:db8::1')
+                   for r in self.rows]
+        self.observe()
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 [2001:0db8:0:0:0:0:0:1]:/export/library/sub rw,addr=2001:0db8:0:0:0:0:0:1')
+        with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
+
+    def test_same_local_device_disjoint_paths_accept(self):
+        self.rows[1]='2 1 0:3 /private/library /protected ro - btrfs /dev/disk rw'
+        self.observe()
+
+    def test_same_local_device_ancestor_alias_refuses(self):
+        self.rows[1]='2 1 0:3 /private /protected ro - btrfs /dev/disk rw'
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_different_tmpfs_instances_are_not_physical_aliases(self):
@@ -91,7 +147,7 @@ class Mounts(unittest.TestCase):
         self.observe()
 
     def test_readonly_alias_does_not_create_writing_authority(self):
-        self.rows.append('6 1 0:2 /library /alias ro - nfs4 server:/export rw')
+        self.rows.append('6 1 0:2 / /alias ro - nfs4 server:/export/library rw,addr=192.0.2.1')
         self.observe()
 
     def test_shared_protected_mount_refuses(self):
@@ -132,7 +188,7 @@ class Mounts(unittest.TestCase):
 
     def test_escaped_mount_paths_are_decoded_before_alias_comparison(self):
         self.rows[1]=self.rows[1].replace('/library','/library\\040space')
-        self.rows.append('6 1 0:2 /library\\040space/sub /alias rw - nfs4 server:/export rw')
+        self.rows.append('6 1 0:2 / /alias rw - nfs4 server:/export/library\\040space/sub rw,addr=192.0.2.1')
         with self.assertRaisesRegex(p.Held,'physical-alias'):self.observe()
 
     def test_unknown_mountinfo_escape_refuses(self):

@@ -75,6 +75,14 @@ mount geometry, then obtain the separate strict passive proof. A missing
 acknowledgement holds without replay. Private mount references end with that
 exact helper's namespace; uncertain cleanup is not confirmed absence.
 
+NFS mountinfo reports `/` as the root even for distinct bind subtrees; use the
+complete source path emitted by the kernel, anchored to the shared original
+NFS device, when checking physical overlap. Do not compare the constant root
+as if it identified the mounted subtree. Unknown export namespace comparisons
+hold, including separate NFS devices whose server spelling/address matches.
+Regression fixtures must reproduce actual kernel source/root encoding and
+include writable aliases, siblings and nested mounts.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime

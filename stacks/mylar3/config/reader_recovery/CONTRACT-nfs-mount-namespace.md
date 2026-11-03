@@ -30,3 +30,18 @@ before its first mutation. It does not replace original R identity or grant
 rights. Legitimate creation/removal of private descendants cannot rebaseline R
 identity, and cleanup retains original FD/identity and namespace checks rather
 than requiring stale birth directory timestamps.
+
+The host read-only namespace observer uses Linux NFS mountinfo semantics:
+`nfs_show_path` emits `/`, while `nfs_show_devname` reconstructs the complete
+server subtree in the source field. For NFS rows sharing the original kernel
+device, compare canonical source path components, preserving equality and
+ancestor/descendant alias refusals. Separate sibling subtrees are disjoint even
+when their root fields both say `/`. Unsupported source/root encodings hold.
+NFS rows on separate devices cannot establish comparable export namespaces
+from server names or addresses alone; writable comparisons hold. Mixed NFS
+protocol namespaces or conflicting filesystem families on one device also hold.
+Local filesystems retain device/root comparison. This common parser serves both
+the pre-seal geometry check and the strict post-seal passive observation.
+
+Kernel representation: [Linux NFS superblock reporting](https://github.com/torvalds/linux/blob/master/fs/nfs/super.c)
+and [NFS server path reconstruction](https://github.com/torvalds/linux/blob/master/fs/nfs/namespace.c).
