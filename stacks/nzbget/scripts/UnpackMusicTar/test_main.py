@@ -1586,6 +1586,57 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertEqual(self.snapshot(root), before)
 
+    def test_covering_playlist_preserves_vinyl_side_relative_track_numbers(self) -> None:
+        for archive in (False, True):
+            for strict in (False, True):
+                for count in (1, 2):
+                    with self.subTest(archive=archive, strict=strict, count=count), tempfile.TemporaryDirectory() as temp:
+                        root = Path(temp)
+                        files = {}
+                        for side in ("a", "b"):
+                            for track in range(1, count + 1):
+                                name = f"{side}{track}-artist-song-{side}-{track}.flac"
+                                files[name] = self.tagged_flac(
+                                    {"ALBUM": "Fixture", "ARTIST": "Artist", "MEDIA": "Vinyl",
+                                     "TITLE": f"Song {side} {track}", "TRACKNUMBER": str(track)})
+                        files["album.m3u"] = ("\n".join(files) + "\n").encode()
+                        if archive:
+                            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                                for name, raw in files.items():
+                                    output.writestr("Rip/" + name, raw)
+                        else:
+                            for name, raw in files.items():
+                                (root / name).write_bytes(raw)
+                        main.process_release(root, require_completeness=strict)
+                        self.assertEqual(self.snapshot(root), files)
+                        main.process_release(root, require_completeness=strict)
+                        self.assertEqual(self.snapshot(root), files)
+
+    def test_vinyl_side_inference_rejects_missing_mixed_or_ambiguous_evidence(self) -> None:
+        for case in ("no-playlist", "partial", "gap", "non-A", "mixed", "duplicate-side", "disc-tags", "alias"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                prefixes = {"gap": ("a1", "c1"), "non-A": ("b1", "c1"),
+                            "mixed": ("101", "b1"), "duplicate-side": ("a1", "a1")}.get(case, ("a1", "b1"))
+                names = []
+                for index, prefix in enumerate(prefixes):
+                    name = f"{prefix}-artist-song-{index}.flac"
+                    tags = {"ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": f"Song {index}", "TRACKNUMBER": "1"}
+                    if case == "disc-tags":
+                        tags.update(DISCNUMBER="1", DISCTOTAL="1")
+                    (root / name).write_bytes(self.tagged_flac(tags))
+                    names.append(name)
+                if case != "no-playlist":
+                    entries = names[:1] if case == "partial" else names
+                    if case == "alias":
+                        entries = [names[0], names[0].upper()]
+                    (root / "album.m3u").write_text("\n".join(entries) + "\n")
+                before = self.snapshot(root)
+                self.assertEqual(main.playlist_disc_groups(main.tree_files(root), set(), root), {})
+                with self.assertRaises(ValueError):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
     def test_dotted_playlist_aliases_preserve_disc_inference_and_exact_precedence(self) -> None:
         for other_exact in (False, True):
             with self.subTest(other_exact=other_exact), tempfile.TemporaryDirectory() as temp:

@@ -205,6 +205,15 @@ each disc. Playlists used for this fallback remain retained even without strict
 completeness, so repeat processing keeps the same evidence. This affects
 validation only and preserves audio, tags and filenames.
 
+Lettered vinyl-side prefixes such as `a1`, `a2` and `b1` use the same covering
+playlist requirement when track tags restart at one on each side. Sides must
+start at A and continue without gaps, with consecutive tracks starting at one
+within each side. Every filename position must agree with its track tag. This
+rule requires at least two sides, does not mix numbered-disc and lettered-side
+prefixes, and keeps the existing identity, explicit-disc and cue-image guards.
+The required playlist stays retained for retries. Audio, filenames and tags
+remain unchanged.
+
 Retained, resolvable playlists have their references updated whenever files move
 or gain extensions, including cleanup-disabled helpers and cue-protected lists.
 Same-folder playlist references also resolve when NZBGet has replaced each ASCII
