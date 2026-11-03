@@ -2,7 +2,7 @@ services:
   ombi:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/ombi:latest@sha256:19d4f86713e7203d910b4aa431d7176e7a9a22f641beb1047da45aa989296509
+    image: lscr.io/linuxserver/ombi:latest@sha256:cdff52cca1c613aaf67e72bf36de5ea8486fa43fe2c2b7e2dd3368d6a80510d7
     container_name: ombi
     restart: unless-stopped
     cpus: 1.5

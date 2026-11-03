@@ -23,7 +23,7 @@ services:
   firefly:
     labels:
       logging: "true"
-    image: fireflyiii/core:latest@sha256:a2b53539338d1cd04d341b229c3806cb178cf64c72459060e3ed34bec4167bd8
+    image: fireflyiii/core:latest@sha256:d51ab6a3a7b91a5c892441578e0da7f2935f84f36bd1151fc3833acc6e060871
     container_name: firefly-iii
     restart: unless-stopped
     depends_on:

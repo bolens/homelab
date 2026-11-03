@@ -36,7 +36,7 @@ services:
   dtrack-apiserver:
     labels:
       logging: "true"
-    image: dependencytrack/apiserver:latest@sha256:4d41f29ce886a7fcb94a424b3eb2bfd17497ba92d48d43896c48e87a69bcf335
+    image: dependencytrack/apiserver:latest@sha256:3110dd66ee9d1b4b9a4dc6c51c68c23f14ba006b6e5a74d0b5204e169a1da09a
     container_name: dtrack-apiserver
     env_file:
       - stack.env
@@ -70,7 +70,7 @@ services:
   dtrack-frontend:
     labels:
       logging: "true"
-    image: dependencytrack/frontend:latest@sha256:d675efbd80facddb696c21c82e1973d0dc83ae38b3c896d1c87bf78a26a6c9eb
+    image: dependencytrack/frontend:latest@sha256:f298c3e6061096bf76575a1bbe994528089141856ec7b2ec63469cf3f2abeedf
     container_name: dtrack-frontend
     env_file:
       - stack.env
