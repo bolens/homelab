@@ -68,6 +68,7 @@ mylar-source-check:
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_import_api_controls.py --family all
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_standalone_controls.py --family all
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_authenticated_standalone_controls.py --backend "$(PUBLICATION_AUTH_BACKEND)"
 
 komga-source-check:
