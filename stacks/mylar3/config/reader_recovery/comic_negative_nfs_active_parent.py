@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA='e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0'
+HOST_LEASE_INTERFACE_SHA='a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b'
 
 IMAGE = None
 KOMGA = None
@@ -326,13 +326,11 @@ def protected_root_vectors(roots, roles=None, lifetime=None):
           and mounts['mutation_authority'] is False and mounts['publication_authority'] is False
           and all(row['readonly'] is True for row in mounts['protected'].values()),
           'readonly-realized-protected-mounts')
-    expected = {}
     check(type(roles) is dict, 'readonly-original-roles')
-    for role in ('native', 'reader'):
-        baseline = roles['roles'][role]
-        for mount in baseline['profile']['Mounts']:
-            if mount['RW'] is True and mount['Source'] in recorded:
-                expected.setdefault(mount['Source'], []).append(dict(role=role, id=baseline['id'], destination=mount['Destination']))
+    expected = original[4]['live_root_bindings'](tuple(recorded), {
+        role: dict(id=roles['roles'][role]['id'], mounts=roles['roles'][role]['profile']['Mounts'])
+        for role in ('native', 'reader')})
+    _scope_lifetime_current(lifetime, original)
     check(proof['volatile_roots'] == expected, 'readonly-original-live-service-roots')
     nodes = {}
     for p, value in full.items():
@@ -2440,7 +2438,7 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
     check(interface_ref['sha256']==HOST_LEASE_INTERFACE_SHA and original['signature']==interface_ref['signature9']
           and interface_module.__file__==interface_ref['path'],'host-lease-interface-source-origin')
     expected=types.ModuleType(interface_module.__name__);expected.__file__=interface_ref['path'];exec(compile(raw,expected.__file__,'exec'),expected.__dict__)
-    for name in ('need','encode','epoch_reply'):
+    for name in ('need','encode','epoch_reply','live_root_bindings'):
         check(getattr(interface_module,name).__code__==getattr(expected,name).__code__,'host-lease-interface-helper-code')
     actual_class=interface_module.ChildLeaseInterface;expected_class=expected.ChildLeaseInterface
     for name in ('__init__','admit','factory','probe','reader_epoch','readonly_roots','_call','prepare','acquire','start','pulse','profile','release_after_absence'):
@@ -2475,7 +2473,7 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
     namespace = interface_module.__dict__
     registry = namespace['_INTERFACES']
     helpers = tuple((namespace, name, namespace[name], namespace[name].__code__)
-                    for name in ('need', 'encode', 'epoch_reply'))
+                    for name in ('need', 'encode', 'epoch_reply', 'live_root_bindings'))
     channel_namespace = type(channel).close.__globals__
     helpers += tuple((channel_namespace, name, channel_namespace[name], channel_namespace[name].__code__)
                      for name in ('need', 'encode', 'decode', 'five'))

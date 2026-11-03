@@ -1792,8 +1792,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='8d116d51bdd8e6d3bda647449650ffbdf91cd57144fa08dd4c0c713a9a64663a'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_ACTIVE_SOURCE_SHA='038d33cc66a8234ca2c23e0f893f56573964a9ee12f452f961cf5d8fa5193995'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -3222,12 +3222,14 @@ class LifecycleParent:
              and lifecycle_state(before)==lifecycle_state(after)
              and _NFS_CHILD_EPOCHS.get(self) is original and _NFS_DATA_ROOTS.get(self) is declared,
              'nfs-readonly-original-profile-epoch')
-        volatile={}
-        for role,key in (('native','held_native'),('reader','reader')):
-            baseline=self.baselines[key]
-            for mount in baseline['Mounts']:
-                if mount['RW']is True and mount['Source']in observed:
-                    volatile.setdefault(mount['Source'],[]).append(dict(role=role,id=baseline['Id'],destination=mount['Destination']))
+        interface=modules['comic_nfs_lease_session.py']
+        mapper=interface.live_root_bindings;mapper_code=mapper.__code__
+        volatile=mapper(tuple(observed), {
+            role:dict(id=self.baselines[key]['Id'],mounts=self.baselines[key]['Mounts'])
+            for role,key in (('native','held_native'),('reader','reader'))})
+        self.nfs_host_modules()
+        need(interface.live_root_bindings is mapper and mapper.__code__ is mapper_code,
+             'nfs-readonly-original-live-root-mapper')
         proof=dict(version=1,kind='parent-original-readonly-protected-roots',nonce=self.plan['nonce'],
                    helper=dict(id=session.cid,pid=original[2],start_ticks=original[4],epoch=decode(original[3])),
                    parent_deadline=self.deadline,observation=result,volatile_roots=volatile,

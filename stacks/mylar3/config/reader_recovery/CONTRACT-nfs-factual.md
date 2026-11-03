@@ -299,8 +299,13 @@ original disjoint private operation/staging binds may be writable application
 binds. The observation retains the original full9 directory facts as evidence
 and grants no mutation or publication authority.
 
-Only protected directories that are exact original native/reader writable mount
-sources use identity5 in configured continuity, release and terminal checks.
+Only protected directories reachable through an effective original native/reader
+writable mount use identity5 in configured continuity, release and terminal checks.
+The shared source-checked mapper projects each host directory into the original
+container mount table and selects the unique deepest destination. Read-only,
+nonphysical and different-source nested mounts hide ancestor routes; independent
+writable aliases still qualify. Host and child independently derive the same
+ordered routes from their original role profiles after the real namespace proof.
 Their owning running service can change directory entries while the observer
 cannot write them. The same original file9/node5 split reaches private staging
 creation and canary cleanup helpers. Those helpers still receive every protected
