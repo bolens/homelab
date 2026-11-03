@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.45",
+  "version": "1.46",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
