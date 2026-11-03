@@ -11,6 +11,19 @@ from media_writer import Writer
 import retained_pack_control as control
 
 
+class SessionTypes(unittest.TestCase):
+    def test_foreign_values_refuse_before_weak_lookup(self):
+        calls=[]
+        class Foreign:
+            def __hash__(self):calls.append(True);raise AssertionError('foreign hash')
+        for value in (object(),{},[],Foreign()):
+            with self.subTest(type=type(value).__name__):
+                with self.assertRaisesRegex(ValueError,'original-waiting-session'):control._close(value)
+                with self.assertRaisesRegex(ValueError,'pack-original-authenticated-session'):
+                    control._authenticated_complete(value,None,None,None,None)
+        self.assertEqual(calls,[])
+
+
 class WriterOriginals(unittest.TestCase):
     def test_actual_contextmanager_and_generator_are_retained(self):
         original=control._writer_hold_original(Writer.hold)

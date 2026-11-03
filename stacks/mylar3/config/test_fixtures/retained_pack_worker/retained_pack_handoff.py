@@ -65,6 +65,7 @@ def authenticate_control(maintenance,pipe,boot):
 
 
 def _authorization(maintenance):
+    if type(maintenance) is not Maintenance:return None
     record=_AUTH_OPERATIONS.get(maintenance)
     if record is None:return None
     pipe,origin,m,binding,request_bytes,api_sha,pins,reference_bytes,review_bytes,tables=record

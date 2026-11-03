@@ -144,6 +144,59 @@ class Controls(unittest.TestCase):
     def test_real_fixed_worker_failure_propagates(self):
         self.runtime(failing=True)
 
+    @unittest.skipUnless(os.geteuid() in (0, 1000), 'Local worker fixture requires Root or UID1000')
+    def test_local_worker_inventories_repository_and_preserves_originals(self):
+        self.root.chmod(0o755)
+        repo = self.root / 'repo'
+        scripts = repo / 'scripts'
+        scripts.mkdir(parents=True)
+        source = repo / m.SCOPES['worker']
+        source.mkdir(parents=True)
+        test = source / 'test_actor.py'
+        test.write_text("import os,unittest\nfrom pathlib import Path\nclass T(unittest.TestCase):\n def test_actor(self):\n  self.assertEqual(os.geteuid(),1000)\n  self.assertTrue(Path(os.environ['ARCHIVING_UTILS_BIN']).is_file())\n  Path(__file__).chmod(0o600)\n")
+        test.chmod(0o644)
+        subprocess.run(['git', 'init', '-q', str(repo)], check=True, env=self.git_environment)
+        subprocess.run(['git', '-C', str(repo), 'add', 'stacks/komga/normalizer/test_actor.py'],
+                       check=True, env=self.git_environment)
+        before = m.signature(test)
+        backend = self.root / 'sdk' / 'bin' / 'archiving-utils'
+        backend.parent.mkdir(parents=True)
+        backend.write_text('#!/bin/sh\nexit 0\n')
+        backend.chmod(0o755)
+        with patch.object(m, '__file__', str(scripts / 'run-private-comic-controls.py')), \
+                patch.dict(os.environ, ARCHIVING_UTILS_ROOT=str(backend.parent.parent), ARCHIVING_UTILS_BIN=''):
+            m.run_local_worker()
+        self.assertEqual(m.signature(test), before)
+
+    def test_complete_worker_refuses_skipped_controls(self):
+        actor = self.source / 'test_actor.py'
+        actor.write_text("import unittest\nclass T(unittest.TestCase):\n @unittest.skip('synthetic absent tool')\n def test_actor(self): pass\n")
+        self.document['files']['test_actor.py'] = {
+            'sha256': hashlib.sha256(actor.read_bytes()).hexdigest(), 'mode': 0o644}
+        manifest = self.root / 'manifest.json'
+        manifest.write_text(json.dumps(self.document))
+        before = m.signature(actor)
+        with patch.dict(os.environ, ARCHIVING_UTILS_BIN=sys.executable):
+            with self.assertRaises(subprocess.CalledProcessError):
+                m._run('worker', self.source, manifest, local=True)
+        self.assertEqual(m.signature(actor), before)
+
+    def test_local_worker_missing_backend_fails_without_skipping_actor(self):
+        manifest = self.root / 'manifest.json'
+        manifest.write_text(json.dumps(self.document))
+        with patch.dict(os.environ, ARCHIVING_UTILS_ROOT=str(self.root / 'missing'), ARCHIVING_UTILS_BIN=''), \
+                patch.object(m.subprocess, 'run') as child:
+            with self.assertRaisesRegex(ValueError, 'Local worker requires executable'):
+                m._run('worker', self.source, manifest, local=True)
+        child.assert_not_called()
+
+    def test_local_worker_refuses_unsupported_identity_before_inventory(self):
+        with patch.object(m.os, 'geteuid', return_value=2000), \
+                patch.object(m, 'inventory') as inventory:
+            with self.assertRaisesRegex(ValueError, 'Root or UID1000'):
+                m.run_local_worker()
+        inventory.assert_not_called()
+
     def cleanup_runtime(self, primary=None, cleanup=None):
         manifest = self.root / 'manifest.json'
         manifest.write_text(json.dumps(self.document))

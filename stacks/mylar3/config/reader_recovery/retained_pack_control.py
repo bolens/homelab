@@ -197,6 +197,7 @@ class WaitingSession:
 
 
 def _close(value,*,terminal=False,released=False):
+    if type(value) is not WaitingSession:raise ValueError('original-waiting-session')
     c=_STATE.get(value);need(c is not None and (c['pid'],c['thread'])==(os.getpid(),threading.get_ident()),'original-waiting-session')
     hold_original=_WRITER_HOLDS.get(value)
     need(hold_original is not None and hold_original[0] is c
@@ -352,6 +353,7 @@ def wait_and_run(value,challenge,pack_id,member_id):
 
 def _authenticated_complete(value,result,challenge,pack_id,member_id):
     """One six-stage original transcript, with a continuous Writer observation."""
+    if type(value) is not WaitingSession:raise ValueError('pack-original-authenticated-session')
     c=_STATE.get(value);need(c is not None and type(c['pipe']) is AuthenticatedPipe,'pack-original-authenticated-session')
     from retained_pack_operations import _core
     import retained_pack_handoff as handoff

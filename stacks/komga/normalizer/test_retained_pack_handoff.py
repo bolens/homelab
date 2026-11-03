@@ -64,7 +64,11 @@ class Mechanics(unittest.TestCase):
   with self.assertRaises(ValueError):h.dispatch(object())
   with self.assertRaises(ValueError):h.consume(object())
  def test_default_disabled_selection(self):
-  with self.assertRaises(ValueError):h.select(object(),'a'*64,'b'*64)
+  class Foreign:
+   def __hash__(self):raise AssertionError('Foreign lookup dispatched')
+  for value in (object(),{},[],Foreign()):
+   self.assertFalse(h.enabled(value))
+   with self.assertRaisesRegex(ValueError,'Retained worker disabled'):h.select(value,'a'*64,'b'*64)
  def test_missing_installed_api_pin_is_explicit(self):
   self.assertIsNone(h.NATIVE_API_SHA);self.assertFalse(h.ENABLED)
  def test_remote_raw_transport_exact_finite_schema_source(self):

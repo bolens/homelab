@@ -1,11 +1,11 @@
 [
   {
     "path": "patch_publication_launch_auth.py",
-    "sha256": "5515635ab73392ca956ef6b9cbf22a7a9107227db32c657391bc23fb9cb97fa9"
+    "sha256": "984fbe57262d11ac3e0c8b55a2d2185ebb74efe66e4aae3ff44232db9b1aa8a2"
   },
   {
     "path": "test_publication_launch_auth.py",
-    "sha256": "3410d5d5b3f8202d5729866a3f75d2a4a9f32a7d3e347f7c74129a7d7ded0ee9"
+    "sha256": "79a00de1eceab712303a02642ca4e13b284d2dfbf3ab23b3e9a7eb7c4c030dd2"
   },
   {
     "path": "standalone_launch_auth/standalone_launch_auth.py",

@@ -155,19 +155,25 @@ def main(directory):
             nodes[directory] = node(z)
     for path, data in payloads.items():
         if destinations[path] is not None: continue
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o444)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         try:
             birth = full(os.fstat(fd)); security(os.fstat(fd))
-            if birth[5] & 0o170000 != 0o100000 or birth[5] & 0o7777 != 0o444 or birth[6:9] != (os.geteuid(), os.getegid(), 1):
-                raise ValueError('Auth created readonly original')
+            if birth[5] & 0o170000 != 0o100000 or birth[5] & 0o7777 != 0o600 or birth[6:9] != (os.geteuid(), os.getegid(), 1):
+                raise ValueError('Auth created private original')
             view = memoryview(data)
             while view:
                 count = os.write(fd, view)
                 if count <= 0: raise ValueError('Auth short write')
                 view = view[count:]
-            os.fsync(fd);result = full(os.fstat(fd))
-            if result[:2] + result[5:] != birth[:2] + birth[5:] or result[2] != len(data) or full(os.lstat(path)) != result:
+            os.fsync(fd);written = full(os.fstat(fd))
+            if written[:2] + written[5:] != birth[:2] + birth[5:] or written[2] != len(data) or full(os.lstat(path)) != written:
                 raise ValueError('Auth created source changed')
+            # Publish only complete public code. No key or enrollment payload
+            # is admitted by this fixed source inventory.
+            os.fchmod(fd, 0o444);os.fsync(fd);result = full(os.fstat(fd))
+            if (tuple(result[i] for i in (0,1,2,3,6,7,8)) != tuple(written[i] for i in (0,1,2,3,6,7,8))
+                    or result[5] != (written[5] & ~0o7777) | 0o444 or full(os.lstat(path)) != result):
+                raise ValueError('Auth public source publication changed')
             destinations[path] = result
         finally:
             os.close(fd)
