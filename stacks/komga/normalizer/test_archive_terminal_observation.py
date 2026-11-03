@@ -41,11 +41,11 @@ class Dialogue(unittest.TestCase):
                     absent=[str(p)+s for p in (self.catalog,self.authority) for s in ('-journal','-wal','-shm')],
                     hashes=[(str(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in files])
 
-    def run_dialogue(self, mutate=None, bad=None, release_mutate=None, reviewed=False, birth_mutate=None):
+    def run_dialogue(self, mutate=None, bad=None, release_mutate=None, reviewed=False, birth_mutate=None, before_bootstrap=None):
         bootstrap = dict(protocol=h.WIRE2 if reviewed else h.PROTOCOL,type='bootstrap',nonce='a'*64,operation_id='b'*64,
                          owner=self.owner,roles=self.roles,local_originals=self.originals(),
                          source_map={str(Path(h.__file__).absolute()):hashlib.sha256(Path(h.__file__).read_bytes()).hexdigest()})
-        source_r,parent_w=os.pipe();parent_r,source_w=os.pipe();errors=[];channels=[]
+        source_r,parent_w=os.pipe();parent_r,source_w=os.pipe();errors=[];channels=[];finished=threading.Event()
         argv=[str(Path(h.__file__).absolute()),'--reviewed-original-parent-v1','--nonce','a'*64,'--operation-id','b'*64,'--bind-roots',h.encode([str(self.root)]).decode()]
         launch_argv=patch.object(h.sys,'argv',argv);launch_argv.start()
         def worker():
@@ -53,9 +53,18 @@ class Dialogue(unittest.TestCase):
                 launch=h.reviewed_launch(tuple(argv)) if reviewed else None
                 c=h.ParentChannel(source_r,source_w,launch=launch);channels.append(c);h.exchange(c)
             except BaseException as e:errors.append(e)
-            finally:os.close(source_w);os.close(source_r)
+            finally:
+                os.close(source_w);os.close(source_r);finished.set()
         t=threading.Thread(target=worker);t.start()
-        def send(v):os.write(parent_w,h.encode(v)+b'\n')
+        def send(v):
+            try:os.write(parent_w,h.encode(v)+b'\n')
+            except BrokenPipeError:
+                # A proven child refusal may precede the parent's write.
+                # Preserve that actual error; never manufacture a success frame.
+                t.join(3);self.assertFalse(t.is_alive())
+                if not errors:raise
+                return False
+            return True
         def receive():
             raw=bytearray()
             while not raw.endswith(b'\n'):
@@ -65,6 +74,7 @@ class Dialogue(unittest.TestCase):
                 raw.extend(b)
             return bytes(raw[:-1])
         try:
+            if before_bootstrap:before_bootstrap(finished)
             if reviewed:
                 birth_raw=receive()
                 if birth_raw is None:return [],errors,channels
@@ -72,7 +82,8 @@ class Dialogue(unittest.TestCase):
                 self.assertEqual(birth['rights'],h.RIGHTS)
                 bootstrap['receiver_birth_sha256']=hashlib.sha256(birth_raw).hexdigest()
                 if birth_mutate:birth_mutate(bootstrap,birth,channels[0])
-            send(bootstrap);hello_raw=receive()
+            if not send(bootstrap):return [],errors,channels
+            hello_raw=receive()
             if hello_raw is None:return [],errors,channels
             hello=json.loads(hello_raw);foreign={k:[] for k in h.VECTORS}
             ref={'path':'/foreign/original.json','sha256':'c'*64,'signature9':[1,2,3,4,5,33152,1000,1000,1]}
@@ -83,7 +94,9 @@ class Dialogue(unittest.TestCase):
             if reviewed:request['receiver_birth_sha256']=bootstrap['receiver_birth_sha256']
             if bad:bad(request)
             if mutate:mutate()
-            raw=h.encode(request);send(request);answer=receive()
+            raw=h.encode(request)
+            if not send(request):return [hello],errors,channels
+            answer=receive()
             if answer is None:return [hello],errors,channels
             result=json.loads(answer)
             release=dict(protocol=h.WIRE2 if reviewed else h.PROTOCOL,type='release',nonce='a'*64,operation_id='b'*64,sequence=2,
@@ -91,7 +104,8 @@ class Dialogue(unittest.TestCase):
                          result_sha256=hashlib.sha256(answer).hexdigest(),rights=dict(h.RIGHTS))
             if reviewed:release['receiver_birth_sha256']=bootstrap['receiver_birth_sha256']
             if release_mutate:release_mutate(release,channels[0])
-            send(release);final=receive()
+            if not send(release):return [hello,result,None],errors,channels
+            final=receive()
             return [hello,result,None if final is None else json.loads(final)],errors,channels
         finally:
             os.close(parent_w);os.close(parent_r);t.join(3);launch_argv.stop();self.assertFalse(t.is_alive())
@@ -311,6 +325,15 @@ class Dialogue(unittest.TestCase):
                 messages,errors,_=self.run_dialogue(release_mutate=lambda r,c:armed.append(c.write_fd))
         finally:source.chmod(mode)
         self.assertFalse(fired);self.assertTrue(errors);self.assertIsInstance(errors[0],h.Held)
+
+    def test_known_kernel_refusal_before_bootstrap_write_is_reported(self):
+        real=h.os.fstat
+        def substituted(fd):return real(fd)
+        with patch.object(h.os,'fstat',substituted):
+            messages,errors,_=self.run_dialogue(before_bootstrap=lambda finished:self.assertTrue(finished.wait(3)))
+        self.assertEqual(messages,[]);self.assertEqual(len(errors),1)
+        self.assertIsInstance(errors[0],h.Held)
+        self.assertEqual(str(errors[0]),'frame-original-kernel')
 
     def test_payload_short_writes_and_eagain_never_commit_delimiter(self):
         raw=b'x'*10000;sent=bytearray();attempts=[]

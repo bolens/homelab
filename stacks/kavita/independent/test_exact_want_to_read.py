@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from _dotnet_test_sdk import require_dotnet10
 
 HERE = Path(__file__).resolve().parent
 
@@ -14,6 +15,10 @@ HERE = Path(__file__).resolve().parent
 @unittest.skipUnless(os.environ.get("KAVITA_MODEL_ASSEMBLY") and shutil.which("dotnet"),
                      "set KAVITA_MODEL_ASSEMBLY to compiled pinned Kavita.Models.dll")
 class ExactWantToReadTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_dotnet10()
+
     def test_exact_identity_without_names_cross_provider_or_prefix_fallback(self):
         with tempfile.TemporaryDirectory(prefix="kavita-exact-import-") as raw:
             root = Path(raw)

@@ -42,7 +42,7 @@ services:
   op-alertmanager:
     labels:
       logging: "true"
-    image: quay.io/prometheus/alertmanager:v0.34.1
+    image: quay.io/prometheus/alertmanager:v0.34.2
     container_name: onionprobe-alertmanager
     restart: unless-stopped
     volumes:
@@ -77,7 +77,7 @@ services:
   op-grafana:
     labels:
       logging: "true"
-    image: grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+    image: grafana/grafana:13.3.0@sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205
     container_name: onionprobe-grafana
     restart: unless-stopped
     env_file:

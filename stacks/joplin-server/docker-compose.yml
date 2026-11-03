@@ -28,7 +28,7 @@ services:
   joplin-server:
     labels:
       logging: "true"
-    image: joplin/server:latest@sha256:3f7b852959aac38da10e3a451823bf149cbae6e74d8258db5b6e6e7f0db50c26
+    image: joplin/server:latest@sha256:d951ce50b6d3d542393ebc4d08bd62d9a4fb0a6f6827abb861726c83560ecf97
     container_name: joplin-server
     restart: unless-stopped
     depends_on:
