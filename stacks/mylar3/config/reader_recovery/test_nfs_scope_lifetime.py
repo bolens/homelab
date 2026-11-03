@@ -200,6 +200,16 @@ class Lifetime(unittest.TestCase):
         with self.assertRaisesRegex(active.Held, 'scope-original-helper'):
             self.invoke(changed_decoder)
 
+    def test_replaced_live_root_mapper_refuses_before_call(self):
+        def body(lifetime):
+            active.fresh_scope(self.scope, lifetime)
+            def foreign(*args):
+                self.fail('foreign live-root mapper invoked')
+            with patch.object(interface, 'live_root_bindings', foreign):
+                active.fresh_scope(self.scope, lifetime)
+        with self.assertRaisesRegex(active.Held, 'scope-original-helper'):
+            self.invoke(body)
+
     def test_foreign_interface_cannot_use_original_registration(self):
         def body(lifetime):
             active.fresh_scope(self.scope, lifetime)

@@ -685,7 +685,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "19afd2e17527eb536ed3f1cc1820600be7b74569ebd44c3882496c60cbf62798"
+    "sha256": "d75ba034c3bb9b4f1574369b6bb234b656bde2590a958ba0158509769e725a61"
   },
   {
     "path": "run_standalone_controls.py",
@@ -697,7 +697,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "4f77b8d5f12226518d200e798cc79dff54e35d08e93b3706e97f8285828f202d"
+    "sha256": "b112473add3720b5f6c3aff00a0da20c98e93255a91c359ffac4849e44bc898f"
   },
   {
     "path": "story_arc_search.py",

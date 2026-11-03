@@ -15,6 +15,57 @@ def need(ok,reason):
     if not ok:raise Held(reason)
 def encode(v):return json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
 
+def live_root_bindings(roots, roles):
+    """Project original host directories through effective writable mount routes.
+
+    A nested destination shadows its ancestor, including read-only and nonphysical
+    mounts. An independent writable alias remains a separate effective route.
+    This pure classification grants no mutation authority or filesystem access.
+    """
+    from pathlib import PurePosixPath
+    def canonical(value):
+        need(type(value) is str and value.startswith('/') and not value.startswith('//') and '\x00' not in value,
+             'live-root-canonical-path')
+        path = PurePosixPath(value)
+        need(str(path) == value and '..' not in path.parts, 'live-root-canonical-path')
+        return path
+    need(type(roles) is dict and set(roles) == {'native', 'reader'}, 'live-root-roles')
+    root_paths = [(root, canonical(root)) for root in roots]
+    need(len({root for root, _ in root_paths}) == len(root_paths), 'live-root-unique-roots')
+    result = {}
+    for role in ('native', 'reader'):
+        baseline = roles[role]
+        need(type(baseline) is dict and set(baseline) == {'id', 'mounts'}
+             and type(baseline['id']) is str and len(baseline['id']) == 64
+             and all(c in '0123456789abcdef' for c in baseline['id'])
+             and type(baseline['mounts']) is list, 'live-root-original-role')
+        mounts = []
+        for mount in baseline['mounts']:
+            need(type(mount) is dict and type(mount.get('RW')) is bool, 'live-root-mount')
+            destination = canonical(mount.get('Destination'))
+            source = mount.get('Source')
+            physical = mount.get('Type', 'bind') in ('bind', 'volume')
+            source = canonical(source) if physical and source else None
+            mounts.append((source, destination, mount['RW']))
+        need(len({destination for _, destination, _ in mounts}) == len(mounts),
+             'live-root-ambiguous-destination')
+        for root, path in root_paths:
+            routes = set()
+            for source, destination, writable in mounts:
+                if source is None or not writable or not path.is_relative_to(source):
+                    continue
+                child = destination / path.relative_to(source)
+                covering = [row for row in mounts if child.is_relative_to(row[1])]
+                effective = max(covering, key=lambda row: len(row[1].parts))
+                actual_source, actual_destination, actual_writable = effective
+                if (actual_writable and actual_source is not None
+                        and actual_source / child.relative_to(actual_destination) == path):
+                    routes.add(str(child))
+            if routes:
+                result.setdefault(root, []).extend(dict(role=role, id=baseline['id'], destination=route)
+                                                   for route in sorted(routes))
+    return result
+
 def epoch_reply(result):
     need(type(result) is dict and set(result)=={'version','kind','cid','pid','started_at','start_ticks','native_grant','publication_authority'}
          and type(result['version']) is int and result['version']==1 and result['kind']=='parent-original-reader-host-epoch'

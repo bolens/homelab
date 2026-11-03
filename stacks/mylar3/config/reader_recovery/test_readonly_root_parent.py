@@ -11,6 +11,7 @@ import types
 import unittest
 from unittest.mock import patch
 import comic_nfs_parent_session as observer
+import comic_nfs_lease_session as interface
 import test_nfs_current_roles as profiles
 
 
@@ -59,7 +60,7 @@ class ParentReply(unittest.TestCase):
             if self.seal_callback is not None:self.seal_callback()
             return dict(namespace_sealed=True, mutation_authority=False, publication_authority=False)
         self.module = types.SimpleNamespace(observe_readonly_namespace=observe,seal_readonly_namespace=seal)
-        self.owner.nfs_host_modules = lambda: {'comic_nfs_parent_session.py': self.module}
+        self.owner.nfs_host_modules = lambda: {'comic_nfs_parent_session.py': self.module, 'comic_nfs_lease_session.py': interface}
         self.owner.emit = lambda name, value: self.emitted.append((name, value))
         self.frame = dict(type='nfs-readonly-roots', nonce='a' * 64, sequence=1, payload={})
         # Metadata-route ownership is covered separately by its owning controls.
@@ -82,6 +83,72 @@ class ParentReply(unittest.TestCase):
         self.assertEqual(self.seals[0][0], self.session)
         self.assertEqual(self.seals[0][-1], 888888888888)
         self.assertEqual(self.emitted[0][0], 'nfs-readonly-namespace-seal.json')
+
+    def test_writable_ancestor_projects_nested_directory(self):
+        self.owner.baselines['reader']['Mounts'][0]['Source'] = str(self.protected.parent)
+        proof = self.call()['payload']
+        self.assertEqual(proof['volatile_roots'][str(self.protected)][0]['destination'], '/config/protected')
+
+    def test_nested_readonly_shadow_keeps_directory_strict(self):
+        mounts = self.owner.baselines['reader']['Mounts']
+        mounts[0]['Source'] = str(self.protected.parent)
+        mounts.append(dict(Source=str(self.protected), Destination='/config/protected', RW=False))
+        self.assertEqual(self.call()['payload']['volatile_roots'], {})
+
+    def test_different_source_shadow_keeps_hidden_directory_strict(self):
+        mounts = self.owner.baselines['reader']['Mounts']
+        mounts[0]['Source'] = str(self.protected.parent)
+        mounts.append(dict(Source=str(self.grand), Destination='/config/protected', RW=True))
+        self.assertEqual(self.call()['payload']['volatile_roots'], {})
+
+    def test_writable_alias_survives_readonly_shadow(self):
+        mounts = self.owner.baselines['reader']['Mounts']
+        mounts[0]['RW'] = False
+        mounts.append(dict(Source=str(self.protected), Destination='/alias', RW=True))
+        self.assertEqual(self.call()['payload']['volatile_roots'], {
+            str(self.protected): [dict(role='reader', id='3'*64, destination='/alias')]})
+
+    def test_nonphysical_nested_shadow_keeps_directory_strict(self):
+        mounts = self.owner.baselines['reader']['Mounts']
+        mounts[0]['Source'] = str(self.protected.parent)
+        mounts.append(dict(Type='tmpfs', Source='', Destination='/config/protected', RW=True))
+        self.assertEqual(self.call()['payload']['volatile_roots'], {})
+
+    def test_component_prefix_is_not_a_source_ancestor(self):
+        self.owner.baselines['reader']['Mounts'][0]['Source'] = str(self.protected) + '-other'
+        self.assertEqual(self.call()['payload']['volatile_roots'], {})
+
+    def test_ambiguous_destination_refuses(self):
+        mounts = self.owner.baselines['reader']['Mounts']
+        mounts.append(dict(Source=str(self.grand), Destination='/config', RW=True))
+        with self.assertRaisesRegex(interface.Held, 'ambiguous-destination'):
+            self.call()
+        self.assertNotIn(self.owner, self.m._NFS_READONLY_ROOTS)
+
+    def test_mapper_replacement_during_original_callback_refuses(self):
+        # The production module loader seals its original function namespace.
+        original = interface.live_root_bindings
+        def modules():
+            if interface.live_root_bindings is not original:
+                raise self.m.Held('original-live-root-mapper')
+            return {'comic_nfs_parent_session.py': self.module, 'comic_nfs_lease_session.py': interface}
+        self.owner.nfs_host_modules = modules
+        self.callback = lambda: setattr(interface, 'live_root_bindings', lambda *args: {})
+        try:
+            with self.assertRaisesRegex(self.m.Held, 'original-live-root-mapper'):
+                self.call()
+        finally:
+            interface.live_root_bindings = original
+        self.assertNotIn(self.owner, self.m._NFS_READONLY_ROOTS)
+
+    def test_noncanonical_mount_paths_refuse(self):
+        mount = self.owner.baselines['reader']['Mounts'][0]
+        for value in ('//config', '/config/../other', '/config/', '/config/.'):
+            with self.subTest(value=value):
+                mount['Destination'] = value
+                with self.assertRaisesRegex(interface.Held, 'canonical-path'):
+                    self.call()
+                self.assertNotIn(self.owner, self.m._NFS_READONLY_ROOTS)
 
     def test_before_lease_only(self):
         self.session.lease_replies.lease = object()

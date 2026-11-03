@@ -711,6 +711,14 @@ An empty network inspection does not prove that a network is unused: inspect
 references from stopped containers as well before any explicitly authorized
 network removal.
 
+For live-directory continuity, derive effective writable coverage from the complete
+original mount table. Include nested host directories, honor destination shadows
+and retain independent aliases. Exact source equality misses active nested DATA
+directories; a source-prefix test alone ignores read-only overlays. Use the same
+source-checked mapper in both proof producer and consumer, after actual read-only
+namespace verification. Only covered directories use original identity/mode/owner;
+regular files, controls and unrelated directories retain their strict checks.
+
 For retained FIFO transport, compare device, inode, complete mode and ownership.
 Named FIFO I/O changes mtime and ctime. A full regular-file identity check on a
 FIFO can reject its own successful write. Cover both a real named-FIFO exchange

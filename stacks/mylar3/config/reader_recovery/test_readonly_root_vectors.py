@@ -79,6 +79,67 @@ class RootVectors(unittest.TestCase):
                 active.protected_root_vectors(self.roots, self.roles, lease)
         self.invoke(body)
 
+    def nested(self, mounts=(), routes=('/config/cache',)):
+        nested = self.live / 'cache'; nested.mkdir()
+        self.roots.append(nested)
+        self.roles['roles']['reader']['profile']['Mounts'].extend(mounts)
+        self.proof['observation']['roots'] = {str(p): active.stamp(p) for p in self.roots}
+        self.proof['observation']['mounts']['protected'][str(nested)] = dict(readonly=True)
+        if routes:
+            self.proof['volatile_roots'][str(nested)] = [dict(role='reader', id='d'*64, destination=p) for p in routes]
+        return nested
+
+    def test_nested_live_directory_churn_uses_original_node(self):
+        nested = self.nested()
+        def body(lease):
+            files, nodes = active.protected_root_vectors(self.roots, self.roles, lease)
+            self.assertEqual(set(files), {self.fixed})
+            self.assertEqual(set(nodes), {self.live, nested})
+            (nested / 'transient-journal').touch()
+            active.close_protected_roots(files, nodes)
+            nested.chmod(0o500)
+            with self.assertRaisesRegex(active.Held, 'forbidden-root-node-drift'):
+                active.close_protected_roots(files, nodes)
+        self.invoke(body)
+
+    def test_readonly_nested_shadow_keeps_full_directory_facts(self):
+        nested = self.live / 'cache'
+        self.nested([dict(Source=str(nested), Destination='/config/cache', RW=False)], ())
+        def body(lease):
+            files, nodes = active.protected_root_vectors(self.roots, self.roles, lease)
+            self.assertIn(nested, files); self.assertNotIn(nested, nodes)
+            (nested / 'changed').touch()
+            with self.assertRaisesRegex(active.Held, 'forbidden-root-drift'):
+                active.close_protected_roots(files, nodes)
+        self.invoke(body)
+
+    def test_different_source_shadow_does_not_relax_hidden_host_directory(self):
+        self.nested([dict(Source=str(self.fixed), Destination='/config/cache', RW=True)], ())
+        self.proof['volatile_roots'][str(self.fixed)] = [dict(role='reader', id='d'*64, destination='/config/cache')]
+        def body(lease):
+            files, nodes = active.protected_root_vectors(self.roots, self.roles, lease)
+            self.assertIn(self.live/'cache', files); self.assertNotIn(self.live/'cache', nodes)
+        self.invoke(body)
+
+    def test_writable_alias_survives_readonly_shadow(self):
+        nested = self.live / 'cache'
+        self.nested([dict(Source=str(nested), Destination='/config/cache', RW=False),
+                     dict(Source=str(nested), Destination='/alias', RW=True)], ('/alias',))
+        self.invoke(lambda lease: self.assertIn(nested, active.protected_root_vectors(self.roots, self.roles, lease)[1]))
+
+    def test_nested_same_source_mount_has_one_effective_route(self):
+        nested = self.live / 'cache'
+        self.nested([dict(Source=str(nested), Destination='/config/cache', RW=True)])
+        self.invoke(lambda lease: self.assertIn(nested, active.protected_root_vectors(self.roots, self.roles, lease)[1]))
+
+    def test_nested_churn_without_live_original_session_is_strict(self):
+        nested = self.nested()
+        files, nodes = active.protected_root_vectors(self.roots, self.roles)
+        self.assertEqual(nodes, {})
+        (nested / 'changed').touch()
+        with self.assertRaisesRegex(active.Held, 'forbidden-root-drift'):
+            active.close_protected_roots(files, nodes)
+
     def test_detached_saved_proof_is_not_a_lifetime(self):
         with self.assertRaisesRegex(active.Held, 'readonly-original-lifetime'):
             active.protected_root_vectors(self.roots, self.roles, self.owner.lease)
