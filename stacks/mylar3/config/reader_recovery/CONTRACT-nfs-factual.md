@@ -280,6 +280,19 @@ mount information. Namespace node checks run as fixed UID/GID1000 without
 supplementary groups through the original Root-opened namespace descriptor.
 Both invocations retain the original minimum Parent/dialogue deadline. Root
 keeps process and mount observations, with no credential switch in the Parent.
+
+Before that passive observation, the owning pre-lease session seals only its
+original helper's mount namespace recursively private. A transient Root child
+uses `setns`, `CAP_SYS_ADMIN` and `CAP_SYS_CHROOT` with the held original namespace
+and root descriptors; it refuses the Parent namespace before mutation. Original
+PID/start ticks, live namespace/root, profile, session, source/callable seals and
+minimum deadline bracket the action. Only propagation relationships may change:
+mount geometry, read-only flags and protected node identities remain exact.
+The fixed byte acknowledgement is diagnostic, not acceptance. Lost replies,
+profile drift or structural changes hold without replay. The separate passive
+observer still refuses propagating mounts. No container capability, service
+configuration or host mount namespace changes. Private references live only as
+long as that exact helper namespace; cleanup must be independently confirmed.
 Every protected bind and descendant must be read-only, with
 no writable physical alias, hidden bind or propagating ancestor. Only the two
 original disjoint private operation/staging binds may be writable application

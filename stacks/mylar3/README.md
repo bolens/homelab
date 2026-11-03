@@ -1552,6 +1552,11 @@ stops the reader through its existing protocol, and verifies a full projected
 reader-config backup/restore. The action compares the captured source with the
 requested owner's actual catalog source under Writer before preparation and
 adoption. Unrelated namespace drift, shadow mounts and changed originals hold.
+Before lease initialization, the host operator seals the original temporary
+observer helper's mount namespace private, preserving its read-only mounts,
+then proves the actual kernel geometry. This transient Root operation is bound
+to the retained session, process and namespace descriptors. It adds no service
+capabilities or writable application mounts; missing acknowledgement holds.
 The transient execute child sees that existing writable media ancestor, so
 cooperating-writer exclusion remains required. The fixed repair steps and
 terminal proof constrain the operation. Source checks and publication do not

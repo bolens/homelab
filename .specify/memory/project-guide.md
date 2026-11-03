@@ -65,6 +65,16 @@ A Root-opened directory descriptor does not bypass NFS search permissions.
 Read namespace metadata as its fixed owning principal, retaining the original
 descriptor, process and deadline checks.
 
+Docker inspection is not kernel propagation proof. Daemon-volume binds can be
+slaves even when inspection reports no propagation value. Only the original
+pre-lease helper may have its own mount namespace sealed recursively private.
+Bind that Root action to the actual retained session, original process/start
+ticks, held namespace/root descriptors, unchanged profile and original deadline;
+refuse the Parent namespace before entry. Preserve every read-only flag and
+mount geometry, then obtain the separate strict passive proof. A missing
+acknowledgement holds without replay. Private mount references end with that
+exact helper's namespace; uncertain cleanup is not confirmed absence.
+
 ## Acceptance evidence
 
 Check missing required configuration, idempotent preparation, preserved existing runtime
