@@ -220,12 +220,16 @@ def failure_diagnostic(error):
     kind=('held' if type(error) is Held else
           'os-error' if issubclass(type(error),OSError) else 'other')
     reason=None
-    if type(error) is Held and len(error.args)==1 and type(error.args[0]) is str:
-        if error.args[0] in ('child-original-pipe-drift','child-deadline',
+    arguments=BaseException.__dict__['args'].__get__(error,BaseException)
+    if issubclass(type(error),ValueError) and len(arguments)==1 and type(arguments[0]) is str:
+        if arguments[0] in ('child-original-pipe-drift','child-deadline',
                             'child-read-timeout','child-lost-host','child-host-frame',
                             'child-write-timeout','child-write-short',
-                            'child-response-bound','child-frame-bound'):
-            reason=error.args[0]
+                            'child-response-bound','child-frame-bound',
+                            'scope-expired-fresh-recapture-required','scope-original-parent-binding',
+                            'scope-original-reader-epoch','scope-original-document',
+                            'scope-prelease-original-admission-required','scope-observed-type'):
+            reason=arguments[0];kind='held'
     return encode(dict(kind='nfs-child-failure',exception=kind,reason=reason,
                        frames=frames,contexts=contexts,terminal_accepted=False,automatic_replay=False))+b'\n'
 

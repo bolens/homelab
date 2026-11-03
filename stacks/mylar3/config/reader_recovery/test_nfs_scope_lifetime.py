@@ -39,6 +39,8 @@ class Channel:
 
     def close(self):
         need(time.monotonic() < self.deadline, 'child-deadline')
+        callback=getattr(self,'close_callback',None)
+        if callback is not None:callback()
 
     def send(self, kind, payload):
         self.close()
@@ -49,6 +51,8 @@ class Channel:
     def receive(self, sequence):
         self.close()
         need(sequence == self.sequence, 'original-sequence')
+        callback=getattr(self,'reply_callback',None)
+        if callback is not None:callback()
         if self.calls[-1][0] == 'nfs-readonly-roots':
             if self.readonly_proof is None:
                 raise EOFError('lost response')
@@ -109,7 +113,7 @@ class Lifetime(unittest.TestCase):
         self.wall += 191
         with self.assertRaisesRegex(active.Held, 'scope-expired'):
             self.invoke(lambda lifetime: active.fresh_scope(self.scope, lifetime))
-        self.assertEqual(self.channel.calls, [])
+        self.assertEqual([kind for kind, _ in self.channel.calls], ['nfs-reader-epoch'])
 
     def test_changed_or_detached_document_cannot_borrow_old_admission(self):
         def body(lifetime):
@@ -253,6 +257,197 @@ class Lifetime(unittest.TestCase):
             active.fresh_scope(self.scope, lifetime)
         with self.assertRaisesRegex(EOFError, 'original Parent exited'):
             self.invoke(body)
+
+
+    def bound_scopes(self):
+        other = dict(kind='reviewed-komga-effective-scope-runtime', observed=985, original='effective')
+        self.channel.epoch.update(version=2, original_scopes={
+            value['kind']: hashlib.sha256(active.encode(value)).hexdigest() for value in (self.scope, other)})
+        return other
+
+    def test_each_original_document_first_admits_after_long_prepare_in_either_order(self):
+        other = self.bound_scopes()
+        self.wall += 10000
+        originals = copy.deepcopy((self.scope, other))
+        for documents in ((self.scope, other), (other, self.scope)):
+            with self.subTest(first=documents[0]['kind']):
+                def body(lifetime):
+                    for value in documents: active.fresh_scope(value, lifetime)
+                    self.assertEqual((self.scope, other), originals)
+                with self.assertRaises(Finished): self.invoke(body)
+
+    def test_fresh_wrong_document_cannot_borrow_parent_binding(self):
+        self.bound_scopes()
+        with self.assertRaisesRegex(active.Held, 'scope-original-parent-binding'):
+            self.invoke(lambda lifetime: active.fresh_scope(dict(self.scope, original='foreign'), lifetime))
+
+    def test_bound_reply_missing_other_document_refuses(self):
+        self.bound_scopes()
+        del self.channel.epoch['original_scopes']['reviewed-komga-effective-scope-runtime']
+        with self.assertRaisesRegex(interface.Held, 'original-scope-bindings'):
+            self.invoke(lambda lifetime: active.fresh_scope(self.scope, lifetime))
+
+    def test_bound_reply_foreign_kind_or_malformed_digest_refuses(self):
+        self.bound_scopes()
+        for bad in ({'foreign': '0'*64}, {self.scope['kind']: True, 'reviewed-komga-effective-scope-runtime': '0'*64}):
+            self.channel.epoch['original_scopes'] = bad
+            with self.assertRaisesRegex(interface.Held, 'original-scope-bindings'):
+                self.invoke(lambda lifetime: active.fresh_scope(self.scope, lifetime))
+
+    def test_first_unseen_document_under_writer_never_pulses_or_admits(self):
+        other = self.bound_scopes()
+        with tempfile.TemporaryDirectory() as tmp:
+            def body(lifetime):
+                active.fresh_scope(self.scope, lifetime)
+                lifetime.factory(tmp, self.channel.engine); lifetime.prepare(); lifetime.acquire()
+                self.channel.calls.clear()
+                with self.assertRaisesRegex(active.Held, 'prelease-original-admission-required'):
+                    active.fresh_scope(other, lifetime)
+                self.assertEqual(self.channel.calls, [])
+            with self.assertRaises(Finished): self.invoke(body)
+
+    def test_bound_document_epoch_restart_still_refuses(self):
+        other = self.bound_scopes()
+        def body(lifetime):
+            active.fresh_scope(self.scope, lifetime)
+            self.channel.epoch['start_ticks'] += 1
+            active.fresh_scope(other, lifetime)
+        with self.assertRaisesRegex(active.Held, 'scope-original-reader-epoch'): self.invoke(body)
+
+    def test_bound_document_cannot_renew_original_deadline(self):
+        self.bound_scopes()
+        def body(lifetime):
+            self.wall += 10000; self.tick = self.channel.deadline
+            active.fresh_scope(self.scope, lifetime)
+        with self.assertRaisesRegex(interface.Held, 'child-deadline'): self.invoke(body)
+
+    def test_bound_document_requires_integer_observation_even_when_digest_matches(self):
+        self.scope['observed'] = True; self.bound_scopes()
+        with self.assertRaisesRegex(active.Held, 'scope-observed-type'):
+            self.invoke(lambda lifetime: active.fresh_scope(self.scope, lifetime))
+
+    def test_bound_reply_extra_authority_fields_refuse(self):
+        self.bound_scopes(); self.channel.epoch['scope_grant'] = True
+        with self.assertRaisesRegex(interface.Held, 'host-reader-epoch'):
+            self.invoke(lambda lifetime: active.fresh_scope(self.scope, lifetime))
+
+    def test_bound_document_mutation_after_first_admission_still_refuses(self):
+        self.bound_scopes()
+        def body(lifetime):
+            active.fresh_scope(self.scope, lifetime)
+            self.scope['observed'] += 1
+            active.fresh_scope(self.scope, lifetime)
+        with self.assertRaisesRegex(active.Held, 'scope-original-document'): self.invoke(body)
+
+
+    def test_bound_scope_hash_helper_cannot_be_replaced_after_registration(self):
+        other=self.bound_scopes()
+        def body(lifetime):
+            active.fresh_scope(self.scope,lifetime)
+            with patch.object(active,'digest',lambda raw:'0'*64):
+                active.fresh_scope(other,lifetime)
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+
+
+    def test_foreign_check_helper_is_refused_before_it_can_run(self):
+        self.bound_scopes();called=[]
+        def foreign(*args):called.append(args);raise AssertionError('foreign checker ran')
+        def body(lifetime):
+            with patch.object(active,'check',foreign):active.fresh_scope(self.scope,lifetime)
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+    def test_noop_check_helper_cannot_suppress_its_own_identity_guard(self):
+        self.bound_scopes();called=[]
+        def foreign(*args):called.append(args)
+        def body(lifetime):
+            with patch.object(active,'check',foreign):active.fresh_scope(self.scope,lifetime)
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+
+    def test_readonly_boundary_checks_helpers_before_metadata_or_foreign_checker(self):
+        called=[]
+        def foreign(*args):called.append('check')
+        def metadata(*args):called.append('metadata');raise AssertionError('metadata before guard')
+        def body(lifetime):
+            with patch.object(active,'check',foreign),patch.object(active,'stamp',metadata):
+                active.protected_root_vectors((Path('/must-not-read'),),lifetime=lifetime)
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+
+    def test_epoch_receive_cannot_dispatch_replaced_checker_before_reclosure(self):
+        self.bound_scopes();called=[];original=active.check
+        def foreign(*args):called.append(args)
+        def body(lifetime):
+            self.channel.reply_callback=lambda:setattr(active,'check',foreign)
+            try:active.fresh_scope(self.scope,lifetime)
+            finally:active.check=original;self.channel.reply_callback=None
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+    def test_pulse_receive_cannot_dispatch_replaced_checker_before_reclosure(self):
+        self.bound_scopes();called=[];original=active.check
+        def foreign(*args):called.append(args)
+        with tempfile.TemporaryDirectory() as tmp:
+            def body(lifetime):
+                active.fresh_scope(self.scope,lifetime)
+                lifetime.factory(tmp,self.channel.engine);lifetime.prepare();lifetime.acquire()
+                self.channel.reply_callback=lambda:setattr(active,'check',foreign)
+                try:active.fresh_scope(self.scope,lifetime)
+                finally:active.check=original;self.channel.reply_callback=None
+            with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+    def test_admit_cannot_return_with_a_replaced_checker(self):
+        self.bound_scopes();called=[];original=active.check
+        def foreign(*args):called.append(args)
+        def body(lifetime):
+            self.channel.close_callback=lambda:setattr(active,'check',foreign)
+            try:active.fresh_scope(self.scope,lifetime)
+            finally:active.check=original;self.channel.close_callback=None
+        with self.assertRaisesRegex(active.Held,'scope-original-helper'):self.invoke(body)
+        self.assertEqual(called,[])
+
+    def test_scope_memory_change_during_epoch_callback_is_not_adopted(self):
+        self.bound_scopes()
+        def body(lifetime):
+            self.channel.reply_callback=lambda:self.scope.update(observed=self.scope['observed']+1)
+            active.fresh_scope(self.scope,lifetime)
+        with self.assertRaisesRegex(active.Held,'scope-original-document'):self.invoke(body)
+
+
+    def checker_replacement(self,phase,change='function',name='_scope_lifetime_current'):
+        self.bound_scopes();called=[];original=getattr(active,name);code=original.__code__;defaults=original.__defaults__
+        def foreign(*args):called.append(args);raise AssertionError('foreign guard called')
+        def foreign_code(*args):raise AssertionError('foreign guard code called')
+        def change_checker():
+            if change=='code':original.__code__=foreign_code.__code__
+            elif change=='defaults':original.__defaults__=()
+            else:setattr(active,name,foreign)
+        with tempfile.TemporaryDirectory() as tmp:
+            def body(lifetime):
+                if phase=='pulse':
+                    active.fresh_scope(self.scope,lifetime)
+                    lifetime.factory(tmp,self.channel.engine);lifetime.prepare();lifetime.acquire()
+                if phase=='readonly':self.channel.readonly_proof={}
+                self.channel.reply_callback=change_checker
+                try:
+                    if phase=='readonly':active.protected_root_vectors((),lifetime=lifetime)
+                    else:active.fresh_scope(self.scope,lifetime)
+                finally:
+                    setattr(active,name,original);original.__code__=code;original.__defaults__=defaults
+                    self.channel.reply_callback=None
+            with self.assertRaisesRegex(active.Held,'scope-original-(checker|helper)'):self.invoke(body)
+        self.assertEqual(called,[])
+
+    def test_epoch_reply_cannot_replace_the_captured_guard(self):self.checker_replacement('epoch')
+    def test_pulse_reply_cannot_replace_the_captured_guard(self):self.checker_replacement('pulse')
+    def test_readonly_reply_cannot_replace_the_captured_guard(self):self.checker_replacement('readonly')
+    def test_epoch_reply_cannot_change_guard_code(self):self.checker_replacement('epoch','code')
+    def test_epoch_reply_cannot_replace_delegated_method_checker(self):self.checker_replacement('epoch',name='_scope_methods_current')
+    def test_epoch_reply_cannot_change_guard_defaults(self):self.checker_replacement('epoch','defaults')
 
 
 if __name__ == '__main__':

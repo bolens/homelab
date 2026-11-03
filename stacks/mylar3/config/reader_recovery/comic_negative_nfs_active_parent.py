@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA='a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b'
+HOST_LEASE_INTERFACE_SHA='4d33efd43dae8eaf3f1bcaf1fbdf18299561858732af4291ca7e50d8dbabefaf'
 
 IMAGE = None
 KOMGA = None
@@ -211,8 +211,15 @@ def _scope_methods_current(owner, methods):
 
 
 def _scope_lifetime_current(interface, original):
-    check(_SCOPE_LIFETIMES.get(interface) is original, 'scope-original-lifetime')
-    cls, channel, channel_type, identity, namespace, registry, registered, methods, channel_methods, helpers, _, _ = original
+    if type(original) is not tuple or len(original)!=12 or _SCOPE_LIFETIMES.get(interface) is not original:
+        raise Held('scope-original-lifetime')
+    cls, channel, channel_type, identity, interface_namespace, registry, registered, methods, channel_methods, helpers, _, _ = original
+    # A checker cannot authenticate itself by dispatching through a mutable
+    # global. Validate all captured helper identities before the first call.
+    for helper_namespace, name, method, code, defaults, keywords in helpers:
+        if (helper_namespace.get(name) is not method or method.__code__ is not code
+                or method.__defaults__ is not defaults or method.__kwdefaults__ is not keywords):
+            raise Held('scope-original-helper')
     check(type(interface) is cls and interface.channel is channel
           and type(channel) is channel_type
           and type(channel.read_fd) is int and type(channel.write_fd) is int
@@ -220,17 +227,30 @@ def _scope_lifetime_current(interface, original):
           and type(channel.facts) is tuple
           and all(type(row) is tuple and all(type(value) is int for value in row) for row in channel.facts)
           and (channel.read_fd, channel.write_fd, channel.nonce, channel.facts, channel.deadline) == identity
-          and namespace.get('_INTERFACES') is registry
+          and interface_namespace.get('_INTERFACES') is registry
           and registry.get(interface) is registered, 'scope-original-channel')
     _scope_methods_current(cls, methods)
     _scope_methods_current(channel_type, channel_methods)
     check(not any(name in vars(interface) for name, *_ in methods)
           and not any(name in vars(channel) for name, *_ in channel_methods),
           'scope-original-instance-methods')
-    for namespace, name, method, code in helpers:
-        check(namespace.get(name) is method and method.__code__ is code, 'scope-original-helper')
+    for namespace, name, method, code, defaults, keywords in helpers:
+        if (namespace.get(name) is not method or method.__code__ is not code
+                or method.__defaults__ is not defaults or method.__kwdefaults__ is not keywords):
+            raise Held('scope-original-helper')
     # The original admit checks inherited pipes and the one original deadline.
     cls.admit(interface)
+    for helper_namespace, name, method, code, defaults, keywords in helpers:
+        if (helper_namespace.get(name) is not method or method.__code__ is not code
+                or method.__defaults__ is not defaults or method.__kwdefaults__ is not keywords):
+            raise Held('scope-original-helper')
+    if (_SCOPE_LIFETIMES.get(interface) is not original or type(interface) is not cls
+            or interface.channel is not channel or type(channel) is not channel_type
+            or (channel.read_fd,channel.write_fd,channel.nonce,channel.facts,channel.deadline)!=identity
+            or interface_namespace.get('_INTERFACES') is not registry or registry.get(interface) is not registered):
+        raise Held('scope-original-channel')
+    _scope_methods_current(cls, methods)
+    _scope_methods_current(channel_type, channel_methods)
 
 
 def fresh_scope(scope, lifetime=None):
@@ -239,30 +259,48 @@ def fresh_scope(scope, lifetime=None):
               'scope-expired-fresh-recapture-required')
         return
     original = _SCOPE_LIFETIMES.get(lifetime)
-    check(original is not None, 'scope-original-lifetime')
-    _scope_lifetime_current(lifetime, original)
+    if original is None:raise Held('scope-original-lifetime')
+    checker_rows=[row for row in original[9] if row[0] is globals() and row[1]=='_scope_lifetime_current']
+    if len(checker_rows)!=1:raise Held('scope-original-checker')
+    checker,checker_code,checker_defaults,checker_keywords=checker_rows[0][2:]
+    def check_current():
+        if (globals().get('_scope_lifetime_current') is not checker or checker.__code__ is not checker_code
+                or checker.__defaults__ is not checker_defaults or checker.__kwdefaults__ is not checker_keywords):
+            raise Held('scope-original-checker')
+        checker(lifetime,original)
+    check_current()
     documents, epoch = original[-2:]
     kind = scope.get('kind')
     check(kind in ('root-reviewed-nfs-active-disposable-scope',
                    'reviewed-komga-effective-scope-runtime'), 'scope-original-document-kind')
     raw = encode(scope)
-    if kind not in documents:
-        # A new document still needs fresh admission. Only its identical bytes
-        # may continue within this already authenticated operation afterwards.
-        fresh_scope(scope)
-    else:
+    scope_digest = digest(raw)
+    check(type(scope.get('observed')) is int, 'scope-observed-type')
+    if kind in documents:
         check(documents[kind] == raw, 'scope-original-document')
     cls = original[0]
     if getattr(lifetime, 'acquired', False) and not lifetime.released:
         # Under the Writer, this existing exchange is local heartbeat only.
+        check(kind in documents and epoch, 'scope-prelease-original-admission-required')
         cls.pulse(lifetime)
+        check_current()
+        current = epoch[0]
     else:
         current = cls.reader_epoch(lifetime)
+        check_current()
         if epoch:
             check(current == epoch[0], 'scope-original-reader-epoch')
         else:
             epoch.append(current)
-    _scope_lifetime_current(lifetime, original)
+    if current['version'] == 2:
+        # Root binds exactly the two original projected documents while freshly
+        # bracketing the same reader/configuration. Preparation age is not a
+        # substitute for that original custody, nor a reason to refresh bytes.
+        check(current['original_scopes'].get(kind) == scope_digest, 'scope-original-parent-binding')
+    elif kind not in documents:
+        fresh_scope(scope)
+    check_current()
+    if encode(scope)!=raw:raise Held('scope-original-document')
     documents[kind] = raw
 
 
@@ -272,12 +310,22 @@ def protected_root_vectors(roots, roles=None, lifetime=None):
     This proves observer confinement and directory identity, not preservation
     of application contents. File and database preservation have separate gates.
     """
+    if lifetime is not None:
+        original = _SCOPE_LIFETIMES.get(lifetime)
+        if original is None:raise Held('readonly-original-lifetime')
+        checker_rows=[row for row in original[9] if row[0] is globals() and row[1]=='_scope_lifetime_current']
+        if len(checker_rows)!=1:raise Held('scope-original-checker')
+        checker,checker_code,checker_defaults,checker_keywords=checker_rows[0][2:]
+        def check_current():
+            if (globals().get('_scope_lifetime_current') is not checker or checker.__code__ is not checker_code
+                    or checker.__defaults__ is not checker_defaults or checker.__kwdefaults__ is not checker_keywords):
+                raise Held('scope-original-checker')
+            checker(lifetime,original)
+        check_current()
     full = {p: stamp(p) for p in roots}
     if lifetime is None:
         return full, {}
-    original = _SCOPE_LIFETIMES.get(lifetime)
-    check(original is not None, 'readonly-original-lifetime')
-    _scope_lifetime_current(lifetime, original)
+    check_current()
     cached = _READONLY_ROOT_PROOFS.get(lifetime)
     if cached is None:
         check(not getattr(lifetime, 'acquired', False) and not lifetime.started,
@@ -286,7 +334,7 @@ def protected_root_vectors(roots, roles=None, lifetime=None):
         slot = (original, None)
         _READONLY_ROOT_PROOFS[lifetime] = slot
         proof = original[0].readonly_roots(lifetime)
-        _scope_lifetime_current(lifetime, original)
+        check_current()
         raw = encode(proof)
         check(_READONLY_ROOT_PROOFS.get(lifetime) is slot, 'readonly-original-slot')
         cached = (original, raw)
@@ -330,7 +378,7 @@ def protected_root_vectors(roots, roles=None, lifetime=None):
     expected = original[4]['live_root_bindings'](tuple(recorded), {
         role: dict(id=roles['roles'][role]['id'], mounts=roles['roles'][role]['profile']['Mounts'])
         for role in ('native', 'reader')})
-    _scope_lifetime_current(lifetime, original)
+    check_current()
     check(proof['volatile_roots'] == expected, 'readonly-original-live-service-roots')
     nodes = {}
     for p, value in full.items():
@@ -341,7 +389,7 @@ def protected_root_vectors(roots, roles=None, lifetime=None):
         check([value[i] for i in (0, 1, 5, 6, 7)] == node, 'readonly-original-root-node')
         if str(p) in expected:
             nodes[p] = node
-    _scope_lifetime_current(lifetime, original)
+    check_current()
     check(_READONLY_ROOT_PROOFS.get(lifetime) is cached, 'readonly-original-proof-closure')
     return {p: value for p, value in full.items() if p not in nodes}, nodes
 
@@ -2477,6 +2525,10 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
     channel_namespace = type(channel).close.__globals__
     helpers += tuple((channel_namespace, name, channel_namespace[name], channel_namespace[name].__code__)
                      for name in ('need', 'encode', 'decode', 'five'))
+    helpers += tuple((globals(), name, globals()[name], globals()[name].__code__)
+                     for name in ('check', 'encode', 'digest', '_scope_lifetime_current',
+                                  '_scope_methods_current', 'fresh_scope', 'protected_root_vectors'))
+    helpers=tuple((*row,row[2].__defaults__,row[2].__kwdefaults__) for row in helpers)
     original = (actual_class, channel, type(channel),
                 (channel.read_fd, channel.write_fd, channel.nonce, channel.facts, channel.deadline),
                 namespace, registry, registry[lease_interface], _scope_method_seals(actual_class),

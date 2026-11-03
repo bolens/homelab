@@ -197,4 +197,18 @@ class Transport(unittest.TestCase):
         self.assertEqual(value['reason'],'child-lost-host');self.assertEqual(value['exception'],'held')
         self.assertEqual(value['contexts'],[dict(frames=[])])
 
+    def test_scope_failures_from_original_active_exception_keep_fixed_reason(self):
+        class ActiveHeld(ValueError): pass
+        for reason in ('scope-expired-fresh-recapture-required','scope-original-parent-binding',
+                       'scope-original-reader-epoch','scope-prelease-original-admission-required'):
+            value=m.decode(m.failure_diagnostic(ActiveHeld(reason)))
+            self.assertEqual(value['exception'],'held');self.assertEqual(value['reason'],reason)
+            self.assertFalse(value['terminal_accepted']);self.assertFalse(value['automatic_replay'])
+
+    def test_fixed_reason_reads_builtin_exception_args_without_callbacks(self):
+        class Hostile(ValueError):
+            def __getattribute__(self,name):raise AssertionError('exception attribute callback')
+        value=m.decode(m.failure_diagnostic(Hostile('scope-original-document')))
+        self.assertEqual(value['reason'],'scope-original-document')
+
 if __name__=='__main__':unittest.main()

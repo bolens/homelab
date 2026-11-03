@@ -67,12 +67,18 @@ def live_root_bindings(roots, roles):
     return result
 
 def epoch_reply(result):
-    need(type(result) is dict and set(result)=={'version','kind','cid','pid','started_at','start_ticks','native_grant','publication_authority'}
-         and type(result['version']) is int and result['version']==1 and result['kind']=='parent-original-reader-host-epoch'
+    bound=type(result) is dict and type(result.get('version')) is int and result['version']==2
+    need(type(result) is dict and set(result)==({'version','kind','cid','pid','started_at','start_ticks','native_grant','publication_authority'}|({'original_scopes'} if bound else set()))
+         and type(result['version']) is int and result['version'] in (1,2) and result['kind']=='parent-original-reader-host-epoch'
          and type(result['cid']) is str and len(result['cid'])==64 and all(x in '0123456789abcdef' for x in result['cid'])
          and type(result['pid']) is int and result['pid']>0 and type(result['start_ticks']) is int and result['start_ticks']>0
          and type(result['started_at']) is str and result['started_at']
          and result['native_grant'] is False and result['publication_authority'] is False,'lease-interface-host-reader-epoch')
+    if bound:
+        scopes=result['original_scopes']
+        need(type(scopes) is dict and set(scopes)=={'root-reviewed-nfs-active-disposable-scope','reviewed-komga-effective-scope-runtime'}
+             and all(type(value) is str and len(value)==64 and all(c in '0123456789abcdef' for c in value) for value in scopes.values()),
+             'lease-interface-original-scope-bindings')
     return result
 
 class HostLeaseReplies:

@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import time
+import os
+from unittest.mock import patch
 
 import sys
 sys.path.insert(0,str(Path(__file__).parent))
@@ -158,6 +161,50 @@ class Controls(unittest.TestCase):
     def test_no_selected_original_refresh_is_allowed(self):
         _,frame=self.compose();ref=copy.deepcopy(self.document['archive_original']);ref['sha256']='a'*64
         with self.assertRaises(ValueError):frame.select(ref)
+
+
+    def test_slow_installation_does_not_expire_same_original_preparation(self):
+        document=copy.deepcopy(self.document);ref=self.fixture.put(document);clock=[time.time()];real=c.shared.checked_installation
+        def slow(*args):
+            result=real(*args);clock[0]+=3600;return result
+        with patch.object(c.time,'time',lambda:clock[0]),patch.object(c.shared,'checked_installation',slow):
+            owner=c.Producer(ref,self.fixture.root/'slow-attempt')
+            try:
+                self.assertEqual(owner.document,document);self.assertEqual(owner.tape,c.p.encode(document))
+                with self.assertRaisesRegex(ValueError,'schema'):
+                    c.compose(document,None,None)
+                with self.assertRaisesRegex(ValueError,'schema'):
+                    c.Producer(ref,self.fixture.root/'second-attempt')
+            finally:c.p.release_owner_reads(owner.owner_reads)
+        self.assertFalse(owner.output.exists())
+
+    def test_stale_and_future_requests_refuse_before_installation_checks(self):
+        for delta in (-121,3600):
+            with self.subTest(delta=delta):
+                document=copy.deepcopy(self.document);document['observed']+=delta;ref=self.fixture.put(document)
+                with patch.object(c.shared,'checked_installation',side_effect=AssertionError('installation before admission'))as checked:
+                    with self.assertRaisesRegex(ValueError,'schema'):c.Producer(ref,self.fixture.root/'unentered')
+                    checked.assert_not_called()
+                self.assertFalse((self.fixture.root/'unentered').exists())
+
+    def test_request_replaced_during_installation_refuses_original_identity(self):
+        ref=self.fixture.put(copy.deepcopy(self.document));real=c.shared.checked_installation
+        def changed(*args):
+            result=real(*args);path=Path(ref['path']);other=path.with_suffix('.replacement')
+            other.write_bytes(path.read_bytes());other.chmod(0o600);os.replace(other,path);return result
+        with patch.object(c.shared,'checked_installation',changed),self.assertRaises(ValueError):c.Producer(ref,self.fixture.root/'unentered-replaced')
+        self.assertFalse((self.fixture.root/'unentered-replaced').exists())
+
+    def test_postbind_composition_failure_releases_unprivileged_owner_scope(self):
+        # This source-mode constructor runs as UID1000, so no Root mask actor
+        # is created. The Root actor/FD branch has the owning common-root test.
+        self.assertIsNone(c.p._OWNER_READS)
+        with patch.object(c.p,'release_owner_reads',wraps=c.p.release_owner_reads)as release, \
+                patch.object(c,'_compose',side_effect=ValueError('configured postbind refusal')):
+            with self.assertRaisesRegex(ValueError,'configured postbind refusal'):
+                c.Producer(self.fixture.put(copy.deepcopy(self.document)),self.fixture.root/'unentered-postbind')
+            release.assert_called_once_with(None)
+        self.assertIsNone(c.p._OWNER_READS)
 
 
 if __name__=='__main__':unittest.main()

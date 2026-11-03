@@ -53,7 +53,7 @@ class Originals(shared.Originals):
             if current is not None:self.refs[current['path']]=current
 
 
-def compose(document, originals, installation):
+def _admit_document(document):
     keys = {'version', 'kind', 'nonce', 'observed', 'seconds', 'installation',
             'base_manifest', 'current_roles', 'publication_geometry', 'native',
             'native_config', 'mounts', 'bounds', 'operation', 'archive_request',
@@ -66,6 +66,15 @@ def compose(document, originals, installation):
          and 0 <= time.time() - document['observed'] <= 120
          and type(document['seconds']) is int and 1 <= document['seconds'] <= 900,
          'configured-producer-original-schema')
+
+
+def compose(document, originals, installation):
+    """Fresh detached request composition; no runtime admission or transport."""
+    _admit_document(document)
+    return _compose(document, originals, installation)
+
+
+def _compose(document, originals, installation):
     current = originals.json(document['current_roles'])
     need(type(current) is dict and set(current) == {'nonce', 'observed', 'roles', 'native_process'}
          and current['nonce'] == document['nonce'] and current['observed'] == document['observed'],
@@ -191,20 +200,25 @@ class Producer(shared.Producer):
     """Reuse the owning one-attempt executor, never the bootstrap constructor."""
     def __init__(self, request_ref, output):
         self.originals = Originals(); self.request_ref = copy.deepcopy(request_ref)
-        self.document = self.originals.json(request_ref); self.output = p.absolute(str(output)); self.entered = False
+        self.document = self.originals.json(request_ref)
+        _admit_document(self.document);original_tape=p.encode(self.document)
+        self.output = p.absolute(str(output)); self.entered = False
         need(not os.path.lexists(self.output), 'configured-producer-output-no-adoption')
         parent = os.lstat(self.output.parent)
         need(stat.S_ISDIR(parent.st_mode) and stat.S_IMODE(parent.st_mode) == 0o700
              and parent.st_uid == os.geteuid(), 'configured-producer-private-output-parent')
         installation = shared.checked_installation(self.originals, self.document['installation'], self.document['base_manifest'])
+        need(p.encode(self.document)==original_tape, 'producer-original-admitted-document')
+        self.originals.close()
         geometry = self.document['publication_geometry']
         current = self.originals.json(self.document['current_roles'])
         p.configured_common_root(geometry, self.document['mounts'], current['roles']['native']['profile'],
                                  geometry['library']['path'], geometry['retention']['path'])
         self.owner_reads = p.bind_owner_reads(geometry)
         try:
-            self.plan, self.source, self.configured, self.nfs_sources = compose(self.document, self.originals, installation)
-            self.tape = p.encode(self.document); self.deadline = time.monotonic() + self.document['seconds']
+            self.plan, self.source, self.configured, self.nfs_sources = _compose(self.document, self.originals, installation)
+            need(p.encode(self.document)==original_tape, 'producer-original-admitted-document')
+            self.tape = original_tape; self.deadline = time.monotonic() + self.document['seconds']
             self.bound = p.encode(dict(plan=self.plan, source=self.source, configured=self.configured, nfs_sources=self.nfs_sources))
             self.target = self.document['archive_original']['path']
         except BaseException:

@@ -1792,8 +1792,8 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'a96dbe9e0215b9f05cb3ce6f40a0897d847810bd0f31e1c8e490d101befb130b', 'comic_nfs_host_probe.py': '3e5286835d76f3bc0c7ea243c0507ba0a759e46c5c20bb430369bc96acaa712c', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
-NFS_ACTIVE_SOURCE_SHA='0483e442db0f5ede80d505d4e6a819ae8e970c209519c52b7e6e0f8ed1ac823a'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': '4d33efd43dae8eaf3f1bcaf1fbdf18299561858732af4291ca7e50d8dbabefaf', 'comic_nfs_host_probe.py': '3e5286835d76f3bc0c7ea243c0507ba0a759e46c5c20bb430369bc96acaa712c', 'comic_nfs_uid_child.py': 'd3011a01af1c38ad05782b706f2d436d945d9bc0623d7a540ecf09780fce4a5b', 'comic_nfs_parent_session.py': 'b92e0755a4c25ec66826aaed85e755e43d152943bd5a4957e23a16dd57e3e606', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_ACTIVE_SOURCE_SHA='04aa93c4ff79218687209cdb63cd082cd4c5af1f41e49939c8113e0896cb0b61'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -3683,23 +3683,76 @@ class LifecycleParent:
         original=self.baselines['reader'];cid=original['Id'];pid=original['State']['Pid']
         need(type(pid) is int and pid>0,'nfs-reader-epoch-original-pid')
         retained=_NFS_READER_EPOCHS.get(self)
+        scope_tape=None;scope_originals=[];scope_context=_NFS_SOURCE_CONTEXTS.get(self);scope_tree=None
+        if retained is not None:
+            need((len(retained)==6)==(scope_context is not None),'nfs-reader-epoch-original-scope-context')
         if self.engine in _NFS_REMOTE_WINDOWS:
             need(retained is not None and retained[:4]==(session,cid,pid,original['State']['StartedAt']),
                  'nfs-reader-epoch-prelease-original-required')
             # Local host process identity only. No Docker/API under the Writer.
             ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
             need(ticks==retained[4],'nfs-reader-epoch-held-local-starttick')
+            if len(retained)==6:scope_tape=retained[5]
         else:
+            if scope_context is not None:
+                # Derive these bindings from the original Root inputs and the
+                # retained projection ledger, never from a child selector.
+                need(session.owner is self and session.g is globals(),'nfs-reader-epoch-owning-scope-session')
+                self.left();scope_tree=_CHILD_TREES[self];scope_tree.check()
+                need(scope_tree.original_operation==self.op,'nfs-reader-epoch-owning-scope-projection')
+                outer=decode(scope_context[2])
+                def original_document(pair):
+                    ref=dict(pair,signature9=list(self.files[pair['path']]))
+                    raw=read(ref);scope_originals.append((ref,raw));return decode(raw)
+                original_scope=original_document(outer['active_scope'])
+                projected_ref=copy.deepcopy(self.generated[str(self.op/'nfs-scope-input.json')])
+                projected_raw=read(projected_ref);scope_originals.append((projected_ref,projected_raw))
+                projected=decode(projected_raw);expected=copy.deepcopy(original_scope)
+                expected['sources']={}
+                for name,pair in original_scope['sources'].items():
+                    full=dict(pair,signature9=list(self.files[pair['path']]))
+                    original_pair=(full['path'],full['sha256'],tuple(full['signature9']))
+                    copies=[row[1] for row in scope_tree.pairs if row[0]==original_pair]
+                    need(len(copies)==1,'nfs-reader-epoch-existing-scope-projection')
+                    child_path=str(scope_tree.child_root/Path(copies[0][0]).relative_to(scope_tree.root))
+                    expected['sources'][name]=dict(path=child_path,sha256=copies[0][1])
+                need(projected==expected and projected.get('kind')=='root-reviewed-nfs-active-disposable-scope'
+                     and type(projected.get('observed')) is int,'nfs-reader-epoch-original-projected-scope')
+                review=original_document(outer['effective_observer_review'])
+                runtime=original_document(review['runtime'])
+                need(runtime.get('kind')=='reviewed-komga-effective-scope-runtime'
+                     and type(runtime.get('observed')) is int
+                     and static(runtime['container'])==static(original)
+                     and {k:v for k,v in runtime['container']['State'].items()if k!='Health'}
+                         =={k:v for k,v in original['State'].items()if k!='Health'},
+                     'nfs-reader-epoch-original-effective-runtime')
+                # Config files and absences were admitted by
+                # nfs_effective_originals and remain in Parent.left custody.
+                need(self in _NFS_EFFECTIVE_ABSENCES,'nfs-reader-epoch-original-effective-config')
+                # Match the child scope wire canonicalization explicitly;
+                # Parent.encode intentionally preserves Unicode elsewhere.
+                scope_tape=encode({value['kind']:hashlib.sha256(json.dumps(value,sort_keys=True,
+                    separators=(',',':'),ensure_ascii=True,allow_nan=False).encode()).hexdigest()
+                    for value in (projected,runtime)})
+                self.left()
             before=self.inspect(cid)
             need(static(before)==static(original) and lifecycle_state(before)==lifecycle_state(original),'nfs-reader-epoch-original-before')
             ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
             after=self.inspect(cid);ticks2=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
             need(static(after)==static(original) and lifecycle_state(after)==lifecycle_state(original) and ticks2==ticks,'nfs-reader-epoch-original-after')
             current=(session,cid,pid,original['State']['StartedAt'],ticks)
+            if scope_tape is not None:current=(*current,scope_tape)
             if retained is None:_NFS_READER_EPOCHS[self]=current
             else:need(retained==current,'nfs-reader-epoch-postrelease-original')
-        response=dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=dict(version=1,kind='parent-original-reader-host-epoch',cid=cid,pid=pid,start_ticks=ticks,started_at=original['State']['StartedAt'],native_grant=False,publication_authority=False))
-        session.close();need(_NFS_READER_EPOCHS.get(self)==(session,cid,pid,original['State']['StartedAt'],ticks),'nfs-reader-epoch-final-original')
+        payload=dict(version=1,kind='parent-original-reader-host-epoch',cid=cid,pid=pid,start_ticks=ticks,started_at=original['State']['StartedAt'],native_grant=False,publication_authority=False)
+        final_epoch=(session,cid,pid,original['State']['StartedAt'],ticks)
+        if scope_tape is not None:
+            payload.update(version=2,original_scopes=decode(scope_tape));final_epoch=(*final_epoch,scope_tape)
+        response=dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=payload)
+        for ref,raw in scope_originals:need(read(ref)==raw,'nfs-reader-epoch-original-scope-close')
+        if scope_tree is not None:scope_tree.check()
+        session.close();need(_NFS_READER_EPOCHS.get(self)==final_epoch
+                             and _NFS_SOURCE_CONTEXTS.get(self) is scope_context,'nfs-reader-epoch-final-original')
         dialogue.sequence=frame['sequence'];return response
 
     def inspect(self, cid):
