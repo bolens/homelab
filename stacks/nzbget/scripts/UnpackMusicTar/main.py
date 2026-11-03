@@ -420,7 +420,7 @@ def is_synology_metadata(path: Path) -> bool:
 
 def is_album_info_sidecar(path: Path) -> bool:
     """Recognise bounded posting metadata, never arbitrary extensionless text."""
-    if not re.fullmatch(r"(?:[a-z0-9]{1,32}_)?album_info", path.name, re.IGNORECASE):
+    if not re.fullmatch(r"(?:(?:[a-z0-9]{1,32}_)?album_info|about_album)", path.name, re.IGNORECASE):
         return False
     with path.open("rb") as stream:
         raw = stream.read(65537)
@@ -455,8 +455,9 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
     def structured_nfo(text: str) -> bool:
         frame = " \t|" + "".join(chr(code) for code in range(0x2500, 0x25a0)) + "\u25a0"
         lines = [line.strip(frame) for line in text.splitlines()]
-        fields = {match[1].casefold() for line in lines
-                  if (match := re.fullmatch(r"(Artist|Album|Title|Genre|Source|Encoder|Quality|Tracks|Label)[ .]*:[ \t]*\S[^\r\n]*",
+        fields = {match[1].casefold().removesuffix(" name") for line in lines
+                  if (match := re.fullmatch(r"(Artist(?: Name)?|Album(?: Name)?|Title|Genre|Source|Encoder|Quality|Tracks|Label)"
+                                            r"(?:[ .]*:[ \t]*|\.{2,}[ \t]+|_+>[ \t]*)\S[^\r\n]*",
                                             line, re.IGNORECASE))}
         return (({"artist", "album"} <= fields or {"artist", "title"} <= fields)
                 and len(fields - {"artist", "album", "title"}) >= 2
