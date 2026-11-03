@@ -5,7 +5,7 @@ services:
   kavita:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/kavita:latest@sha256:ded5717da004779e52bf51c1acd5ce345c9fe007a22fe97953235ec8072bc2ac
+    image: lscr.io/linuxserver/kavita:latest@sha256:de556f62dadefdd59dc69e04855db91157d774f84b242568c8858251aff1340b
     container_name: kavita
     restart: unless-stopped
     cpus: 2.0

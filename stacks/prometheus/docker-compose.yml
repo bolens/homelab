@@ -7,7 +7,7 @@ services:
   prometheus:
     labels:
       logging: "true"
-    image: prom/prometheus:latest@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    image: prom/prometheus:latest@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
     container_name: prometheus
     restart: unless-stopped
     command:

@@ -36,7 +36,7 @@ services:
   diun:
     labels:
       logging: "false"
-    image: crazymax/diun:latest@sha256:e324b793eb32dfb7f74d3a39421ebf090141caaadee69b8f78da63112408ee25
+    image: crazymax/diun:latest@sha256:8cc638b4c54e8a0c47898a51b20dae73037ad43310168b5da543a311dc668f77
     container_name: diun
     env_file:
       - stack.env

@@ -139,6 +139,8 @@ python3 -m unittest discover -s stacks/kavita/providers -p 'test_*.py'
 python3 -m unittest discover -s stacks/kavita/independent -p 'test_*.py'
 ```
 
+`make validate` and `make ci-local` run both suites with the same optional inputs.
+
 The full patch test requires `KAVITA_SOURCE_EXPORT` to point at a pristine export
 of the pinned source. The native response test additionally requires
 `KAVITA_MODEL_ASSEMBLY` to point at its compiled `Kavita.Models.dll`, and the exact

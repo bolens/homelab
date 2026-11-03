@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import threading
 import unittest
+from _dotnet_test_sdk import require_dotnet10
 
 HERE = Path(__file__).resolve().parent
 
@@ -16,9 +17,7 @@ HERE = Path(__file__).resolve().parent
 class CapabilityRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        version = subprocess.run(["dotnet", "--version"], capture_output=True, text=True, check=True).stdout
-        if not version.startswith("10."):
-            raise unittest.SkipTest("requires .NET 10 SDK")
+        require_dotnet10()
         cls.directory = tempfile.TemporaryDirectory()
         cls.root = Path(cls.directory.name)
         shutil.copyfile(HERE / "IndependentProvider.cs", cls.root / "IndependentProvider.cs")

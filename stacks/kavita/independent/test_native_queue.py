@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from _dotnet_test_sdk import require_dotnet10
 
 HERE = Path(__file__).resolve().parent
 
@@ -16,6 +17,10 @@ HERE = Path(__file__).resolve().parent
 @unittest.skipUnless(os.environ.get("KAVITA_PATCHED_SOURCE") and shutil.which("dotnet"),
                      "set KAVITA_PATCHED_SOURCE to a freshly patched isolated pinned export")
 class NativeQueueTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_dotnet10()
+
     def test_native_queue_gateway_restart_and_failure_recovery(self):
         source = Path(os.environ["KAVITA_PATCHED_SOURCE"])
         project = source / "Kavita.Services.Tests/Kavita.Services.Tests.csproj"

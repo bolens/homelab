@@ -4,7 +4,7 @@ services:
   blackbox-exporter:
     labels:
       logging: "true"
-    image: prom/blackbox-exporter:latest@sha256:9613f2884689b6fad9f1939f6a3b0388c93a022cfaededb19545b329b5c83dea
+    image: prom/blackbox-exporter:latest@sha256:ea1c7aa3ef3f307cd03e85f34abb604478ccb90b567fc690da0cd9776da76b13
     container_name: blackbox-exporter
     restart: unless-stopped
     cap_add:

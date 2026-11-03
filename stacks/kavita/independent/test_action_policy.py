@@ -6,12 +6,17 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from _dotnet_test_sdk import require_dotnet10
 
 HERE = Path(__file__).resolve().parent
 
 
 @unittest.skipUnless(shutil.which("dotnet") and shutil.which("node"), "requires .NET 10 and Node 24")
 class ActionPolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_dotnet10()
+
     def test_compiled_policies_reject_cross_provider_and_catalog_capabilities(self):
         providers = []
         for name, caps in [("AniList", ["progress", "ratings", "reviews", "wantToRead", "safeWantToReadRemoval", "readingStatus"]),

@@ -2,7 +2,7 @@ services:
   pgadmin:
     labels:
       logging: "true"
-    image: dpage/pgadmin4:2026-09-15-1
+    image: dpage/pgadmin4:2026-10-27-2
     container_name: pgadmin
     restart: unless-stopped
     cpus: 1.5

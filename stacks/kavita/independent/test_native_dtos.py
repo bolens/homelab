@@ -9,11 +9,16 @@ import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from _dotnet_test_sdk import require_dotnet10
 
 
 @unittest.skipUnless(os.environ.get("KAVITA_MODEL_ASSEMBLY") and shutil.which("dotnet"),
                      "set KAVITA_MODEL_ASSEMBLY to the compiled pinned Kavita.Models.dll")
 class NativeDtoTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_dotnet10()
+
     def test_metadata_payloads_deserialize_in_pinned_application(self):
         providers = Path(__file__).resolve().parents[1] / "providers"
         sys.path.insert(0, str(providers))

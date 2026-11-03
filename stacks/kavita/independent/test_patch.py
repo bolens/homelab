@@ -2,6 +2,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 import unittest
@@ -16,7 +17,12 @@ class PatchTests(unittest.TestCase):
     def test_source_and_base_pins(self):
         dockerfile = (HERE / "Dockerfile").read_text()
         self.assertIn(module.SOURCE_SHA, dockerfile)
-        self.assertIn("sha256:9ab54dfa133ca038992cea019490c951843712dcb66fec518a01f25d076ef335", dockerfile)
+        stages = re.findall(r"^FROM (\S+)(?: AS (\w+))?$", dockerfile, re.MULTILINE)
+        self.assertEqual([alias for _, alias in stages], ["source", "web", "publish", ""])
+        self.assertRegex(stages[0][0], r"^mcr\.microsoft\.com/dotnet/sdk:[^@\s]+@sha256:[0-9a-f]{64}$")
+        self.assertRegex(stages[1][0], r"^node:[^@\s]+@sha256:[0-9a-f]{64}$")
+        self.assertEqual(stages[2][0], "source")
+        self.assertRegex(stages[3][0], r"^lscr\.io/linuxserver/kavita(?::[^@\s]+)?@sha256:[0-9a-f]{64}$")
         self.assertIn('test "$(readlink /app/kavita/config)" = /config', dockerfile)
         self.assertIn("--chown=abc:abc", dockerfile)
         self.assertNotIn("ENTRYPOINT", dockerfile)

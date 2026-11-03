@@ -2,7 +2,7 @@ services:
   rustfs:
     labels:
       logging: "true"
-    image: rustfs/rustfs:latest@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c
+    image: rustfs/rustfs:latest@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2
     container_name: rustfs
     restart: unless-stopped
     cpus: 4.0

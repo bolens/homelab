@@ -61,8 +61,13 @@ and inspect the selected release notes before updating.
    verified original database and compatible image. Remove only this operation's
    temporary copies after successful acceptance.
 
-The selected [v1.55 release](https://github.com/meilisearch/meilisearch/releases/tag/v1.55.0)
-also changes ranking-score threshold behavior and rejects a null
+The selected [v1.56 release](https://github.com/meilisearch/meilisearch/releases/tag/v1.56.0)
+changes embedder rate limiting and outage handling, and fixes binary quantization
+state after deleting an embedder. Exercise batch indexing and failed or
+rate-limited embedder responses during the isolated migration checks.
+
+The earlier [v1.55 release](https://github.com/meilisearch/meilisearch/releases/tag/v1.55.0)
+changed ranking-score threshold behavior and rejected a null
 `binaryQuantization` setting. Include representative threshold queries and the
 current vector/embedder settings in the isolated migration checks for both this
 instance and Linkwarden's separate instance. The image pin alone does not migrate
