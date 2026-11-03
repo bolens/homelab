@@ -1792,7 +1792,7 @@ _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '82773dfe736c99826da6f0638278c2ccda8b89d917482d39aff8ed77263b55dd', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': '2be1792d03c57c72240a4eadf4711e60bf972222c14bbd89ce823a425aab65b2', 'comic_nfs_host_lease.py': 'a61d0a2f3f8491edcfc64728049e40fc9be8d8e3b234c21dbae017faff050880', 'comic_nfs_lease_session.py': 'e249af8170313613cbd7da65d1906758529dc41a4b1104e5b607aac4beeca9a0', 'comic_nfs_host_probe.py': 'e54fd98f806575fc1443f9c6c1def31ecb8402fd2029f4b36ebb2a02e8ff4882', 'comic_nfs_uid_child.py': 'fc31ad1ce7bef468a838d265833e3869ebc592561907b7994610a4ad2e497550', 'comic_nfs_parent_session.py': '6785a5bd1d9cf1ece1994fb1e3ac0db7c95e5e6547cd1bc2eec4e4099ad1fa43', 'comic_negative_nfs_active_lifecycle.py': 'b41ea8732ab93dc833e1fbb55e8e1f992d3eaae6563598a878fcb44db96b6ffc', 'comic_nfs_child_input_projection.py': '0ac693f437fe3940f99b8ad8276a069b9647ec42abe435c346fa91e55a5fcd02'}
 NFS_ACTIVE_SOURCE_SHA='8d116d51bdd8e6d3bda647449650ffbdf91cd57144fa08dd4c0c713a9a64663a'
 
 
@@ -3179,8 +3179,9 @@ class LifecycleParent:
 
     def nfs_readonly_roots_reply(self,frame):
         session=_NFS_LIVE_SESSIONS.get(self);declared=_NFS_DATA_ROOTS.get(self)
-        need(session is not None and session.lease_replies.lease is None
-             and type(declared) is tuple and len(declared)>=2,'nfs-readonly-before-lease-only')
+        need(session is not None and session.owner is self and session.g is globals()
+             and session.lease_replies.lease is None and type(declared) is tuple and len(declared)>=2,
+             'nfs-readonly-before-lease-only')
         session.close();dialogue=session.engine_replies
         need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'}
              and frame['type']=='nfs-readonly-roots' and frame['nonce']==self.plan['nonce']
@@ -3192,6 +3193,7 @@ class LifecycleParent:
         roots=declared[:-1];tree=_CHILD_TREES[self];writable=[str(tree.child_root),declared[-1]]
         # Capture the original physical nodes before profile/kernel callbacks.
         observed={root:list(nine(nfs_lstat(root)))for root in roots}
+        observed_original=encode(observed)
         before=session.profile_after_release()
         expected_writable={(str(tree.root),str(tree.child_root)),(declared[-1],declared[-1])}
         need({(m['Source'],m['Destination'])for m in before['Mounts']if m['RW']is True}==expected_writable
@@ -3201,11 +3203,20 @@ class LifecycleParent:
             need(len(selected)==1 and selected[0]['Source']==root and selected[0]['RW']is False,
                  'nfs-readonly-exact-protected-bind')
         modules=self.nfs_host_modules();module=modules['comic_nfs_parent_session.py']
+        sealer=module.seal_readonly_namespace;sealer_code=sealer.__code__
         observer=module.observe_readonly_namespace;observer_code=observer.__code__
-        result=observer(original[2],original[4],observed,writable,min(self.deadline,_DIALOGUE_SEALS[self.engine][session.cid][6]))
+        deadline=min(self.deadline,_DIALOGUE_SEALS[self.engine][session.cid][6])
+        sealed=sealer(session,observed,writable,deadline)
+        self.nfs_host_modules()
+        need(module.seal_readonly_namespace is sealer and sealer.__code__ is sealer_code
+             and module.observe_readonly_namespace is observer and observer.__code__ is observer_code
+             and _NFS_CHILD_EPOCHS.get(self) is original and encode(observed)==observed_original,
+             'nfs-readonly-original-namespace-sealer')
+        result=observer(original[2],original[4],observed,writable,deadline)
         self.nfs_host_modules()
         need(module.observe_readonly_namespace is observer and observer.__code__ is observer_code,
              'nfs-readonly-original-observer')
+        need(encode(observed)==observed_original,'nfs-readonly-original-observed-roots')
         after=session.profile_after_release()
         need(encode(static(before))==encode(static(after))
              and lifecycle_state(before)==lifecycle_state(after)
@@ -3223,6 +3234,7 @@ class LifecycleParent:
                    mutation_authority=False,publication_authority=False)
         raw=encode(proof)
         response=dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=decode(raw))
+        self.emit('nfs-readonly-namespace-seal.json',sealed)
         self.emit('nfs-readonly-protected-roots.json',proof)
         session.close();self.nfs_host_modules()
         for root,value in observed.items():

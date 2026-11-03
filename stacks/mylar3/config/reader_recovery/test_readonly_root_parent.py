@@ -31,7 +31,7 @@ class ParentReply(unittest.TestCase):
         self.row['Mounts'] = [dict(Type='bind', Source=str(p), Destination=str(p), RW=rw)
                               for p, rw in ((self.protected, False), (self.tree, True), (self.grand, True))]
         self.dialogue = types.SimpleNamespace(sequence=0)
-        self.session = types.SimpleNamespace(cid=self.row['Id'], close=lambda: None,
+        self.session = types.SimpleNamespace(owner=self.owner, g=self.m.__dict__, cid=self.row['Id'], close=lambda: None,
             lease_replies=types.SimpleNamespace(lease=None), engine_replies=self.dialogue,
             pump=types.SimpleNamespace(deadline=888888888888),
             profile_after_release=lambda: copy.deepcopy(self.row))
@@ -47,12 +47,18 @@ class ParentReply(unittest.TestCase):
                                 'reader': profiles.row(3, 'reader', 'running')}
         self.owner.baselines['reader']['Mounts'] = [dict(Source=str(self.protected), Destination='/config', RW=True)]
         self.observations = []; self.callback = None; self.emitted = []
+        self.seals = []; self.seal_callback = None; self.order = []
         def observe(pid, ticks, roots, writable, deadline):
+            self.order.append('observe')
             self.observations.append((pid, ticks, roots, writable, deadline))
             if self.callback is not None:
                 self.callback()
             return dict(roots=roots, mutation_authority=False, publication_authority=False)
-        self.module = types.SimpleNamespace(observe_readonly_namespace=observe)
+        def seal(session, roots, writable, deadline):
+            self.order.append('seal');self.seals.append((session, copy.deepcopy(roots), tuple(writable), deadline))
+            if self.seal_callback is not None:self.seal_callback()
+            return dict(namespace_sealed=True, mutation_authority=False, publication_authority=False)
+        self.module = types.SimpleNamespace(observe_readonly_namespace=observe,seal_readonly_namespace=seal)
         self.owner.nfs_host_modules = lambda: {'comic_nfs_parent_session.py': self.module}
         self.owner.emit = lambda name, value: self.emitted.append((name, value))
         self.frame = dict(type='nfs-readonly-roots', nonce='a' * 64, sequence=1, payload={})
@@ -71,7 +77,11 @@ class ParentReply(unittest.TestCase):
         self.assertFalse(proof['mutation_authority']); self.assertFalse(proof['publication_authority'])
         self.assertEqual(self.dialogue.sequence, 1)
         self.assertIs(self.m._NFS_READONLY_ROOTS[self.owner][0], self.session)
-        self.assertEqual(len(self.emitted), 1)
+        self.assertEqual(len(self.emitted), 2)
+        self.assertEqual(self.order, ['seal', 'observe'])
+        self.assertEqual(self.seals[0][0], self.session)
+        self.assertEqual(self.seals[0][-1], 888888888888)
+        self.assertEqual(self.emitted[0][0], 'nfs-readonly-namespace-seal.json')
 
     def test_before_lease_only(self):
         self.session.lease_replies.lease = object()
@@ -120,6 +130,37 @@ class ParentReply(unittest.TestCase):
         with self.assertRaisesRegex(self.m.Held, 'original-host-node'):
             self.call()
 
+    def test_sealer_replacement_refuses_before_passive_observation(self):
+        self.seal_callback = lambda: setattr(self.module, 'seal_readonly_namespace', lambda *args: {})
+        with self.assertRaisesRegex(self.m.Held, 'original-namespace-sealer'):
+            self.call()
+        self.assertEqual(self.observations, [])
+        self.assertNotIn(self.owner, self.m._NFS_READONLY_ROOTS)
+
+    def test_sealer_cannot_replace_original_epoch(self):
+        self.seal_callback = lambda: self.m._NFS_CHILD_EPOCHS.__setitem__(self.owner, tuple(list(self.epoch)))
+        with self.assertRaisesRegex(self.m.Held, 'original-namespace-sealer'):
+            self.call()
+        self.assertEqual(self.observations, [])
+
+    def test_sealer_cannot_rewrite_captured_root_facts(self):
+        def changed(session, roots, writable, deadline):
+            roots[str(self.protected)][3] += 1
+            return dict(namespace_sealed=True)
+        self.module.seal_readonly_namespace = changed
+        with self.assertRaisesRegex(self.m.Held, 'original-namespace-sealer'):
+            self.call()
+        self.assertEqual(self.observations, [])
+
+    def test_observer_cannot_rewrite_captured_root_facts(self):
+        def changed(pid, ticks, roots, writable, deadline):
+            roots[str(self.protected)][3] += 1
+            return dict(roots=roots)
+        self.module.observe_readonly_namespace = changed
+        with self.assertRaisesRegex(self.m.Held, 'original-observed-roots'):
+            self.call()
+        self.assertNotIn(self.owner, self.m._NFS_READONLY_ROOTS)
+
 
 class ObserverAdmission(unittest.TestCase):
     def test_observer_requires_actual_root_identity(self):
@@ -145,6 +186,7 @@ class NamespaceCollector(unittest.TestCase):
         self.pid = os.getpid()
         self.ticks = int(Path('/proc/self/stat').read_text().rsplit(')', 1)[1].split()[19])
         self.open = os.open
+        self.stat = os.stat
         self.reads = 0; self.callback = None
         def opened(path, flags, *args, **kwargs):
             if path == '/proc/' + str(self.pid) + '/mountinfo':
@@ -153,10 +195,14 @@ class NamespaceCollector(unittest.TestCase):
                     self.callback(self.reads)
                 path = self.mountinfo
             return self.open(path, flags, *args, **kwargs)
+        def stated(path, *args, **kwargs):
+            if path == '/proc/' + str(self.pid) + '/mountinfo':path = self.mountinfo
+            return self.stat(path, *args, **kwargs)
         def owner_nodes(fd, root5, paths, deadline):
             return {p:list(observer.five(os.stat(p.lstrip('/'),dir_fd=fd,follow_symlinks=False))) for p in paths}
         for patcher in (patch.object(observer, 'readonly_namespace_nodes', owner_nodes),
                         patch.object(observer.os, 'open', opened),
+                        patch.object(observer.os, 'stat', stated),
                         patch.object(observer.os, 'getresuid', return_value=(0, 0, 0)),
                         patch.object(observer.os, 'getresgid', return_value=(0, 0, 0))):
             patcher.start(); self.addCleanup(patcher.stop)
@@ -193,6 +239,17 @@ class NamespaceCollector(unittest.TestCase):
         self.protected[str(self.roots[0])][5] = 0o100600
         with self.assertRaisesRegex(observer.Held, 'original-roots'):
             self.call()
+
+    def test_callback_cannot_rewrite_original_roots_or_writable_scope(self):
+        expected = copy.deepcopy(self.protected)
+        old_writable = tuple(self.writable)
+        def changed(number):
+            if number == 1:
+                self.protected.clear();self.writable[:] = ['/foreign', '/other']
+        self.callback = changed
+        result = self.call()
+        self.assertEqual(result['roots'], expected)
+        self.assertEqual(set(result['mounts']['writable']), set(old_writable))
 
 
 if __name__ == '__main__':

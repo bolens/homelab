@@ -82,17 +82,16 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 - [ ] T017 [US3] With T016 backup/restore and fresh owning admission, execute the selected supported retained-original repair through the dedicated configured `archive-one` route in `stacks/mylar3/config/publication_archive_owned.py`, not the disposable fixture transition or generic import. Compare exact original/repaired members, pages, compressed bytes, metadata, native owner/catalog/census and affected reader records; require genuine terminal vectors and intended native/worker factual consumption. Preserve the four failed selected histories; reconcile a current DDL capture only from actual ordinary import and a fresh matching catalog-to-ACK event; prove guarded repeat handling without replay or manufactured historical ACKs. Record feature 022/023 joins and retain originals on uncertainty; do not release general writers prematurely.
 
   The current native image and rollout preservation are verified through #579.
-  Host-only #583 is merged and its source-cohort check passed, but the fresh
-  selected repair held before reader stop on a protected-directory metadata
-  comparison. No accepted terminal or archive mutation followed. The complete
-  two-root library baseline is retained, covering 6,668 entries and all file
-  bytes. The current correction proves observer read-only confinement and
-  distinguishes live-service directory identity from entry churn across
-  continuity, staging, cleanup and terminal consumers. Deliver matching host
-  controls, then make one fresh owning attempt. Reuse the unchanged accepted
-  image and isolated forward/rollback evidence. Keep the entered attempt
-  status-only and retain its original records. T017 remains incomplete until
-  actual repair, consistent reader backup/restore and terminal proof pass.
+  Host-only #587 is merged and the matching 703-file source cohort passed.
+  Its fresh selected repair held before lease initialization and reader stop:
+  actual Docker daemon-volume binds used slave propagation, which the strict
+  kernel observer correctly refused. The selected archive and original service
+  processes were unchanged. Preserve that nonce's original records; do not replay.
+  A scoped private-namespace transition passed a synthetic kernel/Docker check;
+  the matching owning-session correction still requires complete validation,
+  delivery and a fresh configured attempt. The complete 6,668-entry library
+  baseline remains retained. T017 stays open until genuine terminal evidence,
+  selected-archive preservation, catalog/reader checks and import/ACK joins pass.
 
 - [ ] T018 [US3] After T017 scoped repair/import acceptance, verify restart reconciliation and the supported rollback/lost-response refusal evidence, then complete the protected current-library archive/owner/catalog/reader comparisons shared with feature 023 T018 before experimental bulk resumption. Feature 022 T024 separately supplies final post-bulk/idempotence acceptance. Record results in `specs/024-verified-archive-repair/tasks.md`; ordinary Mylar stays available under existing per-operation checks. Prune only conclusively accepted operation-owned copies after these gates, retaining one independently verified current backup, every unresolved original and durable failure history; do not treat a healthy service or successful Parent return as whole-library acceptance.
 

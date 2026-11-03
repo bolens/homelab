@@ -36,7 +36,7 @@ def decode(raw):
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(Held('nfs-pump-nonfinite')))
 
 
-def readonly_mount_observation(raw,protected,writable):
+def _readonly_mount_layout(raw,protected,writable):
     """Parse actual helper mountinfo; returned facts grant no continuation rights.
 
     The owning Parent must additionally retain its helper/process/plan originals
@@ -90,16 +90,16 @@ def readonly_mount_observation(raw,protected,writable):
         if row['point']=='/':continue
         ancestors=[by_point[str(p)] for p in PurePosixPath(row['point']).parents if str(p)in by_point]
         need(bool(ancestors) and row['parent']==ancestors[0]['id'],'nfs-readonly-hidden-mount')
-    covered={};descendant_rows={}
+    covered={};descendant_rows={};propagating=[]
     for p,original in original_roots.items():
         base=PurePosixPath(p)
         descendants=[r for r in rows if PurePosixPath(r['point'])==base or base in PurePosixPath(r['point']).parents]
         need(len({r['point']for r in descendants})==len(descendants),'nfs-readonly-stacked-protected-mount')
         need(all(r['readonly']for r in descendants),'nfs-readonly-protected-submount')
         ancestry=[by_point[str(q)] for q in (base,*base.parents)if str(q)in by_point]
-        need(not any(v.split(':',1)[0]in('shared','master','propagate_from')
-                     for r in (*ancestry,*descendants)for v in r['propagation']),
-             'nfs-readonly-protected-submount')
+        propagating.extend(r for r in (*ancestry,*descendants)
+                           if any(v.split(':',1)[0]in('shared','master','propagate_from')
+                                  for v in r['propagation']))
         descendant_rows[p]=descendants
         covered.update((r['id'],r)for r in descendants)
     for original in covered.values():
@@ -115,7 +115,13 @@ def readonly_mount_observation(raw,protected,writable):
                  'nfs-readonly-writable-physical-alias')
     return dict(mountinfo_sha256=hashlib.sha256(raw).hexdigest(),protected=original_roots,
                 protected_descendants=descendant_rows,
-                writable=original_writable,mutation_authority=False,publication_authority=False)
+                writable=original_writable,mutation_authority=False,publication_authority=False),tuple(propagating)
+
+
+def readonly_mount_observation(raw,protected,writable):
+    observation,propagating=_readonly_mount_layout(raw,protected,writable)
+    need(not propagating,'nfs-readonly-protected-submount')
+    return observation
 
 
 def readonly_namespace_nodes(root,root5,paths,deadline):
@@ -162,55 +168,214 @@ print(json.dumps(dict(uid=list(os.getresuid()),gid=list(os.getresgid()),groups=o
     return value['nodes']
 
 
-def observe_readonly_namespace(pid,start_ticks,protected,writable,deadline):
-    """Root-only kernel observation, not a Parent/session capability factory."""
+def _namespace_originals(pid,start_ticks,protected,deadline):
     need(os.getresuid()==os.getresgid()==(0,0,0),'nfs-readonly-root-observer')
-    need(type(pid) is int and pid>0 and type(start_ticks) is int and start_ticks>0,
+    need(type(pid)is int and pid>0 and type(start_ticks)is int and start_ticks>0,
          'nfs-readonly-original-process')
-    need(type(protected) is dict and 1<=len(protected)<=32
-         and all(type(p) is str and type(v) in(list,tuple)and len(v)==9
-                 and all(type(n)is int for n in v)and stat.S_ISDIR(v[5])
+    need(type(deadline)in(int,float) and 0<deadline-time.monotonic()<=3600,
+         'nfs-readonly-original-deadline')
+    need(type(protected)is dict and 1<=len(protected)<=32
+         and all(type(p)is str and type(v)in(list,tuple) and len(v)==9
+                 and all(type(n)is int for n in v) and stat.S_ISDIR(v[5])
                  for p,v in protected.items()),'nfs-readonly-original-roots')
-    originals=tuple((p,tuple(v))for p,v in protected.items())
-    def bounded(name,maximum):
-        fd=os.open('/proc/'+str(pid)+'/'+name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    return tuple((p,tuple(v))for p,v in protected.items())
+
+
+
+def _close_namespace_fds(*originals):
+    """Close only retained original descriptors; preserve the primary refusal."""
+    primary = sys.exc_info()[1]
+    errors = []
+    for fd, expected in originals:
+        if fd is None:
+            continue
         try:
-            chunks=[];size=0
-            while size<=maximum:
-                part=os.read(fd,min(65536,maximum+1-size))
-                if not part:break
-                chunks.append(part);size+=len(part)
-            need(size<=maximum,'nfs-readonly-proc-bound');return b''.join(chunks)
-        finally:os.close(fd)
-    def process():
-        raw=bounded('stat',65536).decode();split=raw.rfind(')')
-        need(split>0 and raw[:raw.index('(')].strip()==str(pid),'nfs-readonly-proc-pid')
-        fields=raw[split+2:].split();need(len(fields)>19 and int(fields[19])==start_ticks,
-                                      'nfs-readonly-original-starttick')
-        lines=[line.split()[1:]for line in bounded('status',65536).decode().splitlines()
-               if line.startswith('NSpid:')]
-        need(len(lines)==1 and 1<=len(lines[0])<=64 and all(v.isdecimal() for v in lines[0])
-             and int(lines[0][0])==pid and all(int(v)>0 for v in lines[0]),'nfs-readonly-pid-namespace')
-        return int(lines[0][-1])
-    namespace_pid=process()
+            need(five(os.fstat(fd)) == expected, 'nfs-private-close-foreign-descriptor')
+            os.close(fd)
+        except BaseException as error:
+            errors.append(error)
+    if errors:
+        if primary is None:
+            raise errors[0]
+        try:
+            primary.namespace_close_errors = tuple(type(error).__name__ for error in errors)
+        except BaseException:
+            pass
+
+
+def _namespace_bytes(pid,name,maximum):
+    need(name in('stat','status','mountinfo'),'nfs-readonly-finite-proc-role')
+    path='/proc/'+str(pid)+'/'+name
+    expected=five(os.stat(path,follow_symlinks=False))
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        need(five(os.fstat(fd))==expected,'nfs-readonly-original-proc-descriptor')
+        chunks=[];size=0
+        while size<=maximum:
+            part=os.read(fd,min(65536,maximum+1-size))
+            if not part:break
+            chunks.append(part);size+=len(part)
+        need(size<=maximum,'nfs-readonly-proc-bound');return b''.join(chunks)
+    finally:_close_namespace_fds((fd,expected))
+
+
+def _namespace_pid(pid,start_ticks):
+    raw=_namespace_bytes(pid,'stat',65536).decode();split=raw.rfind(')')
+    need(split>0 and raw[:raw.index('(')].strip()==str(pid),'nfs-readonly-proc-pid')
+    fields=raw[split+2:].split();need(len(fields)>19 and int(fields[19])==start_ticks,
+                                  'nfs-readonly-original-starttick')
+    lines=[line.split()[1:]for line in _namespace_bytes(pid,'status',65536).decode().splitlines()
+           if line.startswith('NSpid:')]
+    need(len(lines)==1 and 1<=len(lines[0])<=64 and all(v.isdecimal()for v in lines[0])
+         and int(lines[0][0])==pid and all(int(v)>0 for v in lines[0]),'nfs-readonly-pid-namespace')
+    return int(lines[0][-1])
+
+
+def _namespace_nodes(root,root5,originals,deadline):
+    need(five(os.fstat(root))==root5,'nfs-readonly-original-namespace-root')
+    nodes=readonly_namespace_nodes(root,root5,tuple(p for p,_ in originals),deadline)
+    for path,original in originals:
+        need(tuple(nodes[path])==tuple(original[i]for i in(0,1,5,6,7)),
+             'nfs-readonly-original-mounted-node')
+
+
+def observe_readonly_namespace(pid,start_ticks,protected,writable,deadline):
+    """Root-only passive observation; a propagating namespace still refuses."""
+    originals=_namespace_originals(pid,start_ticks,protected,deadline)
+    paths=tuple(p for p,_ in originals);writable=tuple(writable)
+    namespace_pid=_namespace_pid(pid,start_ticks)
+    root5=five(os.stat('/proc/'+str(pid)+'/root'))
     root=os.open('/proc/'+str(pid)+'/root',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)
     try:
-        root5=five(os.fstat(root));before=bounded('mountinfo',MAX)
-        observation=readonly_mount_observation(before,list(protected),writable)
-        def close_nodes():
-            need(five(os.fstat(root))==root5,'nfs-readonly-original-namespace-root')
-            nodes=readonly_namespace_nodes(root,root5,tuple(p for p,_ in originals),deadline)
-            for path,original in originals:
-                need(tuple(nodes[path])==tuple(original[i]for i in(0,1,5,6,7)),
-                     'nfs-readonly-original-mounted-node')
-        close_nodes()
-        after=bounded('mountinfo',MAX)
-        need(after==before and process()==namespace_pid,'nfs-readonly-namespace-closure')
-        close_nodes()
+        need(five(os.fstat(root))==root5,'nfs-readonly-original-namespace-root')
+        before=_namespace_bytes(pid,'mountinfo',MAX)
+        observation=readonly_mount_observation(before,list(paths),writable)
+        _namespace_nodes(root,root5,originals,deadline)
+        after=_namespace_bytes(pid,'mountinfo',MAX)
+        need(after==before and _namespace_pid(pid,start_ticks)==namespace_pid,'nfs-readonly-namespace-closure')
+        _namespace_nodes(root,root5,originals,deadline)
         return dict(namespace_pid=namespace_pid,roots={p:list(v)for p,v in originals},
                     namespace_root5=list(root5),mounts=observation,
                     mutation_authority=False,publication_authority=False)
-    finally:os.close(root)
+    finally:_close_namespace_fds((root,root5))
+
+
+def _propagation_geometry(raw):
+    """All mountinfo bytes except the three propagation relationships."""
+    result=[]
+    for line in raw.decode('utf-8',errors='strict').splitlines():
+        fields=line.split(' ');split=fields.index('-')
+        result.append(tuple(fields[:6]+[v for v in fields[6:split]
+                                        if v.split(':',1)[0]not in('shared','master','propagate_from')]
+                            +fields[split:]))
+    return tuple(result)
+
+
+def _seal_namespace_fds(pid, start_ticks, namespace, root, ns2, root5, deadline):
+    """Root syscall mechanism only; supplies no session or acceptance."""
+    need(os.getresuid() == os.getresgid() == (0, 0, 0), 'nfs-private-root-action')
+    need(type(pid) is int and pid > 0 and type(start_ticks) is int and start_ticks > 0
+         and type(namespace) is int and namespace >= 0 and type(root) is int and root >= 0
+         and type(ns2) is tuple and len(ns2) == 2 and type(root5) is tuple and len(root5) == 5
+         and all(type(v) is int for v in (*ns2, *root5)) and stat.S_ISDIR(root5[2]),
+         'nfs-private-action-descriptor-schema')
+    need(type(deadline) in (int, float) and 0 < deadline - time.monotonic() <= 3600,
+         'nfs-private-action-deadline')
+    held = os.fstat(namespace)
+    own = os.stat('/proc/self/ns/mnt')
+    need((held.st_dev, held.st_ino) == ns2 and ns2 != (own.st_dev, own.st_ino)
+         and five(os.fstat(root)) == root5, 'nfs-private-action-original-descriptors')
+    program="import ctypes,json,os,sys,time\nv=json.loads(sys.argv[1]);ns,root=v['namespace'],v['root'];assert os.getresuid()==os.getresgid()==(0,0,0)\nassert (os.fstat(ns).st_dev,os.fstat(ns).st_ino)==tuple(v['namespace2'])\nassert (os.fstat(root).st_dev,os.fstat(root).st_ino,os.fstat(root).st_mode,os.fstat(root).st_uid,os.fstat(root).st_gid)==tuple(v['root5'])\nown=os.stat('/proc/self/ns/mnt');assert (own.st_dev,own.st_ino)!=tuple(v['namespace2'])\nproc='/proc/'+str(v['pid']);assert int(open(proc+'/stat').read().rsplit(')',1)[1].split()[19])==v['ticks']\nobserved=os.stat(proc+'/ns/mnt');assert (observed.st_dev,observed.st_ino)==tuple(v['namespace2'])\nobserved=os.stat(proc+'/root');assert (observed.st_dev,observed.st_ino,observed.st_mode,observed.st_uid,observed.st_gid)==tuple(v['root5'])\nlibc=ctypes.CDLL(None,use_errno=True);libc.setns.argtypes=[ctypes.c_int,ctypes.c_int];libc.mount.argtypes=[ctypes.c_char_p,ctypes.c_char_p,ctypes.c_char_p,ctypes.c_ulong,ctypes.c_void_p]\nassert time.monotonic()<v['deadline']\nif libc.setns(ns,0x20000)!=0:raise OSError(ctypes.get_errno(),'nfs-private-setns')\nos.fchdir(root);os.chroot('.');os.chdir('/')\nassert time.monotonic()<v['deadline']\nif libc.mount(None,b'/',None,(1<<14)|(1<<18),None)!=0:raise OSError(ctypes.get_errno(),'nfs-private-mount')\nack=b'nfs-private-sealed\\n';assert os.write(1,ack)==len(ack)\n"
+    result=subprocess.run([sys.executable,'-I','-B','-c',program,
+                           encode(dict(namespace=namespace,root=root,namespace2=ns2,root5=root5,pid=pid,ticks=start_ticks,deadline=deadline)).decode()],
+                          pass_fds=(namespace,root),capture_output=True,check=False,
+                          timeout=max(.001,deadline-time.monotonic()))
+    need(type(result.returncode) is int and result.returncode == 0 and result.stderr == b''
+         and result.stdout == b'nfs-private-sealed\n', 'nfs-private-helper-acknowledgement')
+
+
+def seal_readonly_namespace(session, protected, writable, deadline):
+    """Seal only the owning Parent's pre-lease helper; never a host namespace.
+
+    Docker may realize daemon-volume binds as slaves. The actual original
+    namespace becomes recursively private before the separate passive proof.
+    No file, access mode, container profile or application namespace changes.
+    """
+    need(type(session) is RetainedChild, 'nfs-private-original-retained-session')
+    session_table = _SESSION_SEALS
+    session_original = session_table.get(session)
+    need(session_original is not None, 'nfs-private-original-session-seal')
+    owner, g = session.owner, session.g
+    live_table, epoch_table = g['_NFS_LIVE_SESSIONS'], g['_NFS_CHILD_EPOCHS']
+    epoch = epoch_table.get(owner)
+    need(type(epoch) is tuple and len(epoch) == 6 and epoch[0] is session and epoch[1] == session.cid,
+         'nfs-private-original-helper-epoch')
+    pid, start_ticks = epoch[2], epoch[4]
+    dialogue_table = g['_DIALOGUE_SEALS']
+    dialogue_rows = dialogue_table.get(owner.engine)
+    dialogue = None if dialogue_rows is None else dialogue_rows.get(session.cid)
+    need(type(dialogue) is tuple and len(dialogue) == 7, 'nfs-private-original-dialogue')
+    parent_deadline = owner.deadline
+    need(type(deadline) in (int, float) and deadline == min(parent_deadline, dialogue[6]),
+         'nfs-private-original-dialogue-deadline')
+    profile = RetainedChild.profile_after_release
+    profile_code = profile.__code__
+    originals = _namespace_originals(pid, start_ticks, protected, deadline)
+    paths = tuple(p for p, _ in originals)
+    writable = tuple(writable)
+    def original_session():
+        need(_SESSION_SEALS is session_table and session_table.get(session) is session_original
+             and session.owner is owner and session.g is g and session.state == 'starting'
+             and session.lease_replies.lease is None and g['_NFS_LIVE_SESSIONS'] is live_table
+             and live_table.get(owner) is session and g['_NFS_CHILD_EPOCHS'] is epoch_table
+             and epoch_table.get(owner) is epoch and g['_DIALOGUE_SEALS'] is dialogue_table
+             and dialogue_table.get(owner.engine) is dialogue_rows and dialogue_rows.get(session.cid) is dialogue
+             and owner.deadline == parent_deadline and deadline == min(parent_deadline, dialogue[6])
+             and RetainedChild.profile_after_release is profile and profile.__code__ is profile_code,
+             'nfs-private-original-session-before-lease')
+    def original_profile():
+        original_session()
+        profile(session)
+        original_session()
+    original_profile()
+    need(pid != os.getpid(), 'nfs-private-helper-process')
+    namespace_pid=_namespace_pid(pid,start_ticks);namespace=None;root=None;namespace5=None;root5=None
+    try:
+        namespace5=five(os.stat('/proc/'+str(pid)+'/ns/mnt'))
+        namespace=os.open('/proc/'+str(pid)+'/ns/mnt',os.O_RDONLY|os.O_CLOEXEC)
+        need(five(os.fstat(namespace))==namespace5,'nfs-private-original-namespace-descriptor')
+        root5=five(os.stat('/proc/'+str(pid)+'/root'))
+        root=os.open('/proc/'+str(pid)+'/root',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)
+        need(five(os.fstat(root))==root5,'nfs-private-original-root-descriptor')
+        ns2=namespace5[:2]
+        own=os.stat('/proc/self/ns/mnt');parent2=(own.st_dev,own.st_ino)
+        need(ns2!=parent2,'nfs-private-parent-namespace-refused')
+        def original():
+            original_session()
+            need(_namespace_pid(pid,start_ticks)==namespace_pid,'nfs-private-original-process')
+            live=os.stat('/proc/'+str(pid)+'/ns/mnt');held=os.fstat(namespace)
+            need((live.st_dev,live.st_ino)==(held.st_dev,held.st_ino)==ns2
+                 and five(os.stat('/proc/'+str(pid)+'/root'))==five(os.fstat(root))==root5,
+                 'nfs-private-original-namespace')
+            own=os.stat('/proc/self/ns/mnt')
+            need((own.st_dev,own.st_ino)==parent2 and ns2!=parent2,'nfs-private-parent-namespace-refused')
+        original();before=_namespace_bytes(pid,'mountinfo',MAX)
+        _readonly_mount_layout(before,list(paths),writable)
+        _namespace_nodes(root,root5,originals,deadline);original()
+        need(_namespace_bytes(pid,'mountinfo',MAX)==before,'nfs-private-before-topology')
+        original_profile();original()
+        need(time.monotonic() < deadline, 'nfs-private-original-deadline')
+        _seal_namespace_fds(pid, start_ticks, namespace, root, ns2, root5, deadline)
+        original_profile();original();after=_namespace_bytes(pid,'mountinfo',MAX)
+        need(_propagation_geometry(before)==_propagation_geometry(after),'nfs-private-only-propagation-transition')
+        readonly_mount_observation(after,list(paths),writable)
+        _namespace_nodes(root,root5,originals,deadline);original()
+        need(_namespace_bytes(pid,'mountinfo',MAX)==after and time.monotonic()<deadline,'nfs-private-final-topology-deadline')
+        return dict(namespace_pid=namespace_pid,namespace2=list(ns2),namespace_root5=list(root5),
+                    before_sha256=hashlib.sha256(before).hexdigest(),after_sha256=hashlib.sha256(after).hexdigest(),
+                    namespace_sealed=True,protected_data_mutation=False,mutation_authority=False,publication_authority=False)
+    finally:_close_namespace_fds((root,root5),(namespace,namespace5))
+
 
 class OriginalPump:
     def __init__(self,process,deadline,guard):
