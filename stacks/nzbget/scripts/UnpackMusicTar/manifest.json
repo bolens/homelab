@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.42",
+  "version": "1.43",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -14,6 +14,7 @@
     "Optional VerifyAudio setting requires ffmpeg in the NZBGet runtime"
   ],
   "description": [
+    "Resolves same-folder playlist references after NZBGet replaces ASCII spaces with dots, including title-only filenames and cue-referenced audio; preserves exact-path precedence, distinct targets, encoding and line endings without changing audio.",
     "Removes bounded CP437 scene NFOs with adjacent drawing glyphs and BEL header padding or SYN in art-only rows, requiring Artist, Title and Tracks fields; supports Unicode left-to-right marks in TXT and structured Title fields in modern posting NFOs while retaining other controls, unknown data, media and cue references.",
     "Recognises bounded newzNZB/WtFnZb posting-info text with exactly one matching RELEASE, one valid English-month UPLOADED DATE and a final newz[NZB] footer; protects unknown text, binary content and cue references.",
     "Recognises bounded legacy FULL a.b.flac@EFNet NFO/SFV posting wrappers using complete structured release metadata or safe audio CRC lists; accepts Title as the legacy album field while retaining media, binary content and cue references.",
