@@ -207,6 +207,13 @@ validation only and preserves audio, tags and filenames.
 
 Retained, resolvable playlists have their references updated whenever files move
 or gain extensions, including cleanup-disabled helpers and cue-protected lists.
+Same-folder playlist references also resolve when NZBGet has replaced each ASCII
+space in a filename with a dot, including title-only names and cue-referenced
+audio. Existing exact paths take precedence. Every entry must resolve to one
+distinct audio file; collisions and partially missing lists fail before changes.
+Other whitespace and nested path components are not inferred by this rule.
+The same path resolution applies to playlists used for disc inference, which
+must still cover exactly every track in the album group.
 An unresolved retained M3U, or another recognised playlist with existing local
 references, keeps folder structure and filenames unchanged because its references cannot be safely rewritten.
 

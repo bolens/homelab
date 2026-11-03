@@ -1512,6 +1512,71 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "track .* of 10"):
                     main.preview(root)
 
+    def test_space_renamed_playlist_paths_preserve_cues_encoding_and_audio(self) -> None:
+        for archive in (False, True):
+            for cleanup, strict in ((True, True), (False, False)):
+                with self.subTest(archive=archive, cleanup=cleanup, strict=strict), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = {f"0{i}..Song.{i}.flac": self.tagged_flac(
+                        {"ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": f"Song {i}",
+                         "TRACKNUMBER": str(i)}) for i in (1, 2)}
+                    cue = b'FILE "01..Song.1.flac" WAVE\r\n  TRACK 01 AUDIO\r\nFILE "02..Song.2.flac" WAVE\r\n  TRACK 02 AUDIO\r\n'
+                    files = {**audio, "album.cue": cue,
+                             "album.m3u8": b"\xef\xbb\xbf#EXTM3U\r\n01. Song 1.flac\r\n02. Song 2.flac\r\n"}
+                    if archive:
+                        with zipfile.ZipFile(root / "release.zip", "w") as output:
+                            for name, payload in files.items():
+                                output.writestr("Rip/" + name, payload)
+                    else:
+                        for name, payload in files.items():
+                            (root / name).write_bytes(payload)
+                    main.process_release(root, cleanup=cleanup, require_completeness=strict)
+                    expected = {**audio, "album.cue": cue,
+                                "album.m3u8": b"\xef\xbb\xbf#EXTM3U\r\n01..Song.1.flac\r\n02..Song.2.flac\r\n"}
+                    self.assertEqual(self.snapshot(root), expected)
+                    main.process_release(root, cleanup=cleanup, require_completeness=strict)
+                    self.assertEqual(self.snapshot(root), expected)
+
+    def test_space_renamed_playlist_cleanup_and_exact_path_precedence(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            files = {"Song.One.flac": b"fLaC" + bytes(32)}
+            (root / "Song.One.flac").write_bytes(files["Song.One.flac"])
+            (root / "album.m3u").write_text("Song One.flac\n")
+            main.process_release(root)
+            self.assertEqual(self.snapshot(root), files)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in ("Song One.flac", "Song.One.flac", "Song.Two.flac"):
+                (root / name).write_bytes(b"fLaC" + bytes(32))
+            (root / "album.m3u").write_text("Song One.flac\nSong Two.flac\n")
+            refs = {}
+            main.check_playlists(main.tree_files(root), set(), references=refs)
+            self.assertEqual(refs[root / "album.m3u"][main.PurePosixPath("Song One.flac")], root / "Song One.flac")
+            self.assertEqual(refs[root / "album.m3u"][main.PurePosixPath("Song Two.flac")], root / "Song.Two.flac")
+
+    def test_space_renamed_playlists_reject_alias_collisions_and_missing_tracks(self) -> None:
+        for text in ("Song One.flac\nSong.One.flac\n", "Song One.flac\nMissing.flac\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Song.One.flac").write_bytes(b"fLaC" + bytes(32))
+                (root / "album.m3u").write_text(text)
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "ambiguous playlist|incomplete playlist"):
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_space_renamed_playlist_paths_do_not_infer_nested_or_remote_names(self) -> None:
+        for text in ("Other Folder/Song One.flac\n", "https://example.com/Song One.flac\n",
+                     "../Song One.flac\n", "Song\u00a0One.flac\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Song.One.flac").write_bytes(b"fLaC" + bytes(32))
+                (root / "album.m3u").write_text(text)
+                before = self.snapshot(root)
+                main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
     def test_complete_obfuscated_album_retains_all_ten_tracks(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -1520,6 +1585,37 @@ class MusicProcessingSeamTest(unittest.TestCase):
             before = self.snapshot(root)
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertEqual(self.snapshot(root), before)
+
+    def test_dotted_playlist_aliases_preserve_disc_inference_and_exact_precedence(self) -> None:
+        for other_exact in (False, True):
+            with self.subTest(other_exact=other_exact), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                expected = {}
+                entries = []
+                for disc in (1, 2):
+                    for track in (1, 2):
+                        name = f"{disc}{track:02d}.Song.{disc}.{track}.flac"
+                        expected[name] = self.tagged_flac(
+                            {"ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": f"Song {disc} {track}",
+                             "TRACKNUMBER": str(track), "TRACKTOTAL": "2"})
+                        entries.append(name.replace(".", " ", 3))
+                for name, raw in expected.items():
+                    (root / name).write_bytes(raw)
+                (root / "album.m3u").write_text("\n".join(entries) + "\n")
+                if other_exact:
+                    (root / entries[0]).write_bytes(self.tagged_flac(
+                        {"ALBUM": "Other", "ARTIST": "Other", "TITLE": "Different recording",
+                         "TRACKNUMBER": "1", "TRACKTOTAL": "1"}))
+                    before = self.snapshot(root)
+                    with self.assertRaisesRegex(ValueError, "duplicate FLAC track numbers"):
+                        main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
+                else:
+                    main.process_release(root, require_completeness=True)
+                    expected["album.m3u"] = ("\n".join(expected) + "\n").encode()
+                    self.assertEqual(self.snapshot(root), expected)
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), expected)
 
     def test_covering_playlist_resolves_discless_scene_track_numbers(self) -> None:
         for totals, strict in ((False, False), (False, True), (True, False), (True, True)):
