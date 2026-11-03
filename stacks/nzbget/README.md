@@ -231,11 +231,32 @@ must still cover exactly every track in the album group.
 An unresolved retained M3U, or another recognised playlist with existing local
 references, keeps folder structure and filenames unchanged because its references cannot be safely rewritten.
 
+Disc-scoped `[PRiVATE]-[WtFnZb]` posting wrappers with an explicit `CD1`-style
+component can restore verified FLAC and cue filenames into disc folders. The
+optional `[N3wZ]` prefix is supported. Text logs and reports inside the same
+wrapper must pass the complete text check before cleanup. Cue references are
+validated against the restored names, collisions fail without publication, and
+audio bytes remain unchanged. Malformed wrappers and unknown binary data are retained.
+
+Windows-1252 EAC `.log` files require the `Exact Audio Copy` header and complete
+printable text. Bounded CP437 NFOs also support the observed art-only arrow and
+paragraph glyph bytes, plus framed backspace padding with a matching layout
+credit and populated artist, title and track fields. Other control-byte payloads
+remain protected. Structured modern posting sidecars can identify foobar2000
+Dynamic Range Meter, AUDIOCHECKER and auCDtect reports, including UTF-16 reports
+with a BOM, and the exact Demonoid download notice. Their posting filename,
+report header and record structure must all match. Audio checksum rows in `.md5`
+files are recognised as checksums rather than being mistaken for M3U entries.
+
 Cue sheets are retained because album-image releases need them to identify
 individual tracks. The extension does not split album images into track files.
 Cue `FILE` references are updated when tracks move or gain extensions. A missing
 local `.wav` reference declared as `WAVE` can resolve to a same-folder FLAC
-with the same filename stem. Otherwise, missing local `.wav` and `.flac` references declared as `WAVE`
+with the same filename stem. Missing same-folder `.wav` and `.flac` references
+declared as `WAVE` also support replacing each ASCII space with a dot when the
+result identifies one confirmed FLAC. Exact filename stems take precedence, and
+ambiguous aliases or references containing directories are not inferred.
+Otherwise, missing local `.wav` and `.flac` references declared as `WAVE`
 can use numbered filenames to match exact
 performer, title and track tags within one fully tagged FLAC album/disc. A
 present global cue album title must also match, allowing a trailing `(single)`

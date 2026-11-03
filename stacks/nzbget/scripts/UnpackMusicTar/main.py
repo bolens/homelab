@@ -286,7 +286,7 @@ def scene_nfo_controls(path: Path) -> str:
         return ""
     with path.open("rb") as stream:
         raw = stream.read(65537)
-    if len(raw) > 65536 or not any(char in raw for char in (7, 22)):
+    if len(raw) > 65536 or not any(char in raw for char in (7, 8, 14, 16, 20, 22)):
         return ""
     text = raw.decode("cp437")
     fields = set()
@@ -307,11 +307,34 @@ def scene_nfo_controls(path: Path) -> str:
     if ({"artist", "title", "tracks"} <= headers and art_lines
             and all(re.fullmatch(r"[" + frame + r"\x16]+", line) for line in art_lines)):
         allowed += "\x16"
+    display = text.replace("\x08", "")
+    display_fields = {match[1].casefold() for line in display.splitlines()
+                      if (match := re.fullmatch(r"(Artist|Album|Title|Genre|Tracks)(?:[ .]*[:|][ \t]*|\.{2,}[ \t]+)(\S.*)",
+                                                line.strip(frame_chars), re.IGNORECASE))
+                      and match[2].strip(frame_chars + " .:|")}
+    identity = "artist" in display_fields and bool({"album", "title"} & display_fields)
+    structured = identity and bool({"tracks", "genre"} & display_fields)
+    if structured:
+        for control in ("\x10", "\x14"):
+            rows = [line for line in text.splitlines() if control in line]
+            if rows and all(not line.strip(frame_chars + control) for line in rows):
+                allowed += control
+        backspaces = list(re.finditer(r"\x08+", text))
+        credit = "\x0e\x07nfoLayoutBy"
+        def beside_border(match: re.Match[str]) -> bool:
+            left = text[:match.start()].rstrip(" \t\u00a0")
+            right = text[match.end():].lstrip(" \t\u00a0")
+            return bool(left) and left[-1] in frame_chars.strip() or bool(right) and right[0] in frame_chars.strip()
+        if (backspaces and text.count(credit) == text.count("\x0e") == text.count("\x07") == 1
+                and {"artist", "title", "tracks"} <= display_fields
+                and all(beside_border(match) for match in backspaces)):
+            allowed += "\x08\x0e\x07"
     return allowed
 
 
-def is_text_sidecar(path: Path) -> bool:
+def is_text_sidecar(path: Path, *, suffix: str | None = None) -> bool:
     """Check the entire file before treating an explicit sidecar suffix as text."""
+    effective_suffix = (suffix or path.suffix).casefold()
     with path.open("rb") as stream:
         bom = stream.read(2)
     encoding = "utf-16" if bom in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
@@ -319,11 +342,15 @@ def is_text_sidecar(path: Path) -> bool:
         with path.open(encoding=encoding) as stream:
             while chunk := stream.read(65536):
                 if any(not char.isprintable() and char not in "\t\r\n\f"
-                       and not (char == "\u200e" and path.suffix.casefold() == ".txt") for char in chunk):
+                       and not (char == "\u200e" and effective_suffix == ".txt") for char in chunk):
                     return False
     except UnicodeDecodeError:
-        if encoding == "utf-16" or path.suffix.casefold() not in {".nfo", ".txt"}:
+        if encoding == "utf-16" or effective_suffix not in {".nfo", ".txt", ".log", ".cue"}:
             return False
+        if effective_suffix == ".log":
+            with path.open("rb") as stream:
+                if not stream.read(128).startswith(b"Exact Audio Copy "):
+                    return False
         # Scene NFOs mix drawing glyphs with accented release text. Keep the
         # drawing alphabet separate from Windows text. Only bounded, framed NFO
         # header padding may contain BEL and art-only rows may contain SYN;
@@ -344,7 +371,7 @@ def is_text_sidecar(path: Path) -> bool:
                             or glyph or char.isalpha() or char in "·∙¼«»⌐÷≤\u00a0"
                             or char in controls):
                         valid_cp437 = False
-        if drawing and valid_cp437 and (not controls or drawing_run) and path.suffix.casefold() == ".nfo":
+        if drawing and valid_cp437 and (not controls or drawing_run) and effective_suffix == ".nfo":
             return True
         # A lone accented Windows character can resemble a drawing glyph.
         # Keep malformed box art protected rather than retrying it as Windows text.
@@ -463,6 +490,33 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
                 and len(fields - {"artist", "album", "title"}) >= 2
                 and any(re.fullmatch(r"\d{1,3}[ .)-]+\S[^\r\n]*", line) for line in lines))
 
+    def tool_log(text: str) -> bool:
+        if modern is None:
+            return False
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            return False
+        if (re.fullmatch(r"foobar2000 .+ / Dynamic Range Meter .+", lines[0])
+                and any(re.fullmatch(r"log date: [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]{8}", line) for line in lines)
+                and any(re.fullmatch(r"Analyzed: .+", line) for line in lines)
+                and "DR         Peak         RMS     Duration Track" in lines
+                and any(re.fullmatch(r"DR[0-9]+ +[-+0-9.]+ dB +[-+0-9.]+ dB +[0-9]+:[0-9]{2} +[0-9]+-.+", line) for line in lines)
+                and any(re.fullmatch(r"Number of tracks: +[1-9][0-9]*", line) for line in lines)
+                and any(re.fullmatch(r"Official DR value: DR[0-9]+", line) for line in lines)):
+            return True
+        if (re.fullmatch(r"AUDIOCHECKER v[0-9].+", lines[0])
+                and "-=== DO NOT EDIT THIS FILE! ===-" in lines
+                and any(re.fullmatch(r"Summary [0-9]+[,.][0-9]+% CDDA", line) for line in lines)):
+            rows = [line for line in lines if re.match(r"[0-9]{3} -=- ", line)]
+            return bool(rows) and all((match := re.fullmatch(r"[0-9]{3} -=- (.+) -=- (?:CDDA|MPEG) \([0-9]{1,3}%\)", line))
+                                      and playlist_reference(match[1]) is not None for line in rows)
+        if ("PERFORMER: auCDtect Task Manager," in text and "ANALYZER: auCDtect:" in text
+                and "DON'T MODIFY THIS FILE" in lines):
+            records = re.findall(r"(?m)^FILE: (.+)\r?\n +Size: [0-9]+ Hash: [0-9A-Fa-f]{32} Accuracy: -m[0-9]+\r?\n"
+                                 r" +Conclusion: (?:CDDA|MPEG) [0-9]{1,3}%\r?\n +Signature: [0-9A-Fa-f]{40}\r?$", text)
+            return bool(records) and len(records) == sum(line.startswith("FILE:") for line in lines) and all(playlist_reference(name) is not None for name in records)
+        return re.fullmatch(r"Torrent downloaded from Demonoid - https://(?:www\.)?demonoid\.is", text.strip()) is not None
+
     def posting_info(text: str) -> bool:
         if modern is None:
             return False
@@ -491,10 +545,10 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         return True
 
     try:
-        text = raw.decode("utf-8-sig")
+        text = raw.decode("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig")
     except UnicodeDecodeError:
         text = None
-    utf8 = text is not None
+    unicode_text = text is not None
     if text is None:
         try:
             text = raw.decode("cp1252")
@@ -505,16 +559,16 @@ def is_obfuscated_posting_sidecar(path: Path) -> bool:
         if lines and all((match := re.fullmatch(r"(.+) +[0-9a-fA-F]{8}", line))
                          and playlist_reference(match[1]) is not None for line in lines):
             return True
-        if structured_nfo(text) or posting_info(text):
+        if structured_nfo(text) or posting_info(text) or tool_log(text):
             return True
-    if utf8:
+    if unicode_text:
         return False
     text = raw.decode("cp437")
     def drawing(char: str) -> bool:
         return "\u2500" <= char <= "\u259f" or char == "\u25a0"
     return (any(drawing(left) and drawing(right) for left, right in zip(text, text[1:]))
             and all((" " <= char <= "~") or char in "\t\r\n\f·∙¼«»⌐" or char.isalpha() or drawing(char) for char in text)
-            and (structured_nfo(text) or posting_info(text)))
+            and (structured_nfo(text) or posting_info(text) or tool_log(text)))
 
 
 def is_windows_folder_metadata(path: Path) -> bool:
@@ -547,6 +601,38 @@ def is_windows_folder_metadata(path: Path) -> bool:
             and bool(fields.get("musicbuyurl")))
 
 
+
+def wrapped_posting_target(path: Path) -> Path | None:
+    """Restore only the observed disc-scoped WtFnZb wrapper and verified content."""
+    match = re.fullmatch(
+        r"(?:\[N3wZ\] _[A-Za-z0-9]+___)?\[PRiVATE\]-\[WtFnZb\]-\[_[^/\\\r\n]{1,256}_CD([1-9][0-9]?)_"
+        r"([^/\\\r\n]{1,180}\.(flac|cue|log|txt))\]-\[[0-9]+_[0-9]+\] - __ yEnc +[0-9]+ \([0-9]+_[0-9]+\)(\.flac)?",
+        path.name, re.IGNORECASE)
+    if not match or len(re.findall(r"(?=_CD[1-9][0-9]?_)", path.name, re.IGNORECASE)) != 1:
+        return None
+    name, suffix = match[2], "." + match[3].casefold()
+    if (name.startswith(".") or not all(char.isprintable() for char in name)
+            or PureWindowsPath(name).drive or any(char in name for char in ':"<>|?*')):
+        return None
+    detected = detected_suffix(path)
+    if suffix == ".flac":
+        if detected != ".flac":
+            return None
+    else:
+        if match[4] or detected is not None or path.stat().st_size > 65536 or not is_text_sidecar(path, suffix=suffix):
+            return None
+        if suffix == ".cue":
+            raw = path.read_bytes()
+            encoding = "utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
+            try:
+                text = raw.decode(encoding)
+            except UnicodeDecodeError:
+                text = raw.decode("cp1252")
+            if not any(CUE_FILE.fullmatch(line) for line in text.splitlines()):
+                return None
+    return path.parent / ("CD" + match[1]) / name
+
+
 def disposable(path: Path) -> bool:
     suffix = path.suffix.casefold()
     if suffix not in KNOWN_MEDIA_SUFFIXES | {".cue", ".m3u", ".m3u8"}:
@@ -559,6 +645,9 @@ def disposable(path: Path) -> bool:
     if suffix not in UNWANTED_SUFFIXES:
         if suffix in KNOWN_MEDIA_SUFFIXES | {".cue"} or detected_suffix(path) is not None:
             return False
+        wrapped = wrapped_posting_target(path)
+        if wrapped is not None and wrapped.suffix.casefold() in {".log", ".txt"}:
+            return True
         return (is_windows_folder_metadata(path) or is_synology_metadata(path)
                 or is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path))
     # Playlist disposal needs the whole release, including files from later
@@ -572,6 +661,9 @@ def disposable(path: Path) -> bool:
 
 
 def extension_target(path: Path) -> Path:
+    wrapped = wrapped_posting_target(path)
+    if wrapped is not None:
+        return wrapped
     if path.suffix.casefold() == ".mp3" and detected_suffix(path) == ".flac":
         return path.with_suffix(".flac")
     if path.suffix.casefold() in KNOWN_MEDIA_SUFFIXES:
@@ -585,11 +677,21 @@ def extension_target(path: Path) -> Path:
 def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Path | None:
     """Resolve local WAV/FLAC export names with strong, unambiguous FLAC evidence."""
     entry = PurePosixPath(name.replace("\\", "/"))
-    if len(entry.parts) != 1 or entry.suffix.casefold() not in {".wav", ".flac"}:
+    if len(entry.parts) != 1:
         return None
-    candidates = [p for p in files if p.parent == cue.parent and detected_suffix(p) == ".flac"]
+    parent = extension_target(cue).parent
+    candidates = [p for p in files if extension_target(p).parent == parent and detected_suffix(p) == ".flac"]
+    if wrapped_posting_target(cue) is not None:
+        physical = [p for p in candidates if p.parent == cue.parent and p.name.casefold() == entry.name.casefold()]
+        if physical:
+            return physical[0] if len(physical) == 1 else None
+    if entry.suffix.casefold() not in {".wav", ".flac"}:
+        return None
     expected = entry.with_suffix(".flac").name.casefold()
     aliases = [p for p in candidates if expected in {p.name.casefold(), extension_target(p).name.casefold()}]
+    if not aliases and " " in expected:
+        dotted = expected.replace(" ", ".")
+        aliases = [p for p in candidates if dotted in {p.name.casefold(), extension_target(p).name.casefold()}]
     if aliases:
         return aliases[0] if len(aliases) == 1 else None
 
@@ -639,7 +741,7 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
     repaired = set()
     by_relative = {path.relative_to(root).as_posix(): path for path in files}
     for cue in files:
-        if cue.suffix.casefold() != ".cue":
+        if extension_target(cue).suffix.casefold() != ".cue":
             continue
         if detected_suffix(cue) is not None:
             continue
@@ -666,7 +768,7 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
             portable = name.replace("\\", "/")
             if PurePosixPath(portable).is_absolute() or PureWindowsPath(name).drive:
                 raise ValueError(f"absolute FILE reference in cue sheet: {cue.name}")
-            target = (cue.parent / portable).resolve()
+            target = (extension_target(cue).parent / portable).resolve()
             target.relative_to(root)
             relative = target.relative_to(root).as_posix()
             if relative not in by_relative:
@@ -681,7 +783,7 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
                     target = alternate
                     repaired.add(target)
                     new_references = True
-            if target.suffix.casefold() == ".cue" or is_archive(target):
+            if extension_target(target).suffix.casefold() == ".cue" or is_archive(target):
                 raise ValueError(f"invalid FILE reference in cue sheet: {cue.name}")
             references[name] = target
         if new_references and len(set(references.values())) != len(references):
@@ -808,6 +910,7 @@ def metadata_position(tags: dict[str, str], names: tuple[str, ...],
 
 
 def album_directory(path: Path, root: Path) -> Path:
+    path = extension_target(path)
     parent = root
     for part in path.relative_to(root).parts[:-1]:
         parent = parent / part
@@ -819,8 +922,8 @@ def album_directory(path: Path, root: Path) -> Path:
 def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], parent: Path) -> list[set[Path]]:
     available: dict[str, set[Path]] = {}
     for path in audio:
-        if path.is_relative_to(parent):
-            for target in (path, extension_target(path)):
+        for target in (path, extension_target(path)):
+            if target.is_relative_to(parent):
                 available.setdefault(target.relative_to(parent).as_posix().casefold(), set()).add(path)
     resolved = []
     for entry in entries:
@@ -912,7 +1015,7 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
         tags, embedded_cue = flac_album_metadata(path)
         disc, disc_total = metadata_position(tags, ("DISCNUMBER", "DISC"),
                                              ("DISCTOTAL", "TOTALDISCS"), "disc")
-        ancestry = tuple(part.casefold() for part in path.parent.relative_to(root).parts if DISC_DIRECTORY.fullmatch(part))
+        ancestry = tuple(part.casefold() for part in extension_target(path).parent.relative_to(root).parts if DISC_DIRECTORY.fullmatch(part))
         album = tags.get("ALBUM", "").strip().casefold()
         artist = (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold()
         base = album_directory(path, root)
@@ -1034,6 +1137,10 @@ def playlist_entries(path: Path) -> list[PurePosixPath] | None:
         raw = path.read_bytes()
         text = raw.decode(playlist_encoding(raw, path)).removeprefix("\ufeff")
     except UnicodeDecodeError:
+        return None
+    checksum_rows = [line.strip() for line in text.splitlines() if line.strip()]
+    if (path.suffix.casefold() == ".md5" and checksum_rows
+            and all(re.fullmatch(r"[0-9a-fA-F]{32} [ *].+", line) for line in checksum_rows)):
         return None
     entries = []
     for line in text.splitlines():
@@ -1560,7 +1667,7 @@ def preview(directory: Path, *, verify_audio: bool = False, require_completeness
                     print(f"[PREVIEW] Move: {json.dumps(source.relative_to(stage).as_posix(), ensure_ascii=False)}"
                           f" -> {json.dumps(target.relative_to(stage).as_posix(), ensure_ascii=False)}")
             for cue in plan.cues:
-                kind = "cue FILE" if cue.suffix.casefold() == ".cue" else "playlist"
+                kind = "cue FILE" if extension_target(cue).suffix.casefold() == ".cue" else "playlist"
                 print(f"[PREVIEW] Update {kind} references: {json.dumps(cue.relative_to(stage).as_posix(), ensure_ascii=False)}")
             print_summary(plan, archives=len(archives), duplicates=duplicates, unchanged=not plan.changed and not archives)
             if not plan.targets:
