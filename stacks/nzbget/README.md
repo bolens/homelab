@@ -95,12 +95,20 @@ also support Windows-1252 and preserve that encoding when references change.
 Malformed UTF-16, binary
 control characters and cue-referenced files remain protected.
 Explicit `.txt` sidecars also support Windows-1252 text with full-file validation.
+UTF-8 and BOM-marked UTF-16 `.txt` sidecars may contain Unicode left-to-right
+marks. Other formatting controls still fail text validation.
 Scene `.nfo` files support Windows-1252 text and CP437 box art with accented
 letters, middle dots and the scene symbols `∙`, `¼`, `«`, `»`, `⌐`, `÷` and `≤`, plus nonbreaking spaces.
 The entire file must pass the text checks. Binary
 controls, undefined Windows-1252 bytes and unsupported CP437 glyphs remain
 protected. Adjacent drawing glyphs keep malformed box art from being retried as
 Windows text. Lyrics files with an `.lrc` suffix use the normal text cleanup rules.
+CP437 scene `.nfo` files up to 64 KiB may also use BEL bytes as padding between
+header labels and their colons, or SYN bytes in rows containing only drawing
+glyphs and whitespace. Both forms require `Artist`, `Title` and `Tracks` headers
+and adjacent drawing glyphs; the BEL form requires those headers to be padded.
+BEL bytes elsewhere, SYN in text rows, other binary controls, oversized files
+with these controls and cue-referenced files remain protected.
 Binary SRR recovery sidecars are recognised by the ReScene marker and valid
 bounded application header, including files with obfuscated names. Unknown or
 malformed binary files remain retained. Named audio/video and cue-referenced
@@ -130,7 +138,7 @@ NFOs up to 64 KiB. The hash separator must be exactly `___` or `-_-_--_`.
 NFO fields and numbered track rows can have drawing frames. CP437 NFOs
 require consecutive drawing glyphs and a bounded printable alphabet. Checksum
 lists require local audio paths and eight-digit hexadecimal CRCs on every
-non-comment entry. Release NFOs require nonempty artist and album fields, at
+non-comment entry. Release NFOs require nonempty artist and album or title fields, at
 least two additional release fields and a numbered track entry. Unstructured
 text, unsafe checksum paths and unidentified binary files are retained. Binary
 controls and unsupported legacy bytes fail recognition. The empty-output
