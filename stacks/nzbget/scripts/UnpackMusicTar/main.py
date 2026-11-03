@@ -815,9 +815,28 @@ def album_directory(path: Path, root: Path) -> Path:
     return path.parent
 
 
+def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], parent: Path) -> list[set[Path]]:
+    available: dict[str, set[Path]] = {}
+    for path in audio:
+        if path.is_relative_to(parent):
+            for target in (path, extension_target(path)):
+                available.setdefault(target.relative_to(parent).as_posix().casefold(), set()).add(path)
+    resolved = []
+    for entry in entries:
+        key = entry.as_posix().casefold()
+        # NZBGet can replace each ASCII space with a dot. Resolve only
+        # same-folder names, keeping existing exact references authoritative.
+        if key not in available and len(entry.parts) == 1:
+            key = key.replace(" ", ".")
+        resolved.append(available.get(key, set()))
+    return resolved
+
+
 def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                          required_playlists: set[Path] | None = None) -> dict[Path, str]:
     """Use a covering playlist and matching DTT names to separate untagged discs."""
+    audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
+             or path.suffix.casefold() in AUDIO_SUFFIXES]
     cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
     for path in files:
         if detected_suffix(path) != ".flac":
@@ -863,13 +882,9 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                 entries = playlist_entries(playlist)
                 if not entries or len(entries) != len(records):
                     continue
-                available: dict[str, set[Path]] = {}
-                for path, _ in records:
-                    if path.is_relative_to(playlist.parent):
-                        for target in (path, extension_target(path)):
-                            available.setdefault(target.relative_to(playlist.parent).as_posix().casefold(), set()).add(path)
-                resolved = [available.get(entry.as_posix().casefold(), set()) for entry in entries]
-                if all(len(matches) == 1 for matches in resolved) and len({next(iter(matches)) for matches in resolved}) == len(records):
+                resolved = playlist_local_targets(entries, audio, playlist.parent)
+                if (all(len(matches) == 1 for matches in resolved)
+                        and {next(iter(matches)) for matches in resolved} == {path for path, _ in records}):
                     inferred.update(positions)
                     if required_playlists is not None:
                         required_playlists.add(playlist)
@@ -1046,23 +1061,16 @@ def check_playlists(files: list[Path], protected: set[Path],
         entries = playlist_entries(playlist)
         if entries is None:
             continue
-        available: dict[str, set[Path]] = {}
-        for path in audio:
-            if path.is_relative_to(playlist.parent):
-                for target in (path, extension_target(path)):
-                    available.setdefault(target.relative_to(playlist.parent).as_posix().casefold(), set()).add(path)
-        exact = [entry.as_posix().casefold() in available for entry in entries]
-        if all(exact):
-            resolved = [available[entry.as_posix().casefold()] for entry in entries]
+        resolved = playlist_local_targets(entries, audio, playlist.parent)
+        local = [bool(matches) for matches in resolved]
+        if all(local):
             if any(len(matches) != 1 for matches in resolved) or len({next(iter(matches)) for matches in resolved}) != len(entries):
                 raise ValueError(f"ambiguous playlist: {playlist.name}; entries must reference distinct audio files; retaining all files")
             if covered is not None:
-                for entry in entries:
-                    matches = available[entry.as_posix().casefold()]
-                    if len(matches) == 1:
-                        covered.update(matches)
-            if references is not None and all(len(available[entry.as_posix().casefold()]) == 1 for entry in entries):
-                references[playlist] = {entry: next(iter(available[entry.as_posix().casefold()])) for entry in entries}
+                for matches in resolved:
+                    covered.update(matches)
+            if references is not None:
+                references[playlist] = {entry: next(iter(matches)) for entry, matches in zip(entries, resolved)}
             recognised.add(playlist)
             continue
         if playlist in protected:
@@ -1071,7 +1079,7 @@ def check_playlists(files: list[Path], protected: set[Path],
         # entries, but only for one fully tagged, cue-free FLAC album/disc.
         candidates = [path for path in audio if path.parent == playlist.parent]
         if not candidates or any(path in protected or detected_suffix(path) != ".flac" for path in candidates):
-            if validate and any(exact):
+            if validate and any(local):
                 raise ValueError(f"incomplete playlist: {playlist.name}; missing audio entries; retaining all files")
             continue
         identities = set()
@@ -1108,7 +1116,7 @@ def check_playlists(files: list[Path], protected: set[Path],
                     covered.update(candidates)
                 recognised.add(playlist)
                 continue
-        if validate and any(exact):
+        if validate and any(local):
             raise ValueError(f"incomplete playlist: {playlist.name}; missing audio entries; retaining all files")
     return recognised
 
