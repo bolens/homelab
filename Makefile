@@ -3,6 +3,9 @@
 JAVA_HOME_21 ?= $(JAVA_HOME_21_X64)
 MYLAR_PYTHON ?= python3
 SOURCE_LINT_TOOLING ?=
+ARCHIVING_UTILS_ROOT ?= /opt/archiving-utils
+PUBLICATION_AUTH_BACKEND ?= host
+export ARCHIVING_UTILS_ROOT
 
 help:
 	@echo "Homelab repository targets:"
@@ -56,6 +59,7 @@ source-lint:
 	python3 scripts/source-lint-local.py "$(SOURCE_LINT_TOOLING)"
 
 mylar-source-check:
+	@test -f "$(ARCHIVING_UTILS_ROOT)/lib/archive_backend.py" || { echo "The complete publication gate requires ARCHIVING_UTILS_ROOT pointing to the checked archive SDK." >&2; exit 1; }
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_health.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_verify_status_routing.py
@@ -63,9 +67,13 @@ mylar-source-check:
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_publication_reader_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_import_api_controls.py --family all
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_authenticated_standalone_controls.py --backend "$(PUBLICATION_AUTH_BACKEND)"
 
 komga-source-check:
 	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_naming_worker.py
+	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_retained_pack_control.py
 	$(MYLAR_PYTHON) -B stacks/komga/normalizer/test_archive_terminal_observation.py
 	python3 -I -B stacks/komga/effective_scope/run_source_tests.py --java-home "$(JAVA_HOME_21)"
 

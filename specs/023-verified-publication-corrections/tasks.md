@@ -105,10 +105,17 @@ These tasks preserve earlier implementation and rollout history and retain their
 
   Remaining implementation is the retained host route's independent current
   SQL/target/reader terminal observation and guarded compatible reader resume.
-  The worker finalizer and same-live-worker receipt CAS already exist. Saved
-  records must not recreate an Action or process-local grant. Restart status
-  needs fresh factual observation and cannot replay finalization or invent
-  catalog-to-ACK provenance. This implementation gap is separate from the
+  Complete its configured launch composition too: the legacy pack parent still
+  filters bind mounts and its installed worker entry stays disabled. Reuse the
+  existing complete mount mapper and scoped owner-principal reads; do not treat
+  standalone public-anchor composition as an implemented pack launch. Bind the
+  actual supported configuration volumes and activation graph before live use.
+  Native authenticated finalization, factual restart reconciliation, worker
+  receipt CAS and the signed same-live-worker release are source components.
+  Their tests do not complete the missing Root integration. Saved records
+  cannot recreate an Action or process-local grant. Restart status uses fresh
+  factual observation and cannot replay finalization or invent catalog-to-ACK
+  provenance. This implementation gap is separate from the
   configured archive-one repair and remains open after that repair succeeds.
 
 - [x] T026 [US3] Finish coherent source/install delivery in `stacks/mylar3/config/reader_recovery/genuine_active_inputs.py` and the native/worker image gates, then prove exact installed SDK types, passive hooks and connected Parent/Birth/configured factories. Preserve interruption, late source/claim/journal and SQL/reversal controls. Use the shared isolated execution below with T029 and feature 024 T012/T015; require independent review, local/hosted checks and publication of changed installed bytes. Reuse unchanged image proofs only for matching original inputs; component tests alone do not complete this task.

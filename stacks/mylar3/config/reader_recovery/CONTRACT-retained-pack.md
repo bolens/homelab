@@ -38,15 +38,24 @@ These are refusal ceilings tested on actual disposable state, not measured live 
 
 ## Activation graph and remaining gates
 
-Parent ENABLED stays False; observer/primitives/native probe accepted pins remain None. Worker ENABLED stays False and PARENT_SOURCE_SHA None. Root must review final parent/observer/primitives/probe bytes and accepted loader graph first. Then worker can be a distinct reviewed successor pinned to the final parent SHA, followed by installed image/map proof. Parent joins that actual installed control to the original private plan/module map rather than hardcoding its SHA, avoiding parent↔control self-hash cycles. Public examples stay disabled. No pin is activated here.
+Parent and legacy direct worker gates remain disabled. The native API can mint a finite admission only for the primary normal API key, an enabled API, POST, the exact installed handler/request/source cohort and ordinary Writer. Direct kernels remain disabled without that original admission. The worker accepts a separate typed admission from its fixed public-anchor loader, bound to the original reviewed Parent, request, sources and channel. These admissions grant no Root backup or reader-resume authority. The Root configured pack launcher and independent terminal/resume bridge remain unfinished; public image anchors remain empty and ordinary worker startup stays unchanged.
 
 Mandatory remaining gates: selected Python3.10 canonical installed control and full API authentication/transport; real source/mount/pipe full9 geometry; actual pause/unpause native background admissibility; original configured network IDs and profile stability in real Docker; measured state-copy capacity; independent exact current native/worker terminal/SQL/receipt/backup closure plus compatible reader restart. `collect` returns reader_resume_grant=False and operational_custody_complete=False. No restart, backup deletion, active daemon change, historical delivery acknowledgement, indexing acceptance or completed-feature claim follows this result.
+
+The independent SQL checker joins the complete workflow/catalog fingerprints
+to the original verified backup, validates the native request and derived token,
+and requires the original selected pack/member generation, owner, eligible phase
+and payload. It derives only the native two-row successor and requires every
+other row, schema and catalog entry unchanged. Worker preparation checks those
+same original member conditions before writing an intent or dispatching, and
+its reply consumer binds the returned pack row to that exact original selection.
+These source checks do not complete the unwired host terminal/reader gate. Persistent finalization records use schema v2: the exact raw pack-row preimage and a complete-workflow commitment replace an embedded workflow snapshot. Restart status reverses only the recorded two-row successor and checks the reconstructed complete preimage. Earlier final records are preserved without recursively copying them. This factual reconciliation cannot reconstruct a live event or authorize replay or reader resume.
 
 ## Controls and packaging
 
 run_controls.py runs five isolated suites:22 neutral backup/pipe/profile controls,3 same-live real HTTP/SQLite/CAS controls,23 terminal handshake and mutation controls,101 native baseline and29 worker baseline =178, zero skips required. Source and moved trees run separately; source closure is complete and portable. Docker engine profiles in the composed fixture are explicit doubles; parent observations never count as protected runtime proof. Actual worker process/stdIO, SQLite, file operations, HTTP finalize/lost-reply/status and receipt CAS are genuine; existing host SDK/API-method-body/backend fixture plumbing is explicitly qualified.
 
-The build-only composed worker graph has37 Python entries: accepted OperationsV2's35 plus retained_pack_control.py and check_preproof_session.py. Copy it explicitly into the native/API isolated fixture context and preserve its source-pins.json; current flat source runners do not discover this new family implicitly. Host tests require the exact neutral primitive dependency. Root must manually add new suites/files and coalesce runner/source-map/installer/SDK hashes after independent review. Full copied predecessor fixtures are test-only and must never replace runtime canonical modules.
+The build-only composed worker graph is declared by `run_import_api_controls.py` and its fixture `source-pins.json`. Copy that exact graph into the native/API isolated fixture context; flat source discovery cannot replace the declared membership. Host tests require the exact neutral primitive dependency. Root must manually add new suites/files and coalesce runner/source-map/installer/SDK hashes after independent review. Full copied predecessor fixtures are test-only and must never replace runtime canonical modules.
 
 ## V2 retained originals and terminal custody
 
@@ -65,6 +74,14 @@ V2 remains immutable and held after the unchanged peer literals replaced the run
 V3 remains immutable and held after the unchanged first-factory callback installed a foreign present-None terminal entry. V4 uses a private absence sentinel, direct membership checks and the original terminal table. Every pre-transition core/final closure rejects ANY terminal presence, including None. The final owned install is exclusive and rechecks absence in the same original table after full closure; terminal closures require actual presence and the exact owned tuple identity. No get(None) comparison substitutes for absence. The runtime, Active conversation, backup observation and terminal export require their original non-None typed values and same live object; None/erasure cannot satisfy those positive seals. Source, physical, process, pipe and consumed action originals remain unchanged.
 
 ## Fixed public anchor composition (follow-up profile v2)
+
+This composition is implemented by `standalone_launch_host/` and applies to its
+standalone parent/broker. The pack parent's legacy configured launcher has not
+adopted it: it still accepts bind mounts only and its worker entry stays disabled.
+T028 must compose the actual reviewed pack activation, original named volumes
+and owner-principal NFS reads before any configured pack acceptance. The
+standalone source controls below do not establish that pack runtime proof.
+
 
 The ordinary image remains unprovisioned: it carries public auth code and only
 three empty root-owned0444 placeholders at the existing canonical installation

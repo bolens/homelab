@@ -7,8 +7,8 @@ import sys
 
 ROOT = Path(__file__).parent / 'standalone_launch_auth'
 SOURCES = {name: digest.removeprefix('sha256:') for name, digest in {
-    'standalone_launch_auth.py': 'sha256:fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8',
-    'v3_auth_core.py': 'sha256:b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93',
+    'standalone_launch_auth.py': 'sha256:e990dd15ab2a5d44d6d9f3903642f1198219cf82b89bb630f2d5c7bedc488145',
+    'v3_auth_core.py': 'sha256:7d5e783c2ac74c3a307f1447e89fd9acb02fab33e365dd443fbf7b133282a1f3',
     'private_crypto.py': 'sha256:3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab',
 }.items()}
 

@@ -54,7 +54,9 @@ need(files[input_path][5]&0o7777==0o600 and files[input_path][6:8]==(os.geteuid(
 raw=read(input_path,files[input_path],LIMIT);need(hashlib.sha256(raw).hexdigest()==input_sha,'bootstrap-input-SHA')
 boot=decode(raw);need(canonical(boot)==raw and type(boot) is dict,'bootstrap-canonical-input')
 keys={'version','kind','nonce','challenge','parent_sha256','request','config_ref','data_root','source_map_ref','review_ref'}
-need(set(boot)==keys and type(boot['version']) is int and boot['version']==1 and boot['kind']=='standalone-retained-bootstrap-v1','bootstrap-schema')
+need(set(boot)==keys and type(boot['version']) is int and boot['version']==1 and boot['kind'] in ('standalone-retained-bootstrap-v1','pack-retained-bootstrap-v1'),'bootstrap-schema')
+PACK=boot['kind']=='pack-retained-bootstrap-v1'
+if PACK:ROOT=Path('/app')
 # Every original control leaf precedes the first map/config/review read callback.
 for key in ('config_ref','source_map_ref','review_ref'):
     ref=boot[key];need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and re.fullmatch('[0-9a-f]{64}',ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(x) is int for x in ref['signature9']),'bootstrap-ref')
@@ -64,6 +66,7 @@ map_ref=boot['source_map_ref'];map_raw=read(map_ref['path'],files[map_ref['path'
 need(hashlib.sha256(map_raw).hexdigest()==map_ref['sha256'],'bootstrap-map-SHA');mapping=decode(map_raw)
 need(type(mapping) is dict and 1<=len(mapping)<=1024 and canonical(mapping)==map_raw and all(type(k) is str and re.fullmatch(r'[a-z_]+\.py',k) and type(v) is str and re.fullmatch('[0-9a-f]{64}',v) for k,v in mapping.items()),'bootstrap-map-schema')
 required={'__init__.py','config.py','publication_api.py','media_writer.py','publication_guard.py','publication_archive_owned.py','publication_retained_delivery.py','publication_retained_standalone.py','comic_retained_standalone_action.py'}
+if PACK:required={'normalize.py','maintenance.py','publication_guard.py','publication_evidence.py','media_writer.py','retained_pack_control.py','retained_pack_handoff.py','retained_pack_operations.py'}
 need(required<=set(mapping),'bootstrap-complete-map')
 for name in mapping:capture(str(ROOT/name),files,nodes)
 close(files,nodes)
@@ -93,11 +96,11 @@ inventory_raw=read(str(fixed[1]),files[str(fixed[1])],65536)
 public_raw=read(str(fixed[2]),files[str(fixed[2])],44)
 anchor=decode(anchor_raw);inventory=decode(inventory_raw)
 need(canonical(anchor)==anchor_raw and canonical(inventory)==inventory_raw,'bootstrap-install-canonical')
-need(set(anchor)=={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'} and type(anchor['version']) is int and anchor['version']==1 and anchor['kind']=='standalone-installation-anchor-v1','bootstrap-install-schema')
+need(set(anchor)=={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'} and type(anchor['version']) is int and anchor['version']==1 and anchor['kind']==('pack-installation-anchor-v1' if PACK else 'standalone-installation-anchor-v1'),'bootstrap-install-schema')
 need(anchor['bootstrap_sha256']==hashlib.sha256(sys.orig_argv[4].encode()).hexdigest() and anchor['inventory_sha256']==hashlib.sha256(inventory_raw).hexdigest() and anchor['key_sha256']==hashlib.sha256(public_raw).hexdigest(),'bootstrap-install-pins')
 need(set(inventory)=={'version','kind','sources'} and type(inventory['version']) is int and inventory['version']==1 and inventory['kind']=='standalone-leaf-inventory-v1' and type(inventory['sources']) is dict and 12<=len(inventory['sources'])<=512,'bootstrap-inventory-schema')
 for path,digest in inventory['sources'].items():
-    q=Path(path);need(str(q)==path and '..' not in q.parts and (q.is_relative_to(AUTH) or q.is_relative_to(ROOT)) and re.fullmatch('[0-9a-f]{64}',digest),'bootstrap-inventory-fixed-path')
+    q=Path(path);need(str(q)==path and '..' not in q.parts and (q.is_relative_to(AUTH) or (q.parent==ROOT if PACK else q.is_relative_to(ROOT))) and re.fullmatch('[0-9a-f]{64}',digest),'bootstrap-inventory-fixed-path')
     capture(path,files,nodes)
 for path,digest in inventory['sources'].items():
     v=files[path];need(v[6]==0 and not v[5]&0o022,'bootstrap-inventory-root-file')
@@ -108,7 +111,7 @@ for path,content in zip(fixed[:3],(anchor_raw,inventory_raw,public_raw)):hashes[
 need({str(AUTH/name) for name in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')}<=set(inventory['sources']),'bootstrap-required-auth')
 close(files,nodes);auth_absence()
 original={'files':files,'nodes':nodes,'hashes':hashes,'input_bytes':raw}
-sys.path[:0]=[str(AUTH),'/app/mylar3','/app/mylar3/lib']
+sys.path[:0]=[str(AUTH),str(ROOT)] if PACK else [str(AUTH),'/app/mylar3','/app/mylar3/lib']
 auth_absence()
 auth=importlib.import_module('standalone_launch_auth')
 need(auth.__file__==str(AUTH/'standalone_launch_auth.py'),'bootstrap-canonical-auth')
@@ -116,8 +119,8 @@ close(files,nodes)
 boot_ref={'path':input_path,'sha256':input_sha,'signature9':list(files[input_path])}
 admission=auth.authenticate_original(boot_ref,0,1,original)
 close(files,nodes)
-module=importlib.import_module('mylar.comic_retained_standalone_action')
-need(module.__file__==str(ROOT/'comic_retained_standalone_action.py'),'bootstrap-canonical-action')
+module=importlib.import_module('retained_pack_control' if PACK else 'mylar.comic_retained_standalone_action')
+need(module.__file__==str(ROOT/('retained_pack_control.py' if PACK else 'comic_retained_standalone_action.py')),'bootstrap-canonical-action')
 close(files,nodes)
 auth_absence()
 raise SystemExit(module.main(original_preimport=original,admission=admission))

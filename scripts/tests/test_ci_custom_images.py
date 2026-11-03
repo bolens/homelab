@@ -126,6 +126,30 @@ class MylarStagePreservationTests(unittest.TestCase):
 
     STACK = ROOT / "stacks/mylar3"
 
+    def test_complete_pack_fixture_graph_has_explicit_context_admission(self):
+        spec=importlib.util.spec_from_file_location('image_pack_fixture_contract',
+            self.STACK/'config/run_import_api_controls.py')
+        controls=importlib.util.module_from_spec(spec);spec.loader.exec_module(controls)
+        rules=(self.STACK/'.dockerignore').read_text().splitlines()
+        excluded=rules.index('config/test_fixtures/retained_pack_worker/**')
+        for source in sorted(controls.PACK_FIXTURES):
+            with self.subTest(source=source):
+                admission='!config/'+source
+                self.assertEqual(rules.count(admission),1)
+                self.assertGreater(rules.index(admission),excluded)
+
+    def test_worker_public_auth_context_is_finite_and_complete(self):
+        stack=ROOT/'stacks/komga/normalizer'
+        rules=(stack/'.dockerignore').read_text().splitlines()
+        self.assertIn('!standalone_launch_auth/',rules)
+        excluded=rules.index('standalone_launch_auth/**')
+        self.assertNotIn('!standalone_launch_auth/**',rules)
+        for source in ('standalone_launch_auth.py','v3_auth_core.py','private_crypto.py'):
+            with self.subTest(source=source):
+                admission='!standalone_launch_auth/'+source
+                self.assertEqual(rules.count(admission),1)
+                self.assertGreater(rules.index(admission),excluded)
+
     def test_cacheable_tagging_inputs_match_the_actual_docker_copy(self):
         subprocess.run([sys.executable, '-I', '-B',
                         str(self.STACK / 'config/tagging_stage_inputs.py'), '--check'], check=True)

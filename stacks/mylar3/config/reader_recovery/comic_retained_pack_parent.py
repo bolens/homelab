@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import threading
@@ -25,6 +26,257 @@ _ACTIVE=weakref.WeakKeyDictionary()
 _RUNTIMES=weakref.WeakKeyDictionary()
 _TERMINALS=weakref.WeakKeyDictionary()
 _TERMINAL_ABSENT=object()
+_RUNTIME_ANCHORS=weakref.WeakKeyDictionary()
+ANCHOR_NAMES=('installation-v1.json','inventory-v1.json','public-ed25519.der')
+ANCHOR_PREFIX=Path('/opt/mylar-publication-launch')
+ANCHOR_HOST=Path('/etc/mylar-publication-launch/child')
+
+
+def _retained_sql_digest(value):
+    return hashlib.sha256(encode(value)).hexdigest()
+
+
+def retained_sql_fingerprint(model):
+    """Match the existing backup primitive's complete all-table fingerprint."""
+    need(type(model) is dict and set(model) == {'schema', 'rows'}
+         and type(model['schema']) is list and type(model['rows']) is dict
+         and len(encode(model)) <= 64 * 1024**2,
+         'retained-terminal-SQL-model')
+    tables = {row[1] for row in model['schema'] if type(row) is list
+              and len(row) == 4 and row[0] == 'table'}
+    need(set(model['rows']) == tables, 'retained-terminal-complete-tables')
+    result = {}
+    for name, rows in model['rows'].items():
+        need(type(name) is str and type(rows) is list
+             and all(type(row) is str for row in rows) and rows == sorted(rows), 'retained-terminal-table-rows')
+        values = []
+        for row in rows:
+            value = json.loads(row)
+            need(type(value) is list and encode(value).decode() == row,
+                 'retained-terminal-canonical-row')
+            values.append(_retained_sql_digest(value))
+        result[name] = dict(rows=len(values), digest=_retained_sql_digest(sorted(values)))
+    return dict(schema=_retained_sql_digest(model['schema']), tables=result)
+
+
+def verify_retained_sql(before, catalog, *, backup_workflow, backup_catalog, request,
+           reply, current, current_catalog):
+    """Derive the only permitted two-row successor against verified originals."""
+    need(type(request) is dict and set(request) == {'version', 'kind', 'ddl_id', 'pack_id',
+         'member_id', 'source_generation', 'source_sha256', 'target_sha256', 'owner', 'review_sha256'}
+         and type(request['version']) is int and request['version'] == 1
+         and request['kind'] == 'retained-ddl-existing-target-v1'
+         and type(request['ddl_id']) is str and re.fullmatch(r'[0-9]{1,20}(?:-[0-9]{1,8})?', request['ddl_id'])
+         and all(type(request[k]) is str and re.fullmatch('[0-9a-f]{64}', request[k])
+                 for k in ('pack_id', 'member_id', 'source_generation', 'source_sha256',
+                           'target_sha256', 'review_sha256'))
+         and len(encode(request)) < 4096, 'retained-terminal-request')
+    owner = request['owner']
+    need(type(owner) is dict and set(owner) == {'table', 'issueid', 'parentcomicid', 'releasecomicid'}
+         and owner['table'] in ('issues', 'annuals')
+         and all(type(owner[k]) is str and re.fullmatch('[1-9][0-9]{0,15}', owner[k])
+                 for k in ('issueid', 'parentcomicid', 'releasecomicid'))
+         and (owner['table'] != 'issues' or owner['parentcomicid'] == owner['releasecomicid']),
+         'retained-terminal-request-owner')
+    for model, original in ((before, backup_workflow), (catalog, backup_catalog)):
+        need(type(original) is dict and set(original) == {'schema', 'tables', 'companions', 'wal'}
+             and original['companions'] == {} and original['wal'] is None,
+             'retained-terminal-backup-original')
+        need(encode(retained_sql_fingerprint(model)) == encode({k: original[k] for k in ('schema', 'tables')}),
+             'retained-terminal-backup-allSQL')
+    need(type(reply) is dict and set(reply) == {'success', 'data'}
+         and reply['success'] is True, 'retained-terminal-reply')
+    answer = reply['data']
+    rights = ('historical_import_ack', 'ordinary_import_grant', 'cleanup_grant',
+              'mutation_authority', 'publication_acceptance', 'reader_index_acceptance', 'automatic_replay')
+    need(type(answer) is dict and set(answer) == {'version', 'outcome', 'token', 'record_kind',
+         'record_sha256', 'committed', 'transition', *rights}
+         and type(answer['version']) is int and answer['version'] == 1
+         and answer['outcome'] == 'fresh-retained-backend-finalized'
+         and answer['record_kind'] == 'retained_delivery_final'
+         and all(answer[key] is False for key in rights), 'retained-terminal-outcome')
+    token = answer['token']; transition = answer['transition']
+    need(token == hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'
+                                 +request['member_id']).encode()).hexdigest(),
+         'retained-terminal-request-token')
+    need(type(token) is str and len(token) == 64 and all(c in '0123456789abcdef' for c in token)
+         and type(transition) is dict and set(transition) == {'version', 'kind', 'request',
+             'native_data_root', 'record_bytes', 'pack_before_row', 'pack_after_row', 'workflow_before',
+             'original_vectors', 'committed_vectors', 'committed_hashes', 'native_source_root', 'native_sources'}
+         and transition.get('kind') == 'retained-pack-two-row-transition'
+         and type(transition.get('version')) is int and transition['version'] == 1
+         and encode(transition['request']) == encode(request)
+         and encode(transition['workflow_before']) == encode(before), 'retained-terminal-transition')
+    old, new = transition['pack_before_row'], transition['pack_after_row']
+    need(type(old) is list and len(old) == 4 and type(new) is list and len(new) == 4
+         and old[:2] == ['pack', request['pack_id']]
+         and encode(new[:2]) == encode(old[:2]) and encode(new[3]) == encode(old[3]),
+         'retained-terminal-original-pack-row')
+    pack = json.loads(old[2]); wanted = json.loads(encode(pack))
+    selected = [json.loads(row) for row in before['rows']['records']
+                if json.loads(row)[:2] == ['pack', request['pack_id']]]
+    need(len(selected) == 1 and encode(selected[0]) == encode(old), 'retained-terminal-original-pack-row')
+    need(type(pack) is dict and pack.get('id') == request['pack_id']
+         and pack.get('ddl_id') == request['ddl_id']
+         and pack.get('source_generation') == request['source_generation']
+         and not pack.get('cleanup_started') and not pack.get('cleanup_complete'),
+         'retained-terminal-original-capture')
+    need(type(pack.get('members')) is list and len(pack['members']) <= 2000
+         and all(type(member) is dict for member in pack['members']), 'retained-terminal-members')
+    members = [member for member in wanted['members'] if member.get('id') == request['member_id']]
+    need(len(members) == 1, 'retained-terminal-one-member')
+    member = members[0]
+    need(member.get('kind') == ('annual' if owner['table'] == 'annuals' else 'issue')
+         and member.get('issueid') == owner['issueid'] and member.get('comicid') == owner['parentcomicid']
+         and member.get('releasecomicid') == owner['releasecomicid']
+         and member.get('phase') in ('review', 'ready', 'submitted', 'confirmed')
+         and not member.get('ordinary_import_token') and not member.get('retained_finalization'),
+         'retained-terminal-member-owner')
+    record_bytes = transition['record_bytes']
+    need(type(record_bytes) is str and hashlib.sha256(record_bytes.encode()).hexdigest() == answer['record_sha256'],
+         'retained-terminal-record-bytes')
+    record = json.loads(record_bytes)
+    need(type(record) is dict and set(record) == {'version', 'kind', 'token', 'request',
+         'source', 'target', 'original_event', 'original_vectors', 'pack_before', 'pack_after', 'pack_before_row', 'workflow_before_sha256', *rights}
+         and record.get('kind') == 'fresh-retained-backend-finalization'
+         and type(record.get('version')) is int and record['version'] == 2
+         and record['token'] == token and encode(record['request']) == encode(request)
+         and encode(record['pack_before']) == encode(pack)
+         and record['workflow_before_sha256'] == _retained_sql_digest(before)
+         and encode(record['pack_before_row']) == encode(old)
+         and all(record[key] is False for key in rights), 'retained-terminal-record')
+    need(member.get('destination', record['target']) == record['target']
+         and member.get('destination_sha256', request['target_sha256']) == request['target_sha256']
+         and member.get('sha256', request['source_sha256']) == request['source_sha256'],
+         'retained-terminal-member-original-payload')
+    members[0].update(phase='retained-accepted', retained_finalization=token,
+                      destination=record['target'], destination_sha256=request['target_sha256'])
+    wanted['phase'] = 'review'
+    need(encode(record['pack_after']) == encode(wanted)
+         and new == [old[0], old[1], encode(wanted).decode(), old[3]], 'retained-terminal-only-member-delta')
+    expected = json.loads(encode(before)); rows = expected['rows']['records']
+    old_row = encode(old).decode()
+    need(rows.count(old_row) == 1 and not any(json.loads(row)[:2] == ['retained_delivery_final', token]
+                                            for row in rows), 'retained-terminal-original-record-absence')
+    rows.remove(old_row)
+    rows.extend((encode(new).decode(), encode(['retained_delivery_final', token, record_bytes, 0.0]).decode()))
+    rows.sort()
+    need(encode(current) == encode(expected), 'retained-terminal-exact-two-row-SQL')
+    need(encode(current_catalog) == encode(catalog), 'retained-terminal-unchanged-catalog')
+    return dict(kind='retained-pack-independent-SQL-observation', mutation_authority=False,
+                ordinary_import_grant=False, historical_import_ack=False, reader_index_acceptance=False,
+                cleanup_grant=False, automatic_replay=False)
+
+
+def decode_terminal_artifact(data, reference, header, request):
+    """Decode detached evidence; callers still owe independent live observations.
+
+    The done record commits the pre-done frame. Its own actual FD fact is joined
+    once here rather than accepting a circular worker-supplied final frame.
+    Worker JSON uses ASCII escaping, including for paths outside ASCII.
+    """
+    def compact(value):
+        return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,
+                          allow_nan=False).encode()
+    def pairs(rows):
+        result={}
+        for key,value in rows:
+            need(key not in result,'retained-artifact-duplicate-key');result[key]=value
+        return result
+    need(type(data) is bytes and 0<len(data)<=64*1024**2,'retained-artifact-bound')
+    need(type(reference) is dict and set(reference)=={'path','sha256','signature9'},'retained-artifact-reference')
+    path=reference['path'];stamp=reference['signature9']
+    need(type(path) is str and str(Path(path))==path and Path(path).is_absolute()
+         and '..' not in Path(path).parts and not path.startswith('//')
+         and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp)
+         and stamp[5]&0o170000==0o100000 and stamp[5]&0o7777==0o600
+         and stamp[6:9]==[1000,1000,1] and stamp[2]==len(data)
+         and type(reference['sha256']) is str and re.fullmatch('[0-9a-f]{64}',reference['sha256'])
+         and hashlib.sha256(data).hexdigest()==reference['sha256'],'retained-artifact-original-file')
+    body=json.loads(data,object_pairs_hook=pairs,
+                    parse_constant=lambda _: (_ for _ in ()).throw(ValueError('retained-artifact-nonfinite')))
+    rights=('historical_import_ack','ordinary_import_grant','cleanup_grant',
+            'reader_index_acceptance','automatic_replay','reader_resume_grant')
+    need(type(body) is dict and set(body)=={'version','kind','token','request','reply_text',
+         'reply_sha256','catalog_before','frame',*rights} and type(body['version']) is int
+         and body['version']==2 and body['kind']=='retained-pack-terminal-artifact'
+         and all(body[k] is False for k in rights) and compact(body)==data,
+         'retained-artifact-schema')
+    need(type(request) is dict and compact(body['request'])==compact(request)
+         and {'ddl_id','pack_id','member_id'}<=set(request),'retained-artifact-original-request')
+    token=hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode()).hexdigest()
+    need(body['token']==token and Path(path).name==token+'.done.json',
+         'retained-artifact-token')
+    need(type(body['reply_text']) is str and hashlib.sha256(body['reply_text'].encode()).hexdigest()
+         ==body['reply_sha256'],'retained-artifact-native-reply')
+    frame=body['frame']
+    need(type(frame) is dict and set(frame)=={'files','nodes','absent','names','claims','hashes','attrs'}
+         and type(frame['absent']) is list and all(type(frame[k]) is dict for k in frame if k!='absent'),
+         'retained-artifact-frame')
+    def absolute(value):
+        return (type(value) is str and '\x00' not in value and Path(value).is_absolute()
+                and str(Path(value))==value and '..' not in Path(value).parts and not value.startswith('//'))
+    def vector(value,width):
+        return (type(value) is list and len(value)==width
+                and all(type(v) is int and abs(v)<=2**64-1 for v in value))
+    need(sum(len(group) for group in frame.values())<=100000
+         and all(absolute(p) for group in frame.values() for p in group),
+         'retained-artifact-vector-paths')
+    need(len(set(frame['absent']))==len(frame['absent'])
+         and not set(frame['absent']) & (set(frame['files'])|set(frame['nodes']))
+         and all(vector(v,9) for v in frame['files'].values())
+         and all(vector(v,5) and v[2]&0o170000==0o040000 for v in frame['nodes'].values())
+         and all(v is None or (type(v) is list and len(v)==6
+                 and all(type(n) is int and abs(n)<=2**64-1 for n in v[:5])
+                 and (v[5] is None if v[2]&0o170000==0o040000 else type(v[5]) is int))
+                 for v in frame['claims'].values()),
+         'retained-artifact-stat-vectors')
+    for p,v in frame['nodes'].items():
+        if p in frame['files']:
+            full=frame['files'][p]
+            need(v==[full[0],full[1],full[5],full[6],full[7]],'retained-artifact-node-conflict')
+    for p,v in frame['claims'].items():
+        need((v is None and p not in frame['files'] and p not in frame['nodes'])
+             or (v is not None and p not in frame['absent']
+                 and (p not in frame['nodes'] or v[:5]==frame['nodes'][p] and v[5] is None)
+                 and (p not in frame['files'] or v==[frame['files'][p][i] for i in (0,1,5,6,7)]+
+                      [None if frame['files'][p][5]&0o170000==0o040000 else frame['files'][p][8]])),
+             'retained-artifact-claim-conflict')
+    for p,names in frame['names'].items():
+        need(p in frame['nodes'] and type(names) is list and all(type(n) is str
+             and n not in ('','.','..') and '/' not in n and '\x00' not in n for n in names)
+             and names==sorted(set(names)),'retained-artifact-names')
+    for p,digest in frame['hashes'].items():
+        need(p in frame['files'] and frame['files'][p][5]&0o170000==0o100000
+             and frame['files'][p][8]==1 and type(digest) is str
+             and re.fullmatch('[0-9a-f]{64}',digest),'retained-artifact-hashes')
+    for p,attrs in frame['attrs'].items():
+        need(p in frame['files'] and frame['files'][p][5]&0o170000==0o100000
+             and type(attrs) is dict and len(attrs)<=64
+             and all(type(n) is str and '\x00' not in n and type(v) is str
+                     and re.fullmatch('(?:[0-9a-f]{2})*',v) for n,v in attrs.items())
+             and sum(len(n.encode())+len(v) for n,v in attrs.items())<=1048576,
+             'retained-artifact-attributes')
+    parent=str(Path(path).parent);name=Path(path).name
+    need(frame['absent'].count(path)==1 and path not in frame['files']
+         and path not in frame['hashes'] and path not in frame['attrs']
+         and path not in frame['nodes'] and path not in frame['claims']
+         and parent in frame['nodes']
+         and parent in frame['names'] and type(frame['names'][parent]) is list
+         and frame['names'][parent]==sorted(set(frame['names'][parent]))
+         and name not in frame['names'][parent],'retained-artifact-own-original-absence')
+    # Detached only: never refresh any caller-supplied vector from the filesystem.
+    final=json.loads(compact(frame));final['absent'].remove(path)
+    final['files'][path]=list(stamp);final['hashes'][path]=reference['sha256']
+    final['names'][parent]=sorted([*final['names'][parent],name])
+    need(type(header) is dict and compact(header.get('artifact_ref'))==compact(reference)
+         and header.get('token')==token and header.get('pack_id')==request['pack_id']
+         and header.get('member_id')==request['member_id']
+         and header.get('request_sha256')==hashlib.sha256(compact(request)).hexdigest()
+         and header.get('reply_sha256')==body['reply_sha256']
+         and header.get('frame_sha256')==hashlib.sha256(compact(final)).hexdigest(),
+         'retained-artifact-original-header')
+    return body,final
 
 
 class RetainedParentConversation:
@@ -219,10 +471,55 @@ def operational_entry(*args,**kwargs):
 # Host lifecycle mechanism. It intentionally has no engine/inspect callback argument.
 # The privileged caller invokes only this source-pinned helper; this code never
 # escalates privileges or starts a daemon by itself.
+def selected_profile(original,row,*,installed_anchors=False):
+    """Finite selected-worker profile; neither profile mode grants activation."""
+    need(type(installed_anchors) is bool,'selected-anchor-mode')
+    need(row['Image']==original['Image'],'selected-configured-image')
+    need(len(row['Mounts'])<=MAX_MOUNTS,'selected-mount-bound')
+    def mount_key(mount):
+        need(mount['Type'] in ('bind','volume'),'selected-mount-type')
+        if mount['Type']=='volume':
+            name=mount.get('Name')
+            need(type(name) is str and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,255}',name),
+                 'selected-volume-name')
+        return (mount['Type'],mount.get('Name'),mount['Source'],mount['Destination'],mount['RW'],
+                mount.get('Propagation'))
+    ordinary=[];anchors=[]
+    for mount in row['Mounts']:
+        destination=Path(mount['Destination'])
+        if installed_anchors and destination.parent==ANCHOR_PREFIX and destination.name in ANCHOR_NAMES:
+            need(mount['Type']=='bind' and mount['Source']==str(ANCHOR_HOST/destination.name)
+                 and mount['RW'] is False,'selected-exact-public-anchor')
+            anchors.append(destination.name);continue
+        need(all(not destination.is_relative_to(Path(prefix)) and not Path(prefix).is_relative_to(destination)
+                 for prefix in IMAGE_PREFIXES),'selected-runtime-overlay')
+        ordinary.append(mount_key(mount))
+    need(sorted(anchors)==sorted(ANCHOR_NAMES) if installed_anchors else not anchors,
+         'selected-complete-public-anchors')
+    for mount in original['Mounts']:
+        destination=Path(mount['Destination'])
+        need(not destination.is_relative_to(ANCHOR_PREFIX) and not ANCHOR_PREFIX.is_relative_to(destination),
+             'selected-original-auth-overlay')
+    need(sorted(ordinary)==sorted(mount_key(m) for m in original['Mounts']),
+         'selected-no-new-mount')
+    networks=lambda value:{name:entry['NetworkID'] for name,entry in value['NetworkSettings']['Networks'].items()}
+    need(networks(row)==networks(original) and 1<=len(networks(row))<=MAX_NETWORKS,
+         'selected-existing-network')
+    host=row['HostConfig'];need(not host.get('Privileged') and not host.get('CapAdd')
+         and not host.get('PortBindings') and host.get('NetworkMode')!='host','selected-no-expanded-privilege')
+    need(row['Config']['User']==original['Config']['User']=='1000:1000'
+         and row['Config']['Env']==original['Config']['Env'],'selected-existing-user-environment')
+    need(not any(m['Destination']=='/var/run/docker.sock' for m in row['Mounts']),'selected-no-socket')
+    need(host.get('ReadonlyRootfs') is True and host.get('CapDrop')==['ALL']
+         and host.get('SecurityOpt')==['no-new-privileges'],'selected-exact-hardened-profile')
+    return True
+
+
 class ConfiguredRuntime:
     def __init__(self,*a,**k):raise ValueError('Original configured runtime required')
     @classmethod
-    def observe(cls,ids):
+    def observe(cls,ids,*,installed_anchors=False):
+        need(type(installed_anchors) is bool,'runtime-anchor-mode')
         need(type(ids) is dict and set(ids)=={'reader','native','worker'} and len(set(ids.values()))==3,'exact-runtime-identities')
         need(all(type(v) is str and len(v)==64 and all(c in '0123456789abcdef' for c in v) for v in ids.values()),'runtime-ID')
         value=object.__new__(cls);value.ids=dict(ids);value.started=time.time();value.pid=os.getpid();value.thread=threading.get_ident();value.deadline=time.monotonic()+TOTAL_SECONDS
@@ -230,8 +527,9 @@ class ConfiguredRuntime:
         need(value.baseline['reader']['State']['Running'] is True and value.baseline['reader']['State']['Paused'] is False,'reader-original-running')
         native=value.baseline['native']['State'];need(native['Running'] is True and native['Paused'] is False and native['Pid']>0,'native-original-running')
         worker=value.baseline['worker']['State'];need(worker['Running'] is False and worker['Status'] in ('created','exited'),'normal-worker-must-already-be-stopped')
-        value.selected=None;value.quiescent=False;value.native_open=False;value.process=None
-        _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,deadline=value.deadline))
+        value.selected=None;value.quiescent=False;value.native_open=False;value.process=None;value.installed_anchors=installed_anchors
+        _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,deadline=value.deadline,started=value.started,installed_anchors=installed_anchors))
+        _RUNTIME_ANCHORS[value]=(_RUNTIMES,_RUNTIMES[value],installed_anchors,_RUNTIME_ANCHORS)
         return value
     def command(self,args):
         import subprocess
@@ -248,12 +546,25 @@ class ConfiguredRuntime:
         need(not self.quiescent,'runtime-quiesce-once')
         self.command(['pause',self.ids['native']]);self.command(['stop','--timeout','30',self.ids['reader']]);self.quiescent=True
         self.stopped_reader=self.inspect(self.ids['reader'])['State'];self.paused_native=self.inspect(self.ids['native'])['State'];self.close()
-    def close(self):
-        need(self in _RUNTIMES and _RUNTIMES[self]==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,thread=self.thread,deadline=self.deadline)),'original-runtime-seal')
-        need(self.quiescent,'runtime-quiescence-required')
+    def close_local(self):
+        original=_RUNTIME_ANCHORS.get(self)
+        need(original is not None and original[0] is _RUNTIMES and original[1] is _RUNTIMES.get(self)
+             and original[2] is self.installed_anchors and original[3] is _RUNTIME_ANCHORS,
+             'original-runtime-registry')
+        need((os.getpid(),threading.get_ident())==(self.pid,self.thread) and time.monotonic()<self.deadline,
+             'original-runtime-lifetime')
+        need(_RUNTIMES[self]==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,thread=self.thread,deadline=self.deadline,started=self.started,installed_anchors=self.installed_anchors)),
+             'original-runtime-seal')
+        need(_RUNTIME_ANCHORS.get(self) is original and original[0] is _RUNTIMES
+             and original[1] is _RUNTIMES.get(self),'final-runtime-registry')
+    def close(self,terminal_original=_TERMINAL_ABSENT):
+        self.close_local()
+        if terminal_original is not _TERMINAL_ABSENT:
+            need(self in _TERMINALS and _TERMINALS[self] is terminal_original,'runtime-own-terminal-original')
         for key,cid in self.ids.items():
             row=self.inspect(cid);need(self.static(row)==self.static(self.baseline[key]),'runtime-original-profile')
-            if key=='reader':need(row['State']==self.stopped_reader and row['State']['Running'] is False,'reader-stopped-incarnation')
+            if not self.quiescent:need(row['State']==self.baseline[key]['State'],'runtime-before-owned-quiescence')
+            elif key=='reader':need(row['State']==self.stopped_reader and row['State']['Running'] is False,'reader-stopped-incarnation')
             elif key=='worker':need(row['State']==self.baseline[key]['State'],'normal-worker-stays-stopped')
             else:
                 state=row['State'];before=self.baseline[key]['State']
@@ -266,6 +577,7 @@ class ConfiguredRuntime:
             if event.get('Type')!='container' or actor not in self.ids.values():continue
             action=event.get('Action',event.get('status'))
             if action not in ('pause','unpause','stop','kill','die','start','restart','destroy'):continue
+            need(self.quiescent,'runtime-event-before-owned-quiescence')
             allowed={'pause','unpause'} if actor==self.ids['native'] else ({'stop','kill','die'} if actor==self.ids['reader'] else set())
             need(action in allowed,'runtime-unexpected-event')
             key=(actor,action);counts[key]=counts.get(key,0)+1;need(counts[key]<=1,'runtime-repeated-lifecycle-event')
@@ -282,18 +594,8 @@ class ConfiguredRuntime:
             # Unknown ACK keeps custody uncertain, never replay unpause or restart.
             raise
     def selected_profile(self,row):
-        original=self.baseline['worker'];need(row['Image']==original['Image'],'selected-configured-image')
-        need(len(row['Mounts'])<=MAX_MOUNTS,'selected-mount-bound')
-        for mount in row['Mounts']:
-            path=Path(mount['Destination']);need(all(not path.is_relative_to(Path(prefix)) and not Path(prefix).is_relative_to(path) for prefix in IMAGE_PREFIXES),'selected-runtime-overlay')
-        mounts=lambda r:sorted((m['Source'],m['Destination'],m['RW'],m['Type']) for m in r['Mounts'])
-        need(mounts(row)==mounts(original),'selected-no-new-mount')
-        need(set(row['NetworkSettings']['Networks'])==set(original['NetworkSettings']['Networks']),'selected-existing-network')
-        h=row['HostConfig'];need(not h.get('Privileged') and not h.get('CapAdd') and not h.get('PortBindings') and h.get('NetworkMode')!='host','selected-no-expanded-privilege')
-        need(row['Config']['User']==original['Config']['User']=='1000:1000','selected-existing-user')
-        for m in row['Mounts']:need(m['Destination']!='/var/run/docker.sock','selected-no-socket')
-        need(h.get('ReadonlyRootfs') is True and h.get('CapDrop')==['ALL'] and 'no-new-privileges' in h.get('SecurityOpt',[]),'selected-exact-hardened-profile')
-        return True
+        self.close_local()
+        return selected_profile(self.baseline['worker'],row,installed_anchors=self.installed_anchors)
 
 # The concrete root-owned launch prefix below remains default-disabled.
 # Independent current terminal/restart proof is deliberately not inferred
@@ -340,10 +642,7 @@ class ConfiguredRuntime:
         original=self.baseline['worker'];networks=tuple(original['NetworkSettings']['Networks'])
         need(1<=len(networks)<=MAX_NETWORKS and original['Config']['User']=='1000:1000','bounded-configured-network-required')
         need(Path(input_host).is_absolute() and Path(input_child).is_absolute(),'selected-input-absolute')
-        candidates=[m for m in original['Mounts'] if m['Type']=='bind' and Path(input_child).is_relative_to(Path(m['Destination']))]
-        need(candidates,'selected-input-existing-mount')
-        candidates.sort(key=lambda m:len(Path(m['Destination']).parts),reverse=True);m=candidates[0]
-        need(Path(m['Source'])/Path(input_child).relative_to(m['Destination'])==Path(input_host),'selected-input-original-mapping')
+        need(_mapped_host(original,str(input_child))==Path(input_host),'selected-input-original-mapping')
         initial=nine(os.lstat(input_host));need(initial[5]&0o170000==0o100000 and initial[5]&0o7777==0o600 and initial[8]==1,'selected-input-private')
         input_ref,_=_ref(input_host);need(input_ref['sha256']==input_sha and tuple(input_ref['signature9'])==initial,'selected-input-source-pin')
         args=['create','--pull','never','--interactive','--read-only','--network',networks[0],'--user','1000:1000','--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','python3']
@@ -368,16 +667,91 @@ class ConfiguredRuntime:
 
 
 def _mapped_host(row,child):
-    child=Path(child);need(child.is_absolute() and '..' not in child.parts,'configured-child-path')
-    matches=[m for m in row['Mounts'] if m['Type']=='bind' and child.is_relative_to(Path(m['Destination']))]
-    need(matches,'existing-configured-bind-required');matches.sort(key=lambda m:len(Path(m['Destination']).parts),reverse=True)
-    need(len(matches)==1 or len(Path(matches[0]['Destination']).parts)!=len(Path(matches[1]['Destination']).parts),'ambiguous-configured-bind')
-    m=matches[0];return Path(m['Source'])/child.relative_to(m['Destination'])
+    """Project through the complete original table; nested shadows participate."""
+    need(type(child) is str or isinstance(child,Path),'configured-child-path')
+    text=str(child);child=Path(text)
+    need(child.is_absolute() and str(child)==text and not text.startswith('//')
+         and '..' not in child.parts,'configured-child-path')
+    matches=[]
+    for mount in row['Mounts']:
+        destination=mount['Destination']
+        need(type(destination) is str and Path(destination).is_absolute()
+             and str(Path(destination))==destination and not destination.startswith('//')
+             and '..' not in Path(destination).parts,'configured-mount-destination')
+        if child.is_relative_to(Path(destination)):matches.append(mount)
+    need(matches,'existing-configured-mount-required')
+    matches.sort(key=lambda mount:len(Path(mount['Destination']).parts),reverse=True)
+    need(len(matches)==1 or len(Path(matches[0]['Destination']).parts)!=len(Path(matches[1]['Destination']).parts),
+         'ambiguous-configured-mount')
+    mount=matches[0];source=mount.get('Source')
+    need(mount['Type'] in ('bind','volume') and type(source) is str
+         and Path(source).is_absolute() and str(Path(source))==source
+         and not source.startswith('//') and '..' not in Path(source).parts,
+         'configured-nonphysical-shadow')
+    if mount['Type']=='volume':
+        need(type(mount.get('Name')) is str
+             and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,255}',mount['Name']) is not None,
+             'configured-original-volume-name')
+    return Path(source)/child.relative_to(mount['Destination'])
+
+
+def _mapped_child(row,host):
+    """Choose a stable original alias only after resolving destination shadows."""
+    need(type(host) is str or isinstance(host,Path),'configured-host-path')
+    text=str(host);host=Path(text)
+    need(host.is_absolute() and str(host)==text and not text.startswith('//')
+         and '..' not in host.parts,'configured-host-path')
+    candidates=set()
+    for mount in row['Mounts']:
+        if mount['Type'] not in ('bind','volume'):continue
+        source=mount.get('Source')
+        need(type(source) is str and Path(source).is_absolute() and str(Path(source))==source
+             and not source.startswith('//') and '..' not in Path(source).parts,
+             'configured-mount-source')
+        if not host.is_relative_to(Path(source)):continue
+        child=str(Path(mount['Destination'])/host.relative_to(source))
+        try:actual=_mapped_host(row,child)
+        except ValueError as error:
+            if str(error)=='configured-nonphysical-shadow':continue
+            raise
+        if actual==host:candidates.add(child)
+    need(candidates,'module-map-existing-mount-required')
+    return min(candidates)
 
 
 def _strict_ref(ref):
     need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and type(ref['path']) is str and type(ref['sha256']) is str and len(ref['sha256'])==64 and all(c in '0123456789abcdef' for c in ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'exact-original-reference')
     return ref
+
+
+def read_original(reference):
+    _strict_ref(reference)
+    path=Path(reference['path'])
+    need(path.is_absolute() and str(path)==reference['path'] and not str(path).startswith('//')
+         and '..' not in path.parts,'control-original-canonical-path')
+    original=(((str(path),tuple(reference['signature9'])),),
+              tuple((str(parent),five(os.lstat(parent))) for parent in path.parents),())
+    raw(original)
+    actual,data=_ref(path)
+    need(encode(actual)==encode(reference),'control-original-reference-readback')
+    raw(original);return data,original
+
+
+def decode(data):
+    def pairs(rows):
+        result={}
+        for key,value in rows:
+            need(key not in result,'control-duplicate-key');result[key]=value
+        return result
+    need(type(data) is bytes and 0<len(data)<=1024**2,'control-original-input-bound')
+    value=json.loads(data,object_pairs_hook=pairs,
+                    parse_constant=lambda _: (_ for _ in ()).throw(ValueError('control-nonfinite')))
+    need(type(value) is dict and encode(value)==data,'control-original-canonical-input')
+    return value
+
+
+def mapped_host(mounts,child):
+    return str(_mapped_host(dict(Mounts=mounts),child))
 
 
 def _ref(path):
@@ -451,8 +825,7 @@ def run_operation(plan_ref,source_ref):
     observation=runtime.native_observation(plan['native_probe'],plan['scope_source'],plan['native_module_pins'],plan['nonce'],plan['native_config_ref'])
     state_child=cfg.get('state','/state');state_host=_mapped_host(worker,state_child)
     manifest,manifest_bytes=_ref(plan['worker_manifest']['path']);need(manifest==plan['worker_manifest'],'worker-original-module-map')
-    manifest_child=next((str(Path(m['Destination'])/Path(manifest['path']).relative_to(m['Source'])) for m in worker['Mounts'] if m['Type']=='bind' and Path(manifest['path']).is_relative_to(m['Source'])),None)
-    need(manifest_child is not None,'module-map-existing-bind-required')
+    manifest_child=_mapped_child(worker,manifest['path'])
     module_map=json.loads(manifest_bytes);need(module_map.get('retained_pack_control.py')==plan['control_source']['sha256'],'installed-control-source-map')
     output=Path(plan['output_root']);need(output.is_absolute() and output.is_dir() and five(os.lstat(output))[2]&0o7777==0o700,'private-output-root')
     scopes=[dict(role='native_config',root=str(_mapped_host(runtime.baseline['native'],'/config')),databases=[str(Path(observation['data'])/name) for name in ('mylar.db','workflow.sqlite')]),

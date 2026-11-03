@@ -26,7 +26,7 @@ def _core(session):
 
 def initialize(maintenance):
     """Call before backup/proof lifetime; never from an active publication scope."""
-    if handoff.ENABLED is not True or type(maintenance) is not Maintenance:raise ValueError('Retained operations disabled')
+    if type(maintenance) is not Maintenance or not handoff.enabled(maintenance):raise ValueError('Retained operations disabled')
     if maintenance in _OWNERS:raise ValueError('Retained session already initialized')
     remote_unlocked(maintenance.worker);original=handoff.initialize(maintenance)
     session=object.__new__(RetainedPackSession)

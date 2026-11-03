@@ -57,6 +57,50 @@ class Composed(unittest.TestCase):
  def test_genuine_factories_native_two_rows_and_worker_receipt_CAS_over_HTTP(self):
   answer=self.execute();self.assertTrue(answer['receipt_changed']);self.assertEqual(answer['member_phase'],'retained-accepted')
   self.assertFalse(answer['answer']['cleanup_grant']);self.assertEqual((answer['intent_count'],answer['done_count']),(1,1))
+ def test_consumed_terminal_commits_original_done_bytes(self):
+  answer=self.execute(check_terminal_hash=True);self.assertTrue(answer['terminal_hash_verified'])
+  import importlib.util
+  recovery=Path(__file__).parent
+  if not (recovery/'comic_retained_pack_parent.py').is_file():recovery=recovery/'reader_recovery'
+  sys.path.insert(0,str(recovery))
+  try:
+   spec=importlib.util.spec_from_file_location('actual_pack_terminal_decoder',recovery/'comic_retained_pack_parent.py')
+   parent=importlib.util.module_from_spec(spec);spec.loader.exec_module(parent)
+  finally:sys.path.remove(str(recovery))
+  done=next((self.c.root/'worker-state/maintenance/retained-pack-handoffs').glob('*.done.json'))
+  data=done.read_bytes();body=json.loads(data);z=done.lstat()
+  reference=dict(path=str(done),sha256=hashlib.sha256(data).hexdigest(),
+    signature9=[z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink])
+  request=body['request'];header=dict(artifact_ref=reference,token=body['token'],pack_id=request['pack_id'],
+    member_id=request['member_id'],request_sha256=hashlib.sha256(json.dumps(request,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+    reply_sha256=body['reply_sha256'],frame_sha256=answer['terminal_frame_sha256'])
+  decoded,frame=parent.decode_terminal_artifact(data,reference,header,request)
+  self.assertEqual(decoded,body);self.assertEqual(frame['hashes'][str(done)],reference['sha256'])
+ def refuse_original_member_before_dispatch(self,change):
+  pack=self.base.c.store.get('pack',self.case.body['pack_id']);pack['members'][0].update(change)
+  self.base.c.store.set('pack',self.case.body['pack_id'],pack)
+  before=self.c.database.read_bytes();catalog=self.c.native_database.read_bytes()
+  journal=self.c.root/'retained-delivery-v1';present=journal.exists()
+  names=sorted(p.name for p in journal.iterdir()) if present else None
+  result=self.execute(prepare_refusal=True)
+  self.assertTrue(result['held']);self.assertTrue(result['preparation_refused'])
+  self.assertFalse(result['receipt_changed']);self.assertEqual((result['intent_count'],result['done_count']),(0,0))
+  self.assertEqual(self.requests,[]);self.assertEqual(self.c.database.read_bytes(),before)
+  self.assertEqual(self.c.native_database.read_bytes(),catalog)
+  self.assertEqual(journal.exists(),present)
+  if present:self.assertEqual(sorted(p.name for p in journal.iterdir()),names)
+ def test_original_native_rejected_phase_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(phase='rejected'))
+ def test_original_native_import_token_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(ordinary_import_token='a'*64))
+ def test_original_native_finalization_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(retained_finalization='b'*64))
+ def test_original_native_destination_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(destination=str(self.case.target)+'.foreign'))
+ def test_original_native_target_hash_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(destination_sha256='c'*64))
+ def test_original_native_source_hash_refuses_before_dispatch(self):
+  self.refuse_original_member_before_dispatch(dict(sha256='d'*64))
  def test_lost_HTTP_reply_retains_receipt_without_replay(self):
   self.lose_reply=True;answer=self.execute(expect_hold=True)
   self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed']);self.assertEqual(answer['done_count'],0)

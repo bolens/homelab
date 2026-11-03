@@ -19,6 +19,18 @@ _FRAMES=weakref.WeakKeyDictionary()
 _STATE_SEALS=weakref.WeakKeyDictionary()
 _CONTEXT_SEALS=weakref.WeakKeyDictionary()
 
+def protocol_for(purpose):
+    """Finite source-owned domains; a purpose is a fact, never an admission."""
+    if type(purpose) is not str:raise Held('launch-purpose')
+    if purpose=='retained-standalone':
+        return (purpose,'standalone-launch-challenge-v3','standalone-fixed-launch-admission-v1',
+                'standalone-fixed-stage-v3','standalone-retained-repeat-v3')
+    if purpose=='retained-pack':
+        return (purpose,'pack-launch-challenge-v1','pack-fixed-launch-admission-v1',
+                'pack-fixed-stage-v1','pack-retained-repeat-v1')
+    raise Held('launch-purpose')
+
+
 def _canonical(value):
     raw=json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
     if not 0<len(raw)<=_LIMIT:raise Held('frame-bound')
@@ -54,15 +66,15 @@ class _TranscriptVerifier:
     Direct construction never grants current standalone or SDK activation.
     Deployment and the privileged original host factory remain separate gates.
     """
-    def __init__(self, measured, public_der, input_fd, output_fd):
+    def __init__(self, measured, public_der, input_fd, output_fd, *, purpose='retained-standalone'):
         if type(measured) is not dict or set(measured)!=set(_MEASURED) or not all(_hex(v) for v in measured.values()) or measured['key']!=_hash(public_der):raise Held('measured-shape')
         self._runtime=_TargetExperiment()
         self._code=_OriginalSources([Path(__file__).resolve()])
         self._public=public_der
         challenge=os.urandom(32).hex()
-        original=(tuple(sorted(measured.items())),public_der,input_fd,output_fd,_fact(input_fd),_fact(output_fd),os.getpid(),threading.get_ident(),_start(),time.monotonic()+5,challenge,self._runtime,self._code,_SOURCE_FRAMES[self._code])
+        original=(tuple(sorted(measured.items())),public_der,input_fd,output_fd,_fact(input_fd),_fact(output_fd),os.getpid(),threading.get_ident(),_start(),time.monotonic()+5,challenge,self._runtime,self._code,_SOURCE_FRAMES[self._code],protocol_for(purpose))
         _FRAMES[self]=[original,None,0,b'',False,original[9]]
-        self._challenge=_canonical({'domain':'standalone-launch-challenge-v3','challenge':challenge,'child_pid':original[6],'child_start':original[8],'measured':dict(original[0])})
+        self._challenge=_canonical({'domain':original[14][1],'challenge':challenge,'child_pid':original[6],'child_start':original[8],'measured':dict(original[0])})
         _FRAMES[self].append(self._challenge)
         _FRAMES[self].append(original[9])
         _FRAMES[self].append(False)
@@ -95,7 +107,7 @@ class _TranscriptVerifier:
         if row[1] is not None:raise Held('admission-once')
         value=_parse(raw)
         fields={'domain','measured','challenge','child_pid','child_start','challenge_frame','session','broker_nonce','purpose','lifetime_ms','host_observation'}
-        if set(value)!=fields or value['domain']!=_DOMAIN or value['measured']!=dict(original[0]) or value['challenge']!=original[10] or type(value['child_pid']) is not int or value['child_pid']!=original[6] or value['child_start']!=original[8] or value['challenge_frame']!=_hash(context[1]) or not _hex(value['session']) or not _hex(value['broker_nonce']) or value['purpose']!='retained-standalone' or type(value['lifetime_ms']) is not int or not 1<=value['lifetime_ms']<=5000:raise Held('admission-claims')
+        if set(value)!=fields or value['domain']!=original[14][2] or value['measured']!=dict(original[0]) or value['challenge']!=original[10] or type(value['child_pid']) is not int or value['child_pid']!=original[6] or value['child_start']!=original[8] or value['challenge_frame']!=_hash(context[1]) or not _hex(value['session']) or not _hex(value['broker_nonce']) or value['purpose']!=original[14][0] or type(value['lifetime_ms']) is not int or not 1<=value['lifetime_ms']<=5000:raise Held('admission-claims')
         host=value['host_observation']
         if type(host) is not dict or set(host)!={'container','start','host_pid','image'} or not _hex(host['container']) or not _hex(host['start']) or not _hex(host['image']) or type(host['host_pid']) is not int or host['host_pid']<=0:raise Held('host-observation-shape')
         deadline=min(original[9],original[9]-5+value['lifetime_ms']/1000)
@@ -134,7 +146,7 @@ class _TranscriptVerifier:
         row=self._close();context=_CONTEXT_SEALS[self];original=context[0]
         if row[1] is None or row[4] or row[2] not in (1,3,5):raise Held('host-order')
         value=_parse(raw);sequence=row[2]+1
-        if set(value)!={'domain','session','admission','challenge','sequence','kind','previous','payload','payload_digest'} or value['domain']!='standalone-fixed-stage-v3' or value['session']!=row[1][1] or value['admission']!=row[1][0] or value['challenge']!=original[10] or type(value['sequence']) is not int or value['sequence']!=sequence or value['kind']!=_STAGES[sequence] or value['previous']!=row[3].hex() or type(value['payload']) is not dict or value['payload_digest']!=_hash(_canonical(value['payload'])):raise Held('host-claims')
+        if set(value)!={'domain','session','admission','challenge','sequence','kind','previous','payload','payload_digest'} or value['domain']!=original[14][3] or value['session']!=row[1][1] or value['admission']!=row[1][0] or value['challenge']!=original[10] or type(value['sequence']) is not int or value['sequence']!=sequence or value['kind']!=_STAGES[sequence] or value['previous']!=row[3].hex() or type(value['payload']) is not dict or value['payload_digest']!=_hash(_canonical(value['payload'])):raise Held('host-claims')
         next_deadline=min(row[5],time.monotonic()+_TERMINAL_SECONDS) if sequence==2 else row[7]
         self._runtime._verify(raw,signature,original[1]);self._close()
         if _CONTEXT_SEALS.get(self) is not context or row[0] is not original:raise Held('original-context-custody')

@@ -65,15 +65,13 @@ class Backup(unittest.TestCase):
   observation=self.copy();(self.root/'copies/foreign').write_bytes(b'foreign')
   with self.assertRaises(ValueError):observation.close_copies()
  def test_created_output_anchor_cannot_be_replaced_during_copy(self):
-  original=b.source_module;fired=[]
-  def loaded(*args):
-   module,frame=original(*args);copy=module.copy_scope
-   def changed(*v):
-    if not fired:
-     fired.append(True);out=self.root/'copies';out.rename(self.root/'retained-output');out.mkdir(mode=0o700);(out/'backup').mkdir();(out/'restore').mkdir()
-    return copy(*v)
-   module.copy_scope=changed;return module,frame
-  with patch.object(b,'source_module',loaded),self.assertRaises(ValueError):self.copy()
+  original=b.raw;fired=[]
+  def changed(frame):
+   out=self.root/'copies'
+   if not fired and (out/'backup').is_dir() and (out/'restore').is_dir():
+    fired.append(True);out.rename(self.root/'retained-output');out.mkdir(mode=0o700);(out/'backup').mkdir();(out/'restore').mkdir()
+   return original(frame)
+  with patch.object(b,'raw',changed),self.assertRaises(ValueError):self.copy()
   self.assertTrue(fired)
  def test_exact_source_owned_bounds_and_action_deadline_unchanged(self):
   self.assertEqual((c.TOTAL_SECONDS,c.WAITING_SECONDS,c.FRAME_BYTES,c.MEMBERS),(3600,1800,65536,1))
@@ -125,16 +123,19 @@ if __name__=='__main__':unittest.main()
 class Profiles(unittest.TestCase):
  def profile(self):
   runtime=object.__new__(p.ConfiguredRuntime)
-  row=dict(Image='sha256:'+'a'*64,Mounts=[dict(Source='/fixture/config',Destination='/config',RW=True,Type='bind')],NetworkSettings=dict(Networks={'configured':{}}),Config=dict(User='1000:1000'),HostConfig=dict(ReadonlyRootfs=True,CapDrop=['ALL'],SecurityOpt=['no-new-privileges'],NetworkMode='configured'))
+  row=dict(Image='sha256:'+'a'*64,Mounts=[dict(Source='/fixture/config',Destination='/config',RW=True,Type='bind')],NetworkSettings=dict(Networks={'configured':{'NetworkID':'b'*64}}),Config=dict(User='1000:1000',Env=[]),HostConfig=dict(ReadonlyRootfs=True,CapDrop=['ALL'],SecurityOpt=['no-new-privileges'],NetworkMode='configured'))
   runtime.baseline={'worker':row};return runtime,row
  def test_only_original_configured_profile(self):
-  runtime,row=self.profile();self.assertTrue(runtime.selected_profile(row))
+  runtime,row=self.profile();self.assertTrue(p.selected_profile(runtime.baseline['worker'],row))
+ def test_profile_only_fixture_cannot_claim_original_runtime(self):
+  runtime,row=self.profile()
+  with self.assertRaisesRegex(ValueError,'original-runtime-registry'):runtime.selected_profile(row)
  def test_runtime_overlays_and_new_network_or_privilege_refuse(self):
   import copy
   for destination in ('/','/app','/usr/lib','/opt','/opt/archiving-utils/lib','/etc/ld.so.preload'):
    runtime,row=self.profile();row=copy.deepcopy(row);row['Mounts'].append(dict(Source='/foreign',Destination=destination,RW=False,Type='bind'))
-   with self.assertRaises(ValueError):runtime.selected_profile(row)
-  runtime,row=self.profile();row=copy.deepcopy(row);row['NetworkSettings']['Networks']['foreign']={}
-  with self.assertRaises(ValueError):runtime.selected_profile(row)
+   with self.assertRaises(ValueError):p.selected_profile(runtime.baseline['worker'],row)
+  runtime,row=self.profile();row=copy.deepcopy(row);row['NetworkSettings']['Networks']['foreign']={'NetworkID':'c'*64}
+  with self.assertRaises(ValueError):p.selected_profile(runtime.baseline['worker'],row)
   runtime,row=self.profile();row=copy.deepcopy(row);row['HostConfig']['Privileged']=True
-  with self.assertRaises(ValueError):runtime.selected_profile(row)
+  with self.assertRaises(ValueError):p.selected_profile(runtime.baseline['worker'],row)

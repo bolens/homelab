@@ -8,6 +8,7 @@ import stat
 import struct
 import time
 import zipfile
+import zlib
 
 PRODUCER_SHA = 'c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168'
 MAX_SOURCE = 512 * 1024**2
@@ -21,6 +22,55 @@ def producer():
     if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != PRODUCER_SHA:
         raise ValueError('producer-pin')
     return module
+
+
+def strict_namespace(rows, guard, deadline):
+    """Bounded component trie: never materialize every full path prefix."""
+    root={};nodes=0;size=0
+    for row in rows:
+        parts=row['name'].split('/');children=root
+        for index,part in enumerate(parts):
+            if time.monotonic()>=deadline:raise ValueError('deadline')
+            key=part.casefold();directory=index<len(parts)-1 or row['directory']
+            node=children.get(key)
+            if node is None:
+                nodes+=1;size+=len(part.encode('utf-8'))+len(key.encode('utf-8'))
+                if nodes>guard.MAX_MEMBERS*4 or size>8*1024**2:
+                    raise ValueError('namespace-proof-bound')
+                node=[part,directory,{},False];children[key]=node
+            elif node[0]!=part or node[1]!=directory:
+                raise ValueError('case-or-node-alias')
+            if index==len(parts)-1:
+                if node[3]:raise ValueError('duplicate-member')
+                node[3]=True
+            children=node[2]
+
+
+def compressed_chunks(raw, info, deadline):
+    """Decode the exact local compressed range; ZipExtFile does not require EOF."""
+    at = info.header_offset
+    if at < 0 or at+30 > len(raw):raise ValueError('compressed-header-bound')
+    names, extras = struct.unpack_from('<HH', raw, at+26)
+    start = at+30+names+extras;end = start+info.compress_size
+    if not start <= end <= len(raw):raise ValueError('compressed-range-bound')
+    decoder = zlib.decompressobj(-15) if info.compress_type == zipfile.ZIP_DEFLATED else None
+    if decoder is None and info.compress_type != zipfile.ZIP_STORED:
+        raise ValueError('unsupported-compression')
+    try:
+        for pos in range(start, end, 65536):
+            pending = raw[pos:min(end,pos+65536)]
+            while True:
+                if time.monotonic() >= deadline:raise ValueError('deadline')
+                chunk = decoder.decompress(pending, 1024**2) if decoder is not None else pending
+                if chunk:yield chunk
+                if decoder is None:break
+                if decoder.unused_data:raise ValueError('compressed-trailing-data')
+                pending = decoder.unconsumed_tail
+                if not pending and len(chunk) < 1024**2:break
+        if decoder is not None and (not decoder.eof or decoder.unused_data or decoder.unconsumed_tail):
+            raise ValueError('incomplete-compressed-stream')
+    except zlib.error as error:
+        raise ValueError('invalid-compressed-stream') from error
 
 
 def independent(raw, guard, deadline, malformed=None):
@@ -52,29 +102,21 @@ def independent(raw, guard, deadline, malformed=None):
             if directory and (info.file_size or info.CRC):
                 raise ValueError('nonempty-directory')
             h, crc, count, metadata_bytes = hashlib.sha256(), 0, 0, []
-            with archive.open(info) as member:
-                while True:
-                    if time.monotonic() >= deadline:
-                        raise ValueError('deadline')
-                    chunk = member.read(1024**2)
-                    if not chunk:
-                        break
-                    count += len(chunk)
-                    if count > info.file_size:
-                        raise ValueError('expanded-size')
-                    h.update(chunk)
-                    crc = binascii.crc32(chunk, crc)
-                    if name in guard.METADATA:
-                        if count > guard.MAX_METADATA:
-                            raise ValueError('metadata-bound')
-                        metadata_bytes.append(chunk)
+            for chunk in compressed_chunks(raw, info, deadline):
+                count += len(chunk)
+                if count > info.file_size:raise ValueError('expanded-size')
+                h.update(chunk);crc = binascii.crc32(chunk, crc)
+                if name in guard.METADATA:
+                    if count > guard.MAX_METADATA:raise ValueError('metadata-bound')
+                    metadata_bytes.append(chunk)
             if count != info.file_size or crc & 0xffffffff != info.CRC:
-                raise ValueError('crc')
+                raise zipfile.BadZipFile('member size or CRC mismatch')
             total += count
             rows.append(dict(name=name, bytes=count, directory=directory, sha256=h.hexdigest()))
             if name in guard.METADATA:
                 guard.metadata(name, b''.join(metadata_bytes))
                 metadata[name] = h.hexdigest()
+    strict_namespace(rows, guard, deadline)
     files = {r['name'] for r in rows if not r['directory']}
     if any(parent.as_posix() in files for r in rows for parent in Path(r['name']).parents
            if parent.as_posix() != '.'):

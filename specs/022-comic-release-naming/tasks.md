@@ -91,8 +91,12 @@ Setup T001–T003 → foundations T004–T007 → US1 T008–T011 → US2 T012�
 
 ### Remaining task execution notes
 
-These tasks finish configured acceptance; their maintained naming, combined-publication,
-predecessor recovery and pack-binding implementations already exist. Historical
+These tasks finish configured acceptance. The 2026-11-03 audit also found
+reader-catalog completeness and interrupted naming-cleanup defects in previously
+delivered code. Their shared collector and durable cleanup corrections require
+regression, integrated review and matching-source delivery before these tasks
+can rely on the affected safeguards. Combined-publication, predecessor recovery
+and pack-binding implementations remain maintained. Historical
 2,867-file acceptance and seven completed predecessor-bound repairs remain evidence,
 not work to replay. A new source defect gets its own focused repair only if the
 current-source checks demonstrate one.

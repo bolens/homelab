@@ -106,7 +106,7 @@
     },
     {
       "path": "publication_archive_derivative.py",
-      "sha256": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e"
+      "sha256": "34e3efa85cc27feeb7560843f466f1f6444f91a4a062e84736d902f9c005e52b"
     },
     {
       "path": "publication_archive_diagnostics.py",
@@ -142,7 +142,7 @@
     },
     {
       "path": "publication_archive_repair.py",
-      "sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee"
+      "sha256": "6526febed27e1a67b19b6c85645fb695da885f345f60200193c8a7f620521821"
     },
     {
       "path": "publication_archive_rollback.py",
@@ -218,15 +218,15 @@
     },
     {
       "path": "publication_retained_api.py",
-      "sha256": "41df9fc5214d7bb328261582711cfc3dbe673e40ac5568010cde48c660170c08"
+      "sha256": "27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad"
     },
     {
       "path": "publication_retained_delivery.py",
-      "sha256": "bfbf227b8deff0e37550360ee47a0832019ef1f5cea68e3618d4e0ef0295380b"
+      "sha256": "470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45"
     },
     {
       "path": "publication_retained_finalize.py",
-      "sha256": "1ecc57c8797796c109548b56261427746be54e06ad545e99ea8cfa632369acd3"
+      "sha256": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44"
     },
     {
       "path": "publication_tagging_recovery.py",

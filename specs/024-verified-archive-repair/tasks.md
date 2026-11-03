@@ -109,7 +109,10 @@ experiments grant no operational completion.
 
 Use the existing installed producer/Parent path once per fresh attempt. Static
 source binding and SourceCohort precede fresh role/scope observations; the owning
-120-second admission limit stays unchanged. Leave the probe parent absent for
+120-second detached first-admission window stays unchanged. Later configured
+continuation requires the original authenticated ReaderEpoch and exact scope
+bytes, source/channel/role closure and unchanged monotonic operation deadline;
+it does not readmit or retimestamp a document. Leave the probe parent absent for
 its owning Parent to create. The Parent owns Writer, stopped-reader custody,
 verified backup/restore, archive transition, factual terminal consumption and
 permitted resume. A wrapper or test count supplies none of those facts.

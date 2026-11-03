@@ -96,7 +96,14 @@ def run(plan):
     receipt_changed=receipt.read_bytes()!=before,member_phase=result['members'][0]['phase'],
     intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
     done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
-  with writer.hold(timeout=0),scope(worker,writer):action=h.prepare(m,plan['pack_id'],plan['member_id'])
+  try:
+   with writer.hold(timeout=0),scope(worker,writer):action=h.prepare(m,plan['pack_id'],plan['member_id'])
+  except ValueError:
+   if not plan.get('prepare_refusal'):raise
+   return dict(held=True,preparation_refused=True,receipt_changed=receipt.read_bytes()!=before,
+     intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
+     done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
+  if plan.get('prepare_refusal'):raise AssertionError('Invalid native original admitted before dispatch')
   try:
    h.dispatch(action)
    fault=plan.get('fault')
@@ -118,14 +125,23 @@ def run(plan):
      else:m.retained_pack_return=lambda *args:b'{}'
     return z
    with (patch.object(h.os,'lstat',late) if fault in ('final_mapping','final_writer_config','final_transport') else nullcontext()):
-    with writer.hold(timeout=0),scope(worker,writer):answer=h.consume(action)
+    with writer.hold(timeout=0),scope(worker,writer):
+     answer=h.consume(action)
+     if plan.get('check_terminal_hash'):
+      frame=h.close_terminal(action);done=h._CORES[action]['done']
+      terminal_hash_verified=frame['hashes'][str(done)]==hashlib.sha256(done.read_bytes()).hexdigest()
+      if not terminal_hash_verified:raise AssertionError('Original done bytes are not committed')
   except BaseException as exc:
    if not plan.get('expect_hold'):raise
    return dict(held=True,fired=bool(locals().get('fired')),error=str(exc),receipt_changed=receipt.read_bytes()!=before,done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
  result=json.loads(receipt.read_bytes())
- return dict(answer=answer,receipt_changed=receipt.read_bytes()!=before,member_phase=result['members'][0]['phase'],
+ result_out=dict(answer=answer,receipt_changed=receipt.read_bytes()!=before,member_phase=result['members'][0]['phase'],
    token=result['members'][0].get('retained_finalization'),intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
    done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))),host_fixture_projection=True,installed_authentication_acceptance=False)
+ if plan.get('check_terminal_hash'):
+  result_out['terminal_hash_verified']=terminal_hash_verified
+  result_out['terminal_frame_sha256']=hashlib.sha256(h.compact(frame)).hexdigest()
+ return result_out
 
 if __name__=='__main__':
  try:print(json.dumps(run(json.loads(Path(sys.argv[1]).read_bytes())),sort_keys=True))

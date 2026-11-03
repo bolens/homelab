@@ -119,6 +119,37 @@ def request(base, route, data=None, key=None, form=None, text=False, limit=None)
         raise RuntimeError('Library API unavailable') from None
 
 
+READER_PAGE_BYTES=4*1024**2
+READER_CATALOG_BYTES=64*1024**2
+
+
+def complete_reader_books(reader):
+    """Require an explicit, finite and unambiguous complete catalog response."""
+    result, ids, paths = [], set(), set();encoded_bytes=0
+    for page in range(200):
+        data = reader.call(f'/api/v1/books/list?page={page}&size=500', {},limit=READER_PAGE_BYTES)
+        if (type(data) is not dict or type(data.get('content')) is not list
+                or type(data.get('last')) is not bool or len(data['content']) > 500
+                or len(result)+len(data['content']) > 100000
+                or (not data['content'] and not data['last'])):
+            raise ValueError('Invalid or incomplete reader pagination proof')
+        encoded_bytes+=len(json.dumps(data,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode())
+        if encoded_bytes>READER_CATALOG_BYTES:raise ValueError('Reader catalog exceeds byte proof bound')
+        for book in data['content']:
+            if (type(book) is not dict or type(book.get('id')) is not str or not book['id']
+                    or type(book.get('url')) is not str or not book['url']
+                    or ('deleted' in book and type(book['deleted']) is not bool)):
+                raise ValueError('Invalid reader catalog book')
+            path = str(api_path(book['url']))
+            if book['id'] in ids or (not book.get('deleted') and path in paths):
+                raise ValueError('Duplicate reader catalog identity or path')
+            ids.add(book['id'])
+            if not book.get('deleted'):paths.add(path)
+            result.append(book)
+        if data['last']:return result
+    raise ValueError('Reader pagination exceeds proof bounds')
+
+
 class Reader:
     def __init__(self, config):
         self.base = config['url']
@@ -126,20 +157,12 @@ class Reader:
         if not self.key or self.key == 'REPLACE_ME':
             raise ValueError('Configure a Komga API key before enabling normalization')
 
-    def call(self, route, data=None):
-        return request(self.base, route, data=data, key=self.key)
+    def call(self, route, data=None, *, limit=None):
+        return request(self.base, route, data=data, key=self.key,limit=limit)
 
     def books(self):
-        result = {}
-        page = 0
-        while True:
-            data = self.call(f'/api/v1/books/list?page={page}&size=500', {})
-            for book in data['content']:
-                if not book.get('deleted'):
-                    result[str(api_path(book['url']))] = book
-            if data.get('last', True):
-                return result
-            page += 1
+        return {str(api_path(book['url'])):book for book in complete_reader_books(self)
+                if not book.get('deleted')}
 
     def scan(self):
         for library in self.call('/api/v1/libraries'):

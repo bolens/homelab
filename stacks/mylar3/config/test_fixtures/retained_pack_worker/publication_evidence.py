@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import threading
 import zipfile
 
 MAX_MEMBERS = 4096
@@ -164,7 +165,59 @@ def natural_key(name):
                   for part in re.split(r'([0-9]+)', name.casefold())), name)
 
 
+_INVENTORY_VALIDATION = threading.local()
+
+
+_INVENTORY_MEMO_COUNT = 32
+
+
+_INVENTORY_MEMO_BYTES = 8 * 1024 ** 2
+
+
+def _inventory_memo_key(value):
+    # Only exact JSON inventory types can share a successful pure validation.
+    # Tuples, custom subclasses and Python equality aliases must take the
+    # original path; serializing those would erase meaningful type differences.
+    if (type(value) is not dict or set(value) != {'version','members','pages','payload'}
+            or any(type(k) is not str for k in value)
+            or type(value['version']) is not int or value['version'] != 1
+            or type(value['payload']) is not str
+            or type(value['members']) is not list or not 0 < len(value['members']) <= MAX_MEMBERS
+            or type(value['pages']) is not list or len(value['pages']) > MAX_MEMBERS
+            or any(type(p) is not str or len(p) > 4096 for p in value['pages'])
+            or len(value['payload']) > 128):
+        return None
+    budget = 256 + 12 * (len(value['payload']) + sum(map(len,value['pages'])))
+    for row in value['members']:
+        if (type(row) is not dict or set(row) != {'name','bytes','directory','sha256'}
+                or any(type(k) is not str for k in row)
+                or type(row['name']) is not str or len(row['name']) > 4096
+                or type(row['bytes']) is not int or not 0 <= row['bytes'] <= MAX_MEMBER
+                or type(row['directory']) is not bool
+                or type(row['sha256']) is not str or len(row['sha256']) > 128):
+            return None
+        budget += 256 + 12 * (len(row['name']) + len(row['sha256']))
+        if budget > _INVENTORY_MEMO_BYTES:
+            return None
+    raw = json.dumps(value,sort_keys=True,ensure_ascii=True,separators=(',',':')).encode('ascii')
+    return raw if len(raw) <= _INVENTORY_MEMO_BYTES else None
+
+
 def validate(value):
+    memo = getattr(_INVENTORY_VALIDATION,'memo',None)
+    key = _inventory_memo_key(value) if memo is not None else None
+    if key is not None and key in memo[0]:
+        return None
+    _validate_inventory(value)
+    if key is not None and _inventory_memo_key(value) != key:
+        return None
+    if (key is not None and len(memo[0]) < _INVENTORY_MEMO_COUNT
+            and memo[1] + len(key) <= _INVENTORY_MEMO_BYTES):
+        memo[0].add(key)
+        memo[1] += len(key)
+
+
+def _validate_inventory(value):
     if (not isinstance(value, dict) or set(value) != {'version', 'members', 'pages', 'payload'}
             or type(value['version']) is not int or value['version'] != 1
             or not isinstance(value['members'], list)
@@ -713,8 +766,18 @@ def registry_snapshot(database, marker):
         from .publication_lock import LOCK
     else:
         from publication_lock import LOCK
-    with LOCK:
-        return _registry_snapshot(database, marker)
+    # Scope only successful pure inventory validation, never authority or
+    # filesystem observations. Nested reads receive their own isolated scope.
+    previous = getattr(_INVENTORY_VALIDATION,'memo',None)
+    _INVENTORY_VALIDATION.memo = [set(),0]
+    try:
+        with LOCK:
+            return _registry_snapshot(database, marker)
+    finally:
+        if previous is None:
+            del _INVENTORY_VALIDATION.memo
+        else:
+            _INVENTORY_VALIDATION.memo = previous
 
 
 def _registry_snapshot(database, marker):
@@ -751,11 +814,13 @@ def _registry_snapshot(database, marker):
                 current_writer = writer_identity(Writer(marker.parent, create=False))
                 if not isinstance(value, dict) or not digest_value(value.get('initialization_intent')):
                     raise Unavailable('Missing initialization witness binding')
-                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer)
+                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer, ledger_dir=marker.parent/'identity-adoptions-v1')
+                projected_marker = dict(value)
+                projected_marker.update(historical_identity(db, marker.parent/'identity-adoptions-v1', value, before[:2], current_writer, outcome='committed'))
             expected = dict(version=1, phase='final', census=census,
                             initialization_intent=value['initialization_intent'],
                             database_identity=before[:2], writer_identity=current_writer)
-            if canonical_digest(value) != canonical_digest(expected):
+            if canonical_digest(projected_marker) != canonical_digest(expected):
                 raise Unavailable('Correction marker does not bind complete final state')
             if (signature(os.fstat(stream.fileno())) != before
                     or signature(database.lstat()) != before
@@ -957,6 +1022,18 @@ def writer_identity(writer):
         os.close(fd)
 
 
+def database_stamp(path):
+    with regular(path) as stream:
+        info = signature(os.fstat(stream.fileno()))
+        header = stream.read(100)
+    if (info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600 or info[8] != 1
+            or len(header) != 100 or header[:16] != b'SQLite format 3\0'
+            or header[18:20] != b'\x01\x01'
+            or any(os.path.lexists(str(path) + suffix) for suffix in ('-wal', '-shm', '-journal'))):
+        raise Unavailable('Expected private complete rollback-journal database')
+    return info
+
+
 def empty_census(epoch):
     return dict(version=1, epoch=epoch, revision=0, keys=[], digest=canonical_digest([]))
 
@@ -1080,9 +1157,23 @@ def workflow_schema(db):
         'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')])
 
 
-def initialization_witness(db, token, census, identity, writer, *, pending=None):
+def historical_identity(db, ledger_dir, binding, identity, writer, *, outcome, pending=None, writer_owner=None):
+    original = {name: list(binding[name]) for name in ('database_identity', 'writer_identity')}
+    current = dict(database_identity=list(identity), writer_identity=list(writer))
+    if original == current and (outcome != 'committed' or ledger_dir is None):
+        return current
+    if ledger_dir is None:
+        raise Unavailable('Foreign initialization witness')
+    if __package__:
+        from .publication_identity_readers import durable_identity
+    else:
+        from publication_identity_readers import durable_identity
+    return durable_identity(db, ledger_dir, original, current, outcome=outcome, pending=pending, writer_owner=writer_owner)
+
+
+def initialization_witness(db, token, census, identity, writer, *, pending=None, ledger_dir=None, writer_owner=None):
     rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
-    committed = []
+    committed, bindings = [], {}
     for key, raw in rows:
         value = decode_json(raw)
         plan = intent_record(key, value)
@@ -1093,12 +1184,21 @@ def initialization_witness(db, token, census, identity, writer, *, pending=None)
                 committed.append(key)
             epoch = plan['epoch'] if plan['action'] == 'bootstrap' else plan['old']['epoch']
             if ((plan['action'] == 'bootstrap' and key != token) or epoch != census['epoch']
-                    or plan['binding']['database_identity'] != identity
-                    or plan['binding']['writer_identity'] != writer
                     or plan['binding']['schema'] != workflow_schema(db)):
                 raise Unavailable('Foreign initialization witness')
+            # Every receipt/token/schema is validated above. Projection depends
+            # only on this historical physical pair, not its workflow envelope.
+            # Group before reading the ledger; no authority survives this call.
+            binding = plan['binding']
+            pair = (tuple(binding['database_identity']), tuple(binding['writer_identity']))
+            bindings[pair] = binding
     if committed != [token]:
         raise Unavailable('Missing unique committed initialization witness')
+    for binding in bindings.values():
+        effective = historical_identity(db, ledger_dir, binding, identity, writer,
+            outcome='committed', pending=pending, writer_owner=writer_owner)
+        if (effective['database_identity'] != identity or effective['writer_identity'] != writer):
+            raise Unavailable('Foreign initialization witness')
 
 import sqlite3
 

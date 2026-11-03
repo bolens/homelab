@@ -113,25 +113,9 @@ class Installation(unittest.TestCase):
     def base_map(self):
         raw=Path(__file__).with_name('configured_reader_parent_base_sources.json').read_bytes();base=json.loads(raw)
         return raw,{name:base['base_installed_sources'][name] for name in base['required_sdk_names']}
-    def before_channel_deadline(self,raw):
-        base=json.loads(raw)
-        previous={'api.py':
-                'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b',
-            'release_naming.py':'eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9',
-            'worker_health.py':'f84cf0019db0e584569c129ecb268c68d42f41287b02433c3fd5135f1394e453',
-            'workflow.py':'93c9a8d1071ace1b75501b22d0787cd7f4fe6b5af4225fe2b4f17b5438d4c365',
-            'publication_archive_dispatch.py':'8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7',
-            'publication_archive_owned.py':'dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1',
-            'publication_archive_prepare_routes.py':'3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02',
-            'publication_archive_verifier.py':'97d77a7affc8311aff7856461184d94912e067355953a75173921c7fb947f2b1',
-            'publication_native_configured_scope.py':'43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed',
-            'publication_reader_lifecycle.py':'b565928be8931506545e3665d0c76ceabaa4b9d6bf5a021a555c8a9dcc15c8a2',
-            'publication_native_scope_birth.py':'28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef',
-            'publication_reader_admission.py':'123868982120d6b2071d88defd1635fd3205d0777bfb925728e8672b881a8475',
-            'publication_archive_preparation_existing.py':'59c118351011a01cbce48cff679862fd3a5f499acbb97811d542968d7512fae4',
-            'publication_archive_history.py':'dc9a4a66342ebf5fb34b676c1a1e736e0d929582054298703efb8fa0c4526456'}
-        for name,pin in previous.items():raw=raw.replace(base['base_installed_sources'][name].encode(),pin.encode())
-        return raw
+    def historical_map(self):
+        # Frozen pre-adoption bytes; current SDK changes must not rewrite history.
+        return Path(__file__).with_name('test_configured_parent_historical_sources.json').read_bytes()
     def test_reviewed_adoption_base_successor_preserves_historical_membership(self):
         raw,sdk=self.base_map();base=json.loads(raw)
         name='publication_archive_adoption.py'
@@ -139,7 +123,7 @@ class Installation(unittest.TestCase):
         old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
         self.assertNotEqual(new,old)
         self.assertEqual(base['base_installed_sources'][name],new)
-        historical=self.before_channel_deadline(raw).replace(b'    "worker_health.py",\n',b'').replace(new.encode(),old.encode()).replace(base['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
+        historical=self.historical_map()
         self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         before=json.loads(historical)
         self.assertEqual([n for n in base['required_sdk_names'] if n!='worker_health.py'],before['required_sdk_names'])
@@ -150,7 +134,7 @@ class Installation(unittest.TestCase):
     def test_stale_adoption_base_and_sdk_refuse_new_reviewed_source_joins(self):
         raw,sdk=self.base_map();files,receipt=m.build(self.sources,self.path)
         new=sdk['publication_archive_adoption.py'];old='29a7580ecfcb2f9ead388dd0b3ad4f2954ee6fdc0d431508af87b34798e900e9'
-        stale=self.before_channel_deadline(raw).replace(b'    "worker_health.py",\n',b'').replace(new.encode(),old.encode()).replace(json.loads(raw)['base_cohort_sha256'].encode(),b'c447d5f6fcb44563f71b95faab69dba128125ec724087b39a17c4f695e1efde0').replace(b'92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e',b'3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680').replace(b'b19d1254ed66603aae924393e1fc77ba70fe175e3249dc2b8f7f4dcccb8c5866',b'200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744')
+        stale=self.historical_map()
         self.assertEqual(m.sha(stale),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,stale,files,receipt)
         old_sdk=dict(sdk);old_sdk['publication_archive_adoption.py']=old
@@ -240,7 +224,7 @@ class CurrentBase(unittest.TestCase):
     CURRENT_PINS=(
         ('publication_guard.py',
          'dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),
-        ('comic_retained_standalone_action.py','92771edb84e81fa547906f9813d7440b76b3fa390022261f641ae1777025bb9e'),
+        ('comic_retained_standalone_action.py','66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411'),
         ('api.py',
          '2a17aca196b9876c6800d670977c715c7b63e6affd050fecfd9068a2965d2a4d'),
         ('native_writers.py',

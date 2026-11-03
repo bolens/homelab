@@ -130,8 +130,8 @@ class Finalize(unittest.TestCase):
             cap=self.accept()
             if passive:f.finalize(cap)
             real=f._checked;calls=[]
-            def late(packet,files):
-                real(packet,files);calls.append(1)
+            def late(packet,files,**kwargs):
+                real(packet,files,**kwargs);calls.append(1)
                 if passive or len(calls)==3:
                     if companion:Path(str(path)+'-wal').write_bytes(b'foreign')
                     else:os.chmod(path,0o640)
@@ -148,14 +148,14 @@ class Finalize(unittest.TestCase):
     def test_passive_final_callback_pending_held(self):
         with self.writer.hold():
             f.finalize(self.accept());real=f._checked
-            def late(packet,files):real(packet,files);self.writer.pending.write_bytes(b'foreign')
+            def late(packet,files,**kwargs):real(packet,files,**kwargs);self.writer.pending.write_bytes(b'foreign')
             with patch.object(f,'_checked',side_effect=late),self.assertRaises(o.Held):f.status_existing(self.c,self.writer,self.body)
 
     def test_crash_before_commit_stays_uncertain_without_replay(self):
         with self.writer.hold():
             cap=self.accept();real=f._checked;calls=[]
-            def stop(packet,files):
-                real(packet,files);calls.append(1)
+            def stop(packet,files,**kwargs):
+                real(packet,files,**kwargs);calls.append(1)
                 if len(calls)==2:raise RuntimeError('simulated precommit crash')
             with patch.object(f,'_checked',side_effect=stop),self.assertRaises(RuntimeError):f.finalize(cap)
             self.assertEqual(r._CORES[cap]['phase'],'finalization-uncertain')
@@ -216,8 +216,8 @@ class Finalize(unittest.TestCase):
     def test_actual_commit_then_final_failure_keeps_evidence_without_witness(self):
         with self.writer.hold():
             cap=self.accept();real=f._checked;calls=[]
-            def fail(packet,files):
-                real(packet,files);calls.append(1)
+            def fail(packet,files,**kwargs):
+                real(packet,files,**kwargs);calls.append(1)
                 if len(calls)==3:raise RuntimeError('lost before final producer proof')
             with patch.object(f,'_checked',side_effect=fail),self.assertRaises(RuntimeError):f.finalize(cap)
             self.assertIsNotNone(self.store.get(f.RECORD_KIND,r._CORES[cap]['token']))
@@ -243,8 +243,8 @@ class Finalize(unittest.TestCase):
     def test_final_helper_cannot_replace_passed_file_baseline(self):
         with self.writer.hold():
             cap=self.accept();real=f._checked;calls=[]
-            def late(packet,files):
-                real(packet,files);calls.append(1)
+            def late(packet,files,**kwargs):
+                real(packet,files,**kwargs);calls.append(1)
                 if len(calls)==3:
                     os.chmod(self.case.target,0o640)
                     files[str(self.case.target)]=tuple(o.signature(self.case.target))

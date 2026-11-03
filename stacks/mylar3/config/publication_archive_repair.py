@@ -7,7 +7,7 @@ import time
 import zipfile
 from pathlib import Path
 
-DERIVATIVE_SHA = '55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e'
+DERIVATIVE_SHA = '34e3efa85cc27feeb7560843f466f1f6444f91a4a062e84736d902f9c005e52b'
 ENTRY_FIELDS = ('index', 'name', 'external_attr', 'create_system', 'flag_bits',
                 'compression', 'bytes', 'compressed_bytes', 'stored_crc32', 'header_offset')
 

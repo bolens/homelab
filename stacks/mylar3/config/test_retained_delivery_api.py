@@ -44,7 +44,6 @@ class Endpoint(unittest.TestCase):
   spec=importlib.util.spec_from_file_location('mylar.publication_retained_api',ROOT/'publication_retained_api.py');self.endpoint=importlib.util.module_from_spec(spec)
   ctx=patch.dict(sys.modules,{spec.name:self.endpoint});ctx.start();self.addCleanup(ctx.stop);spec.loader.exec_module(self.endpoint)
   ctx=patch.object(self.pkg,'publication_retained_api',self.endpoint,create=True);ctx.start();self.addCleanup(ctx.stop)
-  self.endpoint.ENABLED=True
   self.handler=object.__new__(module.Api)
   self.handler.__dict__.update(cmd='retainedDeliveryFinalize',apikey='x'*32,apitype='normal',headers='application/json',
                               kwargs={'request':self.base.raw()},img=None,file=None,comicrn=False,data='OK')
@@ -66,11 +65,79 @@ class Endpoint(unittest.TestCase):
    with patch.object(self.handler,field,value):self.assertFalse(self.call()['success'])
   for field,value in [('API_ENABLED',False),('API_KEY','short')]:
    with patch.object(self.pkg.CONFIG,field,value):self.assertFalse(self.call()['success'])
-  with patch.object(self.endpoint,'ENABLED',False):self.assertFalse(self.call()['success'])
   with patch.object(self.http.request,'method','GET'):self.assertFalse(self.call()['success'])
   self.handler.kwargs={'request':self.base.raw(),'callback':'foreign'};self.handler.data='OK'
   self.handler._retainedDeliveryFinalize(**self.handler.kwargs);self.assertFalse(json.loads(self.handler.data)['success'])
   self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+ def test_writer_setup_cannot_rebase_original_API_source_frame(self):
+  from contextlib import contextmanager
+  cls=fixture.fixture.writers.Writer;original=cls.hold
+  for mutation in ('replace','equal','erase','extend'):
+   with self.subTest(mutation=mutation):
+    self.setUp();fired=[]
+    @contextmanager
+    def changed(writer,**kwargs):
+     if not fired:
+      entries=list(fixture.f._SOURCE_FRAMES.items())
+      if entries:
+       frame,source=entries[-1];fired.append(True)
+       if mutation=='erase':fixture.f._SOURCE_FRAMES.pop(frame)
+       else:
+        replacement=list(source)
+        if mutation=='replace':replacement[3]=b'{}'
+        if mutation=='extend':replacement[2]+=3600
+        fixture.f._SOURCE_FRAMES[frame]=tuple(replacement)
+     with original(writer,**kwargs):yield writer
+    with patch.object(cls,'hold',changed):self.assertFalse(self.call()['success'])
+    self.assertTrue(fired);self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+
+ def test_status_cannot_become_finalize_during_source_capture(self):
+  original=fixture.f.response_sources
+  def changed():
+   source=original();self.handler.cmd='retainedDeliveryFinalize';return source
+  before=self.c.c.database.read_bytes()
+  with patch.object(fixture.f,'response_sources',changed):
+   self.assertFalse(self.call('retainedDeliveryStatus')['success'])
+  self.assertEqual(self.c.c.database.read_bytes(),before)
+  self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+
+ def test_handler_code_cannot_become_admission_original_after_capture(self):
+  original=fixture.f.response_sources;method=self.api.Api._retainedDeliveryFinalize;code=method.__code__
+  def changed():
+   source=original();method.__code__=self.api.Api._retainedDeliveryStatus.__code__;return source
+  try:
+   with patch.object(fixture.f,'response_sources',changed):self.assertFalse(self.call()['success'])
+  finally:method.__code__=code
+  self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+
+ def test_admission_deadline_closes_after_last_source_read(self):
+  original=fixture.o.read_checked;clock=fixture.f.time.monotonic;expired=[]
+  def monotonic():return clock()+(1000000 if expired else 0)
+  def late(path,*args,**kwargs):
+   result=original(path,*args,**kwargs)
+   active=[seal for seal in self.endpoint._ADMISSION_SEALS.values()
+           if seal[0]['phase']=='admitted' and str(path)==seal[12][-1][0]]
+   if active:expired.append(True)
+   return result
+  with patch.object(self.endpoint.time,'monotonic',monotonic),patch.object(fixture.o,'read_checked',late):
+   self.assertFalse(self.call()['success'])
+  self.assertTrue(expired);self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+
+ def test_actual_admission_enters_disabled_direct_kernels(self):
+  with patch.object(fixture.r,'ENABLED',False),patch.object(fixture.f,'ENABLED',False):
+   with self.c.writer.hold():
+    with self.assertRaises(fixture.o.Held):fixture.r.prepare_existing(self.c.c,self.c.writer,self.c.body)
+   self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+   result=self.call();self.assertTrue(result['success']);self.assertFalse(result['data']['ordinary_import_grant'])
+
+ def test_saved_or_foreign_native_admission_is_not_a_factory(self):
+  with self.assertRaises(ValueError):self.endpoint.NativeRetainedAdmission({})
+  fake=object.__new__(self.endpoint.NativeRetainedAdmission)
+  with self.c.writer.hold():
+   with self.assertRaises(ValueError):
+    fixture.r.prepare_existing(self.c.c,self.c.writer,self.c.body,admission=fake)
+  self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
+
  def test_inherited_recovery_purpose_is_never_narrowed(self):
   with self.n.operation():self.assertFalse(self.call()['success'])
   self.assertFalse((self.c.c.root/fixture.r.NAME).exists())
@@ -109,8 +176,172 @@ class Endpoint(unittest.TestCase):
   self.assertFalse(self.call()['success'])
  def test_sameprocess_registry_missing_is_not_hydrated_from_saved_sql(self):
   answer=self.call();key=(str(self.c.c.root),answer['data']['token']);old=fixture.f._FINALS.pop(key)
-  try:self.assertFalse(self.call('retainedDeliveryStatus')['success'])
+  try:
+   result=self.call('retainedDeliveryStatus');self.assertTrue(result['success'])
+   self.assertEqual(result['data']['outcome'],'retained-durable-state-observed')
+   self.assertNotIn(key,fixture.f._FINALS)
   finally:fixture.f._FINALS[key]=old
+ def test_passive_status_after_registry_loss_does_not_recreate_authority(self):
+  answer=self.call();self.assertTrue(answer['success'])
+  key=(str(self.c.c.root),answer['data']['token'])
+  fixture.f._FINALS.pop(key);fixture.r._EVENTS.pop(key)
+  before=self.c.c.database.read_bytes();catalog=self.c.c.native_database.read_bytes()
+  result=self.call('retainedDeliveryStatus')
+  self.assertTrue(result['success']);self.assertEqual(result['data']['outcome'],'retained-durable-state-observed')
+  for name in ('historical_import_ack','ordinary_import_grant','cleanup_grant','mutation_authority',
+               'publication_acceptance','reader_index_acceptance','automatic_replay','reader_resume_grant',
+               'operational_custody_complete'):self.assertIs(result['data'][name],False)
+  self.assertNotIn(key,fixture.f._FINALS);self.assertNotIn(key,fixture.r._EVENTS)
+  self.assertFalse(self.call()['success'])
+  self.assertEqual(self.c.c.database.read_bytes(),before);self.assertEqual(self.c.c.native_database.read_bytes(),catalog)
+
+ def test_passive_status_in_new_process_without_live_registries(self):
+  answer=self.call();self.assertTrue(answer['success'])
+  read_fd,write_fd=os.pipe();pid=os.fork()
+  if pid==0:
+   try:
+    os.close(read_fd);fixture.f._FINALS.clear();fixture.r._EVENTS.clear()
+    fixture.f._RECEIPTS.clear();fixture.r._CORES.clear()
+    result=self.call('retainedDeliveryStatus')
+    packet=dict(result=result,finals=len(fixture.f._FINALS),events=len(fixture.r._EVENTS),
+                replay=self.call()['success'])
+    os.write(write_fd,json.dumps(packet).encode());os._exit(0)
+   except BaseException:os._exit(2)
+  os.close(write_fd)
+  with os.fdopen(read_fd,'rb') as stream:raw=stream.read(65537)
+  self.assertEqual(os.waitpid(pid,0)[1],0)
+  result=json.loads(raw);self.assertTrue(result['result']['success'])
+  self.assertEqual(result['result']['data']['outcome'],'retained-durable-state-observed')
+  self.assertEqual((result['finals'],result['events'],result['replay']),(0,0,False))
+
+ def test_passive_serializer_cannot_rebase_rights_or_original_vectors(self):
+  for mutation in ('rights','zero-right','equal-frame','source-erasure','equal-source','current-binding','config'):
+   with self.subTest(mutation=mutation):
+    self.setUp();answer=self.call();self.assertTrue(answer['success'])
+    key=(str(self.c.c.root),answer['data']['token'])
+    fixture.f._FINALS.pop(key);fixture.r._EVENTS.pop(key)
+    fired=[]
+    def fault(frame,event,arg):
+     if not fired and event=='return' and frame.f_code is self.api.Api._successResponse.__code__:
+      active=[c for c in fixture.f._PASSIVE.values() if c['phase']=='encoding']
+      if active:
+       c=active[-1];fired.append(True)
+       if mutation=='rights':c['result']['reader_resume_grant']=True
+       elif mutation=='zero-right':c['result']['reader_resume_grant']=0
+       elif mutation=='equal-frame':c['files']=dict(c['files'])
+       elif mutation=='current-binding':c['controller'].roots=tuple(c['controller'].roots)+('/foreign',)
+       elif mutation=='config':self.pkg.CONFIG.DDL_LOCATION+='foreign'
+       else:
+        obj=next(obj for obj,state in fixture.f._PASSIVE.items() if state is c)
+        source=fixture.f._PASSIVE_SOURCES[obj]
+        if mutation=='source-erasure':fixture.f._PASSIVE_SOURCES.pop(obj)
+        else:fixture.f._PASSIVE_SOURCES[obj]=tuple(list(source))
+    sys.setprofile(fault)
+    try:result=self.call('retainedDeliveryStatus')
+    finally:sys.setprofile(None)
+    self.assertTrue(fired);self.assertFalse(result['success']);self.assertNotIn(key,fixture.f._FINALS)
+
+ def test_passive_source_erasure_after_operation_exit_refuses(self):
+  answer=self.call();self.assertTrue(answer['success']);key=(str(self.c.c.root),answer['data']['token'])
+  fixture.f._FINALS.pop(key);fixture.r._EVENTS.pop(key)
+  original=self.n.admission;calls=[]
+  def late(writer,**kwargs):
+   answer=original(writer,**kwargs);calls.append(True)
+   if len(calls)==2:fixture.f._PASSIVE_SOURCES.clear()
+   return answer
+  with patch.object(self.n,'admission',late):self.assertFalse(self.call('retainedDeliveryStatus')['success'])
+  self.assertEqual(len(calls),2)
+
+ def passive_finish_fault(self,kind):
+  answer=self.call();self.assertTrue(answer['success']);key=(str(self.c.c.root),answer['data']['token'])
+  fixture.f._FINALS.pop(key);fixture.r._EVENTS.pop(key)
+  real=fixture.o.read_checked;fired=[];held=[];method=self.api.Api._retainedDeliveryStatus;saved=method.__code__
+  def changed(handler,request=None):pass
+  def late(path,*args,**kwargs):
+   raw=real(path,*args,**kwargs);frame=sys._getframe(1)
+   if not fired and frame.f_code.co_name=='_passive_close' and frame.f_locals.get('held') is False:
+    fired.append(True)
+    if kind=='method':method.__code__=changed.__code__
+    elif kind=='admission-table':self.endpoint._ADMISSION_SEALS.clear()
+    else:
+     manager=self.n.owner().hold(timeout=0);manager.__enter__();held.append(manager)
+   return raw
+  try:
+   with patch.object(fixture.o,'read_checked',late):result=self.call('retainedDeliveryStatus')
+  finally:
+   method.__code__=saved
+   for manager in reversed(held):manager.__exit__(None,None,None)
+  self.assertTrue(fired);self.assertFalse(result['success'])
+ def test_passive_finish_late_handler_code_change_refuses(self):self.passive_finish_fault('method')
+ def test_passive_finish_late_admission_table_erasure_refuses(self):self.passive_finish_fault('admission-table')
+ def test_passive_finish_late_actual_writer_reacquisition_refuses(self):self.passive_finish_fault('writer')
+
+ def test_live_finish_admission_erasure_after_writer_release_refuses(self):
+  cls=fixture.fixture.writers.Writer;real=cls.hold;fired=[]
+  from contextlib import contextmanager
+  @contextmanager
+  def late(writer,**kwargs):
+   with real(writer,**kwargs):yield writer
+   if not getattr(writer.local[1],'depth',0) and fixture.f._HTTP and not fired:
+    entry=next(iter(fixture.f._HTTP.values()));entry['packet']['api_admission']=None;fired.append(True)
+  with patch.object(cls,'hold',late):self.assertFalse(self.call()['success'])
+  self.assertTrue(fired)
+
+ def test_live_finish_last_binding_helper_cannot_change_original_handler(self):
+  real=fixture.r._writer_binding;fired=[]
+  def late(writer):
+   answer=real(writer);frame=sys._getframe(1)
+   if frame.f_code.co_name=='_finish_response' and not fired:
+    self.handler.cmd='retainedDeliveryStatus';fired.append(True)
+   return answer
+  with patch.object(fixture.r,'_writer_binding',late):self.assertFalse(self.call()['success'])
+  self.assertTrue(fired)
+
+ def test_prepared_core_admission_erasure_refuses_before_acceptance_journal(self):
+  real=fixture.r.prepare_existing;fired=[]
+  def changed(*args,**kwargs):
+   cap=real(*args,**kwargs);fixture.r._CORES[cap]['api_admission']=None;fired.append(True);return cap
+  with patch.object(fixture.r,'prepare_existing',changed):self.assertFalse(self.call()['success'])
+  self.assertTrue(fired)
+  self.assertEqual(list((self.c.c.root/fixture.r.NAME).glob('*/accepted.json')),[])
+
+ def test_persistent_final_record_does_not_embed_prior_workflow_history(self):
+  self.c.store.set('retained_delivery_final','old-history',{'retained_history':'x'*300000})
+  answer=self.call();self.assertTrue(answer['success'])
+  raw=answer['data']['transition']['record_bytes'];record=json.loads(raw)
+  self.assertLess(len(raw.encode()),65536)
+  self.assertNotIn('workflow_before',record)
+  self.assertEqual(record['workflow_before_sha256'],
+      hashlib.sha256(fixture.o.compact(answer['data']['transition']['workflow_before'])).hexdigest())
+  self.assertEqual(record['pack_before_row'],answer['data']['transition']['pack_before_row'])
+
+ def test_passive_shared_event_validators_refuse_schema_identity_and_rights(self):
+  answer=self.call();self.assertTrue(answer['success'])
+  token=answer['data']['token'];folder=self.c.c.root/fixture.r.NAME/token
+  ack=json.loads((folder/'accepted.json').read_bytes())
+  issued=json.loads((folder/'issued.json').read_bytes());stamp=tuple(fixture.o.signature(folder/'issued.json'))
+  import copy
+  for key,value in (('version',True),('historical_import_ack',True),('mutation_authority',True),
+                    ('reader_index_acceptance',True),('automatic_replay',True)):
+   bad=copy.deepcopy(ack);bad[key]=value
+   with self.assertRaises(fixture.o.Held):fixture.r.validate_ack_body(bad,self.c.body,token)
+  for key,value in (('version',True),('kind','foreign'),('created_fd_identity6',[0]*6)):
+   bad=copy.deepcopy(issued);bad[key]=value
+   with self.assertRaises(fixture.o.Held):
+    fixture.r.validate_issued_body(bad,self.c.body,token,stamp,issued['ack'],issued['intent'])
+  foreign=list(stamp);foreign[6]+=1
+  with self.assertRaises(fixture.o.Held):
+   fixture.r.validate_issued_body(issued,self.c.body,token,tuple(foreign),issued['ack'],issued['intent'])
+
+ def test_passive_status_refuses_extra_SQL_and_changed_target(self):
+  answer=self.call();self.assertTrue(answer['success']);key=(str(self.c.c.root),answer['data']['token'])
+  fixture.f._FINALS.pop(key);fixture.r._EVENTS.pop(key)
+  with sqlite3.connect(self.c.c.database) as db:db.execute("INSERT INTO records VALUES ('foreign','new','changed',0.0)")
+  self.assertFalse(self.call('retainedDeliveryStatus')['success'])
+  with sqlite3.connect(self.c.c.database) as db:db.execute("DELETE FROM records WHERE kind='foreign'")
+  self.c.case.target.chmod(0o640)
+  self.assertFalse(self.call('retainedDeliveryStatus')['success'])
+
  def test_wrong_bool_duplicate_and_oversize_requests_held(self):
   value=dict(self.c.body,version=True)
   for raw in (json.dumps(value),self.base.raw().replace('{','{"version":1,',1),'x'*4096):
@@ -138,7 +369,9 @@ class Endpoint(unittest.TestCase):
   self.assertTrue(fired)
   with sqlite3.connect(self.c.c.database) as db:self.assertEqual(db.execute('SELECT count(*) FROM records WHERE kind=?',(fixture.f.RECORD_KIND,)).fetchone()[0],1)
   before=self.c.c.database.read_bytes()
-  self.assertFalse(self.call('retainedDeliveryStatus')['success']);self.assertFalse(self.call()['success'])
+  status=self.call('retainedDeliveryStatus');self.assertTrue(status['success'])
+  self.assertEqual(status['data']['outcome'],'retained-durable-state-observed')
+  self.assertFalse(status['data']['operational_custody_complete']);self.assertFalse(self.call()['success'])
   self.assertEqual(self.c.c.database.read_bytes(),before)
  def test_actual_lost_reply_after_closed_envelope_reconciles_same_daemon(self):
   fired=[]
