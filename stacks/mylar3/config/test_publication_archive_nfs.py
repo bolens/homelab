@@ -501,7 +501,7 @@ class Tests(unittest.TestCase):
 
     def configured_geometry(self):
         self.common.chmod(0o777);self.case.c.library.chmod(0o777)
-        sibling=self.common/'manga';sibling.mkdir(mode=0o775)
+        sibling=self.common/'manga';sibling.mkdir(mode=0o775);sibling.chmod(0o775)
         self.geometry=dict(version=3,kind='configured-common-root-nfs',
             **{role:dict(path=str(path),signature9=a.o.signature(path)) for role,path in
                (('common_root',self.common),('library',self.case.c.library),('retention',self.case.retention))},
@@ -519,6 +519,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(result['id'],101)
         self.assertEqual(self.common.stat().st_mode & 0o777,0o777)
         self.assertEqual(self.case.c.library.stat().st_mode & 0o777,0o777)
+        self.assertEqual((self.common/'manga').stat().st_mode & 0o777,0o775)
 
     def test_configured_original_sibling_mode_drift_refuses(self):
         facts,transport=self.configured_geometry();(self.common/'manga').chmod(0o700)

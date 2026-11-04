@@ -4,8 +4,63 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import stat
+
+
+MAX_HISTORY_BYTES = 64 * 1024**2
+
+
+def _receipt_history(directory, source, match, evidence, history_read, private_read):
+    nodes = []
+    for path in (directory, *directory.parents):
+        info = path.lstat()
+        if not stat.S_ISDIR(info.st_mode):raise ValueError('Linked receipt directory')
+        nodes.append((path, (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid)))
+    paths = sorted(directory.glob('*.json'))
+    if len(paths) > 4096:raise ValueError('Receipt history exceeds bounds')
+    originals = [];records = [];total = 0
+    for path in paths:
+        record, frame = history_read(path)
+        total += frame[2]
+        if total > MAX_HISTORY_BYTES:raise ValueError('Receipt history exceeds byte bounds')
+        observed, checksum = evidence.file_hash(path)
+        if observed != frame:raise ValueError('Receipt history changed during discovery')
+        originals.append((path, frame, checksum))
+        if type(record) is not dict:raise ValueError('Unclassifiable receipt history')
+        claimed_source, claimed_match = record.get('source'), record.get('match')
+        if (type(claimed_source) is not str or '\0' in claimed_source or claimed_source.startswith('//')
+                or not Path(claimed_source).is_absolute()
+                or '..' in Path(claimed_source).parts or str(Path(claimed_source)) != claimed_source
+                or type(claimed_match) is not dict or set(claimed_match) != {'issueid', 'comicid'}
+                or any(type(value) is not str or re.fullmatch(r'[0-9]{1,32}', value) is None
+                       for value in claimed_match.values())):
+            raise ValueError('Unclassifiable receipt owner or source')
+        if claimed_source != str(source) or claimed_match != match:continue
+        if stat.S_IMODE(frame[5]) != 0o600:
+            raise ValueError('Matching legacy history requires retained recovery')
+        selected, selected_frame = private_read(path)
+        if selected != record or selected_frame != frame:
+            raise ValueError('Coordinated receipt changed during discovery')
+        key = hashlib.sha256(os.fsencode(source) + record['sha256'].encode()
+                             + (record.get('workflow_command') or '').encode()).hexdigest()
+        if path.name != key + '.json' or record.get('phase') not in ('submitted', 'dispatching'):
+            raise ValueError('Unclassified matching coordinated receipt')
+        records.append((key, record, path, frame))
+    return records, (directory, paths, originals, nodes)
+
+
+def _history_closed(snapshot, evidence, *, hashes=True):
+    directory, paths, originals, nodes = snapshot
+    for path, frame, checksum in originals:
+        if hashes:
+            if evidence.file_hash(path) != (frame, checksum):return False
+        elif evidence.signature(path.lstat()) != frame:return False
+    for path, expected in nodes:
+        info = path.lstat()
+        if (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid) != expected:return False
+    return sorted(directory.glob('*.json')) == paths
 
 
 def confirmed(maintenance,source,match,target,*,cleanup=False,_copied=False):
@@ -17,18 +72,10 @@ def confirmed(maintenance,source,match,target,*,cleanup=False,_copied=False):
         continuity_frame=None
         from publication_guard import confirmation_check, evidence, current
         from native_handoff import native_path
-        from import_recovery import handoff_read
+        from import_recovery import handoff_read, handoff_history_read
         source=Path(source);target=Path(target)
-        records=[]
         directory=maintenance.state/'imports'
-        receipts=list(directory.glob('*.json'))
-        if len(receipts)>4096:return None
-        for receipt in sorted(receipts):
-            record,receipt_signature=handoff_read(receipt)
-            if record.get('source')!=str(source) or record.get('match')!=match:continue
-            key=hashlib.sha256(os.fsencode(source)+record['sha256'].encode()+(record.get('workflow_command') or '').encode()).hexdigest()
-            if receipt.name!=key+'.json' or record.get('phase') not in ('submitted','dispatching'):continue
-            records.append((key,record,receipt,receipt_signature))
+        records,history=_receipt_history(directory,source,match,evidence,handoff_history_read,handoff_read)
         if len(records)!=1:return None
         key,record,receipt,receipt_signature=records[0]
         authority=current(maintenance.worker)
@@ -98,6 +145,8 @@ def confirmed(maintenance,source,match,target,*,cleanup=False,_copied=False):
                 target=dict(signature=target_stamp,sha256=target_hash),payload=proof['payload'],census=authority.admission()[0])
             token,continuity_frame=observation.request_or_consume(maintenance,request,outer,source,target,match)
             if token!=key:return None
+        # Finish history I/O before the final source/target/database guards.
+        if not _history_closed(history,evidence):return None
         if checked!=confirmation_check(maintenance.worker,source if source.exists() else target,target,match):return None
         if evidence.file_hash(database)!=(stamp,digest):return None
         for path,signature,checksum in retained:
@@ -107,6 +156,7 @@ def confirmed(maintenance,source,match,target,*,cleanup=False,_copied=False):
         for path,expected in parents+retained_nodes:
             info=os.lstat(path)
             if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)!=expected:return None
+        if not _history_closed(history,evidence,hashes=False):return None
         for path,expected in ((database,stamp),(target,target_stamp),(receipt,receipt_signature),*((path,signature) for path,signature,_ in retained)):
             info=os.lstat(path)
             if (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=tuple(expected):return None

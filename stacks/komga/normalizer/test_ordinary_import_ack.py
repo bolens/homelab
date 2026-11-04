@@ -53,6 +53,7 @@ class Ack(unittest.TestCase):
         self.guard=types.SimpleNamespace(evidence=evidence,current=lambda _:authority,
             confirmation_check=lambda *_:{'target':{'authority':{'owner':self.owner}}})
         self.receipt_reader=types.SimpleNamespace(handoff_read=lambda path:(json.loads(path.read_text()),signature(path.lstat())))
+        self.receipt_reader.handoff_history_read=self.receipt_reader.handoff_read
         # Receipt-reader shape is synthetic here; full owning import_recovery tests
         # independently exercise its public read function and private file policy.
         self.patcher=patch.dict(sys.modules,{'publication_guard':self.guard,'native_handoff':types.SimpleNamespace(native_path=lambda _,p:str(p)),
@@ -96,6 +97,91 @@ class Ack(unittest.TestCase):
         ack['destination']['signature'][0]+=1
         db=sqlite3.connect(self.history);db.execute('UPDATE completions SET ack=?',(json.dumps(ack),));db.commit();db.close()
         self.assertIsNone(self.confirmed())
+
+
+class RealHistoryReader(Ack):
+    def setUp(self):
+        super().setUp()
+        import publication_evidence
+        real_spec=importlib.util.spec_from_file_location('ack_real_import_recovery',HERE/'import_recovery.py')
+        actual=importlib.util.module_from_spec(real_spec);real_spec.loader.exec_module(actual)
+        self.guard.evidence=publication_evidence
+        self.guard.Unavailable=publication_evidence.Unavailable
+        self.receipt_reader.handoff_read=actual.handoff_read
+        self.receipt_reader.handoff_history_read=actual.handoff_history_read
+
+    def legacy(self, *, matching=False, raw=None):
+        record=dict(self.record)
+        if not matching:record.update(source=str(self.root/'unrelated.cbz'),match={'issueid':'56','comicid':'78'})
+        path=self.state/'imports'/('0'*64+'.json')
+        path.write_text(json.dumps(record) if raw is None else raw);path.chmod(0o644)
+        return path
+
+    def test_unrelated_legacy_history_preserved_with_real_positive_reader(self):
+        legacy=self.legacy();before=file_hash(legacy)
+        self.assertEqual(self.confirmed(),self.key)
+        self.assertEqual(file_hash(legacy),before)
+        self.assertEqual(legacy.stat().st_mode&0o777,0o644)
+
+    def test_legacy_matching_source_never_grants_or_hides_ack(self):
+        self.legacy(matching=True)
+        self.assertIsNone(self.confirmed())
+        self.receipt.unlink()
+        self.assertIsNone(self.confirmed())
+
+    def test_unclassifiable_or_duplicate_key_history_holds(self):
+        legacy=self.legacy(raw='{"source":"/unrelated","source":"/other","match":{}}')
+        self.assertIsNone(self.confirmed())
+        legacy.write_text('{"source":"/unrelated"}')
+        self.assertIsNone(self.confirmed())
+
+    def test_coordinated_receipt_with_wrong_mode_holds(self):
+        self.receipt.chmod(0o640)
+        self.assertIsNone(self.confirmed())
+
+    def test_noncanonical_source_alias_cannot_hide_matching_legacy(self):
+        legacy=self.legacy(matching=True)
+        for source in ('/'+str(self.source),str(self.source)+'\0other'):
+            with self.subTest(source=source):
+                legacy.write_text(json.dumps(dict(self.record,source=source)))
+                self.assertIsNone(self.confirmed())
+
+    def test_legacy_symlink_holds(self):
+        legacy=self.legacy();legacy.unlink();legacy.symlink_to(self.receipt)
+        self.assertIsNone(self.confirmed())
+
+    def test_skipped_legacy_changed_at_final_confirmation_holds(self):
+        legacy=self.legacy();original=self.guard.confirmation_check;calls=[]
+        def late(*args):
+            calls.append(True)
+            if len(calls)==2:legacy.write_text(json.dumps(dict(self.record)))
+            return original(*args)
+        with patch.object(self.guard,'confirmation_check',late):self.assertIsNone(self.confirmed())
+        self.assertEqual(len(calls),2)
+
+    def test_new_receipt_after_discovery_holds(self):
+        original=self.guard.confirmation_check;calls=[]
+        def late(*args):
+            calls.append(True)
+            if len(calls)==2:self.legacy()
+            return original(*args)
+        with patch.object(self.guard,'confirmation_check',late):self.assertIsNone(self.confirmed())
+        self.assertEqual(len(calls),2)
+
+    def test_final_history_hash_cannot_invalidate_target(self):
+        legacy=self.legacy();original=self.guard.evidence.file_hash;calls=[]
+        def late(path,**kwargs):
+            result=original(path,**kwargs)
+            if Path(path)==legacy:
+                calls.append(True)
+                if len(calls)==2:self.target.write_bytes(b'changed after history read')
+            return result
+        with patch.object(self.guard.evidence,'file_hash',late):self.assertIsNone(self.confirmed())
+        self.assertEqual(len(calls),2)
+
+    def test_aggregate_history_bytes_are_bounded(self):
+        self.legacy()
+        with patch.object(reader,'MAX_HISTORY_BYTES',1):self.assertIsNone(self.confirmed())
 
 
 if __name__=='__main__':unittest.main()

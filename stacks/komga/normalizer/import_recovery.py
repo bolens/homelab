@@ -16,18 +16,30 @@ from normalize import digest, identity, save, sync_directory
 MAX_HANDOFF = 16 * 1024**2
 
 
-def handoff_read(path):
+def _handoff_read(path, modes):
     from publication_guard import evidence, Unavailable
     path = Path(path)
     with evidence.regular(path) as stream:
         before = evidence.signature(os.fstat(stream.fileno()))
         if (before[6] != os.geteuid() or before[8] != 1
-                or stat.S_IMODE(before[5]) != 0o600 or not 0 < before[2] <= MAX_HANDOFF):
+                or stat.S_IMODE(before[5]) not in modes or not 0 < before[2] <= MAX_HANDOFF):
             raise Unavailable('Unsafe private import handoff')
         raw = stream.read(MAX_HANDOFF+1)
-        if evidence.signature(path.lstat()) != before or len(raw) != before[2]:
+        if (evidence.signature(path.lstat()) != before
+                or evidence.signature(os.fstat(stream.fileno())) != before
+                or len(raw) != before[2]):
             raise Unavailable('Import handoff changed during read')
     return evidence.decode_json(raw), before
+
+
+def handoff_read(path):
+    """Read coordinated evidence; legacy histories cannot authorize a handoff."""
+    return _handoff_read(path, (0o600,))
+
+
+def handoff_history_read(path):
+    """Classify preserved history only; this does not grant ACK authority."""
+    return _handoff_read(path, (0o600, 0o644))
 
 
 def handoff_save(path, record, *, expected=None):
