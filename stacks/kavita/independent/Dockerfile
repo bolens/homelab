@@ -11,7 +11,7 @@ RUN git init . && git remote add origin https://github.com/Kareadita/Kavita.git 
 COPY patch_source.py source.sha256 IndependentProvider.cs IndependentScrobblePolicy.cs independent-actions.ts IndependentOAuth.cs OAuthController.methods.txt ScrobblingService.independent.txt IndependentWantToReadMatcher.cs WantToReadSyncService.independent.txt /patch/
 RUN python3 /patch/patch_source.py /source
 
-FROM node:26.12.0-bookworm-slim@sha256:742a0fe7320e09e0321222b68165e6ac731d30470e7ea7f98f9bfc3a6e1034fe AS web
+FROM node:26.12.1-bookworm-slim@sha256:88e480776c6149ff1d098cd304f44bf18057fb5d284a3329b78162d29821e28c AS web
 WORKDIR /source/UI/Web
 COPY --from=source /source/UI/Web/ ./
 RUN npm ci --legacy-peer-deps && npm run prod
