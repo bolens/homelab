@@ -212,8 +212,8 @@ pathvalidate==3.3.1 \
     --hash=sha256:b18c07212bfead624345bb8e1d6141cdcf15a39736994ea0b94035ad2b1ba177
 pillow==13.0.0 \
     --hash=sha256:5f56499c1a74d2b862beb0c33b8016f99d095858455df9d21583bbbc1c15b582
-pyicu==2.16.2 \
-    --hash=sha256:006d51e24b5ec76df6ec2130f3dde269c51db8b8cfebb7d45a427dde0d10aa52
+pyicu==2.17 \
+    --hash=sha256:6138b95ac9592fa3983bf489e0c625e8fcfffd0c562a36a08269cecc4ffb48be
 pyrate-limiter==2.10.0 \
     --hash=sha256:98cc52cdbe058458e945ae87d4fd5a73186497ffa545ee6e98372f8599a5bd34 \
     --hash=sha256:a99e52159f5ed5eb58118bed8c645e30818e7c0e0d127a0585c8277c776b0f7f
