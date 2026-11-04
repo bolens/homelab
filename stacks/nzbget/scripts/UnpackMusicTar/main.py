@@ -1165,8 +1165,9 @@ def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], pare
 
 
 def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
-                         required_playlists: set[Path] | None = None) -> dict[Path, str]:
-    """Use covering playlists and matching disc/side prefixes to partition tracks."""
+                         required_manifests: set[Path] | None = None,
+                         proven_tracks: set[Path] | None = None) -> dict[Path, str]:
+    """Partition numbered tracks using covering playlists or matching CD NFOs."""
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
     cohorts: dict[tuple, list[tuple[Path, dict[str, str]]]] = {}
@@ -1217,6 +1218,19 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
             if (len(performers) != 1 or len(groups) < 2 or set(groups) != set(range(1, len(groups) + 1))
                     or any(sorted(tracks) != list(range(1, len(tracks) + 1)) for tracks in groups.values())):
                 continue
+            if numbering == "disc":
+                titles = {(int(positions[path]), int(metadata_position(tags, ("TRACKNUMBER", "TRACK"),
+                            ("TRACKTOTAL", "TOTALTRACKS"), "track")[0])): tags["TITLE"] for path, tags in records}
+                parent = records[0][0].parent
+                nfos = [path for path in files if path.parent == parent and path.suffix.casefold() == ".nfo"
+                        and nfo_disc_manifest(path, next(iter(performers)), records[0][1]["ALBUM"], titles)]
+                if nfos:
+                    inferred.update(positions)
+                    if required_manifests is not None:
+                        required_manifests.add(nfos[0])
+                    if proven_tracks is not None:
+                        proven_tracks.update(positions)
+                    continue
             for playlist in playlists:
                 entries = playlist_entries(playlist)
                 if not entries or len(entries) != len(records):
@@ -1225,10 +1239,48 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                 if (all(len(matches) == 1 for matches in resolved)
                         and {next(iter(matches)) for matches in resolved} == {path for path, _ in records}):
                     inferred.update(positions)
-                    if required_playlists is not None:
-                        required_playlists.add(playlist)
+                    if required_manifests is not None:
+                        required_manifests.add(playlist)
                     break
     return inferred
+
+
+def pipe_nfo_disc_manifest(text: str, artist: str, album: str,
+                           titles: dict[tuple[int, int], str]) -> bool:
+    """Validate the observed pipe-header, CD n/total NFO tracklist."""
+    text = "\n".join(text.splitlines())
+    markers = list(re.finditer(r"(?im)^[ \t]*─+┤[ \t]*Tracks[ \t]*├─+[ \t]*$", text))
+    if len(markers) != 1:
+        return False
+    def identity(value: str) -> str:
+        return "".join(re.findall(r"[^\W_]+", value.casefold()))
+    header = text[:markers[0].start()]
+    artists = re.findall(r"(?im)^[ \t]*Artist[ \t]*\|[ \t]*(.+?)[ \t]*$", header)
+    albums = re.findall(r"(?im)^[ \t]*Title[ \t]*\|[ \t]*(.+?)[ \t]*$", header)
+    sources = re.findall(r"(?im)^[ \t]*Source[ \t]*\|[^\r\n]*", header)
+    if (len(artists) != 1 or identity(artists[0]) != identity(artist)
+            or len(albums) != 1 or identity(albums[0]) != identity(album) or len(sources) != 1
+            or not re.fullmatch(r"[ \t]*Source[ \t]*\|[ \t]*CD(?:[ \t]{2,}Time[ \t]*\|[ \t]*[0-9]{1,3}:[0-5][0-9])?[ \t]*", sources[0], re.IGNORECASE)):
+        return False
+    expected_discs = {disc for disc, _ in titles}
+    disc = None
+    discs = set()
+    found = {}
+    for line in text[markers[0].end():].splitlines():
+        line = line.strip()
+        if match := re.fullmatch(r"CD ([1-9][0-9]?)/([1-9][0-9]?)", line, re.IGNORECASE):
+            disc = int(match[1])
+            if int(match[2]) != len(expected_discs) or disc in discs:
+                return False
+            discs.add(disc)
+        elif match := re.fullmatch(r"([0-9]{1,3})\.[ \t]+(.+?)[ \t]{2,}[0-9]{1,3}:[0-5][0-9]", line):
+            key = (disc, int(match[1]))
+            if disc is None or key in found:
+                return False
+            found[key] = identity(match[2])
+        elif re.match(r"[0-9]{1,3}[ .)-]", line):
+            return False
+    return discs == expected_discs and found == {key: identity(value) for key, value in titles.items()}
 
 
 def nfo_disc_manifest(path: Path, artist: str, album: str,
@@ -1244,6 +1296,8 @@ def nfo_disc_manifest(path: Path, artist: str, album: str,
             text = raw.decode(encoding)
         except UnicodeError:
             continue
+        if pipe_nfo_disc_manifest(text, artist, album, titles):
+            return True
         markers = list(re.finditer(r"(?im)^[ \t]*Tracklist[ .:]*[ \t]*$", text))
         if len(markers) != 1:
             continue
@@ -1357,11 +1411,11 @@ def release_total_evidence(groups: dict, members: dict, files: list[Path],
 
 def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
                        required_manifests: set[Path] | None = None) -> set[Path]:
-    filename_discs = playlist_disc_groups(files, protected, root, required_manifests)
+    proven = set(protected)
+    filename_discs = playlist_disc_groups(files, protected, root, required_manifests, proven)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
     members: dict[tuple, set[Path]] = {}
-    proven = set(protected)
     for path in files:
         if detected_suffix(path) != ".flac":
             continue
