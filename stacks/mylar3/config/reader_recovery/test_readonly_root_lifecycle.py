@@ -1,5 +1,6 @@
 """Pure staging/cleanup helpers; synthetic local filesystem, no NFS grant."""
 from pathlib import Path
+from contextlib import contextmanager
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
 import hashlib
@@ -9,6 +10,24 @@ import types
 import unittest
 from unittest.mock import patch
 import comic_negative_nfs_active_lifecycle as m
+
+
+@contextmanager
+def stale_retained_census():
+    """Model a retained description's pre-mutation view; fresh opens see reality."""
+    real_open,real_listdir=os.open,os.listdir
+    retained={};fresh=[]
+    def open_directory(path,flags,*args,**kwargs):
+        fd=real_open(path,flags,*args,**kwargs)
+        retained.pop(fd,None)
+        if flags&os.O_DIRECTORY:
+            if str(path)=='.' and 'dir_fd' in kwargs:fresh.append(fd)
+            else:retained[fd]=real_listdir(path)
+        return fd
+    def names(path):
+        return list(retained[path]) if isinstance(path,int) and path in retained else real_listdir(path)
+    with patch.object(os,'open',side_effect=open_directory),patch.object(os,'listdir',side_effect=names):
+        yield fresh
 
 
 class LifecycleVectors(unittest.TestCase):
@@ -98,6 +117,83 @@ class LifecycleVectors(unittest.TestCase):
         result = self.cleanup(fixture, churn)
         self.assertTrue(result['owned_fixture_absence_verified']); self.assertFalse(self.parent.exists())
         self.assertGreater(len(calls), 9); self.assertEqual(os.listdir(self.fixed), [])
+
+    def test_hardlink_cleanup_refreshes_retained_directory_views(self):
+        fixture=self.fixture()
+        with stale_retained_census() as opened:
+            result=self.cleanup(fixture,lambda:None)
+        self.assertTrue(result['owned_fixture_absence_verified'])
+        self.assertFalse(self.parent.exists());self.assertGreaterEqual(len(opened),4)
+
+    def test_legacy_cleanup_refreshes_retained_directory_views(self):
+        self.parent.mkdir(mode=0o700)
+        child=self.parent/('.comic-nfs-probe-'+'b'*32);child.mkdir(mode=0o700);facts={}
+        for name in ('source.bin','collision-source.bin','collision-destination.bin'):
+            path=child/name;path.write_bytes(b'synthetic original');path.chmod(0o600)
+            facts[name]=dict(signature=m.stamp(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        parent=dict(path=str(self.parent),signature=m.stamp(self.parent),grandparent_identity=m.stamp(self.staging)[:2])
+        with stale_retained_census() as opened:
+            result=m.cleanup_owned(parent,dict(path=str(child),signature=m.stamp(child)),facts,self.roots,types.SimpleNamespace(pulse=lambda:None),stopped_child_proof=True)
+        self.assertTrue(result['owned_fixture_absence_verified'])
+        self.assertFalse(self.parent.exists());self.assertGreater(len(opened),4)
+
+    def test_fresh_census_closes_owned_descriptor_after_initial_fstat_failure(self):
+        held=os.open(self.staging,os.O_RDONLY|os.O_DIRECTORY);opened=[];fired=[]
+        expected=tuple(m.stamp(self.staging)[i]for i in(0,1,5,6,7));real_open,real_stat=os.open,os.fstat
+        def new(path,*args,**kwargs):
+            fd=real_open(path,*args,**kwargs)
+            if str(path)=='.':opened.append(fd)
+            return fd
+        def fail(fd):
+            if fd in opened and not fired:fired.append(True);raise OSError('synthetic fstat failure')
+            return real_stat(fd)
+        try:
+            with patch.object(os,'open',side_effect=new),patch.object(os,'fstat',side_effect=fail):
+                with self.assertRaisesRegex(OSError,'synthetic fstat failure'):m.fresh_names(held,expected)
+            self.assertEqual(len(opened),1)
+            with self.assertRaises(OSError):os.fstat(opened[0])
+            os.fstat(held)
+        finally:os.close(held)
+
+    def test_fresh_census_never_closes_reused_foreign_descriptor(self):
+        held=os.open(self.staging,os.O_RDONLY|os.O_DIRECTORY);opened=[];foreign=[]
+        expected=tuple(m.stamp(self.staging)[i]for i in(0,1,5,6,7));real_open,real_stat=os.open,os.fstat
+        def new(path,*args,**kwargs):
+            fd=real_open(path,*args,**kwargs)
+            if str(path)=='.':opened.append(fd)
+            return fd
+        def replace(fd):
+            if fd in opened and not foreign:
+                os.close(fd);other=real_open(self.fixed,os.O_RDONLY|os.O_DIRECTORY);foreign.append(other)
+                self.assertEqual(other,fd);raise OSError('synthetic descriptor replacement')
+            return real_stat(fd)
+        try:
+            with patch.object(os,'open',side_effect=new),patch.object(os,'fstat',side_effect=replace):
+                with self.assertRaisesRegex(OSError,'synthetic descriptor replacement'):m.fresh_names(held,expected)
+            os.fstat(foreign[0])
+        finally:
+            for fd in foreign:os.close(fd)
+            os.close(held)
+
+    def test_fresh_census_never_adopts_returned_foreign_identity(self):
+        held=os.open(self.staging,os.O_RDONLY|os.O_DIRECTORY);opened=[];foreign=[]
+        expected=tuple(m.stamp(self.staging)[i]for i in(0,1,5,6,7));real_open,real_stat=os.open,os.fstat
+        def new(path,*args,**kwargs):
+            fd=real_open(path,*args,**kwargs)
+            if str(path)=='.':opened.append(fd)
+            return fd
+        def replace(fd):
+            if fd in opened and not foreign:
+                os.close(fd);other=real_open(self.fixed,os.O_RDONLY|os.O_DIRECTORY);foreign.append(other)
+                self.assertEqual(other,fd)
+            return real_stat(fd)
+        try:
+            with patch.object(os,'open',side_effect=new),patch.object(os,'fstat',side_effect=replace):
+                with self.assertRaisesRegex(m.Held,'census-open-directory'):m.fresh_names(held,expected)
+            os.fstat(foreign[0])
+        finally:
+            for fd in foreign:os.close(fd)
+            os.close(held)
 
     def test_cleanup_fixed_root_churn_refuses_before_unlink(self):
         fixture = self.fixture()

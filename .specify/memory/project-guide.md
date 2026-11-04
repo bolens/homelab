@@ -198,6 +198,16 @@ and assembly; embedding `State` in the profile creates an incompatible DTO.
 Container-init host PIDs and native application process PIDs belong to different
 namespaces and must retain their own original process checks.
 
+Disposable Docker helpers bind ordinary mounts through `Mounts` and temporary
+filesystems through `HostConfig.Tmpfs`. Retain creation and terminal observations,
+use the owning lifecycle comparison, and check the accepted terminal profile
+before cleanup. Verify removal with an exact full-ID container inventory.
+`docker exec --user` retains the container environment, including `HOME`; SDK
+checks must supply the owning UID-compatible `TMPDIR` and `XDG_CONFIG_HOME`.
+After changing a directory, observe its namespace through a fresh open description
+of the held original inode, using the owning census helper. A retained directory
+description can keep its earlier view after writes.
+
 Distinguish fresh document admission from continuation of an authenticated
 operation. Keep stale first-admission refusals. Once the source-checked owning
 interface admits an original scope, check its exact bytes, original inherited

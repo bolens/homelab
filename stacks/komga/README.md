@@ -202,6 +202,12 @@ After recovery fences clear, it rechecks those bindings under the writer,
 records the attempt, releases the lock and submits to native Mylar. Uncertain
 requests remain retained for review and are never automatically replayed. Native
 Mylar independently checks its actual stage at submission and processing time.
+ACK discovery preserves readable legacy `0644` histories and excludes unrelated
+sources and owners before selecting coordinated evidence. Matching legacy or
+unclassifiable history remains held. A positive ACK still requires the exact
+private `0600` receipt, native completion, current owner and source/target proofs.
+The history files and receipt-directory census must remain unchanged through
+acceptance; discovery does not migrate, replay or rewrite a receipt.
 Health and pending-work reads use a bounded immutable batch gathered before the
 cycle lock. Missing batch results hold that work. Guided imports bind the exact
 command and source version to native queue admission; a separate remote claim

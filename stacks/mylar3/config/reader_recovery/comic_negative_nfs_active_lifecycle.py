@@ -37,6 +37,30 @@ def stamp(path):
     return sig(os.lstat(path))
 
 
+def fresh_names(fd, expected):
+    """Observe the held inode through a fresh directory description."""
+    def node(handle):
+        value=os.fstat(handle)
+        return (value.st_dev,value.st_ino,value.st_mode,value.st_uid,value.st_gid)
+    require(node(fd)==tuple(expected),'census-original-directory')
+    check=os.open('.',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fd)
+    opened=None;primary=None
+    try:
+        opened=node(check)
+        require(opened==tuple(expected),'census-open-directory')
+        names=[os.fsdecode(name) for name in os.listdir(check)]
+        require(node(check)==opened==node(fd),'census-close-directory')
+        return names
+    except BaseException as error:
+        primary=error;raise
+    finally:
+        try:
+            require(node(check)==tuple(expected),'census-descriptor-reused')
+            os.close(check)
+        except BaseException:
+            if primary is None:raise
+
+
 def canonical(path):
     require(type(path) in (str, type(Path('/'))), 'path-type')
     p = Path(path)
@@ -248,6 +272,8 @@ def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
     original_nodes = tuple((str(q),tuple(v)) for q,v in ancestors.items())
     original_facts = tuple((name,tuple(f['signature'])) for name,f in facts.items())
     rootstates = {r: stamp(r) for r in roots}
+    parent5=tuple(parent['signature'][i] for i in (0,1,5,6,7))
+    child5=tuple(child['signature'][i] for i in (0,1,5,6,7))
     pf = os.open(p, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     cf = os.open(c, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     gf = os.open(p.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -255,7 +281,7 @@ def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
         binding(pf, p, parent['signature'][:2])
         binding(cf, c, child['signature'][:2])
         binding(gf, p.parent, parent['grandparent_identity'])
-        require(set(os.listdir(pf)) == {c.name} and set(os.listdir(cf)) == set(facts), 'cleanup-namespace')
+        require(set(fresh_names(pf,parent5)) == {c.name} and set(fresh_names(cf,child5)) == set(facts), 'cleanup-namespace')
         require(all(regular_fact_at(cf, name) == f for name, f in facts.items()), 'cleanup-leaf-proof')
         lease.pulse()
         leaves = rootstates | {p: stamp(p), c: child['signature']}
@@ -264,20 +290,20 @@ def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
         remaining = set(facts)
         for name, f in sorted(facts.items()):
             binding(cf, c, child['signature'][:2])
-            require(set(os.listdir(cf)) == remaining, 'cleanup-partial-foreign-namespace')
+            require(set(fresh_names(cf,child5)) == remaining, 'cleanup-partial-foreign-namespace')
             require(regular_fact_at(cf, name) == f, 'cleanup-next-leaf-proof')
             x = os.stat(name, dir_fd=cf, follow_symlinks=False)
             if [x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns,x.st_mode,x.st_uid,x.st_gid,x.st_nlink] != f['signature']:
                 raise Held('cleanup-terminal-next-leaf')
             # Every semantic/hash/binding callback is complete. Re-close all
             # remaining original leaves, roots, ancestors and bound namespace.
+            if set(fresh_names(pf,parent5))!={c.name} or set(fresh_names(cf,child5))!=remaining:raise Held('cleanup-terminal-namespace')
             for q,v in original_nodes:
                 x=os.lstat(q)
                 if (x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid)!=v:raise Held('cleanup-terminal-ancestor')
             for q,v in rootstates.items():
                 x=os.lstat(q)
                 if [x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns,x.st_mode,x.st_uid,x.st_gid,x.st_nlink]!=v:raise Held('cleanup-terminal-root')
-            if set(os.listdir(pf))!={c.name} or set(os.listdir(cf))!=remaining:raise Held('cleanup-terminal-namespace')
             for q,v in original_facts:
                 if q not in remaining:continue
                 x=os.stat(q,dir_fd=cf,follow_symlinks=False)
@@ -285,22 +311,20 @@ def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
             os.unlink(name, dir_fd=cf)
             os.fsync(cf)
             remaining.remove(name)
-        require(not os.listdir(cf), 'cleanup-child-nonempty')
+        require(not fresh_names(cf,child5), 'cleanup-child-nonempty')
         binding(pf, p, parent['signature'][:2])
         binding(cf, c, child['signature'][:2])
         x=os.stat(c.name,dir_fd=pf,follow_symlinks=False)
         v=child['signature']
         if (x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid)!=(v[0],v[1],v[5],v[6],v[7]):raise Held('cleanup-child-final-identity')
-        if os.listdir(cf):raise Held('cleanup-child-final-nonempty')
         os.rmdir(c.name, dir_fd=pf)
         os.fsync(pf)
-        require(not os.listdir(pf), 'cleanup-parent-nonempty')
+        require(not fresh_names(pf,parent5), 'cleanup-parent-nonempty')
         binding(pf, p, parent['signature'][:2])
         binding(gf, p.parent, parent['grandparent_identity'])
         x=os.stat(p.name,dir_fd=gf,follow_symlinks=False)
         v=parent['signature']
         if (x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid)!=(v[0],v[1],v[5],v[6],v[7]):raise Held('cleanup-parent-final-identity')
-        if os.listdir(pf):raise Held('cleanup-parent-final-nonempty')
         os.rmdir(p.name, dir_fd=gf)
         os.fsync(gf)
         lease.pulse()
@@ -560,7 +584,7 @@ def _cleanup_hardlink_owned(parent, child, facts, directories, roots, lease, roo
         # Remove fixed empty dirs then the original fixture and admitted parent.
         for q,parentfd,fd in ((c/'source',cf,sf),(c/'target',cf,tf),(c,pf,cf),(p,gf,pf)):
             lease.pulse()
-            if os.listdir(fd):raise Held('hardlink-rmdir-notempty')
+            if fresh_names(fd,tuple(initial[q][i] for i in (0,1,5,6,7))):raise Held('hardlink-rmdir-notempty')
             # Inline closure with dynamic namespace before each directory syscall.
             for node,v in nodes.items():
                 if node in removed:continue
