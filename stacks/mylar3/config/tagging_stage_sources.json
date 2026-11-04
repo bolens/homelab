@@ -78,7 +78,7 @@
     },
     {
       "path": "pack_intake.py",
-      "sha256": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89"
+      "sha256": "6d03eb6585b487de4eb29911f41ae5185c1a403307cc06978babcf32b9bdcd47"
     },
     {
       "path": "patch_publication_guard.py",

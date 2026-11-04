@@ -22,6 +22,9 @@ def run(plan):
  src=Path(plan['source']);target=Path(plan['target'])
  member=dict(id=plan['member_id'],phase='review',source=str(src),identity=identity(src),sha256=hashlib.sha256(src.read_bytes()).hexdigest(),
    destination=str(target),destination_sha256=hashlib.sha256(target.read_bytes()).hexdigest(),issueid=plan['owner']['issueid'],comicid=plan['owner']['parentcomicid'])
+ if plan.get('no_destination_history'):
+  member.pop('destination');member.pop('destination_sha256')
+ member.update(plan.get('local_member_overrides',{}))
  receipt=folder/'receipt.json';body=dict(id=plan['pack_id'],inventory_complete=True,phase='review',capture_source=plan['capture_source'],
    source_generation=plan['source_generation'],members=[member]);receipt.write_bytes(h.compact(body));receipt.chmod(0o600)
  if plan.get('root_observation_barrier'):
@@ -100,7 +103,16 @@ def run(plan):
     intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
     done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
   try:
-   with writer.hold(timeout=0),scope(worker,writer):action=h.prepare(m,plan['pack_id'],plan['member_id'])
+   import pack_recovery
+   original_destination=pack_recovery.catalog_destination
+   def changed_catalog(*args):
+    target=original_destination(*args)
+    import sqlite3
+    with sqlite3.connect(Path(config['mylar']['config_dir'])/'mylar.db') as database:
+     database.execute('UPDATE comics SET ComicLocation=ComicLocation||?',('.foreign',))
+    return target
+   with patch.object(pack_recovery,'catalog_destination',changed_catalog) if plan.get('catalog_drift_during_resolution') else nullcontext():
+    with writer.hold(timeout=0),scope(worker,writer):action=h.prepare(m,plan['pack_id'],plan['member_id'])
   except ValueError:
    if not plan.get('prepare_refusal'):raise
    return dict(held=True,preparation_refused=True,receipt_changed=receipt.read_bytes()!=before,
@@ -139,6 +151,7 @@ def run(plan):
    return dict(held=True,fired=bool(locals().get('fired')),error=str(exc),receipt_changed=receipt.read_bytes()!=before,done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
  result=json.loads(receipt.read_bytes())
  result_out=dict(answer=answer,receipt_changed=receipt.read_bytes()!=before,member_phase=result['members'][0]['phase'],
+   ordinary_import_token_present='ordinary_import_token' in result['members'][0],
    token=result['members'][0].get('retained_finalization'),intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
    done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))),host_fixture_projection=True,installed_authentication_acceptance=False)
  if plan.get('check_terminal_hash'):

@@ -876,6 +876,12 @@ resume; the factual worker result grants neither. Actual installed source,
 configured bind geometry and terminal reader acceptance remain required before
 activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
 
+An existing target does not need destination history in the retained receipt.
+The signed review binds its current worker path and hash; preparation resolves
+that target again from the catalog under Writer and checks source preservation
+and exact ownership. Any recorded destination must still agree. Only genuine
+retained acceptance updates the receipt; no ordinary import ACK is invented.
+
 
 ### Restricted recurring pack recovery
 

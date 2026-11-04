@@ -176,7 +176,7 @@
   },
   {
     "path": "pack_intake.py",
-    "sha256": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89",
+    "sha256": "6d03eb6585b487de4eb29911f41ae5185c1a403307cc06978babcf32b9bdcd47",
     "target": "pack_intake.py"
   },
   {
@@ -1181,7 +1181,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py",
-    "sha256": "1e55cd55bd4f8261109f482e19a41b17440b6900dada490c415b53a46cb15c32",
+    "sha256": "4570f1d8dc72aaaa993a861c9ecfc3135a2f536f849247c7732f63ea3460fe0a",
     "target": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py"
   },
   {
@@ -1266,7 +1266,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
-    "sha256": "5af7de153ec4bd4340d5a0236e5187c11c394705b9bdc2c23acb327f9af84959",
+    "sha256": "b2beea0fe2a8eafe9624b082a56d79069d85f7363c0f5c6c3cfadfcd3b9d842f",
     "target": "test_fixtures/retained_pack_worker/pack_recovery.py"
   },
   {
@@ -1346,7 +1346,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "814c411179b0806eb975bfe6e2a1eda32a776fdb7524cfa058443b44ddbbf358",
+    "sha256": "4c4c9c65ef6e2d9f95d190f949a15cc9c8f0fff1f4251a7efcf5d8eabeec780e",
     "target": "test_fixtures/retained_pack_worker/retained_pack_handoff.py"
   },
   {
@@ -1356,7 +1356,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "133d3df5e797f21c89ad01271ad33f9310cb9be966ff5fb6082c1216149b33dd",
+    "sha256": "8c7fd589552e13bacee0aeba65c1f2afd81472b36d2aad9708ac23521b6e7ea8",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {
@@ -1471,7 +1471,7 @@
   },
   {
     "path": "test_pack_records.py",
-    "sha256": "68b99605e80b6fcea5e35948a16948ddc8dc2dccc2e923cc76e9e1bfe8bc3a48",
+    "sha256": "28f12fb81100439a6bf00eb94b0c227978dd8bacfc15b6a445c0d202d1ac742e",
     "target": "test_pack_records.py"
   },
   {
@@ -1846,7 +1846,7 @@
   },
   {
     "path": "test_retained_pack_composed.py",
-    "sha256": "05fee57f43815ade5a87477894c0a782e701ce78ab55fdfdd0bae6f875195f59",
+    "sha256": "70b8391ac23a6db1ee35b59acf41b2e1ca9f7860e26aa0ab211248ac6aec2746",
     "target": "test_retained_pack_composed.py"
   },
   {
@@ -2081,7 +2081,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "e7c057d957d11e51cc97eb69424631b4d0e46d8dbf172def5e7c8637540ea2c1",
+    "sha256": "5f9a98404600a02e9644b49eb049416b7812454022a871be1ba5920f532a2547",
     "target": "standalone_launch_host/comic_retained_standalone_broker.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "505374ff16b872bf737d10fb940a8b18e2b67546a95a9f378b47bc83b68b0b01",
+    "sha256": "d405ac2ab4eda37553e5ff7ee9fb5cc505b3fa774dce14dfe8d3a540614767db",
     "target": "tagging_stage_sources.json"
   },
   {

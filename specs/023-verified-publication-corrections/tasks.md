@@ -48,6 +48,13 @@ track. Pack A and Pack B follow their own stated prerequisites and do not wait
 for archive milestones 1–4. T032 remains the worker-activation prerequisite.
 Ordinary Mylar stays available while this implementation proceeds.
 
+Before binding a Pack A request, use the genuine selected report route to
+establish the native member and its catalog-derived parent/release owner.
+Bind current target evidence separately from ordinary destination history.
+Worker preparation resolves and confirms that target under Writer, while any
+explicit prior destination facts remain constraints. Neither manual receipt
+edits nor an ordinary ACK may substitute for this retained preparation.
+
 ## Phase 1: Setup
 
 - [x] T001 Validate prospective requirements, researched source boundaries and complete contracts in `specs/023-verified-publication-corrections/spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/publication-corrections.md` and `quickstart.md`; complete independent design review before implementation.

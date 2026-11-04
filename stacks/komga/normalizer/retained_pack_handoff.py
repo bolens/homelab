@@ -51,13 +51,14 @@ def authenticate_control(maintenance,pipe,boot):
     reference=boot['review_ref'];raw=_read(reference['path'],reference['signature9'],_LIMIT)
     check(hashlib.sha256(raw).hexdigest()==reference['sha256'],'retained-authenticated-review-bytes')
     review=evidence.decode_json(raw)
-    check(type(review) is dict and set(review)=={'version','kind','request','native_api_sha256','native_sources','native_image'}
+    check(type(review) is dict and set(review)=={'version','kind','request','native_api_sha256','native_sources','native_image','existing_target'}
           and type(review['version']) is int and review['version']==1
           and review['kind']=='retained-pack-reviewed-native-cohort'
           and native_compact(review['request'])==native_compact(boot['request'])
           and review['native_sources']==NATIVE_SOURCE_PINS
           and all(type(review[k]) is str and re.fullmatch('[a-f0-9]{64}',review[k])
                   for k in ('native_api_sha256','native_image')),'retained-authenticated-native-cohort')
+    _target_witness(review['existing_target'], review['request'])
     record=(pipe,origin,maintenance,_binding(maintenance),compact(review['request']),review['native_api_sha256'],
             tuple(sorted(review['native_sources'].items())),compact(reference),bytes(raw),(_AUTH_OPERATIONS,_AUTH_OWNERS))
     pipe.close_originals();_AUTH_OPERATIONS[maintenance]=record;_AUTH_OWNERS[binding]=maintenance
@@ -100,6 +101,17 @@ def nine(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st
 def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
 def check(value,reason):
     if not value:raise ValueError(reason)
+
+
+def _target_witness(value, request):
+    check(type(value) is dict and set(value)=={'path','sha256'},'retained-current-target-witness')
+    text=value['path']
+    check(type(text) is str and '\x00' not in text and not text.startswith('//')
+          and Path(text).is_absolute() and str(Path(text))==text and '..' not in Path(text).parts
+          and Path(text)!=Path('/'),'retained-current-target-path')
+    check(type(value['sha256']) is str and re.fullmatch('[a-f0-9]{64}',value['sha256'])
+          and value['sha256']==request['target_sha256'],'retained-current-target-hash')
+    return Path(text)
 
 
 def _transport(m):
@@ -396,7 +408,12 @@ def prepare(maintenance,pack_id,member_id,*,initialized=None):
     check(local.get('id')==pack_id and local.get('inventory_complete') is True and not local.get('cleaned_at') and not local.get('cleanup_verified_at'),'retained-original-local-pack')
     members=[m for m in local['members'] if m.get('id')==member_id];check(len(members)==1,'retained-unique-local-member');member=members[0]
     check(member.get('phase') in ('review','ready','submitted','confirmed') and not member.get('ordinary_import_token') and not member.get('retained_finalization'),'retained-local-member-phase')
-    target=Path(member['destination']);source=Path(member['source'])
+    from pack_recovery import catalog_destination
+    match={'issueid':member['issueid'],'comicid':member['comicid']}
+    target=catalog_destination(maintenance.worker,a.catalog,match)
+    check(target is not None,'retained-current-catalog-target')
+    check('destination' not in member or member['destination']==str(target),'retained-original-target-path')
+    source=Path(member['source'])
     from maintenance import scoped_file
     check(scoped_file(target,maintenance.worker.roots) and scoped_file(source,[Path(maintenance.settings['ddl_cache']),receipt.parent/'extracted']),'retained-selected-source-scope')
     from normalize import identity
@@ -410,14 +427,20 @@ def prepare(maintenance,pack_id,member_id,*,initialized=None):
     check(pack.get('source_generation')==local['source_generation'] and not pack.get('cleanup_started') and not pack.get('cleanup_complete'),'retained-original-generation')
     from native_handoff import native_path
     check(native_path(maintenance,capture_source)==pack['source'],'retained-original-source-mapping')
-    match={'issueid':member['issueid'],'comicid':member['comicid']}
     proof=a.confirmation_check(source,target,match);owner=proof['target']['authority']['owner']
+    target_hash=first['hashes'][str(target)]
+    check('destination_sha256' not in member or member['destination_sha256']==target_hash,'retained-original-target-hash')
+    authorization=_authorization(maintenance)
+    if authorization is not None:
+        review=evidence.decode_json(authorization[8])
+        check(_target_witness(review['existing_target'],review['request'])==target
+              and review['existing_target']['sha256']==target_hash,'retained-reviewed-current-target')
     check(native_member.get('kind')==('annual' if owner['table']=='annuals' else 'issue') and native_member.get('issueid')==owner['issueid']
           and native_member.get('comicid')==owner['parentcomicid'] and native_member.get('releasecomicid')==owner['releasecomicid'],'retained-original-native-owner')
     from pack_recovery import source_state
     check(source_state(capture_source,content=True)==local['source_generation'],'retained-generation-current')
     request=dict(version=1,kind='retained-ddl-existing-target-v1',ddl_id=pack['ddl_id'],pack_id=pack_id,member_id=member_id,
-        source_generation=local['source_generation'],source_sha256=member['sha256'],target_sha256=member['destination_sha256'],owner=owner,
+        source_generation=local['source_generation'],source_sha256=member['sha256'],target_sha256=target_hash,owner=owner,
         review_sha256=hashlib.sha256(compact({'receipt_sha256':hashlib.sha256(raw).hexdigest(),'pack_before':row,'owner':owner})).hexdigest())
     check(first['hashes'][str(target)]==request['target_sha256'] and first['hashes'][str(source)]==request['source_sha256'],'retained-payload-original')
     _original_pack(request,row,workflow,native_path(maintenance,target))

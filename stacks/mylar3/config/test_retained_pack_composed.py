@@ -57,6 +57,25 @@ class Composed(unittest.TestCase):
  def test_genuine_factories_native_two_rows_and_worker_receipt_CAS_over_HTTP(self):
   answer=self.execute();self.assertTrue(answer['receipt_changed']);self.assertEqual(answer['member_phase'],'retained-accepted')
   self.assertFalse(answer['answer']['cleanup_grant']);self.assertEqual((answer['intent_count'],answer['done_count']),(1,1))
+ def test_ready_original_without_destination_history_uses_current_catalog(self):
+  answer=self.execute(no_destination_history=True)
+  self.assertEqual(answer['member_phase'],'retained-accepted')
+  self.assertEqual((answer['intent_count'],answer['done_count']),(1,1))
+  self.assertFalse(answer['ordinary_import_token_present'])
+  self.assertFalse(answer['answer']['ordinary_import_grant'])
+ def test_explicit_local_target_conflict_is_not_rebased(self):
+  answer=self.execute(prepare_refusal=True,local_member_overrides={'destination':str(self.case.target)+'.foreign'})
+  self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed'])
+  self.assertEqual(self.requests,[])
+ def test_explicit_local_target_hash_conflict_is_not_rebased(self):
+  answer=self.execute(prepare_refusal=True,local_member_overrides={'destination_sha256':'f'*64})
+  self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed'])
+  self.assertEqual(self.requests,[])
+ def test_catalog_drift_during_target_resolution_refuses_before_intent(self):
+  answer=self.execute(no_destination_history=True,prepare_refusal=True,catalog_drift_during_resolution=True)
+  self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed'])
+  self.assertEqual((answer['intent_count'],answer['done_count']),(0,0))
+  self.assertEqual(self.requests,[])
  def test_consumed_terminal_commits_original_done_bytes(self):
   answer=self.execute(check_terminal_hash=True);self.assertTrue(answer['terminal_hash_verified'])
   import importlib.util
@@ -211,14 +230,14 @@ class Composed(unittest.TestCase):
  def test_non_ASCII_full_workflow_rows_preserved(self):
   with sqlite3.connect(self.c.database) as db:db.execute("INSERT INTO records VALUES ('unicode','unrelated',?,0.0)",('é漢字𝄞',))
   pack=self.base.c.store.get('pack',self.case.body['pack_id']);pack['opaque_title']='é漢字𝄞';self.base.c.store.set('pack',self.case.body['pack_id'],pack)
-  answer=self.execute();self.assertEqual(answer['member_phase'],'retained-accepted')
+  answer=self.execute(no_destination_history=True);self.assertEqual(answer['member_phase'],'retained-accepted')
   with closing(sqlite3.connect(self.c.database)) as db:self.assertEqual(db.execute("SELECT value FROM records WHERE kind='unicode'").fetchall(),[('é漢字𝄞',)])
  def test_annual_distinct_release_original_SQL_identity(self):
   with sqlite3.connect(self.c.native_database) as db:
    db.execute('DELETE FROM issues');db.execute('INSERT INTO annuals VALUES(?,?,?,?,?,?)',('123','456','789',self.case.target.name,'Archived',0))
   self.case.body['owner']={'table':'annuals','issueid':'123','parentcomicid':'456','releasecomicid':'789'}
   pack=self.base.c.store.get('pack',self.case.body['pack_id']);pack['members'][0].update(kind='annual',releasecomicid='789');self.base.c.store.set('pack',self.case.body['pack_id'],pack)
-  answer=self.execute();self.assertEqual(answer['member_phase'],'retained-accepted')
+  answer=self.execute(no_destination_history=True);self.assertEqual(answer['member_phase'],'retained-accepted')
   with closing(sqlite3.connect(self.c.native_database)) as db:self.assertEqual(db.execute('SELECT ReleaseComicID,Status FROM annuals').fetchall(),[('789','Archived')])
  def test_late_foreign_library_alias_refuses_receipt_CAS(self):self.refuses('claim')
  def test_late_control_refuses_receipt_CAS(self):self.refuses('control')

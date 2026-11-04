@@ -24,6 +24,21 @@ Scopes derive from actual original native `/config`, worker configured state, re
 
 The parent creates exclusive private input/conversation files inside already-mounted worker state and private host output; it does not create a missing bind root or add mounts. Initialization occurs before the backup proof lifetime. Root source/output refs are kept private. Unknown create/start/stop/unpause/pipe acknowledgements retain outputs and hold without replay or cleanup.
 
+The fixed pack bootstrap's signed `review_ref` includes an `existing_target`
+witness with exactly `path,sha256`, in the configured worker namespace. Its hash
+must equal the request's target hash. Root maps that path through the original
+mounts and checks content as UID1000 before stopping the reader. Worker preparation
+independently resolves the current catalog destination under Writer, verifies
+source/target ownership and payload preservation, and requires the reviewed
+witness to match. Existing receipt destination fields, when present, must agree;
+their absence does not supply or require historical ordinary-import provenance.
+The receipt changes only through the genuine retained acceptance CAS.
+
+Before binding the request, the genuine selected `packReport` must establish its
+native member row. Reports derive the complete current owner, including an
+annual's distinct release comic, from the native catalog and recheck it before
+commit. This records current facts without an import ACK or cleanup permission.
+
 ## Conversation and backup
 
 Wire frame is bounded canonical compact JSON with exact `version,kind,nonce,sequence,challenge,payload`. Integer/bool/float distinctions matter. Original actual FIFO fd9, process/thread, sequence and fresh challenge remain bound. Public Pipe construction is a mechanism, not a backup capability. The owning root invocation/profile/input and original inherited channel are required; saved messages or an arbitrary separately launched worker are not an accepted operational producer.

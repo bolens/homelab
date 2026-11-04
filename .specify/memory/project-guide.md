@@ -41,6 +41,14 @@ remain a separate case because they need not already be catalog destinations.
 When adding a private action version, trace every actual dispatcher, birth,
 lifecycle policy and terminal consumer before operational testing.
 
+Before installing selection-bound retained controls, check the actual local and
+native capture/member/generation, current catalog status/location and required
+review fields together. `Wanted` with no catalog location is not an existing
+catalog target. Keep that input held; a reviewed path/hash cannot create owner
+authority. Distinguish missing ordinary-import history from missing current
+ownership, and use the owning report/import routes without editing receipts or
+manufacturing acknowledgements.
+
 Reviewed, frozen source and its matching checked installation may be exercised
 in an explicitly authorized disposable integration test before merge. Hosted CI
 still gates merge, and final source, delivery and runtime evidence must join
@@ -53,6 +61,11 @@ same inventory into every supplier, wrapper, continuation and test. Compare exac
 names, hashes and original signatures, rather than copying current file totals
 between templates. Keep resource ceilings separate from census values. A changed
 inventory requires a fresh binding, not adaptation of an already armed attempt.
+
+Finish permissions before binding originals; even a same-mode `chmod` changes
+ctime. Fault-injection suites must load a disposable module copy before changing
+its source file or source-directory permissions. Restoring bytes or modes does
+not restore the original signature and cannot make checkout mutation read-only.
 
 For protected directory checks, distinguish immutable owned namespaces from
 live-service mount roots. Directory entry churn is not an identity change.

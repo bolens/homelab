@@ -29,6 +29,9 @@ Local tagging controls exercise the real native admission modules; three tests
 require bundled tagging executables and run in the image build. The image gate
 requires all tagging controls to pass without skips.
 The Mylar gate also runs the complete standalone installation, backup and terminal suites.
+`MYLAR_PYTHON` selects the Mylar source-test interpreter. Authenticated host
+controls use `PUBLICATION_HOST_PYTHON` (default `python3`) and require Linux
+memfd/seal support; the gate checks those features before running the suites.
 Prepare the shared source-lint checkout and locked dependencies as described in
 [local CI setup](documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).
 Its revision and Ruff version must match the hosted workflow.

@@ -1,16 +1,63 @@
 """Real pipes/SQLite/files; parent foreign provenance is an explicit host fixture."""
 from contextlib import closing
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import select
 import sqlite3
+import sys
 import tempfile
 import threading
 import unittest
 from unittest.mock import patch
 import archive_terminal_observation as h
+
+
+def setUpModule():
+    """Source-permission fault tests may mutate only a disposable module copy."""
+    global h, _module_fixture, _original_module, _original_source, _original_signature, _fixture_module_name
+    _original_module = h
+    _original_source = Path(h.__file__).resolve()
+    _original_signature = h.nine(_original_source.lstat())
+    raw = _original_source.read_bytes()
+    if h.nine(_original_source.lstat()) != _original_signature:
+        raise AssertionError('Archive observer source changed during fixture capture')
+    _module_fixture = tempfile.TemporaryDirectory(prefix='archive-observer-source-')
+    _fixture_module_name = Path(_module_fixture.name).name.replace('-', '_')
+    registered = False
+    try:
+        path = Path(_module_fixture.name) / _original_source.name
+        path.write_bytes(raw)
+        path.chmod(_original_signature[5] & 0o777)
+        if _fixture_module_name in sys.modules:
+            raise AssertionError('Archive observer fixture module already exists')
+        spec = importlib.util.spec_from_file_location(_fixture_module_name, path)
+        h = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = h
+        registered = True
+        spec.loader.exec_module(h)
+        if _original_module.nine(_original_source.lstat()) != _original_signature:
+            raise AssertionError('Archive observer source changed during fixture load')
+    except BaseException:
+        if registered and sys.modules.get(_fixture_module_name) is h:
+            sys.modules.pop(_fixture_module_name)
+        h = _original_module
+        _module_fixture.cleanup()
+        raise
+
+
+def tearDownModule():
+    global h
+    try:
+        if _original_module.nine(_original_source.lstat()) != _original_signature:
+            raise AssertionError('Archive observer tests changed the original module')
+    finally:
+        if sys.modules.get(_fixture_module_name) is h:
+            sys.modules.pop(_fixture_module_name)
+        h = _original_module
+        _module_fixture.cleanup()
 
 
 class Dialogue(unittest.TestCase):
