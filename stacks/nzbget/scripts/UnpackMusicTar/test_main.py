@@ -1892,6 +1892,45 @@ class MusicProcessingSeamTest(unittest.TestCase):
                     self.assertEqual((root / '01 Artist’s Song.flac').read_bytes(), audio)
                     main.process_release(root)
 
+    def test_disc_prefixed_cue_alias_preserves_complete_filename_identity(self) -> None:
+        for variant in ('valid', 'album', 'artist', 'track', 'disc', 'mix', 'ambiguous', 'path', 'performer-header', 'album-header', 'duplicate-header', 'invalid-header'):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {'ARTIST': 'Fixture Artist', 'ALBUM': 'Example - Disc 1',
+                        'TITLE': 'Song', 'TRACKNUMBER': '1', 'TRACKTOTAL': '1'}
+                if variant in {'album', 'artist'}:
+                    tags[variant.upper()] = 'Foreign'
+                if variant == 'track':
+                    tags['TRACKNUMBER'] = '2'
+                if variant == 'disc':
+                    tags['DISCNUMBER'] = '2'
+                name = '101-fixture_artist-song-group.flac'
+                (root / name).write_bytes(self.tagged_flac(tags))
+                if variant == 'ambiguous':
+                    (root / '101.fixture.artist.song.group.flac').write_bytes(self.tagged_flac(tags))
+                requested = '01-Fixture Artist-Song-group.wav'
+                if variant == 'mix':
+                    requested = '01-Fixture Artist-Song-other.wav'
+                if variant == 'path':
+                    requested = '../' + requested
+                cue = f'FILE "{requested}" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n'
+                headers = {'performer-header': 'PERFORMER "Other Artist"\n',
+                           'album-header': 'TITLE "Other Album"\n',
+                           'duplicate-header': 'TITLE "Example - Disc 1"\nTITLE "Example - Disc 1"\n',
+                           'invalid-header': 'TITLE Other Album\n'}
+                cue = headers.get(variant, '') + cue
+                (root / 'example.disc.1.cue').write_text(cue)
+                before = self.snapshot(root)
+                if variant == 'valid':
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual((root / 'example.disc.1.cue').read_text(), cue.replace(requested, name))
+                    self.assertEqual((root / name).read_bytes(), before[name])
+                    main.process_release(root, require_completeness=True)
+                else:
+                    with self.assertRaises(ValueError):
+                        main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
+
     def test_missing_wave_cue_uses_exact_artist_title_track_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -2740,6 +2779,124 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.FAILURE)
             self.assertEqual(self.snapshot(root), before)
             self.assertFalse(any(root.glob(".unpack-music-*")))
+
+    def release_total_fixture(self, root: Path, *, global_numbers: bool = False,
+                              directories: bool = False) -> dict[str, bytes]:
+        root.mkdir(parents=True, exist_ok=True)
+        audio = {}
+        for disc, track, number, title in ((1, 1, 1, "Opening"), (1, 2, 2, "Second Song"), (2, 1, 3, "Finale")):
+            name = f'{disc}{track:02}-fixture-{title.lower().replace(" ", "_")}.flac'
+            relative = f'CD{disc:02}/{name}' if directories else name
+            tags = {'ALBUM': 'Example', 'ARTIST': 'Fixture', 'ALBUMARTIST': 'Fixture', 'TITLE': title,
+                    'TRACKNUMBER': str(number if global_numbers else track), 'TOTALTRACKS': '3'}
+            if not directories:
+                tags.update(DISCNUMBER=str(disc), TOTALDISCS='2')
+            audio[relative] = self.tagged_flac(tags)
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(audio[relative])
+        (root / 'release.m3u').write_text(''.join(name + '\n' for name in audio))
+        (root / 'release.nfo').write_text(
+            'Artist...: Fixture       Title.....: Example\nSource....: 2CD\n'
+            'Tracklist.. .\nCD1:\n01.Opening       [03:00]\n02.Second Song       [04:00]\n'
+            'CD2:\n01.Finale       [05:00]\n')
+        return audio
+
+    def test_whole_release_totals_require_and_retain_both_manifests(self) -> None:
+        for global_numbers, directories in itertools.product((False, True), repeat=2):
+            with self.subTest(global_numbers=global_numbers, directories=directories), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = self.release_total_fixture(root, global_numbers=global_numbers, directories=directories)
+                (root / 'encoding.log').write_text('Extraction report\n')
+                main.process_release(root, require_completeness=True)
+                self.assertFalse((root / 'encoding.log').exists())
+                self.assertTrue((root / 'release.nfo').exists())
+                self.assertTrue((root / 'release.m3u').exists())
+                for name, data in audio.items():
+                    self.assertEqual((root / name).read_bytes(), data)
+                before = self.snapshot(root)
+                main.process_release(root)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_whole_release_totals_reject_missing_mismatched_and_binary_evidence(self) -> None:
+        variants = ('missing_nfo', 'missing_playlist', 'artist', 'album', 'source', 'title', 'missing_row',
+                    'extra_row', 'duplicate_disc', 'duplicate_artist', 'binary', 'oversized', 'partial_playlist',
+                    'duplicate_playlist', 'track_gap', 'conflicting_total', 'missing_disc', 'missing_title')
+        for variant in variants:
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.release_total_fixture(root, global_numbers=True)
+                nfo, playlist = root / 'release.nfo', root / 'release.m3u'
+                text = nfo.read_text()
+                if variant == 'missing_nfo':
+                    nfo.unlink()
+                elif variant == 'missing_playlist':
+                    playlist.unlink()
+                elif variant in ('artist', 'album', 'source', 'title', 'missing_row', 'extra_row', 'duplicate_disc', 'duplicate_artist'):
+                    old, new = {
+                        'artist': ('Artist...: Fixture', 'Artist...: Foreign'),
+                        'album': ('Title.....: Example', 'Title.....: Foreign'),
+                        'source': ('Source....: 2CD', 'Source....: 3CD'),
+                        'title': ('01.Finale', '01.Different Mix'),
+                        'missing_row': ('01.Finale       [05:00]\n', ''),
+                        'extra_row': ('01.Finale       [05:00]', '01.Finale       [05:00]\n02.Missing       [03:00]'),
+                        'duplicate_disc': ('CD2:', 'CD1:'),
+                        'duplicate_artist': ('Tracklist.. .', 'Artist...: Fixture\nTracklist.. .'),
+                    }[variant]
+                    nfo.write_text(text.replace(old, new))
+                elif variant == 'binary':
+                    nfo.write_bytes(nfo.read_bytes() + b'\0')
+                elif variant == 'oversized':
+                    nfo.write_text(text + ' ' * 65536)
+                elif variant == 'partial_playlist':
+                    playlist.write_text('\n'.join(playlist.read_text().splitlines()[:2]) + '\n')
+                elif variant == 'duplicate_playlist':
+                    playlist.write_text(playlist.read_text() + playlist.read_text().splitlines()[0] + '\n')
+                else:
+                    path = next(root.glob('201-*.flac'))
+                    tags = main.flac_album_metadata(path)[0]
+                    if variant == 'track_gap':
+                        tags['TRACKNUMBER'] = '4'
+                    elif variant == 'conflicting_total':
+                        tags['TOTALTRACKS'] = '2'
+                    elif variant == 'missing_disc':
+                        tags['DISCNUMBER'] = '3'
+                    else:
+                        del tags['TITLE']
+                    path.write_bytes(self.tagged_flac(tags))
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_whole_release_evidence_cannot_cross_edition_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.release_total_fixture(root / 'Edition A', global_numbers=True)
+            self.release_total_fixture(root / 'Edition B', global_numbers=True)
+            (root / 'Edition B/release.nfo').unlink()
+            before = self.snapshot(root)
+            with self.assertRaises(ValueError):
+                main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_whole_release_evidence_survives_archive_extraction_and_flattening(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / 'source'
+            audio = self.release_total_fixture(source, global_numbers=True)
+            with zipfile.ZipFile(root / 'release.zip', 'w') as archive:
+                for path in main.tree_files(source):
+                    archive.write(path, 'Release/' + path.relative_to(source).as_posix())
+            shutil.rmtree(source)
+            main.process_release(root)
+            self.assertFalse((root / 'release.zip').exists())
+            self.assertTrue((root / 'release.nfo').exists())
+            self.assertTrue((root / 'release.m3u').exists())
+            for name, data in audio.items():
+                self.assertEqual((root / name).read_bytes(), data)
+            main.plan_tree(root, require_completeness=True)
 
     def test_cdm_disc_completeness_and_references_survive_flattening(self) -> None:
         for missing in (False, True):
