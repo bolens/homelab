@@ -721,7 +721,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "0421ca72354483b2fb0e8142aee8d108da885ffdbe879bfe0f28577d15317c7d"
+    "sha256": "e9c07102e716d8d10962d7362f64485be359aa766fcc4cac9da9f6e9d23faa6d"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -1585,7 +1585,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "e113468fe702f6820dcd0d345bbdb13f404d6c6c7430ab1bf96c798d2997a93a"
+    "sha256": "de34fa58dabf51229232edfde5e480b55634c2237747d872e346f70d0182429b"
   },
   {
     "path": "test_standalone_anchor_root.py",

@@ -2101,7 +2101,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "e113468fe702f6820dcd0d345bbdb13f404d6c6c7430ab1bf96c798d2997a93a",
+    "sha256": "de34fa58dabf51229232edfde5e480b55634c2237747d872e346f70d0182429b",
     "target": "test_standalone_anchor_composition.py"
   },
   {
