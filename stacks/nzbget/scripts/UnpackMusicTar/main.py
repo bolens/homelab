@@ -752,7 +752,7 @@ def is_windows_folder_metadata(path: Path) -> bool:
 
 def wrapped_posting_name(path: Path) -> tuple[str, bool] | None:
     match = re.fullmatch(
-        r'(?:\[N3wZ\] _[A-Za-z0-9]+___)?\[PRiVATE\]-\[WtFnZb\]-\[([^/\\\r\n]{1,256})\]'
+        r'(?:\[N3wZ\] _[A-Za-z0-9]+___)?\[PRiVATE\]-\[(?:WtFnZb|EnCrYpTnZb)\]-\[([^/\\\r\n]{1,256})\]'
         r'-\[[0-9]+_[0-9]+\] - __ yEnc +[0-9]+ \([0-9]+_[0-9]+\)(\.flac)?', path.name, re.IGNORECASE)
     if not match or match[1].startswith('.') or not all(c.isprintable() for c in match[1]):
         return None
