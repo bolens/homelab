@@ -81,6 +81,8 @@ AUDIOCHECKER logs use the same whole-file text validation as EAC logs.
 Parenthesized `(CD1)` and `(CD2)` posting wrappers restore verified FLAC images and
 cue sheets together into their disc folders. Wrapped `.accurip`, `.log` and `.txt`
 reports require the complete posting filename and verified text content.
+This includes `EnCrYpTnZb` posting wrappers. Wrapped cue sheets and unrecognised
+content remain protected.
 
 Files left with obfuscated or missing extensions are identified from their
 content first, including files carrying a sidecar extension such as `.txt` or

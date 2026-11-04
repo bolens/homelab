@@ -1611,6 +1611,43 @@ class MusicProcessingSeamTest(unittest.TestCase):
                 main.process_release(root)
             self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
 
+    def test_encryptnzb_wrapped_reports_require_verified_text_and_preserve_references(self) -> None:
+        def posting(name: str) -> str:
+            return f'[PRiVATE]-[EnCrYpTnZb]-[{name}]-[37_91] - __ yEnc  4946 (1_1)'
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = self.tagged_flac({'TRACKNUMBER': '1', 'TRACKTOTAL': '1'})
+            (root / 'track.flac').write_bytes(audio)
+            report = root / posting('Album.log')
+            report.write_text('Exact Audio Copy V1.0\nExtraction report\n')
+            self.assertTrue(main.disposable(report))
+            retained = {}
+            for name, payload in (('binary.log', b'Exact Audio Copy\0'),
+                                  ('audio.log', audio), ('playlist.txt', b'01.flac\n02.flac\n'),
+                                  ('Album.cue', b'FILE "track.flac" WAVE\n')):
+                path = root / posting(name)
+                path.write_bytes(payload)
+                retained[path.name] = payload
+                self.assertFalse(main.disposable(path))
+            (root / posting('audio.log')).unlink()
+            del retained[posting('audio.log')]
+            unknown = root / posting('Unknown.log').replace('EnCrYpTnZb', 'Unknown')
+            unknown.write_text('Extraction report\n')
+            self.assertFalse(main.disposable(unknown))
+            main.process_release(root, extensions=False, cleanup=False)
+            self.assertTrue(report.exists())
+            cue = root / 'protected.cue'
+            cue.write_text(f'FILE "{report.name}" WAVE\n')
+            main.process_release(root, extensions=False)
+            self.assertTrue(report.exists())
+            cue.unlink()
+            main.process_release(root, extensions=False)
+            self.assertFalse(report.exists())
+            self.assertEqual((root / 'track.flac').read_bytes(), audio)
+            for name, payload in retained.items():
+                self.assertEqual((root / name).read_bytes(), payload)
+
     def test_windows_audiochecker_log_text_validation_is_complete(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'audiochecker.log'
