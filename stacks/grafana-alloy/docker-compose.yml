@@ -40,7 +40,7 @@ services:
         max-file: "3"
 
   alloy:
-    image: grafana/alloy:latest@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
+    image: grafana/alloy:latest@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4
     container_name: grafana-alloy
     restart: unless-stopped
     command:

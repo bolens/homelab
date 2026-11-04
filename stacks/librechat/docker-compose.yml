@@ -4,7 +4,7 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   mongodb:
-    image: mongo:8
+    image: mongo:9
     container_name: librechat-mongodb
     restart: unless-stopped
     labels:
