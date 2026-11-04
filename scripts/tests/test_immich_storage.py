@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -65,7 +67,11 @@ class ImmichStorageTests(unittest.TestCase):
         added = [m for m in mounts if m["target"] == "/data/library"]
         self.assertEqual(len(added), 1)
         self.assertEqual(added[0]["source"], str(path))
-        self.assertFalse(added[0]["bind"]["create_host_path"])
+        declared = yaml.safe_load((self.stack / "docker-compose.storage.yml").read_text())
+        mount = declared["services"]["immich-server"]["volumes"][0]
+        self.assertIs(mount["bind"]["create_host_path"], False)
+        # A false bool is omitted by some Compose JSON serializers.
+        self.assertIs(added[0].get("bind", {}).get("create_host_path", False), False)
         self.assertFalse(added[0].get("read_only", False))
         mounts.remove(added[0])
         self.assertEqual(enabled, base)

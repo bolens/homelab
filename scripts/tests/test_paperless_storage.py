@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -45,7 +47,13 @@ class PaperlessStorageTests(unittest.TestCase):
                 self.assertEqual(mounts[mount["target"]], mount)
             originals = mounts["/usr/src/paperless/media/documents/originals"]
             self.assertEqual(originals["source"], str(missing))
-            self.assertIs(originals["bind"]["create_host_path"], False)
+            # Compose releases differ in whether JSON retains a false bool.
+            # Require the security setting in the actual source, then reject a
+            # true rendered value while accepting its omitempty representation.
+            declared = yaml.safe_load((target / "docker-compose.storage.yml").read_text())
+            mount = declared["services"]["webserver"]["volumes"][0]
+            self.assertIs(mount["bind"]["create_host_path"], False)
+            self.assertIs(originals.get("bind", {}).get("create_host_path", False), False)
             self.assertFalse(missing.exists())
             self.assertEqual(old["networks"], new["networks"])
             self.assertEqual(old.get("ports"), new.get("ports"))
