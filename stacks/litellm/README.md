@@ -9,7 +9,7 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 ## Quick start
 
 1. `./prepare-stack.sh`, creates local config and ensures `ai-backend` plus `ingress-public`.
-2. Set **`LITELLM_MASTER_KEY`**, **`UI_USERNAME`**, **`UI_PASSWORD`**, and **`POSTGRES_PASSWORD`** (plus optional **`POSTGRES_USER`** / **`POSTGRES_DB`**) in `stack.env` (see `stack.env.example`). **`UI_PASSWORD` = `LITELLM_MASTER_KEY`** is a common choice. Compose injects **`DATABASE_URL`** into the proxy container from those Postgres variables (bundled **`litellm-postgres`**); without a DB the Admin UI reports **"Not connected to DB!"**. The container reads **`UI_*`** from **`stack.env`** only (not from Compose `environment:` interpolation for those vars). Re-run **`./prepare-stack.sh`** after editing `stack.env` so **`.env`** stays aligned for bind-mount path interpolation (`LITELLM_CONFIG_FILE`).
+2. Set **`LITELLM_MASTER_KEY`**, **`UI_USERNAME`**, **`UI_PASSWORD`**, and **`POSTGRES_PASSWORD`** (plus optional **`POSTGRES_USER`** / **`POSTGRES_DB`**) in `stack.env` (see `stack.env.example`). Use a unique bootstrap UI password separate from the master API key. Compose injects **`DATABASE_URL`** into the proxy container from those Postgres variables (bundled **`litellm-postgres`**); without a DB the Admin UI reports **"Not connected to DB!"**. The container reads **`UI_*`** from **`stack.env`** only (not from Compose `environment:` interpolation for those vars). Re-run **`./prepare-stack.sh`** after editing `stack.env` so **`.env`** stays aligned for bind-mount path interpolation (`LITELLM_CONFIG_FILE`).
 3. Edit **`~/.config/litellm/config.yaml`** (or the path in **`LITELLM_CONFIG_FILE`**), default includes one Ollama model at `http://ollama:11434`; add models and `os.environ/...` API keys as needed.
 4. `docker compose up -d` (after prepare, `.env` is a copy of `stack.env` with paths expanded for bind mounts)
 5. Ensure **`stacks/litellm/caddy_snippet.conf`** is on the Caddy host (this repo's **`stacks/caddy`** compose bind-mounts **`../../stacks`** to **`/etc/caddy/import/stacks`**, which matches **`import ... stacks/*/caddy_snippet.conf`**). Reload after edits, e.g. from the caddy stack dir: **`docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`**.
@@ -39,6 +39,14 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 | **LibreChat / n8n** | Any field expecting an OpenAI-compatible base URL + API key |
 | **Ollama** | Keep `http://ollama:11434` for direct pulls; LiteLLM adds routing, keys, and extra backends |
 
+When using GitHub Copilot models with Vane or other clients that depend on system
+instructions, set `litellm_settings.disable_copilot_system_to_assistant: true` in
+the proxy YAML. Some LiteLLM versions otherwise rewrite system messages as
+assistant messages, which breaks Vane's JSON classifier output. The example
+includes this setting. Preparation preserves existing configurations, so add the
+setting explicitly after a verified configuration and database backup, then
+restart the same proxy image and check structured output plus streaming.
+
 ## Portainer
 
 - Repository compose path: `stacks/litellm/docker-compose.yml`.
@@ -57,3 +65,11 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 - **Browser console noise:** messages from **`console-log.service.ts`**, **`runtime.lastError`**, **`Failed to set badge state`**, or **`bitwarden_*`** / **`bootstrap-autofill-overlay.js`** are almost always **password-manager extensions** (e.g. Bitwarden), not LiteLLM. Use a private window or disable the extension on this site to confirm.
 - **Postgres** ships with this stack (`litellm-postgres`, volume **`litellm_pgdata`**). Set **`POSTGRES_PASSWORD`** in **`stack.env`**; **`DATABASE_URL`** is built in **`docker-compose.yml`**. **External DB:** remove the **`postgres`** service, remove the **`DATABASE_URL`** line under the **`litellm`** service **`environment:`** block, and set **`DATABASE_URL`** in **`stack.env`** yourself ([upstream deploy](https://docs.litellm.ai/docs/proxy/deploy#deploy-with-database)).
 - Do not commit **`stack.env`** or secrets inside **`~/.config/litellm/config.yaml`**; use `os.environ/VAR` for keys.
+
+## Optional ChatGPT account proxy
+
+The [openai-oauth stack](../openai-oauth/README.md) provides a dedicated account upstream. Add `-f docker-compose.oauth.yml` alongside the base Compose file only after preparing that stack. This adds a narrow network shared by the proxy and LiteLLM. Preserve existing providers and add only verified account models to the private configuration. Client services continue using their existing LiteLLM URL and authenticated keys. Back up the existing configuration and database before changing the live proxy, and preserve the current image rather than pulling a floating tag.
+
+## Replace bootstrap UI credentials
+
+Create a regular `proxy_admin` user with its own email and password through the authenticated `/user/new` API or Internal Users page. Verify that account can sign in before setting `general_settings.disable_env_credential_login: true` in the private proxy YAML and restarting the same proxy image. Verify the regular account again and confirm both environment-password and master-key UI sign-ins fail. API authentication with existing service keys must continue to work. Back up the configuration and PostgreSQL database and verify an isolated restore before this transition. Keep bootstrap credentials private for rollback, and never disable the fallback before a regular administrator is verified.

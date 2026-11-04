@@ -1,0 +1,73 @@
+name: paperclip
+default_port: 3100
+databases:
+- postgres
+health:
+  endpoint: /api/health
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: ai
+exposure:
+  behind_caddy: true
+  public_by_default: true
+  recommended_hostname: paperclip.example.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://paperclip.ing
+  docs: https://docs.paperclip.ing
+  repo: https://github.com/paperclipai/paperclip
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: paperclip_data
+  role: app_data
+  critical: true
+- name: paperclip_web_tools
+  role: app_data
+  critical: false
+- name: paperclip_pgdata
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: Dedicated PostgreSQL on a private stack network; uploads, encryption key
+    and agent workspaces persist separately. Optional local Codex Git workaround
+    forwards the scoped broker capability for release 2026.1023.0. Optional
+    versioned build/browser, developer checks and publication scanning tools live in a separate Root-owned tool volume; their explicit
+    preparation does not install host packages or change the server runtime.
+  # The opt-in Codex sandbox override relaxes only nested namespace/mount syscalls.
+  # See README for the pinned seccomp source, tradeoff, verification and rollback.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

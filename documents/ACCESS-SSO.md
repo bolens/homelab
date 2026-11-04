@@ -166,13 +166,13 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
 | **nzbget**                                | Yes            | Protect NZBGet hostname; web UI is authenticated but Access adds an outer SSO/OTP layer. |
 | **nzbhydra2**                             | Yes            | Protect NZBHydra 2 hostname; indexer admin UI benefits from SSO/OTP. |
-| **ntfy**                                  | Yes            | Protect hostname; set `NTFY_BASE_URL` to that URL.                 |
+| **Gotify** | App authentication | Preserve token-authenticated `/message` and `/stream` for native clients; browser-only SSO challenges break them. |
 | **ntopng**                                | Yes            | Protect hostname if exposed (traffic analytics UI).                 |
 | **open-notebook**                         | Yes            | Protect hostname; optional UI password in app.                     |
 | **open-webui**                            | Yes            | Protect Open WebUI hostname for OAuth redirects.                   |
 | **paperless-ngx**                         | Yes            | Protect Paperless hostname.                                        |
 | **password-pusher**                       | Yes            | Protect hostname; optional logins use SMTP (see smtp-relay stack). |
-| **perplexica**                            | Yes            | Protect hostname.                                                  |
+| **vane**                            | Yes            | Owners only; settings and history are shared.                                                  |
 | **portainer** (if used)                   | Yes            | Common use case; protect e.g. `portainer.yourdomain.com`.          |
 | **posthog**                               | Yes            | Protect hostname; product analytics and session data; `DOMAIN` must match Access URL. |
 | **privatebin**                            | Yes            | Protect hostname.                                                  |

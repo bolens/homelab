@@ -1,0 +1,9 @@
+# Optional private ChatGPT account upstream. Start openai-oauth separately.
+services:
+  litellm:
+    networks:
+      - oauth-backend
+networks:
+  oauth-backend:
+    name: oauth-backend
+    external: true

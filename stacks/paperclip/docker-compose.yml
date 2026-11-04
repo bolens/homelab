@@ -1,0 +1,80 @@
+# Upstream: https://github.com/paperclipai/paperclip/tree/v2026.1023.0/docker
+name: paperclip
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb
+    container_name: paperclip-postgres
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    environment:
+      POSTGRES_USER: paperclip
+      POSTGRES_DB: paperclip
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - paperclip_pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperclip -d paperclip"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  paperclip:
+    image: ghcr.io/paperclipai/paperclip:2026.1023.0@sha256:40f46940c4612ead131aebe6079cd4651f8cd1434af49f7c621887f4a452a62e
+    container_name: paperclip
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 4g
+    memswap_limit: 5g
+    pids_limit: 2048
+    stop_grace_period: 90s
+    labels:
+      logging: "true"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3100"
+      SERVE_UI: "true"
+      PAPERCLIP_HOME: /paperclip
+      DATABASE_URL: postgresql://paperclip:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/paperclip
+      PAPERCLIP_MIGRATION_AUTO_APPLY: "true"
+      PAPERCLIP_DEPLOYMENT_MODE: authenticated
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: public
+      PAPERCLIP_PUBLIC_URL: ${PAPERCLIP_PUBLIC_URL:?Set PAPERCLIP_PUBLIC_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET}
+      PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: ${PAPERCLIP_TOOL_ACTION_SIGNING_SECRET:?Set PAPERCLIP_TOOL_ACTION_SIGNING_SECRET}
+    volumes:
+      - paperclip_data:/paperclip
+      - paperclip_web_tools:/opt/paperclip-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - ingress-admin
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  ingress-admin:
+    name: ingress-admin
+    external: true
+
+volumes:
+  paperclip_data:
+  paperclip_web_tools:
+  paperclip_pgdata:

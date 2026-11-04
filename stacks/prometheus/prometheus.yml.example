@@ -63,14 +63,6 @@ scrape_configs:
       - targets: ["loki:3100"]
     metrics_path: /metrics
 
-  - job_name: promtail
-    scrape_interval: 30s
-    static_configs:
-      - targets: ["promtail:9080"]
-    metrics_path: /metrics
-
-  # Tailscale / Headscale exporter (optional): exposes Headscale/Tailscale metrics for the Headscale Overview Grafana dashboard.
-  # Deploy stacks/tailscale-exporter first, then enable this job.
   - job_name: tailscale-exporter
     static_configs:
       - targets: ["tailscale-exporter:9250"]
@@ -300,7 +292,7 @@ scrape_configs:
           - https://nextcloud.example.com
           - https://nodepad.example.com
           - https://nodered.example.com
-          - https://ntfy.example.com
+          - https://notify.example.com/health
           - https://ntopng.example.com
           - https://nzbget.example.com
           - https://nzbhydra.example.com
@@ -315,7 +307,7 @@ scrape_configs:
           - https://pwpush.example.com
           - https://paste.example.com
           - https://pdf.example.com
-          - https://perplexica.example.com
+          - https://vane.example.com
           - https://pgadmin.example.com
           - https://philter.example.com
           - https://phoneinfoga.example.com

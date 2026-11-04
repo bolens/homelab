@@ -1,0 +1,9 @@
+services:
+  music-assistant:
+    volumes:
+    - type: bind
+      source: ${MUSIC_PATH:?set the existing music directory}
+      target: /media
+      read_only: true
+      bind:
+        create_host_path: false

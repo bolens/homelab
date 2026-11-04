@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+lubelogger.home.arpa, lubelogger.local {
+    tls internal
+    reverse_proxy lubelogger:8080 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://lubelogger.example.com {
+    reverse_proxy lubelogger:8080 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+lubelogger.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy lubelogger:8080 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+dawarich.home.arpa, dawarich.local {
+    tls internal
+    reverse_proxy dawarich:3000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://dawarich.example.com {
+    reverse_proxy dawarich:3000 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+dawarich.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy dawarich:3000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

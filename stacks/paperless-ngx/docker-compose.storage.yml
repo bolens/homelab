@@ -1,0 +1,10 @@
+# Optional originals on a verified, existing host filesystem.
+# OCR archives, thumbnails and application state retain their existing storage.
+services:
+  webserver:
+    volumes:
+      - type: bind
+        source: ${PAPERLESS_ORIGINALS_PATH:?Set an existing Paperless originals directory}
+        target: /usr/src/paperless/media/documents/originals
+        bind:
+          create_host_path: false

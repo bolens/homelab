@@ -1,0 +1,8 @@
+{
+  "name": "homelab-openai-oauth",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "openai-oauth": "2.0.0"
+  }
+}

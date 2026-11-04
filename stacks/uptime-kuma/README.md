@@ -2,11 +2,11 @@
 
 Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.).
 
-**Website:** https://uptime.kuma.pet  
-**Docs:** https://github.com/louislam/uptime-kuma/wiki  
-**GitHub:** https://github.com/louislam/uptime-kuma  
-**Docker image:** https://hub.docker.com/r/louislam/uptime-kuma  
-**Releases:** https://github.com/louislam/uptime-kuma/releases  
+**Website:** https://uptime.kuma.pet
+**Docs:** https://github.com/louislam/uptime-kuma/wiki
+**GitHub:** https://github.com/louislam/uptime-kuma
+**Docker image:** https://hub.docker.com/r/louislam/uptime-kuma
+**Releases:** https://github.com/louislam/uptime-kuma/releases
 
 ## Quick start
 
@@ -29,7 +29,7 @@ Badge URLs that specify `:duration` must use an explicit unit in v2, such as
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `uptime-kuma:3001`) |
 | **Volume** | `uptime_kuma_data` (persistent data) |
-| **Network** | `ingress-admin` for Caddy; `mail-clients` for SMTP; private `docker-api` for container metadata |
+| **Network** | `ingress-admin` for Caddy; `mail-clients` for SMTP; private `docker-api` for container metadata; `telemetry` for Gotify |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
 
 Docker container monitors connect to
@@ -48,7 +48,7 @@ It configures:
 - 30-second checks for critical public services; 60 seconds for other checks.
 - Public HTTPS monitors for services that should be reachable through Caddy.
 - A `Critical Containers` group using the read-only Docker socket proxy.
-- `Homelab ntfy` as the default notification for active non-group monitors.
+- `Homelab Gotify` as the default notification for active non-group monitors.
 
 The baseline can be reapplied while Uptime Kuma is stopped:
 
@@ -75,8 +75,9 @@ No API key or new public endpoint is required for either container monitor.
 
 ### Notifications
 
-`Homelab ntfy` publishes to the `uptime-kuma` topic at
-`https://ntfy.bolens.dev`. `Homelab SMTP` is the fallback and uses
+`Homelab Gotify` uses the native Gotify provider at `http://gotify:80` over
+`telemetry`, with a dedicated application token and priority 5. The browser/client
+hostname is selected in the Gotify stack ingress configuration. `Homelab SMTP` is the fallback and uses
 `smtp-relay:587` over `mail-clients`; its sender and recipient match the DIUN
 mail notification settings. Test both integrations from **Settings →
 Notifications** after changing either service.

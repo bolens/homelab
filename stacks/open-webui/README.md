@@ -2,11 +2,11 @@
 
 Self-hosted chat interface for Ollama and OpenAI-compatible APIs. It can run without an internet connection when configured with local providers.
 
-**Website:** https://openwebui.com  
-**Docs:** https://docs.openwebui.com  
-**GitHub:** https://github.com/open-webui/open-webui  
-**Docker image:** https://github.com/open-webui/open-webui/pkgs/container/open-webui  
-**Releases:** https://github.com/open-webui/open-webui/releases  
+**Website:** https://openwebui.com
+**Docs:** https://docs.openwebui.com
+**GitHub:** https://github.com/open-webui/open-webui
+**Docker image:** https://github.com/open-webui/open-webui/pkgs/container/open-webui
+**Releases:** https://github.com/open-webui/open-webui/releases
 
 ## Features
 
@@ -115,7 +115,7 @@ For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../do
 To route **OpenAI-compatible** traffic (cloud + Ollama) through the homelab **[litellm](../litellm/README.md)** stack:
 
 1. Deploy **litellm** on `ai-backend` and set `LITELLM_MASTER_KEY` in `stacks/litellm/stack.env`.
-2. In **Open WebUI** `stack.env`, set `OPENAI_API_BASE_URL=http://litellm:4000/v1` and `OPENAI_API_KEY` to the same value as `LITELLM_MASTER_KEY` (or a LiteLLM virtual key).
+2. In **Open WebUI** `stack.env`, set `OPENAI_API_BASE_URL=http://litellm:4000/v1` and `OPENAI_API_KEY` to a dedicated LiteLLM virtual key.
 3. In the Open WebUI UI, enable the OpenAI connection and pick models exposed by LiteLLM.
 
 ### Database options
@@ -182,3 +182,5 @@ For more information, visit: https://docs.openwebui.com
 2. In Portainer, use **Stacks** -> **Add stack** -> **Repository** and set compose path to `stacks/open-webui/docker-compose.yml` (preferred).
 3. If you deploy by pasting compose, mirror values from `stack.env` in Portainer environment variables.
 4. Keep this stack behind Caddy/Cloudflare Access and do not publish host ports from this compose file.
+
+For the optional ChatGPT account upstream, append a separate connection to the existing connection list with base URL `http://litellm:4000/v1` and a dedicated LiteLLM `internal_user` key restricted to `chatgpt-personal`. Keep current cloud, Ollama, embedding and speech settings. Existing database-backed settings take precedence over environment defaults. Back up the full data volume with the app stopped, verify an isolated SQLite copy and file hashes, then preserve user/chat records and all unrelated configuration when adding the connection. Verify native model discovery after restarting the same image.

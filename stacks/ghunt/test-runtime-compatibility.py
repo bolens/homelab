@@ -17,11 +17,42 @@ from PIL import Image
 
 class RuntimeCompatibilityTests(unittest.TestCase):
     def test_reviewed_installed_versions(self):
-        expected = {"ghunt": "2.3.4+homelab.2", "alive-progress": "3.3.0+homelab.1",
+        expected = {"ghunt": "2.3.4+homelab.3", "alive-progress": "3.3.0+homelab.1",
                     "httpx": "0.28.1", "jsonpickle": "4.1.4",
-                    "graphemeu": "0.11.0", "pillow": "13.0.0"}
+                    "graphemeu": "0.11.0", "pillow": "13.0.0",
+                    "packaging": "26.3", "protobuf": "7.36.2"}
         for name, wanted in expected.items():
             self.assertEqual(version(name), wanted)
+
+    def test_all_generated_protobuf_messages_round_trip(self):
+        import importlib
+        import pkgutil
+        from google.protobuf.message_factory import GetMessageClass
+        import ghunt.protos
+        modules = [importlib.import_module(item.name) for item in
+                   pkgutil.walk_packages(ghunt.protos.__path__, "ghunt.protos.")
+                   if item.name.endswith("_pb2")]
+        self.assertEqual(len(modules), 4)
+        count = 0
+        for module in modules:
+            for descriptor in module.DESCRIPTOR.message_types_by_name.values():
+                kind = GetMessageClass(descriptor)
+                original = kind()
+                for field in descriptor.fields:
+                    if field.is_repeated:
+                        continue
+                    if field.type == field.TYPE_STRING:
+                        setattr(original, field.name, "compatibility-canary")
+                    elif field.type in (field.TYPE_INT32, field.TYPE_INT64,
+                                       field.TYPE_UINT32, field.TYPE_UINT64):
+                        setattr(original, field.name, 42)
+                encoded = original.SerializeToString(deterministic=True)
+                restored = kind()
+                restored.ParseFromString(encoded)
+                self.assertEqual(restored, original)
+                self.assertEqual(restored.SerializeToString(deterministic=True), encoded)
+                count += 1
+        self.assertGreater(count, 0)
 
     def test_real_client_factory_and_proxy_construction(self):
         async def run():

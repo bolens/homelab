@@ -53,6 +53,9 @@ services:
     volumes:
       - alloy_data:/var/lib/alloy
       - ${ALLOY_CONFIG_PATH}:/etc/alloy/config.alloy:ro
+      - /var/log:/var/log:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
     depends_on:
       alloy-docker-socket-proxy:
         condition: service_healthy

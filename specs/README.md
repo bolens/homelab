@@ -42,3 +42,11 @@ Installation validation alone does not establish feature completion.
 - [Librarr integrations](029-librarr-integrations/spec.md): [plan](029-librarr-integrations/plan.md), [research](029-librarr-integrations/research.md), [tasks](029-librarr-integrations/tasks.md).
 
 - [Librarr Bookshelf supplementation and Flood persistence](030-librarr-flood-supplement/spec.md): [plan](030-librarr-flood-supplement/plan.md), [research](030-librarr-flood-supplement/research.md), [tasks](030-librarr-flood-supplement/tasks.md).
+
+- [Homelab additions and Gotify migration](031-homelab-additions-gotify/spec.md): prospective [plan](031-homelab-additions-gotify/plan.md), [tasks](031-homelab-additions-gotify/tasks.md).
+
+- [Nodepad LiteLLM provider](032-nodepad-litellm/spec.md): [plan](032-nodepad-litellm/plan.md), [tasks](032-nodepad-litellm/tasks.md).
+
+- [Immich user storage](033-immich-user-storage/spec.md): [plan](033-immich-user-storage/plan.md), [tasks](033-immich-user-storage/tasks.md).
+
+- [Paperless user collections](034-paperless-user-collections/spec.md): [plan](034-paperless-user-collections/plan.md), [tasks](034-paperless-user-collections/tasks.md).

@@ -17,7 +17,9 @@ ENV NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL=$NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA
 COPY --from=deps /app/node_modules ./node_modules
 # repo/ must already include patches (run ./clone-repo.sh before build — applies patches/*.patch).
 COPY repo/ .
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+COPY verify-litellm.sh /tmp/verify-litellm.sh
+RUN --mount=type=cache,target=/app/.next/cache npm run build \
+    && NODEPAD_SOURCE_DIR=/app bash /tmp/verify-litellm.sh
 
 FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS runner
 WORKDIR /app

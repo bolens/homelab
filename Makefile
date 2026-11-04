@@ -51,6 +51,7 @@ validate-changed:
 
 ci-local:
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
+	$(MAKE) nodepad-source-check
 	$(MAKE) source-lint
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-worker-check
@@ -157,3 +158,7 @@ monitoring-quick: monitoring-reload monitoring-smoke-check
 # Rebuild blackbox_nonalert + blackbox_http_paths_nonalert from documents/MONITORING-TARGETS.md (example.com only).
 monitoring-sync-blackbox:
 	python3 scripts/sync-blackbox-targets-from-monitoring.py stacks/prometheus/prometheus.yml.example
+
+.PHONY: nodepad-source-check
+nodepad-source-check:
+	python3 scripts/check-nodepad-source.py

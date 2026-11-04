@@ -27,12 +27,13 @@ class SourceContract(unittest.TestCase):
         self.assertEqual(self.python_source(), dict(name='cpython', version='3.13.16',
             filename='Python-3.13.16.tar.xz', url=PYTHON_URL, sha256=PYTHON_SHA))
 
-    def test_only_modern_interpreter_changes_and_both_runtime_copies_exist(self):
+    def test_modern_and_ddl_share_interpreter_without_changing_daemon(self):
         docker = (STACK/'Dockerfile').read_text()
         stages = re.findall(r'^FROM (.+)', docker, re.M)
         bases = [line.split(' AS ')[0] for line in stages if 'linuxserver/mylar3:' in line]
         self.assertEqual(len(set(bases)), 1)
-        self.assertEqual(len(bases), 4)
+        self.assertEqual(len(bases), 3)
+        self.assertIn("FROM tagger-build AS ddl-build", docker)
         build = docker.split('\nFROM ', 1)[0]
         self.assertIn('./configure --prefix=/opt/tagger-python --without-static-libpython', build)
         self.assertIn('--disable-test-modules --with-ensurepip=install', build)
@@ -42,7 +43,7 @@ class SourceContract(unittest.TestCase):
         self.assertNotRegex(docker, r'(?m)^ENV (?:PATH|LD_LIBRARY_PATH)=')
         self.assertNotIn('update-alternatives', docker)
         ddl = docker.split(' AS ddl-build\n', 1)[1].split('\nFROM ', 1)[0]
-        self.assertIn('RUN python3 -m venv --without-pip /opt/ddl-transport', ddl)
+        self.assertIn('RUN /opt/tagger-python/bin/python3.13 -m venv --without-pip /opt/ddl-transport', ddl)
         self.assertIn('prefix=[sys.executable,SCRIPT', (STACK/'config/tagger_legacy.py').read_text())
         self.assertIn("EXECUTABLE = '/opt/comictagger/bin/comictagger'", (STACK/'config/tagger_cli.py').read_text())
 

@@ -1,0 +1,57 @@
+# Vane (formerly Perplexica) - privacy-focused AI answering engine
+# Uses bundled SearxNG by default. No host ports: access via Caddy (reverse_proxy vane:3000).
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  vane:
+    build: .
+    image: homelab/vane:1.12.2
+    container_name: vane
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+      # This local image is rebuilt from the reviewed, pinned upstream base.
+      - com.centurylinklabs.watchtower.enable=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      # Next.js otherwise binds to the container IP on only its first attached network.
+      - HOSTNAME=0.0.0.0
+    volumes:
+      # VANE_DATA_VOLUME retains an existing Perplexica volume during upgrades.
+      - vane_data:/home/vane/data
+      - vane_uploads:/home/vane/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ai-backend
+      - ingress-public
+    mem_limit: 2g
+    cpus: "2.00"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS \"http://$(hostname):3000/\" >/dev/null"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ai-backend:
+    name: ai-backend
+    external: true
+  ingress-public:
+    name: ingress-public
+    external: true
+
+volumes:
+  vane_data:
+    name: ${VANE_DATA_VOLUME:-vane_vane_data}
+    external: ${VANE_DATA_EXTERNAL:-false}
+  vane_uploads:

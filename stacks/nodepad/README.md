@@ -1,6 +1,6 @@
 # nodepad
 
-Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/nodepad)), notes on a canvas with automatic classification and connections. **API keys are stored only in the browser** (per upstream); the container just serves the Next.js UI.
+Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/nodepad)), notes on a canvas with automatic classification and connections. Direct-provider API keys stay in browser settings. The optional LiteLLM provider uses a server-held, model-restricted key and requires owner-only access to the entire site. Notes and provider selection remain in browser storage.
 
 - **Homepage:** [nodepad.space](https://nodepad.space)
 - **Repo:** [github.com/mskayyali/nodepad](https://github.com/mskayyali/nodepad)
@@ -29,6 +29,8 @@ Current patches (apply in lexical order; do not rename):
 | `0004-homelab-ops-health-and-proxy-guard.patch` | `GET /api/health`, optional `NODEPAD_ALLOWED_ORIGINS` on mutating Ollama proxy calls. |
 | `0005-homelab-fetch-url-useragent-ollama-patch-health-head.patch` | `/api/fetch-url` User-Agent uses `NODEPAD_SITE_URL` origin; `PATCH` on `/api/ollama` proxy; `HEAD /api/health` for probes. |
 | `0006-homelab-fetch-url-redirect-ssrf-guard.patch` | After `redirect: "follow"`, reject the **final** response URL if it matches the same blocked-host rules as the initial URL (redirect SSRF bypass). |
+| `0007-next-standalone-output.patch` | Standalone Next.js output for the maintained container. |
+| `0008-homelab-litellm-provider.patch` | Selectable LiteLLM provider with a bounded same-origin server proxy. |
 
 ## Environment (stack / build)
 
@@ -38,7 +40,10 @@ Current patches (apply in lexical order; do not rename):
 | `NODEPAD_SITE_URL` | runtime | Public site URL for metadata / OpenGraph (e.g. `https://nodepad.example.com`). |
 | `UMAMI_SCRIPT_URL` | runtime | Full URL to your Umami `script.js` (omit to disable analytics). |
 | `UMAMI_WEBSITE_ID` | runtime | Umami website id (required with `UMAMI_SCRIPT_URL`). |
-| `NODEPAD_ALLOWED_ORIGINS` | runtime | Comma-separated allowed `Origin` values for POST/PUT/PATCH/DELETE to `/api/ollama` (omit to allow any origin). |
+| `NODEPAD_ALLOWED_ORIGINS` | runtime | Exact allowed origins, comma-separated. Required for LiteLLM mutations unless `NODEPAD_SITE_URL` supplies the origin. Ollama keeps its existing optional guard. |
+| `LITELLM_BASE_URL` | runtime | Gateway API base, default `http://litellm:4000/v1`. |
+| `LITELLM_API_KEY` | runtime secret | Model-restricted inference key. Never use a gateway master key or a `NEXT_PUBLIC_*` variable. |
+| `LITELLM_ALLOWED_MODELS` | runtime | Comma-separated model aliases, default `gemini-flash-lite,copilot-sonnet,copilot-gemini`. |
 | `NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER` | **build** arg (optional) | e.g. `ollama`, first-visit default in the client bundle. Not read from `stack.env` at build unless you pass it explicitly (see below). |
 | `NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL` | **build** arg (optional) | e.g. `llama3.2` when default provider is Ollama. Same as above. |
 
@@ -51,6 +56,33 @@ Current patches (apply in lexical order; do not rename):
 1. Run the **Ollama** stack on **`ai-backend`** so `http://ollama:11434` resolves from Nodepad.
 2. Rebuild/restart nodepad after changing patches or compose.
 3. In the app: **☰ → Settings → Provider → Ollama (local)**. Set **Model** to a pulled tag (e.g. `llama3.2`). API key is optional (Ollama ignores it unless you enable auth upstream).
+
+## LiteLLM (optional Google and Copilot models)
+
+Protect the entire hostname, including `/api/litellm`, with an owner-only ingress
+policy before setting the server key. Nodepad has no built-in account authentication.
+An origin check does not replace access control. The provided Caddy snippet needs
+an external authentication policy or equivalent trusted-network restriction.
+
+1. Run LiteLLM on `ai-backend` and configure the desired upstream providers there.
+2. Create a model-restricted inference key for the aliases in `LITELLM_ALLOWED_MODELS`.
+3. Set `LITELLM_API_KEY` and your exact `NODEPAD_ALLOWED_ORIGINS` or
+   `NODEPAD_SITE_URL` in private `stack.env`. Keep the key outside Git and backups
+   shared with other users. Recreate Nodepad to load runtime changes.
+4. In Settings, select **LiteLLM** and a model. No browser API key is needed.
+   Existing browser settings and first-visit defaults remain unchanged.
+
+The proxy permits model discovery and chat completions only. It filters discovery
+against the configured aliases, rejects browser-supplied upstream settings, limits
+requests to 1 MiB and 64 messages, caps output at 8192 tokens, and times upstream
+requests out after 60 seconds. It does not store prompts. Cloud model selection
+sends the selected note content through LiteLLM to that provider.
+
+Run `./verify-litellm.sh` after preparing source and installing its dependencies.
+Keep a private copy of `stack.env` and the previous image before deployment.
+There is no server-side note database to migrate. Verify saved browser settings
+still select their prior provider, then select LiteLLM explicitly for a synthetic
+request. Restore the previous image and private configuration if verification fails.
 
 ## Quick start
 
@@ -102,3 +134,9 @@ docker compose up -d
 ## Resources
 
 Builds can use significant RAM during `next build`; allow ~2–4 GiB free on the Docker host for the build step. Runtime is modest (~512 MiB–1 GiB).
+
+The proxy classifies complete bounded SSE events before forwarding them. Provider
+error events and successful-status JSON error envelopes return generic errors;
+normal model content remains unchanged. `make nodepad-source-check` runs the
+focused proxy, client and TypeScript controls against the prepared pinned source.
+The image build and `make ci-local` run the same controls.

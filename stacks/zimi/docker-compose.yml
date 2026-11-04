@@ -1,0 +1,76 @@
+services:
+  zimi:
+    restart: unless-stopped
+    labels:
+      logging: 'true'
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+    pids_limit: 512
+    image: epheterson/zimi:1.15.2@sha256:8b5048023ab00cd0d94415a9384521044facc8b5a15c2f3a124a3d7dfcacb588
+    container_name: zimi
+    init: true
+    env_file:
+    - stack.env
+    volumes:
+    - zimi_library:/zims
+    - zimi_config:/config
+    networks:
+    - ingress-sensitive
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    healthcheck:
+      test:
+      - CMD
+      - python3
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8899/health',
+        timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10m
+    mem_limit: 2g
+    cpus: '2.00'
+    user: 1000:1000
+  initialize-storage:
+    image: epheterson/zimi:1.15.2@sha256:8b5048023ab00cd0d94415a9384521044facc8b5a15c2f3a124a3d7dfcacb588
+    profiles:
+    - storage-init
+    entrypoint:
+    - python3
+    - -c
+    command:
+    - import os; paths=('/zims','/config'); assert all(os.path.isdir(p) and not os.path.islink(p)
+      for p in paths); pending=[p for p in paths if (os.stat(p).st_uid,os.stat(p).st_gid)!=(1000,1000)];
+      assert all(not os.listdir(p) for p in pending), 'refusing ownership changes
+      on existing data'; [(os.chmod(p,0o750),os.chown(p,1000,1000)) for p in pending];
+      print('Storage roots ready; existing contents unchanged')
+    user: 0:0
+    network_mode: none
+    restart: 'no'
+    read_only: true
+    cap_drop:
+    - ALL
+    cap_add:
+    - CHOWN
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - zimi_library:/zims
+    - zimi_config:/config
+    mem_limit: 128m
+    pids_limit: 32
+    labels:
+      logging: 'false'
+networks:
+  ingress-sensitive:
+    name: ingress-sensitive
+    external: true
+volumes:
+  zimi_library: {}
+  zimi_config: {}

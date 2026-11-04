@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+changedetection.home.arpa, changedetection.local {
+    tls internal
+    reverse_proxy changedetection:5000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://changedetection.example.com {
+    reverse_proxy changedetection:5000 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+changedetection.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy changedetection:5000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

@@ -1,5 +1,6 @@
 # Immich – self-hosted photo and video backup. See https://immich.app/docs/install/docker-compose
 # Portainer-friendly: named volumes, env from stack.env, external ingress-public network for Caddy.
+# Optional remote originals: combine with docker-compose.storage.yml (see README).
 # For the latest compose from upstream: https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
 
 name: immich
@@ -18,7 +19,7 @@ services:
       - stack.env
       - path: ../../shared.env
         required: false
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3.3.5}
     volumes:
       - library:/data
       - /etc/localtime:/etc/localtime:ro
@@ -43,7 +44,7 @@ services:
     memswap_limit: 10g
     pids_limit: 1024
     cpu_shares: 256
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-v3.3.5}
     environment:
       - TZ=${TZ:-America/Denver}
     volumes:

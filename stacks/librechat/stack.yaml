@@ -60,10 +60,11 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: >-
-    Optional docker-compose.kernel-workaround.yml bypasses MongoDB's over-broad
+  notes: Optional docker-compose.kernel-workaround.yml bypasses MongoDB's over-broad
     kernel check only on operator-verified fixed kernels until the image includes
-    SERVER-125742. The base deployment keeps the safety check enabled.
+    SERVER-125742. The base deployment keeps the safety check enabled. Optional personal
+    OAuth route uses a separate restricted LiteLLM service key; preserve existing
+    providers and conversations.
 runtime_security:
   privileged_services: []
   host_network_services: []

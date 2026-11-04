@@ -26,7 +26,13 @@ services:
     cpus: '0.25'
     # unbound-control needs control-enable: yes + remote-control in unbound.conf; this image ships with control disabled.
     healthcheck:
-      test: ["CMD-SHELL", "dig +short +time=5 +tries=1 @127.0.0.1 example.com >/dev/null 2>&1"]
+      test:
+        - CMD-SHELL
+        - >-
+          dns_reply="$$(dig +time=5 +tries=1 +dnssec +noall +comments +answer @127.0.0.1 cloudflare.com A)" &&
+          printf '%s\n' "$$dns_reply" | grep -Eq 'status: NOERROR,' &&
+          printf '%s\n' "$$dns_reply" | grep -Eq 'flags:.* ad[; ]' &&
+          printf '%s\n' "$$dns_reply" | grep -Eq '[[:space:]]IN[[:space:]]+A[[:space:]]'
       interval: 60s
       timeout: 10s
       retries: 5

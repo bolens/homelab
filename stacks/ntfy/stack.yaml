@@ -53,9 +53,9 @@ placement:
   preferred_node: null
   colocation_group: null
 lifecycle:
-  status: stable
+  status: deprecated
   replacement_for: null
-  notes: ''
+  notes: Replaced by Gotify; retained only for historical access and rollback.
 runtime_security:
   privileged_services: []
   host_network_services: []

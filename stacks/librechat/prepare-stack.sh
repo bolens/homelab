@@ -10,4 +10,5 @@ prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ai-backend" "true"
 prepare_stack_ensure_docker_network "ingress-public"
+prepare_stack_msg "optional ChatGPT OAuth uses a separate restricted LiteLLM service key; existing providers and stored configuration remain operator-owned."
 prepare_stack_end

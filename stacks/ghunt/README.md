@@ -58,10 +58,12 @@ docker push harbor.yourdomain.com/homelab/ghunt:latest
 ```
 
 The build uses GHunt 2.3.4 and alive-progress 3.3.0 with local compatibility
-versions `2.3.4+homelab.2` and `3.3.0+homelab.1`. Upstream still caps HTTPX and
+versions `2.3.4+homelab.3` and `3.3.0+homelab.1`. Upstream still caps HTTPX and
 jsonpickle below these versions and pins the older graphemeu. The image tests
 HTTPX 0.28.1, jsonpickle 4.1.4, graphemeu 0.11.0 and Pillow 13.0.0 offline.
-Pillow retains its JPEG/TIFF security fixes.
+The metadata also binds packaging 26.3 and protobuf 7.36.2. Actual generated
+protobuf messages are imported and round-tripped offline. Pillow retains its
+JPEG/TIFF security fixes.
 
 `build-compat-wheels.py` verifies the original PyPI wheel hashes, changes only
 version and dependency metadata, rebuilds RECORD and emits reproducible wheels.

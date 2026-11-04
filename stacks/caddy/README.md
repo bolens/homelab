@@ -18,6 +18,13 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 
 Plain-HTTP `reverse_proxy` targets in **`Caddyfile.example`** include `transport http { versions 1.1 }` so cleartext backends work with **Caddy 2.11+** and **Cloudflare Tunnel → `http://caddy:80`**. After you add new one-line proxies, run **`scripts/patch-caddy-h1-transport.py`** from the repo root (it updates this example, per-stack `caddy_snippet*`, and **`stacks/stoat/caddy/Caddyfile`**).
 
+For optional Cloudflare Tunnel administration through the API, the token also
+needs **Account: Cloudflare Tunnel: Edit**, scoped to the intended account. This
+permission allows tunnel configuration changes throughout that account. Manage
+existing permissions under [User API Tokens](https://dash.cloudflare.com/profile/api-tokens).
+The private token value stays in `stack.env` as `CLOUDFLARE_API_TOKEN`; editing its
+permissions does not require replacing the value or restarting Caddy.
+
 ## Split horizon: `home.arpa` / `.local` vs `*.example.com`
 
 Tracked **`caddy_snippet.conf`** files almost always define **LAN** sites (`app.home`, `app.local` with `tls internal`) so Caddy can route by hostname on your network.

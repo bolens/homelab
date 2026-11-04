@@ -1,9 +1,9 @@
 # Loki – log aggregation
 
-[Loki](https://grafana.com/oss/loki/) is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy **Promtail** (`stacks/promtail`) separately to ship host and container logs to Loki.
+[Loki](https://grafana.com/oss/loki/) is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy **Grafana Alloy** (`stacks/grafana-alloy`) separately to ship host and container logs to Loki.
 
-**Loki:** https://grafana.com/oss/loki/  
-**Docker image:** https://hub.docker.com/r/grafana/loki  
+**Loki:** https://grafana.com/oss/loki/
+**Docker image:** https://hub.docker.com/r/grafana/loki
 
 ## Quick start
 
@@ -26,7 +26,7 @@
    docker compose up -d
    ```
 
-4. **Grafana** – Add Loki as a data source (e.g. `http://loki:3100`) or use provisioned datasources. Use **Explore** → **Loki** to query logs. Deploy `stacks/promtail` to ship logs into Loki.
+4. **Grafana** – Add Loki as a data source (e.g. `http://loki:3100`) or use provisioned datasources. Use **Explore** → **Loki** to query logs. Deploy `stacks/grafana-alloy` to ship logs into Loki.
 
 ## Configuration
 
@@ -34,7 +34,7 @@
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Loki HTTP API is internal on `telemetry`; typically not exposed via Caddy   |
 | **Config**  | Copy `loki-config.yml.example` → `~/.config/loki/loki-config.yml`; override with `LOKI_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `telemetry` (so Grafana and Promtail can reach Loki)                         |
+| **Network** | `telemetry` (so Grafana and Alloy can reach Loki)                         |
 | **Storage** | `loki_data` volume (indexes, chunks, WAL)                                  |
 
 ## Notes

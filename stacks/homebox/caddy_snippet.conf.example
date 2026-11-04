@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+homebox.home.arpa, homebox.local {
+    tls internal
+    reverse_proxy homebox:7745 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://homebox.example.com {
+    reverse_proxy homebox:7745 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+homebox.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy homebox:7745 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

@@ -46,6 +46,7 @@ services:
       - docker-api
       - mail-clients
       - monitoring-push
+      - telemetry
     depends_on:
       uptime-kuma-docker-socket-proxy:
         condition: service_healthy
@@ -71,6 +72,9 @@ networks:
     external: true
   monitoring-push:
     name: monitoring-push
+    external: true
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

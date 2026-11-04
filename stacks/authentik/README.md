@@ -2,8 +2,8 @@
 
 [authentik](https://goauthentik.io/) is an open-source identity provider and access management platform. It can act as an OIDC/OAuth2/SAML IdP for your other stacks (e.g. Outline, Grafana, Immich, Linkwarden) and integrates well with reverse proxies and Kubernetes/containers.
 
-**Website:** https://goauthentik.io/  
-**Docs:** https://goauthentik.io/docs/  
+**Website:** https://goauthentik.io/
+**Docs:** https://goauthentik.io/docs/
 
 ## Quick start
 
@@ -70,3 +70,7 @@ Ensure Authentik and Postfix are on `mail-clients`. For **internal-only** (Mailp
 
 - This stack mirrors the official docker-compose layout in a simplified form. For advanced configuration (outposts, providers, etc.), refer to the authentik docs.
 - Consider pinning a specific image tag instead of `latest` for production deployments.
+
+## Gotify failed-login notifications
+
+The optional [Gotify Authentik plugin](../gotify/README.md#optional-authentik-notification-plugin) receives generic webhooks over the existing HTTPS route. Store its private webhook URL in a new notification transport, leave the mapping empty and enable send-once. Bind a dedicated `login_failed` event matcher to a new rule for the existing administrator group. Preserve other rules, transports and authentication flows. Verify the PostgreSQL backup by isolated restoration before adding these database objects. Test the native transport directly without broadcasting synthetic events through unrelated rules.

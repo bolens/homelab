@@ -2,17 +2,18 @@
 
 Self-hosted web archive: save full copies of web pages (HTML, screenshots, PDFs, and WARCs) from URLs, bookmarks, and feeds.
 
-**Website:** https://archivebox.io  
-**Docs:** https://github.com/ArchiveBox/ArchiveBox/wiki  
-**GitHub:** https://github.com/ArchiveBox/ArchiveBox  
-**Docker image:** https://hub.docker.com/r/archivebox/archivebox  
-**Releases:** https://github.com/ArchiveBox/ArchiveBox/releases  
+**Website:** https://archivebox.io
+**Docs:** https://github.com/ArchiveBox/ArchiveBox/wiki
+**GitHub:** https://github.com/ArchiveBox/ArchiveBox
+**Docker image:** https://hub.docker.com/r/archivebox/archivebox
+**Releases:** https://github.com/ArchiveBox/ArchiveBox/releases
 
 ## Quick start
 
 1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `SEARCH_BACKEND_PASSWORD` (see **Secrets** below).
+   - Set `BASE_URL` to the exact browser origin, including `https://`, such as `https://archivebox.example.com`.
    - Optionally set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` to match your Caddy hostnames.
 2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **Access:** Open via Caddy (e.g. `https://archivebox.home` or `https://archivebox.yourdomain.com`).
@@ -63,7 +64,7 @@ Set the outputs in `stack.env` or in the Portainer stack Environment.
 | **Access** | Via Caddy only (no host port; reverse-proxy to `archivebox:8000`) |
 | **Network** | `ingress-public` for Caddy; private `internal` network for scheduler and Sonic |
 | **Images** | `archivebox/archivebox:latest`, `archivebox/sonic:latest` |
-| **Env (required)** | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SEARCH_BACKEND_PASSWORD` |
+| **Env (required)** | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SEARCH_BACKEND_PASSWORD`, `BASE_URL` |
 | **Env (recommended)** | `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` when exposed via Caddy |
 | **Env (optional)** | `PUBLIC_INDEX`, `PUBLIC_SNAPSHOTS`, `PUBLIC_ADD_VIEW`, plus additional ArchiveBox options (see docs) |
 | **Storage** | Named volumes: `archivebox-data` (ArchiveBox data), `archivebox-sonic-data` (Sonic index) |
@@ -87,8 +88,23 @@ archivebox.yourdomain.com {
 ```
 
 Ensure ArchiveBox is on `ingress-public` so Caddy can reach `archivebox:8000`.
+Use the hostname configured in `BASE_URL` for login and editing, even when Caddy
+also serves local aliases. `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` do not replace
+the canonical URL.
+
+## URL mismatch and disabled editing
+
+If login shows `base_url mismatch` or edits return `ArchiveBox is running with the
+control plane disabled on this host.`, check `BASE_URL` first. Newer ArchiveBox
+versions can derive it from legacy `LISTEN_HOST` when it is unset, turning this
+stack's bind address into the incorrect canonical URL `http://0.0.0.0:8000`.
+Set `BASE_URL` explicitly in the existing `stack.env`, then recreate the web and
+scheduler services with the same images after the backup and restore checks above.
+Preparation preserves existing environment files, so copying the updated example
+does not add the setting to an existing deployment. Keep the existing server
+security mode rather than enabling an unsafe replay mode to bypass the warning.
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SEARCH_BACKEND_PASSWORD` (and optional vars) in **Environment**.

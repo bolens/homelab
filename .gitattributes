@@ -26,3 +26,6 @@ stacks/komga/normalizer/ordinary_observation_fixtures/native/api.py whitespace=-
 *.webp binary
 
 .editorconfig text eol=lf
+
+# Unified patch context includes significant single-space blank lines.
+stacks/nodepad/patches/*.patch text eol=lf whitespace=-blank-at-eol

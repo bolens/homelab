@@ -53,7 +53,9 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: Optional isolated OAuth upstream through docker-compose.oauth.yml. Replace
+    bootstrap environment UI login with a verified regular admin; service API keys
+    remain required.
 runtime_security:
   privileged_services: []
   host_network_services: []

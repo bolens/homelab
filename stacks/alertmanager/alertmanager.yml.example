@@ -85,23 +85,38 @@ route:
 receivers:
   - name: default-receiver
     webhook_configs:
-      - url: http://ntfy:80/alerts
+      - url: http://gotify-alertmanager:8080/alertmanager/alerts
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/gotify-webhook-token
         send_resolved: true
   - name: infra-receiver
     webhook_configs:
-      - url: http://ntfy:80/alerts-infra
+      - url: http://gotify-alertmanager:8080/alertmanager/alerts-infra
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/gotify-webhook-token
         send_resolved: true
   - name: blackbox-critical-receiver
     webhook_configs:
-      - url: http://ntfy:80/alerts-blackbox-critical
+      - url: http://gotify-alertmanager:8080/alertmanager/alerts-blackbox-critical
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/gotify-webhook-token
         send_resolved: true
   - name: blackbox-warning-receiver
     webhook_configs:
-      - url: http://ntfy:80/alerts-blackbox-warning
+      - url: http://gotify-alertmanager:8080/alertmanager/alerts-blackbox-warning
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/gotify-webhook-token
         send_resolved: true
   - name: alloy-receiver
     webhook_configs:
-      - url: http://ntfy:80/alerts-alloy
+      - url: http://gotify-alertmanager:8080/alertmanager/alerts-alloy
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/gotify-webhook-token
         send_resolved: true
   - name: null-receiver
 

@@ -1,4 +1,6 @@
 # ArchiveBox — split-horizon + public TLS: archivebox.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Set BASE_URL=https://archivebox.example.com in stack.env. Use that canonical
+# hostname for login and editing; alternate hostnames are not editing origins.
 
 archivebox.home, archivebox.local {
 	tls internal

@@ -186,3 +186,6 @@ docker-compose.override.*.yaml
 !/.vscode/launch.json
 !/.vscode/*.code-snippets
 !/.vscode/README.md
+
+# Reviewed Gotify plugin binaries, installed from the version/checksum lock.
+/stacks/gotify/plugins/

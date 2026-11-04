@@ -40,9 +40,9 @@ RUN rm -rf /tmp/tagger-python-source \
     && find /opt/tagger-python /opt/comictagger -type d -name __pycache__ -prune -exec rm -rf '{}' +
 COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:2f1cfd67e84a20568f58c5661f7ef3475d17adb2f869555f227b3e6547430e4c AS ddl-build
+FROM tagger-build AS ddl-build
 COPY requirements-ddl.txt /tmp/requirements-ddl.txt
-RUN python3 -m venv --without-pip /opt/ddl-transport \
+RUN /opt/tagger-python/bin/python3.13 -m venv --without-pip /opt/ddl-transport \
     && python3 -m pip --python /opt/ddl-transport/bin/python install --no-cache-dir \
         --require-hashes --no-deps -r /tmp/requirements-ddl.txt \
     && python3 -m pip --python /opt/ddl-transport/bin/python check

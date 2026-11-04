@@ -2,11 +2,12 @@
 
 The unmodified packages in `requirements-ddl.txt` live in `/opt/ddl-transport`.
 Distribution metadata and license files remain in its site-packages directories.
-This environment is separate from Mylar and ComicTagger.
+This environment is separate from Mylar and ComicTagger. It shares the already bundled CPython
+3.13 interpreter; Mylar itself remains on its base-image Python 3.10.
 
-- curl_cffi 0.16.3: MIT, https://github.com/lexiforest/curl_cffi/tree/v0.16.3
+- curl_cffi 0.17.0: MIT, https://github.com/lexiforest/curl_cffi/tree/v0.17.0
 - cffi 2.1.1: MIT-0, https://github.com/python-cffi/cffi
-- pycparser 3.11: BSD-3-Clause, https://github.com/eliben/pycparser
+- pycparser 3.12: BSD-3-Clause, https://github.com/eliben/pycparser
 - certifi 2026.10.19: MPL-2.0, https://github.com/certifi/python-certifi
 
 Certifi's corresponding source archive is retained in `/opt/ddl-transport/sources`

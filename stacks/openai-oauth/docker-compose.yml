@@ -1,0 +1,41 @@
+services:
+  openai-oauth:
+    build: .
+    image: homelab/openai-oauth:2.0.0
+    container_name: openai-oauth
+    init: true
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m,uid=1000,gid=1000
+    volumes:
+      - oauth_auth:/data/codex
+    networks: [oauth-backend]
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:10531/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    cpus: '1.00'
+    pids_limit: 256
+    logging:
+      driver: local
+      options:
+        max-size: '10m'
+        max-file: '3'
+networks:
+  oauth-backend:
+    name: oauth-backend
+    external: true
+volumes:
+  oauth_auth: {}

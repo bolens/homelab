@@ -1,6 +1,6 @@
 # Grafana Alloy
 
-Grafana Alloy collects Docker container logs and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.
+Grafana Alloy collects Docker container logs, host files and journald and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.
 
 **Website:** https://grafana.com/oss/alloy/
 **Docs:** https://grafana.com/docs/alloy/latest/
@@ -9,10 +9,11 @@ Grafana Alloy collects Docker container logs and ships them to Loki, and exposes
 
 ## Architecture
 
-This stack has two containers:
+This stack has three containers:
 
 | Container | Role |
 |-----------|------|
+| `alloy-docker-socket-proxy` | Read-only restricted Docker API for discovery |
 | `grafana-alloy` | Main Alloy process: discovers Docker containers, collects logs, ships to Loki, exposes metrics on `:12345` |
 | `alloy-log-canary` | Emits a periodic heartbeat log line used by Prometheus alerts to verify the log pipeline is alive |
 
@@ -31,7 +32,7 @@ This stack has two containers:
 | **Loki endpoint** | `http://loki:3100/loki/api/v1/push` (on the `telemetry` network) |
 | **Prometheus scrape** | Alloy exposes metrics at `alloy:12345/metrics`; Prometheus scrapes the `alloy` job |
 | **Network** | `telemetry`, shared with Loki, Prometheus, Caddy |
-| **Docker socket** | Mounted read-only at `/var/run/docker.sock` for container discovery |
+| **Docker socket** | Only the restricted socket proxy mounts it. Alloy uses the private Docker API network. |
 
 ## Log routing
 
@@ -101,4 +102,14 @@ for c in unhealthy: print(c['id'], c.get('health',{}).get('message',''))
 "
 ```
 
-All 10 components should be healthy. If a `loki.write` component is unhealthy, check Loki is up and reachable on the `telemetry` network.
+All enabled components should be healthy. If a `loki.write` component is unhealthy, check Loki is up and reachable on the `telemetry` network.
+
+## Host files and journal migration
+
+The example reads `/var/log/*.log` and the persistent journal under `/var/log/journal`, with read-only `/var/log`, `/run/log/journal` and `/etc/machine-id` mounts. Set `ALLOY_HOST_LABEL` to the prior stable host label. Systems with volatile-only journals must change the journal source path to `/run/log/journal`. Host inputs use a separate process path so Docker label filtering does not drop their `job`, `host`, `filename` or `unit` labels. These logs may contain personal or credential-related information. Keep telemetry private.
+
+Promtail reached end of life on March 2, 2026. Before replacing an existing collector, stop Promtail and Alloy for a consistent backup of both complete state volumes and configuration. Restore copies in isolation and verify file integrity and cursor readability. Keep the installed Alloy image and existing Docker component identities. Copy the final Promtail positions to `/var/lib/alloy/migration/promtail-positions.yaml`. During migration add `legacy_positions_file` to `loki.source.file.host_files` and a journal `legacy_position` block with that file and the original journal name. Fresh installations do not need these imports.
+
+Keep Promtail stopped while testing. Verify imported file offsets, a persisted journal cursor, healthy components, one new file marker and one journal marker in Loki, and continued Docker canary delivery. Historical Promtail streams remain queryable. Retire its required scrape/checks only after this acceptance. On failure stop the successor, restore the verified original Alloy state/configuration/image and restart the retained Promtail. Preserve old volumes and remove only this operation's temporary copies after verified success or rollback.
+
+Prometheus watches `AlloyHostFileTargetsMissing` and `AlloyHostJournalMissing` as well as the existing Docker pipeline checks. Zero journal activity alone is not a failure on a quiet host.

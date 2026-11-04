@@ -2,7 +2,8 @@
 # Upstream: https://github.com/mskayyali/nodepad
 #
 # Default: build from ./repo (run ./clone-repo.sh first). Runtime env comes only from env_file
-# (`stack.env`); no compose ${VAR} substitution required for Ollama/Umami/site URL.
+# (`stack.env`), including optional server-only LITELLM_* keys. Require owner-only
+# whole-site ingress before enabling LiteLLM; never pass its key as a build arg.
 #
 # Optional NEXT_PUBLIC_* client defaults: pass at build time, e.g.
 #   docker compose build --build-arg NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER=ollama

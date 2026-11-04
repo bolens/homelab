@@ -1,0 +1,31 @@
+services:
+  termix:
+    image: ghcr.io/termix-ssh/termix:26.11.0@sha256:2cb95d37f13c2b98edb404a2cfa13cff190ac3043033f8d9be04c0798e43a5d4
+    container_name: termix
+    restart: unless-stopped
+    labels:
+      logging: 'true'
+    env_file:
+    - stack.env
+    volumes:
+    - termix_data:/app/data
+    networks:
+    - ingress-admin
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -q
+      - -O
+      - /dev/null
+      - http://127.0.0.1:30001/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+networks:
+  ingress-admin:
+    name: ingress-admin
+    external: true
+volumes:
+  termix_data: {}

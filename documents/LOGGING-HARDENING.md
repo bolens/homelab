@@ -52,3 +52,7 @@ under that schema. Then:
    queries across both the old boltdb-shipper and new TSDB periods.
 
 Do not move the schema boundary backward after it has been deployed.
+
+## Host collection
+
+[Grafana Alloy](../stacks/grafana-alloy/README.md#host-files-and-journal-migration) now owns the baseline host-file and journald pipelines as well as Docker logs. Promtail is deprecated. Migrate final stopped cursors with verified backup and restore copies, preserve Docker positions and image identity, and require end-to-end file, journal and Docker delivery before stopping the legacy collector permanently. Do not collect the same inputs with both agents.

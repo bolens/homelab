@@ -36,7 +36,7 @@ links:
   repo: https://github.com/immich-app/immich
 backup:
   priority: high
-  schedule_hint: weekly
+  schedule_hint: weekly; include IMMICH_LIBRARY_PATH when the storage override is enabled
 volumes:
 - name: library
   role: app_data

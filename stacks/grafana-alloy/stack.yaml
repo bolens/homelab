@@ -20,7 +20,7 @@ exposure:
   public_by_default: false
   recommended_hostname: grafana-alloy.yourdomain.com
 data_profile:
-  contains_pii: false
+  contains_pii: true
   contains_logs_only: false
   recommended_backup: true
 host_requirements:
@@ -52,8 +52,9 @@ placement:
   colocation_group: null
 lifecycle:
   status: stable
-  replacement_for: null
-  notes: ''
+  replacement_for: promtail
+  notes: Collects Docker, host files and journald. Cursor data must survive migration
+    and restart.
 runtime_security:
   privileged_services: []
   host_network_services: []

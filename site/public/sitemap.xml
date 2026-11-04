@@ -21,6 +21,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/auth-fuzz/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/authentik/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/auto-identity-remove/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/backrest/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/baserow/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/bazarr/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/beszel/</loc></url>
@@ -32,6 +33,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/calcom/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/calibre-web/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/camofox-browser/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/changedetection/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/clark-browser/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/cloudflare-tunnel/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/code-server/</loc></url>
@@ -41,6 +43,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/cryptpad/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/cups/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/databasus/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/dawarich/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/dbgate/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/ddns-updater/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/dependency-track/</loc></url>
@@ -67,6 +70,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/glance/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/gluetun/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/gotenberg/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/gotify/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/grafana/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/grafana-alloy/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/guacamole/</loc></url>
@@ -78,6 +82,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/holehe/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/homarr/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/home-assistant/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/homebox/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/homepage/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/immich/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/infisical/</loc></url>
@@ -93,6 +98,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/kokoro-tts/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/kometa/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/komga/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/komodo/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/lanraragi/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/librarr/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/librechat/</loc></url>
@@ -103,6 +109,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/litellm/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/logseq-sync/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/loki/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/lubelogger/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/maigret/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/mailpit/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/maloja/</loc></url>
@@ -114,6 +121,7 @@
   <url><loc>https://bolens.github.io/homelab/apps/metube/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/minio/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/mosquitto/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/music-assistant/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/mylar3/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/n8n/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/naisho/</loc></url>
@@ -138,15 +146,16 @@
   <url><loc>https://bolens.github.io/homelab/apps/onionscan/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/open-notebook/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/open-webui/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/openai-oauth/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/opengist/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/openspeedtest/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/outline/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/paperclip/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/paperless-ai-next/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/paperless-gpt/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/paperless-ngx/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/password-pusher/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/peanut/</loc></url>
-  <url><loc>https://bolens.github.io/homelab/apps/perplexica/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/pgadmin/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/phoneinfoga/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/picard/</loc></url>
@@ -200,19 +209,23 @@
   <url><loc>https://bolens.github.io/homelab/apps/tailscale-exporter/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/tautulli/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/terminus/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/termix/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/theharvester/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/thelounge/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/threat-dragon/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/tika/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/torbot/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/trilium/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/tubearchivist/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/twitch-drops-miner/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/umami/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/unbound/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/uptime-kuma/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/vane/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/vaultwarden/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/vector/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/vikunja/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/wallos/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/watchtower/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/web-check/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/whisparr/</loc></url>
@@ -222,4 +235,5 @@
   <url><loc>https://bolens.github.io/homelab/apps/yourls/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/zed-attack-proxy/</loc></url>
   <url><loc>https://bolens.github.io/homelab/apps/zigbee2mqtt/</loc></url>
+  <url><loc>https://bolens.github.io/homelab/apps/zimi/</loc></url>
 </urlset>

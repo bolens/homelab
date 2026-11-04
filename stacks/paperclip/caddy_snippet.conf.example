@@ -1,0 +1,12 @@
+# Cloudflare Tunnel: paperclip.example.com -> http://caddy:80.
+# HTTPS terminates at Cloudflare. Paperclip provides its own form authentication.
+http://paperclip.example.com {
+    reverse_proxy paperclip:3100 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+        transport http {
+            versions 1.1
+        }
+    }
+}

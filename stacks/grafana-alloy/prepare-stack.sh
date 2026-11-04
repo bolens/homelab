@@ -25,4 +25,5 @@ fi
 
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "telemetry" "true"
+prepare_stack_msg "host file and journal inputs require existing read-only log paths and /etc/machine-id; preserve final Promtail positions before cutover."
 prepare_stack_end

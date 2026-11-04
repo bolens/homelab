@@ -1,3 +1,4 @@
+# Optional personal OAuth routing uses a scoped LiteLLM service key; see README.
 # Open WebUI - Extensible, feature-rich, user-friendly self-hosted AI platform
 # Supports Ollama and OpenAI-compatible APIs
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.

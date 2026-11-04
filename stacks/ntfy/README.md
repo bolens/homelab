@@ -1,11 +1,21 @@
-# ntfy – push notifications
+# ntfy: retired notification stack
+
+Retired notification example, retained for historical access and rollback. Current notification producers use Gotify.
+
+See [Gotify](../gotify/README.md) for new installations.
+
+The old Compose example and persistent volume names are retained for historical message access and rollback. Its users, tokens, and subscriptions do not transfer to Gotify. Before retiring a running instance, back up and verify its state, migrate every active producer, and test delivery through Gotify. Stop the old container only after acceptance. Never remove the old volumes during migration.
+
+## Legacy deployment reference
+
+
 
 [ntfy](https://ntfy.sh/) is a simple HTTP-based pub-sub notification service. Send push notifications via PUT/POST; use the Android/iOS app or curl to subscribe. This stack runs ntfy behind Caddy. No host ports; access via Caddy.
 
-**Website:** https://ntfy.sh/  
-**Docs:** https://docs.ntfy.sh/  
-**GitHub:** https://github.com/binwiederhier/ntfy  
-**Docker image:** https://hub.docker.com/r/binwiederhier/ntfy  
+**Website:** https://ntfy.sh/
+**Docs:** https://docs.ntfy.sh/
+**GitHub:** https://github.com/binwiederhier/ntfy
+**Docker image:** https://hub.docker.com/r/binwiederhier/ntfy
 
 ## Quick start
 

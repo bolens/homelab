@@ -24,9 +24,14 @@ No required environment variables. TZ/locale are provided by `shared.env`.
 
 ## Notes
 
-- The local Alpine 3.24 image preserves the existing `/opt/unbound` configuration layout while
-  running the current packaged Unbound release. `unbound-control` requires
+- The local Alpine 3.24 image builds Unbound 1.26.2 from the official release
+  archive and verifies its pinned SHA-256 checksum. It preserves the existing
+  `/opt/unbound` configuration layout and UID/GID 1000. `unbound-control` requires
   `control-enable: yes` in `unbound.conf` to work.
-- Health check uses `drill example.com @127.0.0.1`; ensure `drill` is available in the image.
+- The container health check requires a successful local `cloudflare.com` A
+  lookup with an answer and the DNSSEC authenticated-data flag. NXDOMAIN,
+  SERVFAIL, empty answers, and unvalidated responses fail the check. Complement
+  it with direct upstream probes in monitoring: a cached lookup alone cannot
+  establish that an upstream is reachable.
 - Resource limits: 128 MB RAM, 0.25 CPU, increase in compose for high-traffic environments.
 - Container listens on the internal Docker network only; map port 53 explicitly if LAN access needed.

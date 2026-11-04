@@ -7,8 +7,8 @@ shared application network. Attach the backup target, such as MinIO, to the
 same network. A second internal `monitoring-push` network provides only the
 dead-man callback path to Uptime Kuma.
 
-**Website (restic):** https://restic.net  
-**Docs (restic):** https://restic.readthedocs.io/  
+**Website (restic):** https://restic.net
+**Docs (restic):** https://restic.readthedocs.io/
 **Image (mazzolino/restic):** https://github.com/djmaze/resticker
 
 ## Quick start
@@ -155,3 +155,9 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
   Adjust target and paths to match your use case.
 - Raw application-data backups are crash-consistent. Use each database stack's
   dump procedure when a transaction-consistent database backup is required.
+
+## Verify the mounted repository from the container
+
+A successful host mount unit does not prove an older container sees that filesystem. Compare host and container reads of the existing repository's `keys` and `snapshots` directories. If the host is readable but only the container returns I/O errors, investigate a stale bind mount across automount activation before treating the disk as lost. Never initialize a replacement repository or create a local directory over a missing mount.
+
+With no backup running and `RUN_ON_STARTUP=false`, record the current image, environment and snapshot IDs through a fresh read-only mount. Stop the scheduler, back up and verify its complete cache/configuration in an isolated copy, then start the same container to refresh its mount namespace. Verify native repository reads and the exact snapshot ID set. Preserve its schedule, retention, exclusions and heartbeat settings, and do not trigger a backup as part of this mount repair. If fresh host reads fail too, stop here and diagnose storage instead.

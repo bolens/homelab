@@ -21,7 +21,7 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
    You can add dashboard JSON files to `~/.config/grafana/provisioning_dashboards/json/` later (see **Dashboards** below). From Portainer, set `GRAFANA_DASHBOARDS_PATH` to the absolute path of this dir (e.g. `/home/youruser/.config/grafana/provisioning_dashboards`).
 5. Start: `docker compose up -d` from this directory (CLI deploy) so the default paths resolve, or set `GRAFANA_DATASOURCES_PATH` and `GRAFANA_DASHBOARDS_PATH` explicitly (see Portainer notes below).
 6. Open via Caddy (e.g. https://grafana.yourdomain.com). If you did not set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true`, default login is `admin` / `admin` (change on first use). If you disabled initial admin, see **First-time login** below.
-7. Prometheus is pre-configured as the default datasource via `datasources.yml`. If you deploy **Loki** (`stacks/loki`), the same file provisions Loki; use **Explore** → **Loki** to query logs. Deploy **Promtail** (`stacks/promtail`) to ship host and container logs to Loki.
+7. Prometheus is pre-configured as the default datasource via `datasources.yml`. If you deploy **Loki** (`stacks/loki`), the same file provisions Loki; use **Explore** → **Loki** to query logs. Deploy **Grafana Alloy** (`stacks/grafana-alloy`) to ship host and container logs to Loki.
 
 ## Configuration
 
@@ -42,7 +42,7 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 
 ## Logs (Loki)
 
-If you deploy **stacks/loki**, the provisioned `datasources.yml` already includes Loki at `http://loki:3100`. In Grafana go to **Explore** → choose **Loki** to run LogQL queries. Deploy **stacks/promtail** (and optionally **stacks/vector**) to ship logs to Loki; all must use the `ingress-admin` network.
+If you deploy **stacks/loki**, the provisioned `datasources.yml` already includes Loki at `http://loki:3100`. In Grafana go to **Explore** → choose **Loki** to run LogQL queries. Deploy **stacks/grafana-alloy** (or the alternative **stacks/vector**) to ship logs to Loki; all use the private `telemetry` network.
 
 ## Dashboards
 

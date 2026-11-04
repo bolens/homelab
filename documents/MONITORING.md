@@ -16,17 +16,17 @@ README before configuring or starting it.
 | Host metrics | [Node Exporter](../stacks/node-exporter/README.md) | Export host operating-system metrics |
 | Synthetic probes | [Blackbox Exporter](../stacks/blackbox-exporter/README.md) | Probe HTTP, TCP, DNS, and ICMP targets |
 | Alert routing | [Alertmanager](../stacks/alertmanager/README.md) | Group and route Prometheus alerts |
-| Notifications | [ntfy](../stacks/ntfy/README.md) | Deliver push notifications, including Alertmanager webhooks |
+| Notifications | [Gotify](../stacks/gotify/README.md) | Deliver push notifications, including Alertmanager webhooks |
 | Log storage | [Loki](../stacks/loki/README.md) | Store and query logs |
 | Container log shipping | [Grafana Alloy](../stacks/grafana-alloy/README.md) | Discover Docker containers and send their logs to Loki |
-| Host log shipping | [Promtail](../stacks/promtail/README.md) | Send host files and journald logs to Loki |
+| Host log shipping | [Grafana Alloy](../stacks/grafana-alloy/README.md) | Send host files and journald logs to Loki |
 | Alternative log shipping | [Vector](../stacks/vector/README.md) | Replace the baseline shippers when Vector is preferred |
 | Availability monitoring | [Uptime Kuma](../stacks/uptime-kuma/README.md) | Run active service checks and publish status pages |
 | Disk health | [Scrutiny](../stacks/scrutiny/README.md) | Monitor SMART data for physical disks |
 
 Do not run multiple agents against the same log source unless duplicate events
 are intentional. In the repository's baseline, Alloy handles Docker container
-logs and Promtail handles host files and journald. Vector is an alternative to
+logs, host files and journald. Promtail is a legacy collector pending cursor-preserving migration. Vector is an alternative to
 that arrangement.
 
 ## Shared networks
@@ -62,7 +62,7 @@ probe fails. Check `probe_success` as well as `up`.
 4. Deploy [Grafana](../stacks/grafana/README.md) and install its example
    provisioning files.
 5. Optionally add [Alertmanager](../stacks/alertmanager/README.md) and a
-   notification receiver such as [ntfy](../stacks/ntfy/README.md).
+   notification receiver such as [Gotify](../stacks/gotify/README.md).
 6. For centralized logs, deploy [Loki](../stacks/loki/README.md), followed by
    the selected log shipper or shippers.
 7. Add [Uptime Kuma](../stacks/uptime-kuma/README.md) when active endpoint
@@ -76,7 +76,7 @@ This is dependency order, not a requirement to install the entire suite.
 cAdvisor ───────┐
 Node Exporter ──┼──> Prometheus ──> Grafana
 Blackbox ───────┘         │
-                          └──> Alertmanager ──> ntfy or another receiver
+                          └──> Alertmanager ──> Gotify adapter ──> Gotify or another receiver
 ```
 
 Prometheus must share `telemetry` with the exporters it scrapes. Grafana also
@@ -91,7 +91,7 @@ its host path may need to be supplied explicitly for Portainer deployments.
 
 ```text
 Docker containers ──> Alloy ─────┐
-Host files/journald ─> Promtail ──┼──> Loki ──> Grafana
+Host files/journald ─> Alloy    ──┼──> Loki ──> Grafana
 Alternative sources ─> Vector ────┘
 ```
 
@@ -118,7 +118,7 @@ Common monitoring endpoints include:
 | [Loki](../stacks/loki/README.md) | `/ready` on internal port `3100` |
 | [n8n](../stacks/n8n/README.md) | `/healthz` |
 | [Prometheus](../stacks/prometheus/README.md) | `/-/healthy` |
-| [Promtail](../stacks/promtail/README.md) | `/ready` on internal port `9080` |
+| [Alloy host inputs](../stacks/grafana-alloy/README.md#host-files-and-journal-migration) | File and journal metrics on internal port `12345` |
 | [Umami](../stacks/umami/README.md) | `/api/heartbeat` |
 | [Vaultwarden](../stacks/vaultwarden/README.md) | `/alive` |
 
