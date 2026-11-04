@@ -1931,6 +1931,89 @@ class MusicProcessingSeamTest(unittest.TestCase):
                         main.process_release(root, require_completeness=True)
                     self.assertEqual(self.snapshot(root), before)
 
+    def test_single_disc_label_keeps_unambiguous_alias_without_disc_totals(self) -> None:
+        for disc_tags in ({}, {'DISCNUMBER': '1'}):
+            with self.subTest(disc_tags=disc_tags), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = self.tagged_flac({'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': 'Song',
+                                          'TRACKNUMBER': '1', 'TRACKTOTAL': '1', **disc_tags})
+                (root / 'hidden.flac').write_bytes(audio)
+                cue = ('PERFORMER "Fixture Artist"\nTITLE "Example"\n'
+                       'FILE "01 Song.wav" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n')
+                (root / 'example.CD1.cue').write_text(cue)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual((root / 'hidden.flac').read_bytes(), audio)
+                self.assertEqual((root / 'example.CD1.cue').read_text(), cue.replace('01 Song.wav', 'hidden.flac'))
+                main.process_release(root, require_completeness=True)
+
+    def test_disc_label_keeps_metadata_alias_in_separate_complete_disc_folders(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            original = {}
+            for disc in (1, 2):
+                folder = root / f'CD{disc}'
+                folder.mkdir()
+                audio = self.tagged_flac({'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': 'Song',
+                                          'TRACKNUMBER': '1', 'TRACKTOTAL': '1',
+                                          'DISCNUMBER': str(disc), 'DISCTOTAL': '2'})
+                original[disc] = audio
+                (folder / 'hidden.flac').write_bytes(audio)
+                (folder / f'example.CD{disc}.cue').write_text('PERFORMER "Fixture Artist"\nTITLE "Example"\n'
+                    'FILE "01 Song.wav" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n')
+            main.process_release(root, require_completeness=True)
+            for disc in (1, 2):
+                self.assertEqual((root / f'CD{disc}' / 'hidden.flac').read_bytes(), original[disc])
+                self.assertIn('FILE "hidden.flac"', (root / f'CD{disc}' / f'example.CD{disc}.cue').read_text())
+            stable = self.snapshot(root)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), stable)
+
+    def test_disc_label_scopes_metadata_cue_alias_without_ignoring_unknown_discs(self) -> None:
+        for variant in ('valid', 'shared-title', 'missing-disc', 'conflicting-total', 'missing-disc-file', 'wrong-label', 'foreign-album', 'missing-total', 'ambiguous', 'malformed-performer'):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = {}
+                for disc, title in ((1, 'Song A'), (2, 'Song B')):
+                    if variant == 'shared-title':
+                        title = 'Song A'
+                    tags = {'ARTIST': 'Fixture Artist', 'ALBUM': 'Example', 'TITLE': title,
+                            'TRACKNUMBER': '1', 'TRACKTOTAL': '1',
+                            'DISCNUMBER': str(disc), 'DISCTOTAL': '2'}
+                    if disc == 2 and variant == 'missing-disc':
+                        del tags['DISCNUMBER']
+                    if disc == 2 and variant == 'missing-total':
+                        del tags['DISCTOTAL']
+                    if disc == 2 and variant == 'conflicting-total':
+                        tags['DISCTOTAL'] = '3'
+                    if disc == 1 and variant == 'foreign-album':
+                        tags['ALBUM'] = 'Foreign'
+                    if disc == 2 and variant == 'missing-disc-file':
+                        continue
+                    name = f'{disc}01-hidden.flac'
+                    audio[name] = self.tagged_flac(tags)
+                    (root / name).write_bytes(audio[name])
+                    if disc == 1 and variant == 'ambiguous':
+                        (root / 'duplicate.flac').write_bytes(audio[name])
+                    label = '3' if variant == 'wrong-label' and disc == 1 else str(disc)
+                    cue = ('PERFORMER "Fixture Artist"\nTITLE "Example"\n'
+                           f'FILE "01 {title}.wav" WAVE\n TRACK 01 AUDIO\n INDEX 01 00:00:00\n')
+                    if variant == 'malformed-performer':
+                        cue = 'PERFORMER Invalid\n' + cue
+                    (root / f'example.CD{label}.cue').write_text(cue)
+                before = self.snapshot(root)
+                if variant in ('valid', 'shared-title'):
+                    main.process_release(root, require_completeness=True)
+                    for disc in (1, 2):
+                        self.assertIn(f'FILE "{disc}01-hidden.flac"', (root / f'example.CD{disc}.cue').read_text())
+                    self.assertEqual({p.name: p.read_bytes() for p in root.glob('*.flac')}, audio)
+                    stable = self.snapshot(root)
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), stable)
+                else:
+                    with self.assertRaises(ValueError):
+                        main.process_release(root, require_completeness=True)
+                    self.assertEqual(self.snapshot(root), before)
+
     def test_missing_wave_cue_uses_exact_artist_title_track_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
