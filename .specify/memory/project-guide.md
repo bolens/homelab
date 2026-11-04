@@ -368,6 +368,10 @@ capture/cursor state and are not read-only inventory. A discovered capture with
 zero recorded members can enter the ordinary inventory path; eligibility depends
 on its actual source generation, current ownership and owning admission checks.
 Do not require pre-existing member records or infer import acceptance from them.
+Before stopping services or launching a selected or recurring Worker pass, run its
+owning complete Reader catalog observation against the configured service. Reconcile
+actual duplicate live paths before activation; sorting or dropping conflicting rows
+does not establish an unambiguous catalog.
 For isolated Python component checks, `-I` child interpreters ignore environment-only
 bytecode suppression. Make exact regular private fixture copies read-only before
 their first metadata witness so imports cannot create bytecode there. Keep full
@@ -841,6 +845,10 @@ them again after the read; a later baseline can accept a replaced directory.
 Verify actual supplier ownership and modes through the strict reader before
 privileged execution, as well as checking hashes. A frozen `0444` source can fail
 a reader that accepts only `0600` or `0644`. This also applies to `0400` helpers.
+A checked path writable by UID1000 must not later become a Root child entry point.
+Execute the captured verified bytes, or a private copy owned by Root whose complete
+ancestry is protected, before starting the child. A final source check cannot
+prevent code replacement between hashing a writable path and executing it.
 Preserve the frozen original; use a distinct byte-identical supplier with the
 required mode and bind its exact path. Exercise that exact producer-to-reader
 handoff in a regression: importing the helper directly does not test admission.
