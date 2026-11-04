@@ -1,6 +1,8 @@
 # nodepad – spatial notes / research canvas (Next.js on :3000)
 # Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
 
+# Before enabling LITELLM_API_KEY, enforce owner-only authentication for this
+# entire site, including /api/litellm. This example does not implement authentication.
 nodepad.home, nodepad.local {
 	tls internal
 	reverse_proxy nodepad:3000 {

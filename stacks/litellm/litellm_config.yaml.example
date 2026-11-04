@@ -1,6 +1,6 @@
 # LiteLLM proxy — https://docs.litellm.ai/docs/proxy/configs
 # prepare-stack.sh seeds ~/.config/litellm/config.yaml from this file when missing.
-# Shared Ollama on Docker network `ingress-public`: use http://ollama:11434
+# Shared Ollama on Docker network `ai-backend`: use http://ollama:11434
 # Cloud keys: set in stack.env and reference with api_key: os.environ/OPENAI_API_KEY
 #
 # Optional: set input_cost_per_token / output_cost_per_token under litellm_params so
@@ -14,3 +14,12 @@ model_list:
       api_base: http://ollama:11434
       input_cost_per_token: 0.00000001
       output_cost_per_token: 0.00000001
+
+# After creating and verifying a regular proxy_admin account, enable:
+# general_settings:
+#   disable_env_credential_login: true
+# See README for the backup and login verification sequence.
+
+# GitHub Copilot accepts system messages. Keep classifier and agent instructions intact.
+litellm_settings:
+  disable_copilot_system_to_assistant: true

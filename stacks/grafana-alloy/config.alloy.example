@@ -380,3 +380,56 @@ loki.write "loki_sampled" {
 		max_backoff_retries = 20
 	}
 }
+
+
+// Host logs replace Promtail. Keep this separate from Docker's label guardrails.
+local.file_match "host_files" {
+  path_targets = [{
+    __path__ = "/var/log/*.log",
+    job = "varlogs",
+    host = sys.env("ALLOY_HOST_LABEL"),
+    source = "alloy",
+    collector = "grafana-alloy",
+  }]
+}
+
+loki.source.file "host_files" {
+  targets = local.file_match.host_files.targets
+  forward_to = [loki.process.host_logs.receiver]
+}
+
+loki.relabel "host_journal_labels" {
+  forward_to = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label = "unit"
+  }
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label = "host"
+  }
+  rule {
+    target_label = "job"
+    replacement = "systemd"
+  }
+}
+
+loki.source.journal "host_journal" {
+  path = "/var/log/journal"
+  max_age = "12h"
+  labels = {
+    job = "systemd",
+    source = "alloy",
+    collector = "grafana-alloy",
+  }
+  relabel_rules = loki.relabel.host_journal_labels.rules
+  forward_to = [loki.process.host_logs.receiver]
+}
+
+loki.process "host_logs" {
+  forward_to = [loki.relabel.primary_stream.receiver]
+  stage.drop {
+    expression = "^\\s*$"
+    drop_counter_reason = "empty_line"
+  }
+}

@@ -26,30 +26,25 @@ WHERE active = 1
     'Vaultwarden'
   );
 
-DELETE FROM monitor_notification
-WHERE notification_id IN (
-  SELECT id FROM notification WHERE name = 'Homelab ntfy'
-);
-DELETE FROM notification
-WHERE name = 'Homelab ntfy';
+-- Run only while Kuma is stopped, after a verified backup. Replace this token
+-- in a PRIVATE copy. Keep the notification ID and its existing monitor links.
+UPDATE notification
+SET name = 'Homelab Gotify', config = json_object(
+  'type', 'gotify', 'name', 'Homelab Gotify',
+  'gotifyserverurl', 'http://gotify:80',
+  'gotifyapplicationToken', 'REPLACE_WITH_APPLICATION_TOKEN',
+  'gotifyPriority', 5
+)
+WHERE name IN ('Homelab ntfy', 'Homelab Gotify');
 
 INSERT INTO notification (name, active, user_id, is_default, config)
-VALUES (
-  'Homelab ntfy',
-  1,
-  1,
-  1,
-  json_object(
-    'type', 'ntfy',
-    'name', 'Homelab ntfy',
-    'ntfytopic', 'uptime-kuma',
-    'ntfyserverurl', 'https://ntfy.example.com',
-    'ntfyPriority', 4,
-    'ntfyPriorityDown', 5,
-    'ntfyAuthenticationMethod', 'none',
-    'ntfyUseTemplate', json('false')
-  )
-);
+SELECT 'Homelab Gotify', 1, 1, 1, json_object(
+  'type', 'gotify', 'name', 'Homelab Gotify',
+  'gotifyserverurl', 'http://gotify:80',
+  'gotifyapplicationToken', 'REPLACE_WITH_APPLICATION_TOKEN',
+  'gotifyPriority', 5
+)
+WHERE NOT EXISTS (SELECT 1 FROM notification WHERE name = 'Homelab Gotify');
 
 INSERT INTO monitor (
   name, active, user_id, interval, url, type, weight, maxretries,

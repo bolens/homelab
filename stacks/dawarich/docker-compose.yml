@@ -1,0 +1,117 @@
+services:
+  dawarich:
+    image: freikin/dawarich:1.21.0@sha256:aae6cabd95c1dd5e5d4e2c920692a1b11524feec143d295a9bcc914df7ffdcdf
+    container_name: dawarich
+    restart: unless-stopped
+    env_file:
+    - stack.env
+    labels:
+      logging: 'true'
+    volumes:
+    - dawarich_public:/var/app/public
+    - dawarich_watched:/var/app/tmp/imports/watched
+    - dawarich_storage:/var/app/storage
+    networks:
+    - ingress-sensitive
+    - default
+    entrypoint: web-entrypoint.sh
+    command:
+    - bin/rails
+    - server
+    - -p
+    - '3000'
+    - -b
+    - '::'
+    stop_grace_period: 60s
+    environment:
+      RAILS_ENV: production
+      REDIS_URL: redis://dawarich-redis:6379
+      DATABASE_HOST: dawarich-db
+      DATABASE_PORT: '5432'
+      DATABASE_USERNAME: dawarich
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set a unique database password}
+      DATABASE_NAME: dawarich
+      APPLICATION_HOSTS: ${APPLICATION_HOSTS:?set allowed hostnames}
+      APPLICATION_PROTOCOL: https
+      TIME_ZONE: ${TZ:-Etc/UTC}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set a stable secret key base}
+      SELF_HOSTED: 'true'
+      STORE_GEODATA: 'true'
+      SIDEKIQ_EMBEDDED: 'true'
+      WEB_CONCURRENCY: '0'
+      BACKGROUND_PROCESSING_CONCURRENCY: '2'
+      RAILS_LOG_TO_STDOUT: 'true'
+      PROMETHEUS_EXPORTER_ENABLED: 'false'
+    depends_on:
+      dawarich-db:
+        condition: service_healthy
+      dawarich-redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -q
+      - -O
+      - /dev/null
+      - '--header=X-Forwarded-Proto: https'
+      - http://127.0.0.1:3000/api/v1/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    mem_limit: 4g
+    cpus: 2
+  dawarich-db:
+    image: postgis/postgis:17-3.5-alpine@sha256:894f570c0cf0664ed5576a8fd5d5bfb8fb1b19d592885b686c3a88c8bd90c41f
+    container_name: dawarich-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dawarich
+      POSTGRES_DB: dawarich
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a unique database password}
+    volumes:
+    - dawarich_db:/var/lib/postgresql/data
+    networks:
+    - default
+    shm_size: 256m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  dawarich-redis:
+    image: redis:8-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    container_name: dawarich-redis
+    restart: unless-stopped
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    volumes:
+    - dawarich_redis:/data
+    networks:
+    - default
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+networks:
+  ingress-sensitive:
+    name: ingress-sensitive
+    external: true
+  default: {}
+volumes:
+  dawarich_public: {}
+  dawarich_watched: {}
+  dawarich_storage: {}
+  dawarich_db: {}
+  dawarich_redis: {}

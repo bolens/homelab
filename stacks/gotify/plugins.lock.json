@@ -1,0 +1,15 @@
+{
+  "plugins": [
+    {
+      "name": "authentik",
+      "upstream": "https://github.com/ckocyigit/gotify-authentik-plugin",
+      "version": "v3.1.1",
+      "source_commit": "2c1671905d7dca0e6081c1e53b2a3a97e71ed04c",
+      "gotify_version": "3.1.1",
+      "go_version": "1.26.0",
+      "architecture": "amd64",
+      "url": "https://github.com/ckocyigit/gotify-authentik-plugin/releases/download/v3.1.1/authentik-plugin-amd64.so",
+      "sha256": "02668ed4a0c10ae240b7dff7f9e0d8825049d04f1110ade413e5f02b3767dca3"
+    }
+  ]
+}

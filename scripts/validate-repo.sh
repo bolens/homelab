@@ -60,6 +60,8 @@ python3 -B -m unittest discover -s scripts/tests -p test_librarr_supplement.py
 python3 -B -m unittest discover -s stacks/librarr/flood-adapter -p 'test_*.py'
 python3 -B -m unittest discover -s stacks/librarr/nzbget-adapter -p 'test_*.py'
 python3 -B -m unittest discover -s scripts/tests -p test_seafile_contract.py
+python3 -m unittest discover -s scripts/tests -p test_added_stack_preparation.py
+python3 -m unittest discover -s scripts/tests -p test_gotify_notifications.py
 python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 python3 -m unittest discover -s scripts/tests -p test_restic_retention.py
 python3 -m unittest discover -s scripts/tests -p test_builder_cache_guard.py
@@ -70,6 +72,9 @@ python3 -B -m unittest discover -s stacks/kavita/independent -p "test_*.py"
 python3 -B -m unittest discover -s scripts/tests -p test_library_artwork.py
 python3 -B -m unittest discover -s stacks/dispatcharr/helpers -p "test_*.py"
 python3 -B -m unittest discover -s stacks/dispatcharr/maintenance -p "test_*.py"
+python3 -m unittest discover -s scripts/tests -p test_paperless_storage.py
+python3 -m unittest discover -s scripts/tests -p test_immich_storage.py
+python3 -m unittest discover -s scripts/tests -p test_paperclip_seccomp.py
 python3 -m unittest discover -s stacks/nzbget/scripts/UnpackMusicTar -p test_main.py
 
 echo "Auditing stack metadata..."

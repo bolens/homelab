@@ -2,7 +2,7 @@ name: pocketbase
 default_port: 8080
 databases: []
 health:
-  endpoint: /
+  endpoint: /api/health
   internal_only: false
 monitoring:
   prometheus: false

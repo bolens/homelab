@@ -46,3 +46,7 @@ Default scrape config:
 - **Docker:** `/var/lib/docker/containers/*/*-json.log` (job `docker`)
 
 Customize `~/.config/promtail/promtail-config.yml` to add or remove sources and labels.
+
+## Legacy collector
+
+Promtail reached end of life on March 2, 2026. Use [Grafana Alloy](../grafana-alloy/README.md#host-files-and-journal-migration) for new deployments and the documented cursor-preserving migration for existing ones. Keep the original stopped container, configuration and positions volume until the replacement passes file, journal and Docker delivery checks. Do not run both collectors against the same inputs after acceptance.

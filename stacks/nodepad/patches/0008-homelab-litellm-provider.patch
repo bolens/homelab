@@ -1,0 +1,682 @@
+diff --git c/app/api/litellm/[[...path]]/route.ts w/app/api/litellm/[[...path]]/route.ts
+new file mode 100644
+index 0000000..bcac2b9
+--- /dev/null
++++ w/app/api/litellm/[[...path]]/route.ts
+@@ -0,0 +1,20 @@
++import type { NextRequest } from "next/server"
++import { proxyLiteLLM } from "@/lib/server/litellm-proxy.mjs"
++
++export const runtime = "nodejs"
++export const dynamic = "force-dynamic"
++
++type RouteContext = { params: Promise<{ path?: string[] }> }
++
++async function proxy(request: NextRequest, context: RouteContext) {
++  const { path = [] } = await context.params
++  return proxyLiteLLM(request, path)
++}
++
++export const GET = proxy
++export const POST = proxy
++export const HEAD = proxy
++export const OPTIONS = proxy
++export const PUT = proxy
++export const PATCH = proxy
++export const DELETE = proxy
+diff --git c/components/project-sidebar.tsx w/components/project-sidebar.tsx
+index a6d4cb6..5627b97 100644
+--- c/components/project-sidebar.tsx
++++ w/components/project-sidebar.tsx
+@@ -114,7 +114,7 @@ export function ProjectSidebar({
+ 
+   // Auto-fetch models when provider + key are available (debounced)
+   useEffect(() => {
+-    if (!showSettings || !draft.apiKey.trim()) {
++    if (!showSettings || (draft.provider !== "litellm" && !draft.apiKey.trim())) {
+       setFetchedModels([])
+       setFetchingModels(false)
+       setFetchError(null)
+@@ -404,6 +404,12 @@ export function ProjectSidebar({
+                   </div>
+                 </div>
+ 
++                {draft.provider === "litellm" ? (
++                  <p className="font-mono text-[9px] text-muted-foreground leading-relaxed">
++                    This instance supplies the shared connection. Choose a model below; no browser API key is needed.
++                  </p>
++                ) : (
++                  <>
+                 {/* API Key */}
+                 <div className="flex flex-col gap-2">
+                   <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+@@ -457,6 +463,9 @@ export function ProjectSidebar({
+                   </p>
+                 </div>
+ 
++                  </>
++                )}
++
+                 {/* Model Selector */}
+                 <div className="flex flex-col gap-2">
+                   <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+@@ -652,7 +661,7 @@ export function ProjectSidebar({
+ 
+                 {/* API Status */}
+                 <div className={`flex items-center gap-2 rounded-md px-2.5 py-2 font-mono text-[9px] ${
+-                  draft.provider === "ollama"
++                  (draft.provider === "ollama" || draft.provider === "litellm")
+                     ? draft.modelId.trim()
+                       ? "bg-primary/10 border border-primary/20 text-primary"
+                       : "bg-muted/20 border border-border text-muted-foreground"
+@@ -661,7 +670,7 @@ export function ProjectSidebar({
+                       : "bg-muted/20 border border-border text-muted-foreground"
+                 }`}>
+                   <span className={`h-1.5 w-1.5 rounded-full ${
+-                    draft.provider === "ollama"
++                    (draft.provider === "ollama" || draft.provider === "litellm")
+                       ? draft.modelId.trim()
+                         ? "bg-primary animate-pulse"
+                         : "bg-muted-foreground/40"
+@@ -669,7 +678,7 @@ export function ProjectSidebar({
+                         ? "bg-primary animate-pulse"
+                         : "bg-muted-foreground/40"
+                   }`} />
+-                  {draft.provider === "ollama"
++                  {(draft.provider === "ollama" || draft.provider === "litellm")
+                     ? (draft.modelId.trim()
+                         ? `${currentPreset.label} — model ${draft.modelId.trim()}`
+                         : "Set a model name — AI disabled")
+diff --git c/lib/ai-settings.ts w/lib/ai-settings.ts
+index e9e400d..b023e9c 100644
+--- c/lib/ai-settings.ts
++++ w/lib/ai-settings.ts
+@@ -12,7 +12,7 @@ export interface AIModel {
+   groundingModelId?: string
+ }
+ 
+-export type AIProvider = "openrouter" | "openai" | "zai" | "ollama"
++export type AIProvider = "openrouter" | "openai" | "zai" | "ollama" | "litellm"
+ 
+ export interface AIProviderPreset {
+   id: AIProvider
+@@ -53,6 +53,20 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
+   },
+ ]
+ 
++AI_PROVIDER_PRESETS.push({
++  id: "litellm",
++  label: "LiteLLM (shared)",
++  baseUrl: "/api/litellm/v1",
++  keyUrl: "",
++  keyPlaceholder: "",
++})
++
++export const LITELLM_MODELS: AIModel[] = [
++  { id: "gemini-flash-lite", label: "Google Gemini Flash Lite", shortLabel: "Gemini", description: "Google through the shared connection", supportsGrounding: false },
++  { id: "copilot-sonnet", label: "Copilot Claude Sonnet", shortLabel: "Sonnet", description: "Claude through GitHub Copilot", supportsGrounding: false },
++  { id: "copilot-gemini", label: "Copilot Gemini", shortLabel: "Gemini", description: "Gemini through GitHub Copilot", supportsGrounding: false },
++]
++
+ export function getPreset(provider: AIProvider): AIProviderPreset {
+   return AI_PROVIDER_PRESETS.find(p => p.id === provider) || AI_PROVIDER_PRESETS[0]
+ }
+@@ -182,6 +196,7 @@ export const ZAI_MODELS: AIModel[] = [
+ ]
+ 
+ export function getModelsForProvider(provider: AIProvider): AIModel[] {
++  if (provider === "litellm") return LITELLM_MODELS
+   if (provider === "openai") return OPENAI_MODELS
+   if (provider === "zai") return ZAI_MODELS
+   if (provider === "ollama") return []
+@@ -210,8 +225,10 @@ export async function fetchModelsFromProvider(
+   apiKey: string,
+   customBaseUrl?: string,
+ ): Promise<FetchedModel[]> {
+-  const baseUrl = customBaseUrl?.trim() || getPreset(provider).baseUrl
+-  const headers: Record<string, string> = {
++  const baseUrl = provider === "litellm"
++    ? getPreset(provider).baseUrl
++    : customBaseUrl?.trim() || getPreset(provider).baseUrl
++  const headers: Record<string, string> = provider === "litellm" ? {} : {
+     "Authorization": `Bearer ${apiKey}`,
+   }
+   if (provider === "openrouter") {
+@@ -260,11 +277,12 @@ const STORAGE_KEY = "nodepad-ai-settings"
+ /** Docker build args → client bundle; used when localStorage has no saved settings yet. */
+ function envDefaultProvider(): AIProvider {
+   const v = (process.env.NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER || "").trim().toLowerCase()
+-  if (v === "ollama" || v === "openrouter" || v === "openai" || v === "zai") return v as AIProvider
++  if (v === "litellm" || v === "ollama" || v === "openrouter" || v === "openai" || v === "zai") return v as AIProvider
+   return DEFAULT_PROVIDER
+ }
+ 
+ function envDefaultModelForProvider(p: AIProvider): string {
++  if (p === "litellm") return LITELLM_MODELS[0].id
+   if (p === "ollama") {
+     return (process.env.NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL || "").trim() || DEFAULT_OLLAMA_MODEL_ID
+   }
+@@ -305,6 +323,11 @@ export interface AIConfig {
+ 
+ export function loadAIConfig(): AIConfig | null {
+   const s = loadSettings()
++  if (s.provider === "litellm") {
++    const modelId = (s.modelId || "").trim()
++    if (!modelId) return null
++    return { apiKey: "", modelId, supportsGrounding: false, provider: "litellm", customBaseUrl: "" }
++  }
+   if (s.provider === "ollama") {
+     const modelId = (s.modelId || "").trim()
+     if (!modelId) return null
+@@ -334,11 +357,12 @@ export function loadAIConfig(): AIConfig | null {
+ 
+ /** True when AI calls can run (cloud providers need an API key; Ollama needs a model name). */
+ export function isAIConfigured(s: AISettings): boolean {
+-  if (s.provider === "ollama") return !!(s.modelId || "").trim()
++  if (s.provider === "ollama" || s.provider === "litellm") return !!(s.modelId || "").trim()
+   return !!(s.apiKey || "").trim()
+ }
+ 
+ export function getBaseUrl(config: AIConfig): string {
++  if (config.provider === "litellm") return getPreset("litellm").baseUrl
+   const custom = config.customBaseUrl?.trim()
+   return custom || getPreset(config.provider).baseUrl
+ }
+@@ -347,6 +371,7 @@ export function getProviderHeaders(config: AIConfig): Record<string, string> {
+   const base: Record<string, string> = {
+     "Content-Type": "application/json",
+   }
++  if (config.provider === "litellm") return base
+   if (config.provider === "ollama") {
+     if (config.apiKey) base["Authorization"] = `Bearer ${config.apiKey}`
+     return base
+@@ -414,7 +439,7 @@ export function useAISettings() {
+   const models = getModelsForProvider(settings.provider)
+ 
+   const resolvedModelId = (() => {
+-    if (settings.provider === "ollama") return (settings.modelId || "").trim()
++    if (settings.provider === "ollama" || settings.provider === "litellm") return (settings.modelId || "").trim()
+     const model = models.find(m => m.id === settings.modelId) || models[0]
+     if (!model) return settings.modelId
+     if (settings.provider === "openrouter" && settings.webGrounding && model.supportsGrounding) {
+diff --git c/lib/server/litellm-proxy.mjs w/lib/server/litellm-proxy.mjs
+new file mode 100644
+index 0000000..9ea9f56
+--- /dev/null
++++ w/lib/server/litellm-proxy.mjs
+@@ -0,0 +1,210 @@
++const DEFAULT_MODELS = ['gemini-flash-lite', 'copilot-sonnet', 'copilot-gemini']
++const MAX_BODY_BYTES = 1024 * 1024
++const MAX_OUTPUT_TOKENS = 8192
++const CHAT_FIELDS = new Set(['model', 'messages', 'max_tokens', 'temperature', 'response_format', 'stream', 'stream_options', 'top_p', 'seed', 'stop'])
++
++class Rejection extends Error {
++  constructor(status, message) { super(message); this.status = status }
++}
++
++function json(body, status = 200, extraHeaders = {}) {
++  return new Response(JSON.stringify(body), {
++    status,
++    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', ...extraHeaders },
++  })
++}
++
++function reject(status, message) { throw new Rejection(status, message) }
++
++function configuration(env) {
++  const key = env.LITELLM_API_KEY?.trim()
++  if (!key || /[\r\n]/.test(key)) reject(503, 'Shared AI is not configured.')
++  let base
++  try { base = new URL(env.LITELLM_BASE_URL?.trim() || 'http://litellm:4000/v1') }
++  catch { reject(503, 'Shared AI is not configured.') }
++  if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) reject(503, 'Shared AI is not configured.')
++  const models = new Set((env.LITELLM_ALLOWED_MODELS || DEFAULT_MODELS.join(',')).split(',').map(value => value.trim()).filter(Boolean))
++  if (!models.size || [...models].some(value => !/^[\w./:-]{1,200}$/.test(value))) reject(503, 'Shared AI is not configured.')
++  return { key, base: base.href.replace(/\/$/, ''), models }
++}
++
++function allowedOrigins(env) {
++  const raw = env.NODEPAD_ALLOWED_ORIGINS?.trim() || env.NODEPAD_SITE_URL?.trim()
++  if (!raw) reject(503, 'Shared AI requires a configured site origin.')
++  const origins = new Set()
++  for (const value of raw.split(',').map(value => value.trim()).filter(Boolean)) {
++    let url
++    try { url = new URL(value) } catch { reject(503, 'Shared AI requires a valid site origin.') }
++    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== '/') reject(503, 'Shared AI requires a valid site origin.')
++    origins.add(url.origin)
++  }
++  if (!origins.size) reject(503, 'Shared AI requires a configured site origin.')
++  return origins
++}
++
++async function readBounded(source, limit = MAX_BODY_BYTES, budgetMs = 10000) {
++  if (!source.body) reject(400, 'A JSON request body is required.')
++  const reader = source.body.getReader()
++  let timedOut = false
++  const timer = setTimeout(() => { timedOut = true; void reader.cancel().catch(() => {}) }, budgetMs)
++  const chunks = []
++  let length = 0
++  try {
++    while (true) {
++      const { done, value } = await reader.read()
++      if (timedOut) reject(408, "The AI request timed out.")
++      if (done) break
++      length += value.byteLength
++      if (length > limit) {
++        await reader.cancel()
++        reject(413, 'The AI request is too large.')
++      }
++      chunks.push(value)
++    }
++  } finally { clearTimeout(timer); reader.releaseLock() }
++  const bytes = new Uint8Array(length)
++  let offset = 0
++  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
++  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes) }
++  catch { reject(400, 'A valid JSON request body is required.') }
++}
++
++async function chatPayload(request, models, bodyTimeoutMs) {
++  if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') reject(415, 'Use a JSON request body.')
++  const declaredLength = Number(request.headers.get('content-length'))
++  if (declaredLength > MAX_BODY_BYTES) reject(413, 'The AI request is too large.')
++  let body
++  try { body = JSON.parse(await readBounded(request, MAX_BODY_BYTES, bodyTimeoutMs)) }
++  catch (error) {
++    if (error instanceof Rejection) throw error
++    reject(400, 'A valid JSON request body is required.')
++  }
++  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => !CHAT_FIELDS.has(key))) reject(400, 'Unsupported AI request options.')
++  if (!models.has(body.model)) reject(400, 'Choose an available shared AI model.')
++  if (!Array.isArray(body.messages) || body.messages.length < 1 || body.messages.length > 64) reject(400, 'Use between 1 and 64 chat messages.')
++  for (const message of body.messages) {
++    if (!message || typeof message !== 'object' || Array.isArray(message) || Object.keys(message).some(key => !['role', 'content'].includes(key)) || !['system', 'user', 'assistant'].includes(message.role) || typeof message.content !== 'string') reject(400, 'Unsupported chat message format.')
++  }
++  const tokens = body.max_tokens ?? 2048
++  if (!Number.isInteger(tokens) || tokens < 1 || tokens > MAX_OUTPUT_TOKENS) reject(400, 'Choose an output limit between 1 and 8192 tokens.')
++  if (body.temperature !== undefined && (typeof body.temperature !== 'number' || !Number.isFinite(body.temperature) || body.temperature < 0 || body.temperature > 2)) reject(400, 'Invalid sampling options.')
++  if (body.top_p !== undefined && (typeof body.top_p !== 'number' || !Number.isFinite(body.top_p) || body.top_p < 0 || body.top_p > 1)) reject(400, 'Invalid sampling options.')
++  if (body.seed !== undefined && !Number.isSafeInteger(body.seed)) reject(400, 'Invalid sampling options.')
++  if (body.stream !== undefined && typeof body.stream !== 'boolean') reject(400, 'Invalid streaming options.')
++  if (body.stream_options !== undefined && (!body.stream || !body.stream_options || typeof body.stream_options !== 'object' || Array.isArray(body.stream_options) || Object.keys(body.stream_options).some(key => key !== 'include_usage') || typeof body.stream_options.include_usage !== 'boolean')) reject(400, 'Invalid streaming options.')
++  if (body.response_format !== undefined && (!body.response_format || typeof body.response_format !== 'object' || Array.isArray(body.response_format) || !['text', 'json_object', 'json_schema'].includes(body.response_format.type))) reject(400, 'Invalid response format.')
++  if (body.stop !== undefined) {
++    const stops = typeof body.stop === 'string' ? [body.stop] : body.stop
++    if (!Array.isArray(stops) || stops.length > 4 || stops.some(value => typeof value !== 'string' || value.length > 256)) reject(400, 'Invalid stop options.')
++  }
++  return { ...body, max_tokens: tokens }
++}
++
++/** Fixed-purpose server proxy. Callers cannot supply destinations or credentials. */
++export async function proxyLiteLLM(request, path, { env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 60000, bodyTimeoutMs = 10000 } = {}) {
++  const route = path.join('/')
++  const method = route === 'v1/models' ? 'GET' : route === 'v1/chat/completions' ? 'POST' : null
++  if (!method) return json({ error: { message: 'AI endpoint not found.' } }, 404)
++  if (request.method !== method) return json({ error: { message: 'Method not allowed.' } }, 405, { allow: method })
++  let cleanup = () => {}
++  try {
++    if (new URL(request.url).search) reject(400, 'AI query options are not supported.')
++    const config = configuration(env)
++    let payload
++    if (method === 'POST') {
++      if (!allowedOrigins(env).has(request.headers.get('origin') || '')) reject(403, 'Origin not allowed.')
++      payload = await chatPayload(request, config.models, Math.min(10000, Math.max(1, bodyTimeoutMs)))
++    }
++    const abort = new AbortController()
++    const onAbort = () => abort.abort()
++    request.signal.addEventListener('abort', onAbort, { once: true })
++    if (request.signal.aborted) abort.abort()
++    const timer = setTimeout(() => abort.abort(), Math.min(60000, Math.max(1, timeoutMs)))
++    cleanup = () => { clearTimeout(timer); request.signal.removeEventListener('abort', onAbort) }
++    const upstream = await fetchImpl(`${config.base}/${method === 'GET' ? 'models' : 'chat/completions'}`, {
++      method,
++      headers: { accept: method === 'GET' ? 'application/json' : payload.stream ? 'text/event-stream' : 'application/json', 'content-type': 'application/json', authorization: `Bearer ${config.key}` },
++      ...(payload ? { body: JSON.stringify(payload) } : {}),
++      redirect: 'error',
++      signal: abort.signal,
++    })
++    if (!upstream.ok) {
++      await upstream.body?.cancel()
++      cleanup()
++      return json({ error: { message: 'The AI provider is unavailable. Try again or select another model.' } }, upstream.status === 429 ? 429 : 502)
++    }
++    if (method === 'GET') {
++      let result
++      try { result = JSON.parse(await readBounded(upstream)) }
++      catch { reject(502, 'The AI provider returned an invalid model list.') }
++      if (!Array.isArray(result.data)) reject(502, 'The AI provider returned an invalid model list.')
++      const data = result.data.filter(model => model && config.models.has(model.id)).map(model => ({ id: model.id, object: 'model', owned_by: 'litellm' }))
++      cleanup()
++      return json({ object: 'list', data })
++    }
++    const type = upstream.headers.get('content-type') || ''
++    if (!upstream.body || (!type.includes('application/json') && !type.includes('text/event-stream'))) {
++      await upstream.body?.cancel()
++      reject(502, 'The AI provider returned an invalid response.')
++    }
++    if (type.includes('application/json')) {
++      let result
++      try { result = JSON.parse(await readBounded(upstream)) }
++      catch { reject(502, 'The AI provider returned an invalid response.') }
++      if (!result || typeof result !== 'object' || result.error) reject(502, 'The AI provider is unavailable. Try again or select another model.')
++      cleanup()
++      return json(result)
++    }
++    const reader = upstream.body.getReader()
++    const decoder = new TextDecoder('utf-8', { fatal: true })
++    const encoder = new TextEncoder()
++    let pending = '', frame = '', ended = false
++    const genericError = 'data: {"error":{"message":"The AI response was interrupted. Try again."}}\n\n'
++    function classify(event) {
++      const lines = event.split(/\r\n|\r|\n/)
++      if (lines.some(line => /^event:\s*error\s*$/.test(line))) throw new Error('Provider error')
++      const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).replace(/^ /, '')).join('\n')
++      if (data && data !== '[DONE]') {
++        const value = JSON.parse(data)
++        if (!value || typeof value !== 'object' || Object.hasOwn(value, 'error')) throw new Error('Provider error')
++      }
++      return event
++    }
++    const body = new ReadableStream({
++      async pull(controller) {
++        try {
++          while (true) {
++            const match = /[\r\n]/.exec(pending)
++            if (match && !(pending[match.index] === '\r' && match.index === pending.length - 1 && !ended)) {
++              const width = pending.slice(match.index, match.index + 2) === '\r\n' ? 2 : 1
++              const line = pending.slice(0, match.index)
++              frame += pending.slice(0, match.index + width)
++              pending = pending.slice(match.index + width)
++              if (encoder.encode(frame).byteLength > MAX_BODY_BYTES) throw new Error('Oversized event')
++              if (!line) { controller.enqueue(encoder.encode(classify(frame))); frame = ''; return }
++              continue
++            }
++            if (ended) {
++              // Unframed EOF data is never forwarded, including error details.
++              cleanup(); reader.releaseLock(); controller.close(); return
++            }
++            const { value, done } = await reader.read()
++            pending += done ? decoder.decode() : decoder.decode(value, { stream: true })
++            ended = done
++            if (encoder.encode(pending).byteLength + encoder.encode(frame).byteLength > MAX_BODY_BYTES) throw new Error('Oversized event')
++          }
++        } catch {
++          abort.abort(); cleanup(); await reader.cancel().catch(() => {})
++          reader.releaseLock(); controller.enqueue(encoder.encode(genericError)); controller.close()
++        }
++      },
++      async cancel() { abort.abort(); cleanup(); await reader.cancel().catch(() => {}); reader.releaseLock() },
++    })
++    return new Response(body, { status: upstream.status, headers: { 'content-type': type.includes('text/event-stream') ? 'text/event-stream; charset=utf-8' : 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
++  } catch (error) {
++    cleanup()
++    if (error instanceof Rejection) return json({ error: { message: error.message } }, error.status)
++    if (request.signal.aborted) return json({ error: { message: 'AI request cancelled.' } }, 499)
++    return json({ error: { message: 'The AI request failed or timed out. Try again.' } }, 502)
++  }
++}
+diff --git c/tests/litellm-client.test.cjs w/tests/litellm-client.test.cjs
+new file mode 100644
+index 0000000..28d7502
+--- /dev/null
++++ w/tests/litellm-client.test.cjs
+@@ -0,0 +1,75 @@
++const { test } = require('node:test')
++const assert = require('node:assert/strict')
++const fs = require('node:fs')
++const vm = require('node:vm')
++const path = require('node:path')
++const ts = require('typescript')
++
++function settingsModule(saved, overrides = {}) {
++  const writes = []
++  const storage = { getItem: key => { assert.equal(key, 'nodepad-ai-settings'); return saved ? JSON.stringify(saved) : null }, setItem: (...args) => writes.push(args) }
++  const module = { exports: {} }
++  const source = fs.readFileSync(path.join(__dirname, '../lib/ai-settings.ts'), 'utf8') + '\nexport { loadSettings, freshDefaults };\n'
++  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
++  const context = { module, exports: module.exports, require: name => { assert.equal(name, 'react'); return { useState() {}, useEffect() {}, useCallback() {} } }, process: { env: {} }, window: { localStorage: storage }, localStorage: storage, fetch: async () => { throw new Error('Unexpected provider request') }, ...overrides }
++  vm.runInNewContext(code, context, { filename: 'ai-settings.js' })
++  return { api: module.exports, writes }
++}
++const plain = value => JSON.parse(JSON.stringify(value))
++
++test('shared provider has three selectable aliases without changing first-visit defaults', () => {
++  const { api, writes } = settingsModule()
++  assert.equal(api.DEFAULT_PROVIDER, 'openrouter')
++  assert.equal(api.DEFAULT_MODEL_ID, 'openai/gpt-4o')
++  assert.equal(api.freshDefaults().provider, 'openrouter')
++  assert.equal(api.freshDefaults().modelId, 'openai/gpt-4o')
++  assert.deepEqual(plain(api.getModelsForProvider('litellm').map(model => model.id)), ['gemini-flash-lite', 'copilot-sonnet', 'copilot-gemini'])
++  assert.equal(api.getPreset('litellm').baseUrl, '/api/litellm/v1')
++  assert.equal(api.getModelsForProvider('litellm').some(model => model.supportsGrounding), false)
++  assert.equal(writes.length, 0)
++})
++
++test('saved settings for every existing provider are read without being rewritten', () => {
++  for (const [provider, modelId] of [['ollama', 'gemma4:latest'], ['openai', 'gpt-4o'], ['zai', 'glm-4.5'], ['openrouter', 'openai/gpt-4o']]) {
++    const saved = { provider, modelId, apiKey: 'existing-browser-key', customBaseUrl: 'https://existing.example.com/v1', webGrounding: false, providerKeys: { openai: 'saved-openai-key', openrouter: 'saved-router-key' } }
++    const { api, writes } = settingsModule(saved)
++    assert.deepEqual(plain(api.loadSettings()), saved)
++    assert.equal(api.loadAIConfig().provider, provider)
++    assert.equal(api.loadAIConfig().modelId, modelId)
++    assert.equal(api.loadAIConfig().apiKey, saved.apiKey)
++    assert.equal(api.loadAIConfig().customBaseUrl, saved.customBaseUrl)
++    assert.equal(writes.length, 0)
++  }
++})
++
++test('shared requests need no browser key and ignore stale browser secrets and URLs', () => {
++  const { api, writes } = settingsModule({ provider: 'litellm', modelId: 'copilot-sonnet', apiKey: 'stale-browser-secret', customBaseUrl: 'https://evil.example/v1', webGrounding: true })
++  const config = api.loadAIConfig()
++  assert.equal(api.isAIConfigured({ provider: 'litellm', modelId: 'copilot-sonnet', apiKey: '' }), true)
++  assert.equal(api.isAIConfigured({ provider: 'litellm', modelId: '', apiKey: '' }), false)
++  assert.equal(config.apiKey, '')
++  assert.equal(config.modelId, 'copilot-sonnet')
++  assert.equal(config.supportsGrounding, false)
++  assert.equal(api.getBaseUrl({ ...config, customBaseUrl: 'https://evil.example/v1' }), '/api/litellm/v1')
++  assert.deepEqual(plain(api.getProviderHeaders({ ...config, apiKey: 'stale-browser-secret' })), { 'Content-Type': 'application/json' })
++  assert.equal(writes.length, 0)
++})
++
++test('shared model discovery stays same-origin and sends no browser credentials', async () => {
++  let called = 0
++  const { api } = settingsModule(null, { fetch: async (url, options) => {
++    called++
++    assert.equal(url, '/api/litellm/v1/models')
++    assert.deepEqual(plain(options.headers), {})
++    return { ok: true, json: async () => ({ data: [{ id: 'copilot-gemini', owned_by: 'litellm' }] }) }
++  } })
++  const result = await api.fetchModelsFromProvider('litellm', 'browser-secret', 'https://evil.example/v1')
++  assert.equal(called, 1)
++  assert.equal(result[0].id, 'copilot-gemini')
++})
++
++test('an explicit future shared-provider first-visit setting has a usable model', () => {
++  const { api } = settingsModule(null, { process: { env: { NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER: 'litellm' } } })
++  assert.equal(api.freshDefaults().provider, 'litellm')
++  assert.equal(api.freshDefaults().modelId, 'gemini-flash-lite')
++})
+diff --git c/tests/litellm-proxy.test.mjs w/tests/litellm-proxy.test.mjs
+new file mode 100644
+index 0000000..3ddf897
+--- /dev/null
++++ w/tests/litellm-proxy.test.mjs
+@@ -0,0 +1,178 @@
++import { test } from 'node:test'
++import assert from 'node:assert/strict'
++import { proxyLiteLLM } from '../lib/server/litellm-proxy.mjs'
++
++const secret = 'NODEPAD_CANARY_SERVER_KEY_NOT_FOR_BROWSER'
++const env = { LITELLM_API_KEY: secret, LITELLM_BASE_URL: 'http://gateway:4000/v1', NODEPAD_SITE_URL: 'https://nodepad.example.com' }
++const payload = { model: 'copilot-sonnet', messages: [{ role: 'user', content: 'Reply OK.' }] }
++const response = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } })
++const request = (body = payload, overrides = {}) => new Request('https://nodepad.example.com/api/litellm/v1/chat/completions', { method: 'POST', headers: { origin: env.NODEPAD_SITE_URL, 'content-type': 'application/json', ...overrides.headers }, body: typeof body === 'string' ? body : JSON.stringify(body), ...Object.fromEntries(Object.entries(overrides).filter(([key]) => key !== 'headers')) })
++const path = ['v1', 'chat', 'completions']
++const deniedFetch = () => { throw new Error('Upstream must not be contacted') }
++
++test('only the two exact routes and their methods are exposed', async () => {
++  for (const segments of [[], ['v1', 'keys'], ['v1', 'models', 'extra'], ['v1', '..', 'models']]) {
++    const result = await proxyLiteLLM(new Request('https://nodepad.example.com/api/litellm'), segments, { env, fetchImpl: deniedFetch })
++    assert.equal(result.status, 404)
++  }
++  for (const method of ['POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']) {
++    const result = await proxyLiteLLM(new Request('https://nodepad.example.com/api/litellm/v1/models', { method }), ['v1', 'models'], { env, fetchImpl: deniedFetch })
++    assert.equal(result.status, 405)
++  }
++})
++
++test('configuration and exact browser origin fail closed', async () => {
++  assert.equal((await proxyLiteLLM(request(), path, { env: {}, fetchImpl: deniedFetch })).status, 503)
++  assert.equal((await proxyLiteLLM(request(), path, { env: { ...env, NODEPAD_SITE_URL: '' }, fetchImpl: deniedFetch })).status, 503)
++  for (const origin of ['', 'null', 'https://nodepad.example.com.evil.test', 'https://evil.test', 'http://nodepad.example.com']) {
++    const result = await proxyLiteLLM(request(payload, { headers: { origin } }), path, { env, fetchImpl: deniedFetch })
++    assert.equal(result.status, 403)
++  }
++  for (const value of ['https://nodepad.example.com/path', 'not-an-origin']) {
++    assert.equal((await proxyLiteLLM(request(), path, { env: { ...env, NODEPAD_ALLOWED_ORIGINS: value }, fetchImpl: deniedFetch })).status, 503)
++  }
++  assert.equal((await proxyLiteLLM(request(), path, { env: { ...env, LITELLM_BASE_URL: 'http://user:pass@gateway/v1' }, fetchImpl: deniedFetch })).status, 503)
++})
++
++test('unrecognized models and credential/destination overrides never reach upstream', async () => {
++  for (const extra of [{ model: 'chatgpt-personal' }, { api_key: 'browser-key' }, { api_base: 'https://evil.test' }, { custom_llm_provider: 'other' }, { metadata: {} }, { extra_headers: {} }]) {
++    assert.equal((await proxyLiteLLM(request({ ...payload, ...extra }), path, { env, fetchImpl: deniedFetch })).status, 400)
++  }
++  const req = new Request('https://nodepad.example.com/api/litellm/v1/models?api_base=evil')
++  assert.equal((await proxyLiteLLM(req, ['v1', 'models'], { env, fetchImpl: deniedFetch })).status, 400)
++})
++
++test('actual body size, malformed JSON, message and token limits are enforced', async () => {
++  assert.equal((await proxyLiteLLM(request('not-json'), path, { env, fetchImpl: deniedFetch })).status, 400)
++  assert.equal((await proxyLiteLLM(request(payload, { headers: { 'content-type': 'text/plain' } }), path, { env, fetchImpl: deniedFetch })).status, 415)
++  const oversized = { ...payload, messages: [{ role: 'user', content: 'x'.repeat(1024 * 1024) }] }
++  assert.equal((await proxyLiteLLM(request(oversized, { headers: { 'content-length': '1' } }), path, { env, fetchImpl: deniedFetch })).status, 413)
++  for (const extra of [{ max_tokens: 8193 }, { max_tokens: 0 }, { max_tokens: 1.5 }, { messages: [] }, { messages: Array.from({ length: 65 }, () => payload.messages[0]) }, { messages: [{ role: 'user', content: [] }] }, { temperature: 9 }]) {
++    assert.equal((await proxyLiteLLM(request({ ...payload, ...extra }), path, { env, fetchImpl: deniedFetch })).status, 400)
++  }
++})
++
++test('server authorization is injected and browser authorization/cookies are absent', async () => {
++  let called = 0
++  const result = await proxyLiteLLM(request(payload, { headers: { authorization: 'Bearer browser-key', cookie: 'browser-cookie' } }), path, {
++    env,
++    fetchImpl: async (url, options) => {
++      called++
++      assert.equal(url, 'http://gateway:4000/v1/chat/completions')
++      assert.equal(options.redirect, 'error')
++      assert.equal(options.headers.authorization, `Bearer ${secret}`)
++      assert.equal(options.headers.cookie, undefined)
++      assert.equal(JSON.parse(options.body).max_tokens, 2048)
++      return response({ choices: [{ message: { content: 'OK' } }] }, 200, { 'set-cookie': secret, authorization: secret, 'x-litellm-api-key': secret })
++    },
++  })
++  assert.equal(called, 1)
++  assert.equal(result.status, 200)
++  assert.equal(result.headers.get('set-cookie'), null)
++  assert.equal(result.headers.get('authorization'), null)
++  assert.equal(result.headers.get('x-litellm-api-key'), null)
++  assert.equal((await result.json()).choices[0].message.content, 'OK')
++})
++
++test('model discovery returns only approved alias metadata', async () => {
++  const result = await proxyLiteLLM(new Request('https://nodepad.example.com/api/litellm/v1/models'), ['v1', 'models'], {
++    env,
++    fetchImpl: async () => response({ data: [{ id: 'copilot-sonnet', api_key: secret, owned_by: secret }, { id: 'private-model' }, { id: 'gemini-flash-lite' }] }),
++  })
++  const text = await result.text()
++  assert.equal(text.includes(secret), false)
++  assert.deepEqual(JSON.parse(text).data.map(model => model.id), ['copilot-sonnet', 'gemini-flash-lite'])
++})
++
++test('raw upstream error bodies, redirects and invalid model lists are not returned', async () => {
++  for (const upstream of [response({ error: secret }, 500), new Response(secret, { status: 302, headers: { location: 'https://evil.test' } })]) {
++    const result = await proxyLiteLLM(request(), path, { env, fetchImpl: async () => upstream })
++    assert.equal(result.status, 502)
++    assert.equal((await result.text()).includes(secret), false)
++  }
++  const limited = await proxyLiteLLM(request(), path, { env, fetchImpl: async () => response({ error: secret }, 429) })
++  assert.equal(limited.status, 429)
++  const invalid = await proxyLiteLLM(new Request('https://nodepad.example.com/api/litellm/v1/models'), ['v1', 'models'], { env, fetchImpl: async () => response({ key: secret }) })
++  assert.equal(invalid.status, 502)
++  assert.equal((await invalid.text()).includes(secret), false)
++})
++
++test('successful event streams stay intact and private headers are removed', async () => {
++  const event = 'data: {"choices":[{"delta":{"content":"OK"}}]}\n\ndata: [DONE]\n\n'
++  const result = await proxyLiteLLM(request({ ...payload, stream: true }), path, {
++    env,
++    fetchImpl: async () => new Response(event, { headers: { 'content-type': 'text/event-stream', 'set-cookie': secret } }),
++  })
++  assert.match(result.headers.get('content-type'), /text\/event-stream/)
++  assert.equal(result.headers.get('set-cookie'), null)
++  assert.equal(await result.text(), event)
++})
++
++test('downstream cancellation aborts upstream work', async () => {
++  let signal
++  const result = await proxyLiteLLM(request(), path, {
++    env,
++    fetchImpl: async (_url, options) => {
++      signal = options.signal
++      return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('data: {\"choices\": []}\n\n')) } }), { headers: { 'content-type': 'text/event-stream' } })
++    },
++  })
++  await result.body.cancel()
++  assert.equal(signal.aborted, true)
++})
++
++test('slow upstream work is aborted without returning its exception text', async () => {
++  const result = await proxyLiteLLM(request(), path, {
++    env,
++    timeoutMs: 5,
++    fetchImpl: (_url, options) => new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error(secret)), { once: true })),
++  })
++  assert.equal(result.status, 502)
++  assert.equal((await result.text()).includes(secret), false)
++})
++
++test('a stalled inbound body is bounded before contacting the upstream', async () => {
++  const req = request(undefined, { body: new ReadableStream({}), duplex: 'half' })
++  const result = await proxyLiteLLM(req, path, { env, fetchImpl: deniedFetch, bodyTimeoutMs: 5 })
++  assert.equal(result.status, 408)
++})
++
++test('successful HTTP status cannot expose JSON provider errors', async () => {
++  const result = await proxyLiteLLM(request(), path, { env, fetchImpl: async () => response({ error: { message: secret } }) })
++  assert.equal(result.status, 502)
++  assert.equal((await result.text()).includes(secret), false)
++})
++
++test('split SSE frames sanitize provider errors without changing model content', async () => {
++  for (const newline of ['\n', '\r\n', '\r']) {
++    const good = 'data: {"choices":[{"delta":{"content":"é OK"}}]}' + newline + newline
++    for (const bad of [
++      'data: {"error":' + newline + 'data: {"message":"' + secret + '"}}' + newline + newline,
++      'event: error' + newline + 'data: ' + secret + newline + newline,
++      'data: ' + secret + newline + newline,
++    ]) {
++      let cancelled = false
++      const bytes = new TextEncoder().encode(good + bad + ": trailing\n\n")
++      let index = 0
++      const source = new ReadableStream({
++        pull(c) { if (index < bytes.length) c.enqueue(bytes.slice(index, ++index)) },
++        cancel() { cancelled = true },
++      })
++      const result = await proxyLiteLLM(request({ ...payload, stream: true }), path, { env, fetchImpl: async () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }) })
++      const text = await result.text()
++      assert.equal(text.startsWith(good), true)
++      assert.equal(text.includes(secret), false)
++      assert.match(text, /response was interrupted/)
++      assert.equal(cancelled, true)
++    }
++  }
++})
++
++test('oversized and incomplete SSE events never escape before classification', async () => {
++  for (const event of ['data: ' + 'x'.repeat(1024 * 1024 + 1), 'data: {"error":{"message":"' + secret + '"}}']) {
++    const result = await proxyLiteLLM(request({ ...payload, stream: true }), path, { env, fetchImpl: async () => new Response(event, { headers: { 'content-type': 'text/event-stream' } }) })
++    const text = await result.text()
++    assert.equal(text.includes(secret), false)
++    assert.equal(text.includes('x'.repeat(100)), false)
++  }
++})

@@ -12,6 +12,12 @@ services:
       - --storage.path=/alertmanager
     volumes:
       - alertmanager_data:/alertmanager
+      - type: bind
+        source: ./secrets/gotify-webhook-token
+        target: /etc/alertmanager/gotify-webhook-token
+        read_only: true
+        bind:
+          create_host_path: false
       - ${ALERTMANAGER_CONFIG_PATH:-${HOME}/.config/alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
       - ${ALERTMANAGER_TEMPLATES_PATH:-${HOME}/.config/alertmanager/templates}:/etc/alertmanager/templates:ro
     networks:

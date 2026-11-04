@@ -2,11 +2,11 @@
 
 Privacy-respecting metasearch engine. Aggregates results from multiple search engines.
 
-**Website:** https://docs.searxng.org  
-**Docs:** https://docs.searxng.org  
-**GitHub:** https://github.com/searxng/searxng  
-**Docker image:** https://hub.docker.com/r/searxng/searxng  
-**Releases:** https://github.com/searxng/searxng/releases  
+**Website:** https://docs.searxng.org
+**Docs:** https://docs.searxng.org
+**GitHub:** https://github.com/searxng/searxng
+**Docker image:** https://hub.docker.com/r/searxng/searxng
+**Releases:** https://github.com/searxng/searxng/releases
 
 ## Quick start
 
@@ -27,7 +27,7 @@ openssl rand -hex 32
 
 Set the output as `SEARXNG_SECRET` in `stack.env` or in the Portainer stack Environment.
 
-Config is loaded from a host file path (`SEARXNG_SETTINGS_PATH`, default: `~/.config/searx-ng/settings.yml`) and bind-mounted to `/etc/searxng/settings.yml`. This keeps API/search settings (including JSON format for Perplexica) persistent across restarts and updates. Secret, base URL, and Redis URL are still set by environment variables.
+Config is loaded from a host file path (`SEARXNG_SETTINGS_PATH`, default: `~/.config/searx-ng/settings.yml`) and bind-mounted to `/etc/searxng/settings.yml`. This keeps API/search settings (including JSON format for Vane) persistent across restarts and updates. Secret, base URL, and Redis URL are still set by environment variables.
 
 ## Configuration
 

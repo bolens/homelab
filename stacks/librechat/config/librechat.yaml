@@ -1,20 +1,25 @@
-# Minimal LibreChat config (v1.3.4). See https://www.librechat.ai/docs/configuration/librechat_yaml
 version: 1.3.4
-
 cache: true
-
 interface:
   mcpServers:
-    placeholder: 'MCP Servers'
+    placeholder: MCP Servers
   privacyPolicy:
-    externalUrl: 'https://librechat.ai/privacy-policy'
+    externalUrl: https://librechat.ai/privacy-policy
     openNewTab: true
   termsOfService:
-    externalUrl: 'https://librechat.ai/tos'
+    externalUrl: https://librechat.ai/tos
     openNewTab: true
-
 registration:
   socialLogins: []
-
 endpoints:
-  custom: []
+  custom:
+  - name: ChatGPT OAuth
+    apiKey: ${LITELLM_OAUTH_API_KEY}
+    baseURL: http://litellm:4000/v1
+    models:
+      default:
+      - chatgpt-personal
+      fetch: true
+    titleConvo: true
+    titleModel: chatgpt-personal
+    modelDisplayLabel: ChatGPT OAuth

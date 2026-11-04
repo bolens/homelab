@@ -3,11 +3,11 @@
 Self-hosted chat interface for multiple AI providers, agents, MCP tools, code
 execution, search, and image generation.
 
-**Website:** https://www.librechat.ai  
-**Docs:** https://www.librechat.ai/docs  
-**GitHub:** https://github.com/LibreChat-AI/LibreChat  
-**Docker image:** https://github.com/LibreChat-AI/LibreChat/pkgs/container/librechat  
-**Releases:** https://github.com/LibreChat-AI/LibreChat/releases  
+**Website:** https://www.librechat.ai
+**Docs:** https://www.librechat.ai/docs
+**GitHub:** https://github.com/LibreChat-AI/LibreChat
+**Docker image:** https://github.com/LibreChat-AI/LibreChat/pkgs/container/librechat
+**Releases:** https://github.com/LibreChat-AI/LibreChat/releases
 
 ## Features
 
@@ -207,3 +207,7 @@ This stack does not expose host ports; use a reverse proxy (Caddy, Nginx, Traefi
 ## Documentation
 
 For more information, visit: https://www.librechat.ai/docs
+
+## Optional ChatGPT OAuth through LiteLLM
+
+The [openai-oauth stack](../openai-oauth/README.md) connects a separate account to LiteLLM. To add it here, append a custom endpoint named `ChatGPT OAuth` in the private LibreChat configuration, with `baseURL: http://litellm:4000/v1`, `apiKey: ${LITELLM_OAUTH_API_KEY}`, `models.default: [chatgpt-personal]`, and `models.fetch: true`. Set that environment variable to a dedicated LiteLLM `internal_user` key restricted to `chatgpt-personal`, rather than the proxy master key. Remove the optional custom endpoint when not using this backend. Preserve all existing providers and conversations. Verify application files and an isolated MongoDB restore before recreating the existing app with its current image. Retain writable upload/log paths and existing mount/network settings.

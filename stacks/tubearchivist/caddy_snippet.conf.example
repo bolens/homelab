@@ -1,0 +1,29 @@
+# Local aliases and opt-in public examples. No host ports are published.
+tubearchivist.home.arpa, tubearchivist.local {
+    tls internal
+    reverse_proxy tubearchivist:8000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://tubearchivist.example.com {
+    reverse_proxy tubearchivist:8000 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+tubearchivist.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy tubearchivist:8000 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

@@ -12,6 +12,12 @@ make hooks-install
 make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
+Prepare Nodepad’s pinned patched source with `bash stacks/nodepad/clone-repo.sh`,
+then run `npm ci` inside `stacks/nodepad/repo`. `make ci-local` runs its proxy,
+client and TypeScript controls in a fresh tree made from the pinned Git base and
+current patches; it leaves the original clone untouched. `NODEPAD_UPSTREAM_ROOT`
+can select an existing prepared public clone. The image build runs the same
+verification on its freshly patched source.
 Install the locked npm tools in each checkout or worktree. `make ci-local` checks
 for its Markdown tooling before running the source suites. The Mylar checks include
 workflow intake and authenticated health regressions and the complete portable

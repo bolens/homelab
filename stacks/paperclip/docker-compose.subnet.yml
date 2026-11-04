@@ -1,0 +1,7 @@
+# Opt-in for hosts whose Docker default address pools are exhausted.
+# Check Docker subnets and host/VPN routes before choosing this range.
+networks:
+  internal:
+    ipam:
+      config:
+        - subnet: ${PAPERCLIP_SUBNET:?Set a nonoverlapping PAPERCLIP_SUBNET}

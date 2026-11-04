@@ -1,0 +1,65 @@
+name: vane
+default_port: null
+databases: []
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: media
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: vane.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://github.com/ItzCrazyKns/Vane
+  docs: https://github.com/ItzCrazyKns/Vane#readme
+  repo: https://github.com/ItzCrazyKns/Vane
+backup:
+  priority: medium
+  schedule_hint: weekly
+volumes:
+- name: ${VANE_DATA_VOLUME:-vane_vane_data}
+  role: app_data
+  critical: true
+- name: vane_uploads
+  role: app_data
+  critical: true
+auth:
+  mode: external_proxy
+  sso_provider: cloudflare_access
+  access_policy: owners_only
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: media
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: >-
+    Vane, formerly Perplexica. VANE_DATA_VOLUME preserves upgrade storage.
+    The pinned local build guards empty streamed OpenAI tool arguments.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

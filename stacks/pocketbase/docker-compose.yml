@@ -16,7 +16,7 @@ services:
       - path: stack.env
         required: false
     volumes:
-      - pocketbase-data:/pb/pb_data
+      - pocketbase-data:/app/pb_data
     networks:
       - ingress-public
     healthcheck:

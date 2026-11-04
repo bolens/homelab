@@ -1,0 +1,9 @@
+services:
+  backrest:
+    volumes:
+    - type: bind
+      source: ${RESTIC_REPOSITORY_PATH:?set the existing local Restic repository}
+      target: /repos/current
+      read_only: true
+      bind:
+        create_host_path: false

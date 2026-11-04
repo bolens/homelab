@@ -1,0 +1,10 @@
+# Optional finalized originals on an existing photo filesystem.
+# Keep /data on its named volume for staging, generated files and database dumps.
+services:
+  immich-server:
+    volumes:
+      - type: bind
+        source: ${IMMICH_LIBRARY_PATH:?Set an existing Immich originals directory}
+        target: /data/library
+        bind:
+          create_host_path: false

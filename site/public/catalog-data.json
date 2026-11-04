@@ -102,6 +102,12 @@
     "url": "apps/auto-identity-remove/"
   },
   {
+    "name": "Backrest",
+    "category": "Backup",
+    "summary": "Authenticated Restic snapshot browser and restore UI, with the existing repository mounted read-only and no competing scheduler.",
+    "url": "apps/backrest/"
+  },
+  {
     "name": "Baserow – self-hosted Airtable alternative",
     "category": "Utilities",
     "summary": "Baserow is an open-source no-code database and spreadsheet (tables, views, API). This all-in-one image runs embedded PostgreSQL and Redis; for production or heavy use you can separate those services (see Baserow Docker docs). No host ports; put it behind Caddy.",
@@ -168,6 +174,12 @@
     "url": "apps/camofox-browser/"
   },
   {
+    "name": "Changedetection.io",
+    "category": "Utilities",
+    "summary": "Monitor website content, prices, and restocks and send change notifications to Gotify.",
+    "url": "apps/changedetection/"
+  },
+  {
     "name": "clark-browser",
     "category": "Browser",
     "summary": "Stealth Chromium for browser automation. Anti-fingerprinting patches compiled directly into Chromium source, not fragile JS shims. Exposes a CDP endpoint that Playwright connects to via connectovercdp().",
@@ -220,6 +232,12 @@
     "category": "Backup",
     "summary": "Databasus is a lightweight self-hosted database management UI for browsing and querying SQL databases via a web interface.",
     "url": "apps/databasus/"
+  },
+  {
+    "name": "Dawarich",
+    "category": "Productivity",
+    "summary": "Store and explore personal location history, trips, and photo memories.",
+    "url": "apps/dawarich/"
   },
   {
     "name": "DbGate",
@@ -378,6 +396,12 @@
     "url": "apps/gotenberg/"
   },
   {
+    "name": "Gotify",
+    "category": "Utilities",
+    "summary": "Authenticated push notifications with separate applications for monitoring, image updates, and workflow approvals.",
+    "url": "apps/gotify/"
+  },
+  {
     "name": "Grafana",
     "category": "Monitoring",
     "summary": "Dashboard and visualization for Prometheus (and other datasources). Use with the Prometheus and cAdvisor stacks for host and container metrics.",
@@ -386,7 +410,7 @@
   {
     "name": "Grafana Alloy",
     "category": "Monitoring",
-    "summary": "Grafana Alloy collects Docker container logs and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.",
+    "summary": "Grafana Alloy collects Docker container logs, host files and journald and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.",
     "url": "apps/grafana-alloy/"
   },
   {
@@ -442,6 +466,12 @@
     "category": "Home automation",
     "summary": "Home automation hub for integrating lights, sensors, switches, and other devices. This stack runs Home Assistant in Docker with persistent config and exposes the web UI via Caddy.",
     "url": "apps/home-assistant/"
+  },
+  {
+    "name": "HomeBox",
+    "category": "Productivity",
+    "summary": "Organize household possessions, locations, and stored equipment.",
+    "url": "apps/homebox/"
   },
   {
     "name": "Homepage",
@@ -534,6 +564,12 @@
     "url": "apps/komga/"
   },
   {
+    "name": "Komodo",
+    "category": "Developer tools",
+    "summary": "Controlled Docker and Compose management, with automatic updates disabled during initial onboarding.",
+    "url": "apps/komodo/"
+  },
+  {
     "name": "Lanraragi",
     "category": "Dashboard",
     "summary": "Tag-based comic and manga archive manager. Upload or drop CBR, CBZ, PDF, and other archives; organize with namespaced tags and plugins for metadata. Good for large, tag-heavy libraries (e.g. doujinshi, manga). Reads from archives without extracting.",
@@ -590,8 +626,14 @@
   {
     "name": "Loki – log aggregation",
     "category": "Monitoring",
-    "summary": "Loki is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy Promtail (stacks/promtail) separately to ship host and container logs to Loki.",
+    "summary": "Loki is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy Grafana Alloy (stacks/grafana-alloy) separately to ship host and container logs to Loki.",
     "url": "apps/loki/"
+  },
+  {
+    "name": "LubeLogger",
+    "category": "Productivity",
+    "summary": "Track vehicle maintenance, fuel use, receipts, and reminders.",
+    "url": "apps/lubelogger/"
   },
   {
     "name": "Maigret",
@@ -658,6 +700,12 @@
     "category": "Home automation",
     "summary": "Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT/automation clients.",
     "url": "apps/mosquitto/"
+  },
+  {
+    "name": "Music Assistant",
+    "category": "Media",
+    "summary": "Combine music sources and stream to supported network speakers. Host networking enables player discovery.",
+    "url": "apps/music-assistant/"
   },
   {
     "name": "Mylar3",
@@ -728,13 +776,13 @@
   {
     "name": "nodepad",
     "category": "Dashboard",
-    "summary": "Spatial, AI-augmented thinking canvas (nodepad), notes on a canvas with automatic classification and connections. API keys are stored only in the browser (per upstream); the container just serves the Next.js UI.",
+    "summary": "Spatial, AI-augmented thinking canvas (nodepad), notes on a canvas with automatic classification and connections. Direct-provider API keys stay in browser settings. The optional LiteLLM provider uses a server-held, model-restricted key and requires owner-only access to the entire site. Notes and provider selection remain in browser storage.",
     "url": "apps/nodepad/"
   },
   {
-    "name": "ntfy – push notifications",
+    "name": "ntfy: retired notification stack",
     "category": "Utilities",
-    "summary": "ntfy is a simple HTTP-based pub-sub notification service. Send push notifications via PUT/POST; use the Android/iOS app or curl to subscribe. This stack runs ntfy behind Caddy. No host ports; access via Caddy.",
+    "summary": "Retired notification example, retained for historical access and rollback. Current notification producers use Gotify.",
     "url": "apps/ntfy/"
   },
   {
@@ -804,6 +852,12 @@
     "url": "apps/open-webui/"
   },
   {
+    "name": "openai-oauth",
+    "category": "AI",
+    "summary": "Community ChatGPT account proxy, built from the pinned openai-oauth 2.0.0 package. This is a third-party project, not the official OpenAI API. Node and npm dependencies are pinned by digest and lockfile.",
+    "url": "apps/openai-oauth/"
+  },
+  {
     "name": "OpenGist",
     "category": "Developer tools",
     "summary": "OpenGist is a self-hosted Gist service backed by Git, providing paste/snippet sharing with syntax highlighting.",
@@ -820,6 +874,12 @@
     "category": "Security",
     "summary": "Outline is a collaborative knowledge base. This stack runs Outline with Postgres, Redis, S3-compatible storage such as MinIO, and Caddy. Authentication uses an external identity provider such as Keycloak or Authentik.",
     "url": "apps/outline/"
+  },
+  {
+    "name": "Paperclip",
+    "category": "AI",
+    "summary": "Orchestrate AI agents, assign work, and track budgets from a web dashboard. Paperclip includes email/password authentication through Better Auth.",
+    "url": "apps/paperclip/"
   },
   {
     "name": "Paperless-AI next",
@@ -850,12 +910,6 @@
     "category": "Infrastructure",
     "summary": "PeaNUT is a self-hosted web dashboard for monitoring UPS devices via Network UPS Tools (NUT).",
     "url": "apps/peanut/"
-  },
-  {
-    "name": "Perplexica Stack",
-    "category": "Media",
-    "summary": "Privacy-focused AI-powered answering engine that combines web search with AI models for cited answers. Perplexica uses ingress-public for Caddy and ai-backend for shared AI/search backends.",
-    "url": "apps/perplexica/"
   },
   {
     "name": "pgAdmin",
@@ -896,7 +950,7 @@
   {
     "name": "PocketBase",
     "category": "Developer tools",
-    "summary": "PocketBase is an open-source backend-as-a-service with a built-in SQLite database, auth, and admin UI.",
+    "summary": "PocketBase provides a SQLite database, authentication, REST/realtime APIs, and an admin dashboard for small apps and homelab projects.",
     "url": "apps/pocketbase/"
   },
   {
@@ -1176,6 +1230,12 @@
     "url": "apps/terminus/"
   },
   {
+    "name": "Termix",
+    "category": "Developer tools",
+    "summary": "Self-hosted SSH and remote desktop management with a browser terminal, file tools, and optional plugins.",
+    "url": "apps/termix/"
+  },
+  {
     "name": "theHarvester (REST API)",
     "category": "Knowledge",
     "summary": "Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners from multiple public sources (search engines, PGP servers, Shodan, etc.). This stack runs the REST API variant (restfulharvest) so you can query theHarvester over HTTP from other tools and scripts.",
@@ -1212,6 +1272,12 @@
     "url": "apps/trilium/"
   },
   {
+    "name": "TubeArchivist",
+    "category": "Media",
+    "summary": "Archive and browse a YouTube video library with subscriptions, playlists and searchable metadata.",
+    "url": "apps/tubearchivist/"
+  },
+  {
     "name": "TwitchDropsMiner Stack",
     "category": "Utilities",
     "summary": "This stack runs TwitchDropsMiner using Docker Compose.",
@@ -1236,6 +1302,12 @@
     "url": "apps/uptime-kuma/"
   },
   {
+    "name": "Vane (formerly Perplexica)",
+    "category": "Media",
+    "summary": "Privacy-focused AI-powered answering engine that combines web search with AI models for cited answers. Vane uses ingress-public for Caddy and ai-backend for shared AI/search backends.",
+    "url": "apps/vane/"
+  },
+  {
     "name": "Vaultwarden",
     "category": "Security",
     "summary": "Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI).",
@@ -1252,6 +1324,12 @@
     "category": "Utilities",
     "summary": "Vikunja is a self-hosted task and project manager (lists, kanban, Gantt, CalDAV). This stack runs Vikunja with SQLite behind Caddy. No host ports; access via Caddy.",
     "url": "apps/vikunja/"
+  },
+  {
+    "name": "Wallos",
+    "category": "Productivity",
+    "summary": "Track subscriptions, recurring expenses, and renewal notifications.",
+    "url": "apps/wallos/"
   },
   {
     "name": "Watchtower",
@@ -1306,5 +1384,11 @@
     "category": "Home automation",
     "summary": "Bridge Zigbee devices to MQTT so they can be used by Home Assistant, Node-RED, and other automation tools.",
     "url": "apps/zigbee2mqtt/"
+  },
+  {
+    "name": "Zimi",
+    "category": "Knowledge",
+    "summary": "Read, search and manage a Kiwix ZIM library through an authenticated web interface and API.",
+    "url": "apps/zimi/"
   }
 ]

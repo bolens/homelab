@@ -56,13 +56,15 @@ app_categories:
       - anything-llm
       - kokoro-tts
       - litellm
+      - openai-oauth
       - ollama
       - open-webui
       - librechat
       - open-notebook
-      - perplexica
+      - paperclip
+      - vane
       - whisper-asr
-    description: "local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica, Anything LLM, LiteLLM, Kokoro TTS, Whisper ASR)"
+    description: "local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Paperclip, Vane, Anything LLM, LiteLLM, Kokoro TTS, Whisper ASR)"
 
   - id: apps_dev
     name: "Developer & IT utilities"
@@ -82,13 +84,16 @@ app_categories:
       - mattermost
       - netbox
       - nodepad
-      - ntfy
+      - gotify
+      - changedetection
       - posthog
       - snipe-it
       - stirling-pdf
       - terminus
+      - termix
+      - komodo
       - woodpecker-ci
-    description: "it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT, code-server, Beszel, Mattermost, Terminus, NodePad, Asking-NG"
+    description: "it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, Gotify, Changedetection.io, NetBox, PostHog, Snipe-IT, code-server, Beszel, Mattermost, Terminus, NodePad, Asking-NG"
 
   - id: apps_gaming
     name: "Gaming"
@@ -104,6 +109,7 @@ app_categories:
     descriptor: "Home Assistant, MQTT, Zigbee"
     stacks:
       - home-assistant
+      - music-assistant
       - mosquitto
       - zigbee2mqtt
     description: "Home Assistant, Mosquitto (MQTT), Zigbee2MQTT"
@@ -127,8 +133,14 @@ app_categories:
       - affine
       - appflowy
       - actual-budget
+      - dawarich
+      - homebox
+      - lubelogger
+      - wallos
       - archivebox
       - audiobookshelf
+      - tubearchivist
+      - zimi
       - bookstack
       - calibre-web
       - cryptpad
@@ -289,6 +301,8 @@ infra:
     label: "postfix<br>SMTP relay"
   - id: prometheus
     label: "prometheus<br>Metrics"
+  - id: backrest
+    label: "Backrest<br>Backup browser"
   - id: restic
     label: "restic<br>Backups (cron)"
   - id: scrutiny

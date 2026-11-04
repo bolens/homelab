@@ -1,0 +1,11 @@
+# Stack decisions
+
+Komodo supplements Portainer with inventory and deliberately disabled automation. Existing stacks are not imported or redeployed. Backrest is limited to browsing and isolated restoration through a read-only repository mount, with no hooks or competing schedules. Repository attachment remains conditional on readable storage and snapshot-preservation proof. The existing Restic scheduler keeps its retention, free-space and failure-heartbeat protections.
+
+Grafana Alloy replaces the end-of-life Promtail host inputs. The cutover preserves final file positions, existing Docker state and the installed image, with separate file, journal and Docker delivery checks.
+
+[TubeArchivist](https://docs.tubearchivist.com/installation/docker-compose/) is a useful addition alongside MeTube for subscriptions, a browsable video library and search. Its documented stack requires its own Redis and Elasticsearch, about 2 GiB for testing or 4 GiB for a normal installation, and persistent `/cache` as well as `/youtube`. Deployment was subsequently authorized in T021-T023. It uses new persistent volumes and local authenticated Caddy ingress. Retention and initial subscriptions still require an explicit choice before ingestion.
+
+[Zimi](https://github.com/epheterson/Zimi) is the Docker-hosted ZIM library manager candidate. It combines catalog browsing, downloads, updates and cross-library search with API/MCP access. Kiwix Serve is primarily the reader. Review Zimi's management authentication and image/source pin before deployment, keep downloads and automatic updates off until the content and storage budget are chosen, and use a bridge with Caddy rather than adopting host networking unnecessarily. Deployment was subsequently authorized in T021-T023 with private library access, named persistent volumes, and bridge networking. Content auto-update, BitTorrent and Nearby are disabled. No ZIM downloads are started by deployment.
+
+[openai-oauth 2.0.0](https://github.com/EvanZhouDev/openai-oauth/tree/v2.0.0/packages/openai-oauth) has no inbound API-key enforcement. A dedicated network joins only that proxy and LiteLLM. A separate account login volume preserves workstation credentials. Existing embeddings, speech and paid-provider routes remain.

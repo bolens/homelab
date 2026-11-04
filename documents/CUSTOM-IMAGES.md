@@ -38,7 +38,9 @@ The matrix excludes images whose required source is unavailable in CI:
 - The SearxNG 4get images require operator-verified source directories.
 
 Those images remain local builds until their source preparation is made
-reproducible in CI.
+reproducible in CI. Paperclip’s optional `codex-git.Dockerfile` is also excluded:
+it is an explicitly selected operator-local workaround for one upstream release,
+not the default stack image. Its base-image updates remain monitored.
 
 ## Comic automation
 
@@ -60,3 +62,10 @@ configuration and media. Linux amd64 is verified; other architectures are not
 currently published by this workflow. Existing application data and worker recovery
 state remain in external volumes or bind mounts. Follow each stack's verified
 backup, update, and rollback procedure when changing an image.
+
+The openai-oauth image builds the version-pinned community npm package with a checked-in lockfile and a minimal allowlisted build context. Account credentials remain in a private runtime volume. The Compose example builds locally until an operator explicitly selects a published image.
+
+The Vane image builds from a pinned upstream image and guards repeated empty
+streamed tool-call arguments. Its native streaming regression runs during the
+build, and its allowlisted context excludes runtime settings. The Compose example
+builds locally; select a published commit tag explicitly for registry-only deployments.

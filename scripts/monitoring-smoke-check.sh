@@ -23,7 +23,6 @@ required_jobs = {
     "blackbox_http_paths_public",
     "alloy",
     "loki",
-    "promtail",
 }
 
 missing_jobs = sorted(j for j in required_jobs if j not in jobs_present)

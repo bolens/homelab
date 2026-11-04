@@ -1,0 +1,5 @@
+# Opt in to nested Codex sandbox support without privileged mode or added capabilities.
+services:
+  paperclip:
+    security_opt:
+      - seccomp:./codex-seccomp.json

@@ -1,0 +1,33 @@
+services:
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:0.60.10@sha256:72f97681f390e4d6ae3e6585e1e0036449910f347144b766fc23910458566a1a
+    container_name: changedetection
+    restart: unless-stopped
+    env_file:
+    - stack.env
+    labels:
+      logging: 'true'
+    volumes:
+    - changedetection_data:/datastore
+    networks:
+    - ingress-admin
+    - telemetry
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/',timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+networks:
+  ingress-admin:
+    name: ingress-admin
+    external: true
+  telemetry:
+    name: telemetry
+    external: true
+volumes:
+  changedetection_data: {}

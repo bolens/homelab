@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+backrest.home.arpa, backrest.local {
+    tls internal
+    reverse_proxy backrest:9898 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://backrest.example.com {
+    reverse_proxy backrest:9898 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+backrest.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy backrest:9898 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

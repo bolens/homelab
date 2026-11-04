@@ -14,6 +14,7 @@ services:
     volumes:
       - archivebox-data:/data
     environment:
+      # Set BASE_URL in stack.env to the canonical browser URL, separate from this bind address.
       # Hardcoded: internal listen address (behind Caddy) and Sonic service hostname
       - LISTEN_HOST=0.0.0.0:8000
       - SEARCH_BACKEND_HOST_NAME=sonic

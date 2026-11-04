@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+notify.home.arpa, notify.local {
+    tls internal
+    reverse_proxy gotify:80 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://notify.example.com {
+    reverse_proxy gotify:80 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+notify.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy gotify:80 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

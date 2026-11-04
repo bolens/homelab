@@ -153,6 +153,17 @@ The hooks require Python with PyYAML, pre-commit, ShellCheck, Gitleaks,
 actionlint, and Hadolint. The zizmor hook uses a native installation when
 available and otherwise uses its pinned Docker image.
 
+Install the locked Python validation dependency into the virtual environment or
+managed Python interpreter used by `python3`:
+
+```bash
+python3 -m pip install --require-hashes -r .github/requirements-validation.txt
+```
+
+The lock includes the PyYAML source archive for interpreters without an allowed
+wheel. Run `python3 -c 'import yaml; print(yaml.__version__)'` before validation
+to confirm that the selected interpreter can import it.
+
 Run the Pages browser suite separately because it starts Chrome and is slower
 than the commit-time checks:
 

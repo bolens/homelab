@@ -1,0 +1,16 @@
+{
+  "modno": 1,
+  "version": 6,
+  "instance": "homelab-browser",
+  "repos": [],
+  "plans": [],
+  "auth": {
+    "disabled": false,
+    "users": [
+      {
+        "name": "admin",
+        "passwordBcrypt": "REPLACE_WITH_BASE64_ENCODED_BCRYPT_HASH"
+      }
+    ]
+  }
+}

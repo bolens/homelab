@@ -1,0 +1,33 @@
+services:
+  homebox:
+    image: ghcr.io/sysadminsmedia/homebox:0.27.1@sha256:9d0b64776c694f018c0ca06faf52105a33ca376024f46bb58e6ab0e2b728bb61
+    container_name: homebox
+    restart: unless-stopped
+    env_file:
+    - stack.env
+    labels:
+      logging: 'true'
+    volumes:
+    - homebox_data:/data
+    networks:
+    - ingress-sensitive
+    environment:
+      HBOX_AUTH_API_KEY_PEPPER: ${HBOX_AUTH_API_KEY_PEPPER:?set a stable random API key pepper}
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -q
+      - -O
+      - /dev/null
+      - http://127.0.0.1:7745/api/v1/status
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+networks:
+  ingress-sensitive:
+    name: ingress-sensitive
+    external: true
+volumes:
+  homebox_data: {}

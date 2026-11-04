@@ -38,6 +38,38 @@ To protect specific subdomains (e.g. `portainer.yourdomain.com`) with SSO or one
 
 ## Troubleshooting
 
+### Repeated QUIC timeouts
+
+`failed to dial to edge with quic` and `timeout: no recent network activity`
+identify a tunnel-to-Cloudflare transport failure. Correlate their timestamps
+with failed public probes before blaming an application or restarting Caddy.
+Check outbound UDP/TCP port 7844, routing, packet loss, and resource pressure.
+Do not open inbound ports or flush firewall rules to repair this outbound path.
+
+`TUNNEL_TRANSPORT_PROTOCOL` in private `stack.env` selects `auto`, `quic`, or
+`http2`. Compose passes it directly through `env_file`. The example keeps
+Cloudflare's `auto` default, which starts with QUIC. Intermittently successful
+QUIC connections may continue retrying without switching to TCP. For a tunnel
+serving public HTTP routes, set `TUNNEL_TRANSPORT_PROTOCOL=http2` when repeated
+UDP stalls are confirmed. Synchronize the generated `.env` mirror if present.
+For the alternative configuration-file deployment, set `protocol: http2` in
+the private config instead.
+
+Before applying the setting, back up private configuration and verify a restore
+copy. Keep the same image and routes. A temporary connector for the same tunnel
+can verify TCP connectivity and maintain coverage while the original connector
+is recreated. This requires explicit operational authorization. Verify four
+registered connections with `protocol=http2`, the connector's internal `/ready`
+endpoint on its metrics listener, and the existing public application probes.
+Remove the temporary connector only after the main connector passes. Restore
+the previous configuration and recreate with the prior image if acceptance fails.
+
+HTTP/2 retains encrypted transport but does not support QUIC's post-quantum key
+agreement or private UDP/ICMP routing. Verify the tunnel's routing requirements
+before selecting it. It cannot prevent general Internet or Cloudflare outages.
+See Cloudflare's [run parameters](https://developers.cloudflare.com/tunnel/reference/run-parameters/#protocol)
+and [connection troubleshooting](https://developers.cloudflare.com/tunnel/troubleshooting/).
+
 ### "err name not resolved" but nslookup/dig shows the hostname
 
 If the hostname resolves (e.g. you see AAAA addresses) but the browser or `curl` reports "name not resolved", either Cloudflare is only returning AAAA or your **client's DNS resolver** is (e.g. only returning AAAA, or stale cache).

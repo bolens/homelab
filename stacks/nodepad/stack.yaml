@@ -21,7 +21,7 @@ exposure:
 data_profile:
   contains_pii: false
   contains_logs_only: false
-  recommended_backup: false
+  recommended_backup: true
 host_requirements:
   needs_gpu: false
   needs_privileged: false
@@ -29,15 +29,15 @@ host_requirements:
 links:
   homepage: null
   docs: null
-  repo: https://github.com/mskayyali/nodepad)
+  repo: https://github.com/mskayyali/nodepad
 backup:
-  priority: low
+  priority: medium
   schedule_hint: manual
 volumes: []
 auth:
-  mode: app_local
-  sso_provider: null
-  access_policy: access_full_site
+  mode: external_proxy
+  sso_provider: cloudflare_access
+  access_policy: owners_only
 resources:
   cpu_profile: medium
   memory_profile: medium

@@ -279,6 +279,8 @@ no network or live configuration mounts. Repository CI installs the current publ
 patches in a disposable layer over the pinned upstream image before running this
 gate, so fresh interpreter checks exercise the actual application module paths.
 The full custom-image build also runs the gate with its installed dependencies.
+The isolated DDL transport uses the bundled CPython 3.13, as required by
+pycparser 3.12; the Mylar daemon retains its base-image CPython 3.10.
 A source mismatch fails the gate and requires patch review.
 Independent owning suites use at most four subprocesses, each with its own
 source and fixture roots. The longest publication/tagging suite starts first;

@@ -50,9 +50,10 @@ placement:
   preferred_node: null
   colocation_group: monitoring
 lifecycle:
-  status: stable
+  status: deprecated
   replacement_for: null
-  notes: ''
+  notes: Promtail reached EOL March 2, 2026. Replace with Grafana Alloy using verified
+    cursor migration.
 runtime_security:
   privileged_services: []
   host_network_services: []

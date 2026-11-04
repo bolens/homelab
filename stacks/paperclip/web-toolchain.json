@@ -1,0 +1,35 @@
+{
+  "revision": 3,
+  "nodeVersion": "26.12.1",
+  "timeoutSeconds": 900,
+  "nodeHeapMiB": 1536,
+  "markdownlintVersion": "0.23.2",
+  "uvVersion": "0.13.5",
+  "uvWheelUrl": "https://files.pythonhosted.org/packages/3a/ad/3c2a81d66d1839063662e5b6c0002ec31f8ee987dbc5295747627ca6160a/uv-0.13.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+  "uvWheelSha256": "fa8d26e08e34c29c0c4e820cf3181757086d547240b4f4d31ff1d8bd810ca946",
+  "pythonVersion": "3.13.5",
+  "specifyVersion": "1.0.4",
+  "markdownItVersion": "4.0.0",
+  "ruffVersion": "0.17.2",
+  "zizmorVersion": "1.30.0",
+  "binaries": [
+    {
+      "name": "actionlint",
+      "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+      "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+      "archive": true
+    },
+    {
+      "name": "hadolint",
+      "url": "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64",
+      "sha256": "c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507",
+      "archive": false
+    },
+    {
+      "name": "gitleaks",
+      "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+      "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+      "archive": true
+    }
+  ]
+}

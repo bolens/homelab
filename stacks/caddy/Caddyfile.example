@@ -309,9 +309,9 @@ minio.home, minio.local {
 	}
 }
 
-ntfy.home, ntfy.local {
+notify.home.arpa, notify.local {
 	tls internal
-	reverse_proxy ntfy:80 {
+	reverse_proxy gotify:80 {
 		transport http {
 			versions 1.1
 		}
@@ -767,9 +767,9 @@ open-notebook.home, open-notebook.local {
 	}
 }
 
-perplexica.home, perplexica.local {
+vane.home, vane.local {
 	tls internal
-	reverse_proxy perplexica:3000 {
+	reverse_proxy vane:3000 {
 		transport http {
 			versions 1.1
 		}
@@ -1447,11 +1447,11 @@ nzbhydra.yourdomain.com {
 	}
 }
 
-ntfy.yourdomain.com {
+notify.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy ntfy:80 {
+	reverse_proxy gotify:80 {
 		transport http {
 			versions 1.1
 		}
@@ -1527,11 +1527,11 @@ paste.yourdomain.com, privatebin.yourdomain.com {
 	}
 }
 
-perplexica.yourdomain.com {
+vane.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy perplexica:3000 {
+	reverse_proxy vane:3000 {
 		transport http {
 			versions 1.1
 		}

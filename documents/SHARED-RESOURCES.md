@@ -71,7 +71,7 @@ For **internal-only mailing** (no external delivery), deploy the **mailpit** sta
 
 The **ollama** stack is the shared backend for:
 
-- Open WebUI, LibreChat, Open Notebook, Perplexica, AnythingLLM, Paperless-GPT, Paperless-AI-Next, Nodepad (and optional backends behind **LiteLLM**)
+- Open WebUI, LibreChat, Open Notebook, Vane, AnythingLLM, Paperless-GPT, Paperless-AI-Next, Nodepad (and optional backends behind **LiteLLM**)
 
 Set `OLLAMA_BASE_URL=http://ollama:11434` (or the provider-specific equivalent)
 when both services join `ai-backend`. Web UIs separately use their assigned `ingress-*` zone.

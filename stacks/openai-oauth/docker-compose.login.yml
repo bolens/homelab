@@ -1,0 +1,19 @@
+# One-shot login only. The callback binds host loopback on port 1455.
+services:
+  login:
+    image: homelab/openai-oauth:2.0.0
+    profiles: [login]
+    init: true
+    restart: 'no'
+    network_mode: host
+    user: '1000:1000'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m,uid=1000,gid=1000
+    volumes:
+      - oauth_auth:/data/codex
+    command: [login, --no-open, --oauth-file, /data/codex/auth.json, --login-timeout-ms, '600000']
+    mem_limit: 512m
+    cpus: '1.00'

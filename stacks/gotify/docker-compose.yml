@@ -1,0 +1,70 @@
+services:
+  gotify:
+    image: gotify/server:3.1.1@sha256:44fc5bbd1c0618878e33073d38c2c13126b48f245c3fe12236b1da48eb203b86
+    container_name: gotify
+    restart: unless-stopped
+    env_file:
+    - stack.env
+    labels:
+      logging: 'true'
+    volumes:
+    - gotify_data:/app/data
+    networks:
+    - ingress-admin
+    - telemetry
+    environment:
+      GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_DEFAULTUSER_PASS:?set a unique initial admin
+        password}
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://127.0.0.1:80/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  gotify-alertmanager:
+    image: python:3.13.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
+    container_name: gotify-alertmanager
+    restart: unless-stopped
+    command:
+    - python
+    - -B
+    - /app/alertmanager_bridge.py
+    env_file:
+    - stack.env
+    volumes:
+    - ./alertmanager_bridge.py:/app/alertmanager_bridge.py:ro
+    networks:
+    - telemetry
+    read_only: true
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    user: 65534:65534
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+networks:
+  ingress-admin:
+    name: ingress-admin
+    external: true
+  telemetry:
+    name: telemetry
+    external: true
+volumes:
+  gotify_data: {}

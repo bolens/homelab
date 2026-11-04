@@ -1,0 +1,31 @@
+# Vane (formerly Perplexica) - LAN + typical public UI hostname (replace example.com).
+# No application accounts: protect the full public hostname with owner-only Access.
+# Local aliases require a trusted operator network or equivalent authentication.
+
+vane.home, vane.local {
+	tls internal
+	reverse_proxy vane:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://vane.example.com {
+	reverse_proxy vane:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+vane.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy vane:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

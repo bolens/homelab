@@ -189,7 +189,7 @@ Quick reference, find a stack:
 | node-exporter | No env; Prometheus scrapes :9100; host filesystem read-only. |
 | node-red | TZ/locale via shared.env; flow editor. |
 | nodepad | OLLAMA_ORIGIN, NODEPAD_SITE_URL, UMAMI_* required at runtime. |
-| ntfy | NTFY_BASE_URL recommended behind Caddy. |
+| gotify | Set a unique GOTIFY_DEFAULTUSER_PASS and dedicated producer application tokens. |
 | ntopng | TZ/locale via shared.env; host networking; web on :3000. |
 | nut-server | NUT_CONFIG_DIR required (path to ups.conf, upsd.*, upsmon.conf). |
 | nzbget | PUID, PGID optional; NZBGET_DOWNLOADS_PATH → /downloads; servers and categories in UI. |
@@ -209,7 +209,7 @@ Quick reference, find a stack:
 | paperless-ngx | PAPERLESS_URL, PAPERLESS_SECRET_KEY, plus DB and broker vars. |
 | password-pusher | PWPUSH_MASTER_KEY required; optional PWP__HOST_DOMAIN, PWP__ENABLE_LOGINS. |
 | peanut | See stack README and stack.env.example. |
-| perplexica | SEARXNG_API_URL, OLLAMA_BASE_URL optional; secrets configured in UI. |
+| vane | SEARXNG_API_URL, OLLAMA_BASE_URL, OPENAI_BASE_URL, OPENAI_API_KEY optional; VANE_DATA_VOLUME and VANE_DATA_EXTERNAL preserve upgrade storage. Protect provider settings with owner-only Access. |
 | pgadmin | See stack README and stack.env.example. |
 | phoneinfoga | OSINT; no env required. |
 | picard | PUID, PGID optional; PICARD_MEDIA_PATH → /data. |
@@ -283,3 +283,5 @@ Quick reference, find a stack:
 | yourls | YOURLS_SITE, YOURLS_USER, YOURLS_PASS, YOURLS_COOKIEKEY, DB vars required. |
 | zed-attack-proxy | TZ optional; Webswing UI on :8080; proxy on :8080 for browser/tool config. |
 | zigbee2mqtt | ZIGBEE2MQTT_CONFIG_MQTT_SERVER required; Mosquitto on telemetry network. |
+
+The optional openai-oauth stack keeps its account tokens in a dedicated Docker volume. LiteLLM's optional OAuth override joins only that upstream network. Use a separate regular LiteLLM administrator and disable environment-credential UI login after verifying it. Alloy's `ALLOY_HOST_LABEL` preserves the stable host-file label when replacing Promtail.

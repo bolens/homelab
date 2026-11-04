@@ -1,0 +1,29 @@
+# Review authentication before enabling a public hostname. No host ports are published, except Music Assistant host networking.
+wallos.home.arpa, wallos.local {
+    tls internal
+    reverse_proxy wallos:80 {
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+http://wallos.example.com {
+    reverse_proxy wallos:80 {
+        header_up X-Forwarded-Proto https
+        transport http {
+            versions 1.1
+        }
+    }
+}
+
+wallos.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy wallos:80 {
+        transport http {
+            versions 1.1
+        }
+    }
+}

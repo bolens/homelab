@@ -120,6 +120,11 @@
     "dockerfile": "stacks/onionscan/Dockerfile"
   },
   {
+    "image": "openai-oauth",
+    "context": "stacks/openai-oauth",
+    "dockerfile": "stacks/openai-oauth/Dockerfile"
+  },
+  {
     "image": "privotron",
     "context": "stacks/privotron",
     "dockerfile": "stacks/privotron/Dockerfile"
@@ -153,5 +158,10 @@
     "image": "unbound",
     "context": "stacks/unbound",
     "dockerfile": "stacks/unbound/Dockerfile"
+  },
+  {
+    "image": "vane",
+    "context": "stacks/vane",
+    "dockerfile": "stacks/vane/Dockerfile"
   }
 ]

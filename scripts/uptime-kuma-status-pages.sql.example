@@ -22,7 +22,7 @@ WHERE NOT EXISTS (
 UPDATE monitor
 SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Core & Identity')
 WHERE type != 'group' AND name IN (
-  'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Ntfy', 'SimpleLogin',
+  'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Gotify', 'SimpleLogin',
   'Uptime Kuma', 'Vaultwarden'
 );
 
@@ -56,7 +56,7 @@ WHERE type != 'group' AND name IN (
 UPDATE monitor
 SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'AI & Search')
 WHERE type != 'group' AND name IN (
-  'LibreChat', 'LiteLLM', 'Meilisearch', 'Open-WebUI', 'Perplexica',
+  'LibreChat', 'LiteLLM', 'Meilisearch', 'Open-WebUI', 'Vane',
   'Presidio Analyzer', 'Presidio Anonymizer', 'Presidio Image Redactor',
   'Searx-ng'
 );
@@ -140,7 +140,7 @@ FROM "group"
 JOIN status_page ON status_page.id = "group".status_page_id
 JOIN monitor ON (
   ("group".name = 'Core Services' AND monitor.name IN (
-    'Authentik', 'Nextcloud', 'Ntfy', 'Paperless-ngx', 'Uptime Kuma', 'Vaultwarden'
+    'Authentik', 'Nextcloud', 'Gotify', 'Paperless-ngx', 'Uptime Kuma', 'Vaultwarden'
   ))
   OR ("group".name = 'Productivity' AND monitor.name IN (
     'Actual Budget', 'BookStack', 'Cal.com', 'DocuSeal', 'FreshRSS', 'Gitea',
@@ -159,7 +159,7 @@ JOIN monitor ON (
     'Seerr', 'Sonarr', 'Tautulli'
   ))
   OR ("group".name = 'Edge & Identity' AND monitor.name IN (
-    'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Ntfy', 'Uptime Kuma',
+    'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Gotify', 'Uptime Kuma',
     'Vaultwarden'
   ))
   OR ("group".name = 'Observability' AND monitor.name IN (
@@ -225,7 +225,7 @@ WHERE tag.name = 'Critical'
   AND (
     monitor.type = 'docker'
     OR monitor.name IN (
-      'Authentik', 'Harbor', 'Infisical', 'Nextcloud', 'Ntfy', 'Paperless-ngx',
+      'Authentik', 'Harbor', 'Infisical', 'Nextcloud', 'Gotify', 'Paperless-ngx',
       'Prometheus', 'Restic Backup', 'SMTP Relay: Submission', 'Uptime Kuma',
       'Vaultwarden'
     )

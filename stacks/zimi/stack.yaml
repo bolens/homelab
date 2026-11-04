@@ -1,0 +1,65 @@
+name: zimi
+default_port: 8899
+databases:
+- sqlite
+health:
+  endpoint: /health
+  internal_only: true
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: knowledge
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: zimi.example.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://github.com/epheterson/Zimi
+  docs: https://github.com/epheterson/Zimi/blob/v1.15.2/docs/features/operations.md
+  repo: https://github.com/epheterson/Zimi
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: zimi_library
+  role: app_data
+  critical: true
+- name: zimi_config
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: app_auth
+resources:
+  cpu_profile: small
+  memory_profile: medium
+  storage_profile: large
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: No automatic ingestion or existing library migration. Private local Caddy
+    ingress by default.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

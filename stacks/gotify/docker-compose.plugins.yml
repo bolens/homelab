@@ -1,0 +1,11 @@
+services:
+  gotify:
+    environment:
+      GOTIFY_PLUGINSDIR: /plugins
+    volumes:
+    - type: bind
+      source: ./plugins
+      target: /plugins
+      read_only: true
+      bind:
+        create_host_path: false

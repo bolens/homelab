@@ -23,6 +23,7 @@ else
   prepare_stack_msg "${_cfg} already exists (left unchanged)."
 fi
 
+prepare_stack_msg "create private secrets/gotify-webhook-token matching GOTIFY_BRIDGE_TOKEN before deployment; existing secrets are never overwritten."
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "telemetry" "true"
 prepare_stack_ensure_docker_network "ingress-admin"

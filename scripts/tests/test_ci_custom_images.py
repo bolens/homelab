@@ -60,6 +60,7 @@ class ImageSelectionTests(unittest.TestCase):
         # must enter the publish matrix or receive a reviewed exclusion.
         excluded = {
             "stacks/ail-framework/Dockerfile.build",  # Untracked vendor source.
+            "stacks/paperclip/codex-git.Dockerfile",  # Explicit operator-local workaround.
             "stacks/searx-ng/Dockerfile.4get",  # Operator-managed unlicensed source.
             "stacks/searx-ng/Dockerfile.4get-sidecar",  # Same source restriction.
         }

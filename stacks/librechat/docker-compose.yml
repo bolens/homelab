@@ -1,3 +1,4 @@
+# Optional personal OAuth routing uses a scoped LiteLLM service key; see README.
 # LibreChat - Enhanced ChatGPT Clone with multi-provider support
 # Requires MongoDB and Redis. No host ports; access via Caddy on `ingress-public`.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.

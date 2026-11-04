@@ -1,0 +1,62 @@
+name: openai-oauth
+default_port: 10531
+databases: []
+health:
+  endpoint: /health
+  internal_only: true
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: api
+category: ai
+exposure:
+  behind_caddy: false
+  public_by_default: false
+  recommended_hostname: null
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: null
+  docs: https://github.com/EvanZhouDev/openai-oauth
+  repo: https://github.com/EvanZhouDev/openai-oauth
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: oauth_auth
+  role: app_data
+  critical: true
+auth:
+  mode: none
+  sso_provider: null
+  access_policy: internal_only
+resources:
+  cpu_profile: small
+  memory_profile: medium
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: Locally built pinned npm package. Host networking is limited to the optional
+    one-shot OAuth login callback. The unauthenticated upstream is reachable only
+    by a separately authenticated gateway.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

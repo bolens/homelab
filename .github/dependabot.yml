@@ -43,6 +43,8 @@ updates:
       - "/stacks/n8n/restart-gateway"
       - "/stacks/netexec"
       - "/stacks/nodepad"
+      - "/stacks/openai-oauth"
+      - "/stacks/paperclip"
       - "/stacks/onionscan"
       - "/stacks/rackula"
       - "/stacks/readarr"
@@ -50,6 +52,7 @@ updates:
       - "/stacks/searx-ng"
       - "/stacks/torbot"
       - "/stacks/unbound"
+      - "/stacks/vane"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -165,7 +168,9 @@ updates:
           - "*"
 
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "/"
+      - "/stacks/openai-oauth"
     schedule:
       interval: "weekly"
       day: "wednesday"

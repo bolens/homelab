@@ -2,11 +2,11 @@
 
 Workflow automation: connect apps, APIs, and services with a visual editor. Self-hosted alternative to Zapier/Make. Uses SQLite by default (data in Docker volume); optional Postgres for scaling.
 
-**Website:** https://n8n.io  
-**Docs:** https://docs.n8n.io/  
-**GitHub:** https://github.com/n8n-io/n8n  
-**Docker image:** https://hub.docker.com/r/n8nio/n8n  
-**Releases:** https://github.com/n8n-io/n8n/releases  
+**Website:** https://n8n.io
+**Docs:** https://docs.n8n.io/
+**GitHub:** https://github.com/n8n-io/n8n
+**Docker image:** https://hub.docker.com/r/n8nio/n8n
+**Releases:** https://github.com/n8n-io/n8n/releases
 
 ## Quick start
 
@@ -29,7 +29,7 @@ The stack is Portainer-friendly with env defaults for TZ/locale, `ingress-public
 |------|---------|
 | **Ports** | None; access only via Caddy (`reverse_proxy n8n:5678` on `ingress-public`). |
 | **Volumes** | `n8n_data` → `/home/node/.n8n` (SQLite DB, encryption key, workflows). Back this up. |
-| **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP; `telemetry` for ntfy; `media-automation` for starter health checks; private `docker-control` for the restart gateway. |
+| **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP; `telemetry` for Gotify; `media-automation` for starter health checks; private `docker-control` for the restart gateway. |
 | **Env** | **N8N_HOST** and **WEBHOOK_URL** required when behind Caddy. Optional: `N8N_ENCRYPTION_KEY` (e.g. `openssl rand -hex 32`) so credentials survive volume recreation. For TZ/locale and shared resources (e.g. SMTP relay), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [ENV-VARS.md](../../documents/ENV-VARS.md). |
 
 ## Health monitoring with restart approval
@@ -39,15 +39,15 @@ The importable
 implements this operator-controlled path:
 
 ```text
-Uptime Kuma DOWN webhook -> validate mapping/cooldown -> ntfy approval
-  -> expiring n8n Wait URL -> restart-only gateway -> recovery probe -> ntfy result
+Uptime Kuma DOWN webhook -> validate mapping/cooldown -> Gotify approval
+  -> expiring n8n Wait URL -> restart-only gateway -> recovery probe -> Gotify result
 ```
 
 The starter mapping covers Sonarr, Radarr, Prowlarr, and Bazarr. These are
 stateless application processes with existing HTTP checks and are lower-risk
 first targets than databases, storage, ingress, download clients, n8n, Uptime
-Kuma, or ntfy. A restart is never automatic: the workflow waits up to 15
-minutes for an ntfy action and suppresses duplicate requests for 30 minutes.
+Kuma, or Gotify. A restart is never automatic: the workflow waits up to 15
+minutes for a Gotify approval link and suppresses duplicate requests for 30 minutes.
 
 ### Security model
 
@@ -84,20 +84,24 @@ it for another network.
    - Value: `Bearer <the same N8N_RESTART_GATEWAY_TOKEN>`
 4. Import the workflow JSON. Open **Restart allowlisted container** and select
    the credential created above.
-5. Open **Configure and validate event**. Change the ntfy topic if desired.
+5. Open **Configure and validate event**. Set the Gotify base URL if needed.
    Monitor-map keys must equal the lowercase Uptime Kuma monitor names.
 6. Activate the workflow, then copy the production URL from **Uptime Kuma
    webhook**. Do not use n8n's temporary test URL.
 7. In Uptime Kuma, create a Webhook notification pointed at that production
    URL, use `POST` with JSON, and assign it to the mapped monitors. Send a test
    notification before enabling failure notifications.
-8. Subscribe to the configured topic (`homelab-approvals` by default) in the
-   ntfy app. Approval buttons must be able to reach `WEBHOOK_URL`; use a URL
+8. Create a dedicated Gotify application and an **HTTP Header Auth** credential
+   named `Gotify Application`, using header `X-Gotify-Key` and its application
+   token. Select it in all three Gotify HTTP Request nodes. Open the Gotify
+   client to receive approval messages. Approval and dismissal links must reach `WEBHOOK_URL`; use a URL
    reachable from the phone, normally through the same authenticated ingress
    used for n8n.
 
-If ntfy requires authentication, add authentication to both ntfy HTTP Request
-nodes after import. Do not embed its token in the workflow JSON.
+All Gotify HTTP Request nodes require the dedicated application credential.
+Do not embed its token in the workflow JSON. Markdown links replace the former
+notification action buttons. Restart still requires an explicit approval and
+the same gateway allowlist, cooldown, expiry, and bearer credential.
 
 ### Add another restart target
 
@@ -111,7 +115,7 @@ checking is misleading:
    network in Compose and update `prepare-stack.sh`, `stack.yaml`, and this
    README. Prefer an existing narrow network over a new shared network.
 
-Never add `n8n`, `n8n-restart-gateway`, `caddy`, `ntfy`, `uptime-kuma`, a
+Never add `n8n`, `n8n-restart-gateway`, `caddy`, `gotify`, `uptime-kuma`, a
 database, a storage service, or a container whose restart could interrupt an
 active write. For those systems, use a service-specific recovery workflow.
 
@@ -125,7 +129,7 @@ recovery request. Then use this sequence:
 |---|---|---|
 | No execution | Uptime Kuma notification history and production webhook URL | Activate the workflow; replace a test URL; verify ingress policy permits Kuma. |
 | Execution ends at validation | `reason` from **Configure and validate event** | Match the monitor name, send only DOWN events, or wait for the cooldown. |
-| No ntfy message | `http://ntfy:80` reachability and topic subscription | Deploy ntfy on `telemetry`; configure ntfy auth if enabled. |
+| No Gotify message | `http://gotify:80` reachability and application credentials | Deploy Gotify on `telemetry`; select the Gotify Application credential in all three notification nodes. |
 | Buttons fail | n8n `WEBHOOK_URL` and the waiting execution | Use a phone-reachable HTTPS URL; confirm the 15-minute wait has not expired. |
 | Gateway returns 401 | n8n Header Auth credential | Make its bearer value match the uncommitted gateway token. |
 | Gateway returns 403 | Gateway allowlist and exact container name | Update `N8N_RESTART_ALLOWLIST`, then recreate only this stack. |
