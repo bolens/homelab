@@ -142,6 +142,13 @@ symlink/replaced/key/inventory/profile/mount refusals with disposable controls;
 require real image-layout smoke and configured UID1000/pipe/retained-ACK proof
 before operational acceptance. No new signing framework is introduced.
 
+Retained acceptance verifies a distinct fresh retained catalog event and ACK
+against an existing catalog target. It preserves Location and Status and grants
+no ordinary import ACK or source cleanup. T033 owns genuine ordinary import and
+later automatic-capture acceptance. A Wanted member without a catalog Location
+is excluded from the retained route; an eligible ordinary selected pass follows
+its own admission and preservation checks.
+
 The Root retained run must reserve native operations for the exact selected
 request before taking its paused backup. Reuse the native mode lock and active
 operation counter, and fence ordinary background work and raw
