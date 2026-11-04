@@ -338,7 +338,7 @@
     },
     {
       "path": "test_publication_tagging.py",
-      "sha256": "791720d804a8daf5555b28bf2e3edef47027ee868e98763b95bf13f33d2900cf"
+      "sha256": "c7d790d5e24033a88f6489f2dd3b4b487712a34464207d4588fee2edd0757d62"
     },
     {
       "path": "test_tagger_lookup.py",

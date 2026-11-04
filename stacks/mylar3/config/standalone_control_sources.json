@@ -1791,7 +1791,7 @@
   },
   {
     "path": "test_publication_tagging.py",
-    "sha256": "791720d804a8daf5555b28bf2e3edef47027ee868e98763b95bf13f33d2900cf",
+    "sha256": "c7d790d5e24033a88f6489f2dd3b4b487712a34464207d4588fee2edd0757d62",
     "target": "test_publication_tagging.py"
   },
   {
@@ -1986,7 +1986,7 @@
   },
   {
     "path": "test_verify_status_routing.py",
-    "sha256": "3e87820038af0f4988959b8bc46c63ff40856878774dacbe67315e02e3cc4f25",
+    "sha256": "b9d813ee023a5c386bedc50225803420770f541c2b3806ef44a350cf36819ac4",
     "target": "test_verify_status_routing.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "e8cc2a97ff7acfa4ae81818f8d71d5ae7e54c743e2a38a6c4f203cc0156eb2e2",
+    "sha256": "f073536d6aaf09037a461e95328e6df53e33b377695e7f0929a434643a7c466d",
     "target": "verify_publication_reader_cohort.py"
   },
   {
@@ -2156,7 +2156,7 @@
   },
   {
     "path": "tagging_stage_sources.json",
-    "sha256": "eadb3a628e94b7665b6392095399031e02a21e3d67f10587822fd24595198708",
+    "sha256": "505374ff16b872bf737d10fb940a8b18e2b67546a95a9f378b47bc83b68b0b01",
     "target": "tagging_stage_sources.json"
   },
   {

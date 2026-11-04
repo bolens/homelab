@@ -66,6 +66,9 @@ mylar-source-check:
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_health.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_verify_status_routing.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_publication_launch_auth.py
+	# Tagging host controls share real admission; three executable cases remain image-only.
+	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_publication_tagging.py
+	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p 'test_tagging_stage*.py'
 	# Match the image's owning portable suites, including complete recovery controls.
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_publication_reader_controls.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_adoption.py

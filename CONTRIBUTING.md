@@ -25,6 +25,9 @@ to the checked archive SDK; the worker uses its executable `bin/archiving-utils`
 unless `ARCHIVING_UTILS_BIN` explicitly selects the checked backend. The Mylar
 gate runs the retained API, worker handoff and authenticated launch controls too.
 The full worker gate refuses skipped controls.
+Local tagging controls exercise the real native admission modules; three tests
+require bundled tagging executables and run in the image build. The image gate
+requires all tagging controls to pass without skips.
 The Mylar gate also runs the complete standalone installation, backup and terminal suites.
 Prepare the shared source-lint checkout and locked dependencies as described in
 [local CI setup](documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).

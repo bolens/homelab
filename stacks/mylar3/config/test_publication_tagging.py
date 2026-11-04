@@ -2,6 +2,7 @@
 from contextlib import closing, contextmanager
 import ast
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -82,15 +83,22 @@ class BackendTests(unittest.TestCase):
         self.runtime.operation=operation
         # Expose the actual host modules under the application's canonical names.
         # No delivery history or continuity capability is manufactured here.
+        # Retained session methods use relative imports: load their genuine package
+        # identity instead of aliasing a bare module with an empty __package__.
+        spec=importlib.util.spec_from_file_location('mylar.publication_retained_api',
+            Path(__file__).with_name('publication_retained_api.py'))
+        retained_api=importlib.util.module_from_spec(spec)
         modules={'publication_native':native,'publication_guard':guard,
                  'ordinary_import_continuity':ordinary_import_continuity,
                  'ordinary_import_history':ordinary_import_history,
                  'publication_rename':publication_rename,
                  'publication_transaction':transaction,'media_writer':media_writer,
-                 'cache_reservation':cache_reservation}
+                 'cache_reservation':cache_reservation,
+                 'publication_retained_api':retained_api}
         for name,module in modules.items():setattr(self.mylar,name,module)
         context=patch.dict(sys.modules,{'mylar.'+name:module for name,module in modules.items()})
         context.start();self.addCleanup(context.stop)
+        spec.loader.exec_module(retained_api)
 
     def dispatch(self,*,manual=False,issueid='123'):
         return tagger_backend.dispatch(self.legacy,str(self.incoming.parent),
