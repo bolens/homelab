@@ -851,6 +851,9 @@ def extension_target(path: Path) -> Path:
 
 def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Path | None:
     """Resolve local WAV/FLAC export names with strong, unambiguous FLAC evidence."""
+    def identity(value: str) -> str:
+        return "".join(re.findall(r"[^\W_]+", value.casefold()))
+
     entry = PurePosixPath(name.replace("\\", "/"))
     if len(entry.parts) != 1:
         return None
@@ -867,11 +870,38 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
     if not aliases and " " in expected:
         dotted = expected.replace(" ", ".")
         aliases = [p for p in candidates if dotted in {p.name.casefold(), extension_target(p).name.casefold()}]
+    if not aliases:
+        cue_name = extension_target(cue).stem
+        cue_disc = re.search(r"(?:^|[ ._-])(?:cd|disc|disk)[ ._-]*([1-9])$", cue_name, re.IGNORECASE)
+        numbered = re.fullmatch(r"([0-9]{1,2})[ ._-]+(.+)", entry.stem)
+        if cue_disc and numbered:
+            header = re.split(r"(?im)^[ \t]*TRACK[ \t]", "\n".join(text.splitlines()), maxsplit=1)[0]
+            identities = {}
+            for field in ("PERFORMER", "TITLE"):
+                lines = re.findall(r"^[\ufeff \t]*" + field + r"[ \t].*$", header, re.MULTILINE | re.IGNORECASE)
+                values = re.findall(r'^[\ufeff \t]*' + field + r'[ \t]+"([^"\r\n]+)"[ \t]*\r?$', header, re.MULTILINE | re.IGNORECASE)
+                if len(lines) != len(values) or len(values) > 1 or any(not identity(v) for v in values):
+                    return None
+                identities[field] = identity(values[0]) if values else ""
+            for path in candidates:
+                posting = re.fullmatch(r"([1-9])([0-9]{2})[ ._-]+(.+)", extension_target(path).stem)
+                if not posting or posting[1] != cue_disc[1] or int(posting[2]) != int(numbered[1]):
+                    continue
+                tags, _ = flac_album_metadata(path)
+                track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
+                disc, _ = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+                if (track != str(int(numbered[1])) or disc and disc != cue_disc[1]
+                        or identity(tags.get("ALBUM", "")) != identity(cue_name)
+                        or not tags.get("ARTIST", "").strip() or not tags.get("TITLE", "").strip()
+                        or identities["PERFORMER"] and identities["PERFORMER"] != identity(tags["ARTIST"])
+                        or identities["TITLE"] and identities["TITLE"] != identity(tags.get("ALBUM", ""))):
+                    continue
+                actual = identity(posting[3])
+                requested = identity(numbered[2])
+                if (actual == requested and identity(posting[3]).startswith(identity(tags["ARTIST"] + tags["TITLE"]))):
+                    aliases.append(path)
     if aliases:
         return aliases[0] if len(aliases) == 1 else None
-
-    def identity(value: str) -> str:
-        return "".join(re.findall(r"[^\W_]+", value.casefold()))
 
     header = re.split(r"(?im)^[ \t]*TRACK[ \t]", "\n".join(text.splitlines()), maxsplit=1)[0]
     performers = {identity(value) for value in re.findall(r'^[\ufeff \t]*PERFORMER[ \t]+"([^"\r\n]+)"[ \t]*\r?$', header, re.MULTILINE | re.IGNORECASE)}
@@ -1178,11 +1208,136 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
     return inferred
 
 
+def nfo_disc_manifest(path: Path, artist: str, album: str,
+                      titles: dict[tuple[int, int], str]) -> bool:
+    """Require the observed explicit CD tracklist, with matching release identity."""
+    if path.stat().st_size > 65536 or detected_suffix(path) is not None or not is_text_sidecar(path):
+        return False
+    raw = path.read_bytes()
+    def identity(value: str) -> str:
+        return "".join(re.findall(r"[^\W_]+", value.casefold()))
+    for encoding in ("utf-8-sig", "utf-16", "cp437", "cp1252"):
+        try:
+            text = raw.decode(encoding)
+        except UnicodeError:
+            continue
+        markers = list(re.finditer(r"(?im)^[ \t]*Tracklist[ .:]*[ \t]*$", text))
+        if len(markers) != 1:
+            continue
+        header = text[:markers[0].start()]
+        artists = re.findall(r"(?im)^[ \t]*Artist[ .]*:[ \t]*(.*?)(?=[ \t]{2,}(?:Title|Album)[ .]*:|[ \t]*$)", header)
+        albums = re.findall(r"(?im)(?:^[ \t]*|[ \t]{2,})(?:Title|Album)[ .]*:[ \t]*([^\r\n]+?)[ \t]*$", header)
+        sources = re.findall(r"\bSource[ .]*:[ \t]*([1-9][0-9]?)CD\b", header, re.IGNORECASE)
+        expected_discs = {disc for disc, _ in titles}
+        if (len(artists) != 1 or identity(artists[0]) != identity(artist)
+                or len(albums) != 1 or identity(albums[0]) != identity(album)
+                or sources != [str(len(expected_discs))]):
+            continue
+        disc = None
+        discs = set()
+        found = {}
+        for line in text[markers[0].end():].splitlines():
+            line = line.strip()
+            if match := re.fullmatch(r"CD[ ._-]*([1-9][0-9]?):", line, re.IGNORECASE):
+                disc = int(match[1])
+                if disc in discs:
+                    break
+                discs.add(disc)
+            elif match := re.fullmatch(r"([0-9]{1,3})[ .)-]+(.+?)[ \t]{2,}\[[0-9]{1,3}:[0-5][0-9]\]", line):
+                key = (disc, int(match[1]))
+                if disc is None or key in found:
+                    break
+                found[key] = identity(match[2])
+            elif re.match(r"[0-9]{1,3}[ .)-]", line):
+                break
+        else:
+            if discs == expected_discs and found == {key: identity(value) for key, value in titles.items()}:
+                return True
+    return False
+
+
+def release_total_evidence(groups: dict, members: dict, files: list[Path],
+                           required_manifests: set[Path] | None) -> set[Path]:
+    """Disambiguate whole-release totals only with an NFO and covering playlist."""
+    cohorts = {}
+    for key, records in groups.items():
+        cohorts.setdefault((key[0], key[1], key[4]), []).append((key, records))
+    audio = None
+    proven = set()
+    for owner, disc_groups in cohorts.items():
+        paths = {p for _, records in disc_groups for p, _, _ in records}
+        totals = {total for _, records in disc_groups for _, _, total in records}
+        if (len(disc_groups) < 2 or paths != members.get(owner) or totals != {str(len(paths))}):
+            continue
+        titles = {}
+        performers = set()
+        discs = set()
+        positions = {}
+        for key, records in disc_groups:
+            ancestry = [re.match(r"(?:cdm|cd|disc|disk)[ _.-]*([0-9]+)", label, re.IGNORECASE)[1] for label in key[3]]
+            disc = key[2] or (ancestry[0] if len(ancestry) == 1 else "")
+            if (not re.fullmatch(r"[0-9]{1,5}", disc) or not 1 <= int(disc) <= 99 or len(ancestry) > 1
+                    or ancestry and int(ancestry[0]) != int(disc) or int(disc) in discs):
+                break
+            disc = int(disc)
+            discs.add(disc)
+            numbers = [int(n) for _, n, _ in records if re.fullmatch(r"[1-9][0-9]{0,4}", n)]
+            if len(numbers) != len(records) or len(set(numbers)) != len(numbers):
+                break
+            positions[disc] = sorted(numbers)
+            for path, number, _ in records:
+                tags, _ = flac_album_metadata(path)
+                if not tags.get("ALBUM", "").strip() or not tags.get("TITLE", "").strip():
+                    break
+                performers.add((tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST") or tags.get("ARTIST", "")).strip().casefold())
+                titles[(disc, int(number))] = tags["TITLE"]
+            else:
+                continue
+            break
+        else:
+            if discs != set(range(1, len(disc_groups) + 1)) or len(performers) != 1 or not next(iter(performers)):
+                continue
+            offset = 0
+            local_numbering = global_numbering = True
+            local_titles = {}
+            for disc in sorted(discs):
+                numbers = positions[disc]
+                local_numbering &= numbers == list(range(1, len(numbers) + 1))
+                global_numbering &= numbers == list(range(offset + 1, offset + len(numbers) + 1))
+                local_titles.update({(disc, number - offset): titles[(disc, number)] for number in numbers})
+                offset += len(numbers)
+            if not local_numbering:
+                if not global_numbering:
+                    continue
+                titles = local_titles
+            base = Path(owner[2])
+            nfos = [p for p in files if p.parent == base and p.suffix.casefold() == ".nfo"
+                    and nfo_disc_manifest(p, next(iter(performers)), owner[0], titles)]
+            if not nfos:
+                continue
+            if audio is None:
+                audio = [p for p in files if detected_suffix(p) in AUDIO_SUFFIXES or p.suffix.casefold() in AUDIO_SUFFIXES]
+            for playlist in files:
+                if playlist.parent != base or playlist.suffix.casefold() not in {".m3u", ".m3u8"}:
+                    continue
+                entries = playlist_entries(playlist)
+                if not entries or len(entries) != len(paths):
+                    continue
+                resolved = playlist_local_targets(entries, audio, playlist.parent)
+                if all(len(items) == 1 for items in resolved) and {next(iter(items)) for items in resolved} == paths:
+                    proven.update(paths)
+                    if required_manifests is not None:
+                        required_manifests.update((playlist, nfos[0]))
+                    break
+    return proven
+
+
 def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
-                       required_playlists: set[Path] | None = None) -> set[Path]:
-    filename_discs = playlist_disc_groups(files, protected, root, required_playlists)
+                       required_manifests: set[Path] | None = None) -> set[Path]:
+    filename_discs = playlist_disc_groups(files, protected, root, required_manifests)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
+    members: dict[tuple, set[Path]] = {}
     proven = set(protected)
     for path in files:
         if detected_suffix(path) != ".flac":
@@ -1194,6 +1349,7 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
         album = tags.get("ALBUM", "").strip().casefold()
         artist = (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold()
         base = album_directory(path, root)
+        members.setdefault((album, artist, str(base)), set()).add(path)
         # A shared album name alone must not combine independent edition folders.
         discs.setdefault((album or str(base), artist, str(base)), []).append((disc, disc_total))
         if path in protected or embedded_cue or tags.get("CUESHEET"):
@@ -1213,7 +1369,11 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
         numbers = {int(number) for number, _ in records if re.fullmatch(r"[0-9]{1,5}", number)}
         if any(not re.fullmatch(r"[0-9]{1,5}", number) for number, _ in records) or numbers != set(range(1, total + 1)):
             raise ValueError(f"incomplete album: missing or invalid discs of {total}; retaining all files")
+    release_proven = release_total_evidence(groups, members, files, required_manifests)
+    proven.update(release_proven)
     for records in groups.values():
+        if all(path in release_proven for path, _, _ in records):
+            continue
         totals = {int(total) for _, _, total in records if re.fullmatch(r"[0-9]{1,5}", total) and int(total) > 0}
         if not totals:
             # Track positions establish a lower bound even without a declared total.
@@ -1421,8 +1581,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     cues = read_cues(files, root)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
     completeness_cues = cue_image_targets(cues) if require_completeness else protected
-    disc_playlists: set[Path] = set()
-    proven = check_album_tracks(files, completeness_cues, root, disc_playlists) if cleanup or require_completeness else set()
+    completeness_manifests: set[Path] = set()
+    proven = check_album_tracks(files, completeness_cues, root, completeness_manifests) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
     playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
@@ -1464,7 +1624,7 @@ def plan_tree(root: Path, *, flatten: bool = True,
     for path in files:
         target = extension_target(path) if extensions else path
         sidecar = path in playlists or (path.suffix.casefold() not in {".m3u", ".m3u8"} and disposable(path))
-        if (cleanup and path not in protected and path not in disc_playlists
+        if (cleanup and path not in protected and path not in completeness_manifests
                 and not (require_completeness and path in playlists)
                 and (sidecar or detected_suffix(path) in CLEANUP_SIGNATURE_SUFFIXES)):
             # Only recognized images/documents without an established media suffix are

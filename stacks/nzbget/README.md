@@ -360,6 +360,10 @@ This setting also checks unchanged releases and applies with cleanup disabled.
 It uses local evidence and cannot detect incorrect totals or omitted playlist
 entries that leave a plausible, internally complete set.
 
+Disc-labelled cue filenames can resolve DTT-prefixed FLAC exports when the disc,
+track, tagged album, artist, title and complete filename identity agree. Ambiguous
+references and different mix or release-group suffixes remain errors.
+
 Preview strict processing without changing a release:
 
 ```bash
@@ -367,9 +371,14 @@ python3 stacks/nzbget/scripts/UnpackMusicTar/main.py --preview "/path/to/music/r
 ```
 
 This check uses bounded metadata reads. Untagged files, ambiguous metadata and
-other formats cannot establish completeness. Totals are interpreted per disc;
-ambiguous tags, intentionally partial downloads or album-wide totals spread across
-discs may require manual correction. Already overwritten tracks require a backup
+other formats cannot establish completeness. Totals are interpreted per disc.
+Whole-release totals across several discs are
+accepted only when a matching NFO supplies an explicit CD-by-CD tracklist and a
+local playlist covers every track. The NFO must identify the artist, album and
+number of CDs; its numbered titles must match the tags. Both evidence files are
+retained for repeatable processing. Local or release-wide track numbering is
+supported; ambiguous tags and intentionally partial downloads require manual review.
+Already overwritten tracks require a backup
 or a new download; rerunning this extension cannot recover their audio.
 
 Under **Settings → Extension Manager → Unpack Music Tar**, set **VerifyAudio** to
