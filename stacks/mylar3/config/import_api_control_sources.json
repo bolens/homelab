@@ -645,7 +645,7 @@
   },
   {
     "path": "reader_recovery/comic_reader_lifecycle_parent.py",
-    "sha256": "c52030edb8fa357223aa880bea3e9d5f4269cf7e68546a412840606083eae4db"
+    "sha256": "aeb22576ca64770173d2081275249ea4eb0011a767df6255cf3ddccc2a026959"
   },
   {
     "path": "reader_recovery/comic_retained_pack_backup.py",
@@ -709,7 +709,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "163c132dd6c3867afbf2cf28c79891dcccb6047607a4ee60d84d76e99964e1d7"
+    "sha256": "fd36015c4e10f6fc88edb69b6bd34ef3b0a2a0d9ccf287886a4b93991140b4f6"
   },
   {
     "path": "run_standalone_controls.py",
@@ -721,7 +721,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "9943a88939aa18d8c5c1a7d986320d10600f679efd2c6ab6e4fa2020fab78252"
+    "sha256": "0c8d7e7908793b28cb56ec58bef1bc357e1668d719f61fd48fce509e4e397d50"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
