@@ -2863,6 +2863,95 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.snapshot(root), before)
             self.assertFalse(any(root.glob(".unpack-music-*")))
 
+    def nfo_numbered_disc_fixture(self, root: Path) -> dict[str, bytes]:
+        root.mkdir(parents=True, exist_ok=True)
+        audio = {}
+        for disc, number, title in ((1, 1, 'Song One'), (1, 2, 'Song Two'), (2, 1, 'Song Three')):
+            name = f'{disc}{number:02d}-fixture-{title.lower().replace(" ", "_")}.flac'
+            audio[name] = self.tagged_flac({'ARTIST': 'Fixture Artist', 'ALBUM': 'Example Album',
+                                          'TITLE': title, 'TRACKNUMBER': str(number)})
+            (root / name).write_bytes(audio[name])
+        (root / 'release.nfo').write_bytes(('     Artist | Fixture Artist\n     Title | Example Album\n'
+            '     Source | CD                         Time | 3:00\n'
+            '────┤ Tracks ├────────────────\n'
+            '     CD 1/2\n     01. Song One                    1:00\n'
+            '     02. Song Two                    1:00\n'
+            '     CD 2/2\n     01. Song Three                  1:00\n').encode('cp437'))
+        (root / 'extra.nfo').write_text('Fixture release notes\n')
+        return audio
+
+    def test_numbered_discs_use_matching_nfo_without_a_playlist_and_keep_evidence(self) -> None:
+        for archived, ending in itertools.product((False, True), (b'\n', b'\r\n', b'\r')):
+            with self.subTest(archived=archived, ending=ending), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                source = root / 'Source' if archived else root
+                audio = self.nfo_numbered_disc_fixture(source)
+                evidence = (source / 'release.nfo').read_bytes().replace(b'\n', ending)
+                (source / 'release.nfo').write_bytes(evidence)
+                if archived:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        for path in source.iterdir():
+                            output.write(path, 'Nested/' + path.name)
+                    shutil.rmtree(source)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.glob('*.flac')}, audio)
+                self.assertEqual((root / 'release.nfo').read_bytes(), evidence)
+                self.assertFalse((root / 'extra.nfo').exists())
+                main.plan_tree(root, require_completeness=True)
+                stable = self.snapshot(root)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), stable)
+
+    def test_nfo_disc_inference_rejects_incomplete_conflicting_and_foreign_evidence(self) -> None:
+        for variant in ('absent', 'artist', 'album', 'source', 'disc-total', 'duplicate-disc',
+                        'duplicate-track', 'missing-track', 'extra-track', 'title', 'binary', 'oversize',
+                        'filename-disc', 'track-tag', 'missing-title'):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.nfo_numbered_disc_fixture(root)
+                nfo = root / 'release.nfo'
+                raw = nfo.read_bytes()
+                replacements = {'artist': (b'Fixture Artist', b'Foreign Artist'),
+                    'album': (b'Example Album', b'Foreign Album'), 'source': (b'Source | CD', b'Source | WEB'),
+                    'disc-total': (b'CD 2/2', b'CD 2/3'), 'duplicate-disc': (b'CD 2/2', b'CD 1/2'),
+                    'duplicate-track': (b'02. Song Two', b'01. Song Two'),
+                    'missing-track': (b'     02. Song Two                    1:00\n', b''),
+                    'extra-track': (b'CD 2/2', b'03. Extra Track                 1:00\n     CD 2/2'),
+                    'title': (b'Song Two', b'Other Song')}
+                if variant in replacements:
+                    old, new = replacements[variant]
+                    nfo.write_bytes(raw.replace(old, new))
+                if variant == 'absent':
+                    nfo.unlink()
+                if variant == 'binary':
+                    nfo.write_bytes(raw + b'\0binary')
+                if variant == 'oversize':
+                    nfo.write_bytes(raw + b' ' * 65536)
+                if variant == 'filename-disc':
+                    source = root / '201-fixture-song_three.flac'
+                    source.rename(root / '301-fixture-song_three.flac')
+                if variant in ('track-tag', 'missing-title'):
+                    tags = {'ARTIST': 'Fixture Artist', 'ALBUM': 'Example Album', 'TRACKNUMBER': '2' if variant == 'track-tag' else '1'}
+                    if variant != 'missing-title':
+                        tags['TITLE'] = 'Song Three'
+                    (root / '201-fixture-song_three.flac').write_bytes(self.tagged_flac(tags))
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_nfo_disc_evidence_stays_inside_the_matching_edition_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.nfo_numbered_disc_fixture(root / 'Edition A')
+            self.nfo_numbered_disc_fixture(root / 'Edition B')
+            (root / 'Edition A' / 'release.nfo').rename(root / 'release.nfo')
+            (root / 'Edition B' / 'release.nfo').unlink()
+            before = self.snapshot(root)
+            with self.assertRaises(ValueError):
+                main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+
     def release_total_fixture(self, root: Path, *, global_numbers: bool = False,
                               directories: bool = False) -> dict[str, bytes]:
         root.mkdir(parents=True, exist_ok=True)

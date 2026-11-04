@@ -348,9 +348,14 @@ so another processing pass keeps the same grouping.
 
 Set **RequireCompleteness** to `yes` to refuse audio whose final track count is
 unproven. Its default is `no`. Each audio file needs a validated FLAC track total,
-a reference from a complete local playlist, or cue-image evidence. A contiguous
-prefix without totals fails in this mode. Playlists must cover every otherwise
-unproven audio file. Playlist entries must resolve to distinct audio files, including case variants.
+a reference from a complete local playlist, a matching NFO disc tracklist, or
+cue-image evidence. A contiguous prefix without totals fails in this mode.
+FLACs with disc-and-track prefixes such as `101` and `201`, but no disc tags,
+can use a matching NFO with a complete CD-by-CD tracklist. This includes
+pipe-style artist/title headers and explicit `CD 1/2` sections. Numbered NFO
+titles must match the tags; filename prefixes must match the disc and track
+positions. The NFO stays with the audio for retries. Playlists must cover every
+otherwise unproven audio file. Playlist entries must resolve to distinct audio files, including case variants.
 Obfuscated playlist matching uses the same reconciled track/disc tags as album
 checks. Strict processing retains recognised playlists and updates their paths
 after moves or extension repairs so retries keep the evidence. Names beginning
