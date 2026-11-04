@@ -36,6 +36,17 @@ class Custody(unittest.TestCase):
     def copy(self):
         return backup.copy_and_verify(self.scopes, self.root / 'copies', self.primitives, self.pin)
 
+    def test_config_symlink_preserved_without_following_external_target(self):
+        outside=self.root/'outside';outside.write_bytes(b'preserve outside scope')
+        alias=Path(self.scopes[0]['root'])/'font-alias';alias.symlink_to(outside)
+        held=self.copy();held.close()
+        for stage in ('backup','restore'):
+            copied=self.root/'copies'/stage/'native_config'/'font-alias'
+            self.assertTrue(copied.is_symlink());self.assertEqual(os.readlink(copied),str(outside))
+        self.assertEqual(outside.read_bytes(),b'preserve outside scope')
+        alias.unlink();alias.symlink_to(self.root/'foreign')
+        with self.assertRaises(ValueError):held.close()
+
     def rebase(self, held):
         row = backup._OBS[held]
         module = row['module']

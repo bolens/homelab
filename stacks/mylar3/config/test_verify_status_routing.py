@@ -29,6 +29,31 @@ def status_calls(node):
 
 
 class Routing(unittest.TestCase):
+    def test_installed_retained_route_contract_matches_actual_native_modules(self):
+        # Import the real relative modules in a private package without starting Mylar.
+        code = """import importlib,sys,types
+from pathlib import Path
+root=Path(sys.argv[1]);sys.path.insert(0,str(root))
+package=types.ModuleType('route_check');package.__path__=[str(root)]
+sys.modules['route_check']=package
+writers=importlib.import_module('route_check.native_writers')
+retained=importlib.import_module('route_check.publication_retained_api')
+from verify_publication_reader_cohort import verify_retained_routes
+verify_retained_routes(writers,retained)
+original=writers.SELF_ADMITTED_API
+for commands in (original[:2],original+('extra',)):
+    writers.SELF_ADMITTED_API=commands
+    try:verify_retained_routes(writers,retained)
+    except AssertionError:pass
+    else:raise AssertionError('Incorrect native route set accepted')
+writers.SELF_ADMITTED_API=original
+retained.COMMANDS=original[:2]
+try:verify_retained_routes(writers,retained)
+except AssertionError:pass
+else:raise AssertionError('Divergent HTTP route set accepted')
+"""
+        subprocess.run([sys.executable, '-I', '-B', '-c', code, str(HERE.absolute())], check=True)
+
     def custom(self):
         blocks = [n for n in TREE.body if isinstance(n, ast.If)
                   and BACKEND in ast.get_source_segment(SOURCE, n.test)

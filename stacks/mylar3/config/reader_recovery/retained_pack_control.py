@@ -215,7 +215,7 @@ def _close(value,*,terminal=False,released=False):
     if terminal:
         import retained_pack_handoff as handoff
         from publication_guard import scope
-        need(owned['phase']=='retained-observed' and handoff._core(owned['action'],'consumed')['maintenance'] is c['maintenance'],'control-original-consumed-action')
+        need(owned['phase']=='retained-observed' and handoff.terminal_core(owned['action'])['maintenance'] is c['maintenance'],'control-original-consumed-action')
         original_action=owned['action'];original_terminal=handoff._TERMINAL_EXPORTS.get(original_action);original_core=handoff._CORES.get(original_action)
         need(original_terminal is not None and original_terminal[0] is original_core,'control-original-terminal-seal')
         from publication_guard import current,Unavailable
@@ -364,7 +364,7 @@ def _authenticated_complete(value,result,challenge,pack_id,member_id):
     _check_writer_hold(hold,writer)
     with hold[0](writer,timeout=0),scope(c['maintenance'].worker,writer):
         _close(value,terminal=True)
-        frame=handoff.close_terminal(owned['action']);action=handoff._core(owned['action'],'consumed')
+        frame=handoff.close_terminal(owned['action']);action=handoff.terminal_core(owned['action'])
         done=str(action['done']);reference=dict(path=done,signature9=list(frame['files'][done]),sha256=frame['hashes'][done])
         header=dict(version=1,kind='retained-pack-terminal-observation',pack_id=pack_id,member_id=member_id,
             token=action['token'],worker_pid=os.getpid(),result=json.loads(result_bytes),artifact_ref=reference,

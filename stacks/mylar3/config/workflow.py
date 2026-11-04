@@ -500,7 +500,13 @@ def tick(queue):
         from . import native_writers
         if native_writers.publication_mode():
             if native_writers.startup_status()['state'] != 'ready':return
-            with native_writers.operation():return _tick(queue)
+            from .media_writer import Busy
+            from .publication_guard import Unavailable
+            try:
+                with native_writers.operation():return _tick(queue)
+            except (Busy,Unavailable):
+                # The advisory status can become held before admission.
+                return
     return _tick(queue)
 
 

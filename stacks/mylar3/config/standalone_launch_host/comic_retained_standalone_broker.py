@@ -30,6 +30,40 @@ NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
          'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py',
          'comic_retained_standalone_broker.py','comic_native_process_probe.py',
          'publication_native_configured_scope.py','BOOTSTRAP.py')
+PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
+              'comic_reader_lifecycle_parent.py',
+              'comic_retained_pack_backup.py','comic_retained_pack_observation.py','retained_pack_control.py','comic_retained_pack_parent.py','comic_retained_native_control.py',
+              'comic_retained_standalone_broker.py','comic_native_process_probe.py',
+              'publication_native_configured_scope.py','BOOTSTRAP.py')
+PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v1:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
+
+
+def installation_contract(document):
+    # Only reviewed finite kinds select modules or profiles; no caller paths.
+    if document.get('kind')=='standalone-root-deployment-v1':
+        return NAMES,'comic_retained_standalone_parent.py','comic_retained_standalone_backup.py','retained-standalone',LOGICAL_PROFILE_SHA
+    if document.get('kind')=='pack-root-deployment-v1':
+        return PACK_NAMES,'comic_retained_pack_parent.py','comic_retained_pack_backup.py','retained-pack',PACK_PROFILE_SHA
+    raise Held('fixed-installation-kind')
+
+
+def owning_parent(row):
+    return row['modules'][installation_contract(row['document'])[1]]
+
+
+def launch_protocol(document):
+    purpose=installation_contract(document)[3]
+    if purpose=='retained-pack':
+        return purpose,'pack-launch-challenge-v1','pack-fixed-launch-admission-v1','pack-fixed-stage-v1','pack-retained-repeat-v1'
+    return purpose,'standalone-launch-challenge-v3','standalone-fixed-launch-admission-v1','standalone-fixed-stage-v3','standalone-retained-repeat-v3'
+
+
+def phase_original(state):
+    values=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    if state.get('purpose')=='retained-pack':values+=(state['writer_interval'],)
+    return values
+
+
 _INSTALLATIONS = weakref.WeakKeyDictionary()
 _LAUNCHES = weakref.WeakKeyDictionary()
 _INSTALLATION_SEALS = weakref.WeakKeyDictionary()
@@ -50,6 +84,21 @@ def hexadecimal(value):return type(value) is str and len(value)==64 and all(c in
 def nine(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
 def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
 
+def control_reference(value):
+    if (type(value) is not dict or set(value)!={'path','sha256','signature9'}
+            or type(value['path']) is not str or not hexadecimal(value['sha256'])
+            or type(value['signature9']) not in (list,tuple) or len(value['signature9'])!=9
+            or any(type(v) is not int for v in value['signature9'])):raise Held('fixed-child-control-reference')
+    path=Path(value['path'])
+    if (not path.is_absolute() or str(path)!=value['path'] or value['path'].startswith('//')
+            or '..' in path.parts):raise Held('fixed-child-control-path')
+    return value
+
+def native_config_reference(value):
+    control_reference(value);stamp=value['signature9']
+    if stamp[5]&0o170000!=0o100000 or stamp[8]!=1 or not 0<stamp[2]<=2*1024**2:raise Held('fixed-native-config-file')
+    return value
+
 def parse(data):
     def pairs(rows):
         result={}
@@ -59,6 +108,18 @@ def parse(data):
         return result
     value=json.loads(data,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(Held('fixed-launch-number')))
     if type(value) is not dict or canonical(value)!=data:raise Held('fixed-launch-canonical')
+    return value
+
+def document(data):
+    """Private configuration need not use the canonical wire spelling."""
+    def pairs(rows):
+        out={}
+        for key,value in rows:
+            if key in out:raise Held('fixed-document-duplicate')
+            out[key]=value
+        return out
+    value=json.loads(data,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(Held('fixed-document-number')))
+    if type(value) is not dict:raise Held('fixed-document-object')
     return value
 
 def capture(paths):
@@ -101,21 +162,25 @@ def read(path,frame):
 
 def reviewed_deployment(frame):
     marker=parse(read(ENROLLMENT,frame))
-    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind']!='standalone-root-enrollment-v1' or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
+    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind'] not in ('standalone-root-enrollment-v1','pack-root-enrollment-v1') or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
     data=read(INSTALLATION,frame)
     if sha(data)!=marker['deployment_sha256']:raise Held('fixed-installation-digest')
     value=parse(data)
     fields={'version','kind','deployment','image','profile','runtime_profile_sha256','broker_sources','parent_sha256',
             'bootstrap_sha256','inventory_sha256','anchor_sha256','key_sha256','public_der','host_sources','daemon_sources','ids'}
-    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind']!='standalone-root-deployment-v1':raise Held('fixed-installation-schema')
-    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids'}):raise Held('fixed-installation-claims')
-    if value['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
+    if value.get('kind')=='pack-root-deployment-v1':fields=fields|{'native_config_ref'}
+    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind'] not in ('standalone-root-deployment-v1','pack-root-deployment-v1'):raise Held('fixed-installation-schema')
+    names,parent_name,_,purpose,policy=installation_contract(value)
+    if marker['kind']!=('pack-root-enrollment-v1' if purpose=='retained-pack' else 'standalone-root-enrollment-v1'):raise Held('fixed-enrollment-purpose')
+    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids','native_config_ref'}):raise Held('fixed-installation-claims')
+    if value['profile']!=policy:raise Held('fixed-source-owned-logical-policy')
     public=bytes.fromhex(value['public_der'])
     if len(public)!=44 or public[:12]!=bytes.fromhex('302a300506032b6570032100') or sha(public)!=value['key_sha256']:raise Held('fixed-installation-public-key')
-    if set(value['host_sources'])!=set(NAMES) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
+    if set(value['host_sources'])!=set(names) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
     if type(value['daemon_sources']) is not dict or set(value['daemon_sources'])!={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'} or not all(hexadecimal(x) for x in value['daemon_sources'].values()):raise Held('fixed-daemon-source-pins')
-    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources']['comic_retained_standalone_parent.py']!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
+    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources'][parent_name]!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
     if set(value['ids'])!={'native','reader','worker'} or not all(hexadecimal(x) for x in value['ids'].values()) or len(set(value['ids'].values()))!=3:raise Held('fixed-installation-runtime-IDs')
+    if purpose=='retained-pack':native_config_reference(value['native_config_ref'])
     return value,public,data
 
 
@@ -125,7 +190,7 @@ def anchor_payloads(document, directory, frame):
     anchor,inventory=parse(values[0]),parse(values[1])
     fields={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'}
     if (set(anchor)!=fields or type(anchor['version']) is not int or anchor['version']!=1
-            or anchor['kind']!='standalone-installation-anchor-v1'
+            or anchor['kind']!=('pack-installation-anchor-v1' if installation_contract(document)[3]=='retained-pack' else 'standalone-installation-anchor-v1')
             or any(anchor[key]!=document[key] for key in fields-{'version','kind'})
             or sha(values[0])!=document['anchor_sha256']
             or sha(values[1])!=document['inventory_sha256']
@@ -134,15 +199,25 @@ def anchor_payloads(document, directory, frame):
     if (set(inventory)!={'version','kind','sources'} or type(inventory['version']) is not int
             or inventory['version']!=1 or inventory['kind']!='standalone-leaf-inventory-v1'
             or type(inventory['sources']) is not dict or not 12<=len(inventory['sources'])<=512):raise Held('fixed-anchor-inventory-schema')
-    auth=Path('/opt/mylar-publication-launch/auth');native=Path('/app/mylar3/mylar')
+    auth=Path('/opt/mylar-publication-launch/auth');pack=installation_contract(document)[3]=='retained-pack';native=Path('/app' if pack else '/app/mylar3/mylar')
     for name,digest in inventory['sources'].items():
         path=Path(name)
         if (str(path)!=name or not path.is_absolute() or '..' in path.parts or not hexadecimal(digest)
-                or not (path.is_relative_to(auth) or path.is_relative_to(native))):raise Held('fixed-anchor-inventory-path')
+                or not (path.is_relative_to(auth) or (path.parent==native if pack else path.is_relative_to(native)))):raise Held('fixed-anchor-inventory-path')
     if not {str(auth/name) for name in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')}<=set(inventory['sources']):raise Held('fixed-anchor-auth-inventory')
     if len(values[2])!=44 or values[2][:12]!=bytes.fromhex('302a300506032b6570032100'):raise Held('fixed-anchor-public-key')
     raw(frame)
     return values
+
+
+def capture_installed_sources(anchor_directory):
+    authority=capture((ENROLLMENT,INSTALLATION,KEY))
+    document,_,_=reviewed_deployment(authority)
+    names=installation_contract(document)[0]
+    frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in names],
+                   *[anchor_directory/name for name in ANCHOR_NAMES]))
+    if any(dict(frame[0]).get(path)!=fact for path,fact in authority[0]):raise Held('fixed-installation-authority-recapture')
+    raw(authority);return frame
 
 
 def provision_original_anchors():
@@ -153,9 +228,9 @@ def provision_original_anchors():
     No caller source/destination, callback, command or mounting API is accepted.
     """
     if os.geteuid()!=ROOT_UID:raise Held('fixed-root-provision-required')
-    frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[REVIEWED_ANCHORS/name for name in ANCHOR_NAMES]))
+    frame=capture_installed_sources(REVIEWED_ANCHORS)
     document,_,_=reviewed_deployment(frame)
-    for name in NAMES:
+    for name in installation_contract(document)[0]:
         if sha(read(PACKAGE/name,frame))!=document['host_sources'][name]:raise Held('fixed-installation-source-digest')
     if Path(__file__).absolute()!=PACKAGE/'comic_retained_standalone_broker.py':raise Held('fixed-broker-original-installation-origin')
     values=anchor_payloads(document,REVIEWED_ANCHORS,frame)
@@ -246,11 +321,11 @@ class Installation:
 def load_original_installation():
     if os.geteuid()!=ROOT_UID:raise Held('fixed-root-broker-process-required')
     # All fixed root sources are originals before the first read/parse/import.
-    try:frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[CHILD_ANCHORS/name for name in ANCHOR_NAMES]))
+    try:frame=capture_installed_sources(CHILD_ANCHORS)
     except FileNotFoundError:raise Held('reviewed-root-installation-unprovisioned') from None
     value,public,data=reviewed_deployment(frame)
     modules={}
-    for name in NAMES:
+    for name in installation_contract(value)[0]:
         source=read(PACKAGE/name,frame)
         if sha(source)!=value['host_sources'][name]:raise Held('fixed-installation-source-digest')
         if name=='comic_retained_standalone_broker.py':
@@ -293,23 +368,32 @@ class OriginalLaunch:
         seal=_LAUNCH_SEALS.get(self)
         if state is None or seal is None or seal[0] is not state:raise Held('fixed-launch-original-registry')
         original=seal[1];phase=_PHASES.get(self)
-        if phase is None or tuple(state.get(key) for key in ('deadline','admission','sequence','previous','auth_challenge'))!=phase:raise Held('fixed-launch-original-phase')
+        if phase is None or phase_original(state)!=phase:raise Held('fixed-launch-original-phase')
         if any(state.get(key) is not value for key,value in original['objects']):raise Held('fixed-launch-original-objects')
         if any(state.get(key)!=value for key,value in original['values']):raise Held('fixed-launch-original-values')
-        installation=state['installation'];row=installation.close();runtime=state['runtime']
+        installation=state['installation'];row=installation.close();runtime=state['runtime'];parent=owning_parent(row)
+        if (type(runtime) is not parent.ConfiguredRuntime or parent._RUNTIMES is not original['runtime_table']
+                or parent._RUNTIMES.get(runtime) is not original['runtime_registry']):raise Held('fixed-launch-original-runtime-registry')
         terminal_present=self in _EXITS;terminal_original=_EXITS[self] if terminal_present else None
+        local_interval=(installation_contract(row['document'])[3]=='retained-pack'
+                        and state.get('writer_interval') is True)
         if terminal_present:
             if type(terminal_original) is not tuple or len(terminal_original)!=4:raise Held('fixed-own-terminal-shape')
-            runtime.close(terminal_original)
-        else:runtime.close()
+            parent.ConfiguredRuntime.close(runtime,terminal_original)
+        elif local_interval:parent.ConfiguredRuntime.close_local(runtime)
+        else:parent.ConfiguredRuntime.close(runtime)
+        if state.get('purpose')=='retained-pack':
+            state['native_image'].close();state['worker_image'].close()
+            parent.raw(state['preflight']['config_frame'])
+            if state['sequence']<2:parent.raw(state['preflight']['receipt_frame'])
         process=state['process'];now=time.monotonic()
-        if type(runtime) is not row['modules']['comic_retained_standalone_parent.py'].ConfiguredRuntime or runtime.process is not process or runtime.selected!=state['cid'] or runtime.selected_started!=state['started'] or runtime.selected_pid!=state['selected_pid']:raise Held('fixed-launch-runtime-identity')
+        if type(runtime) is not owning_parent(row).ConfiguredRuntime or runtime.process is not process or runtime.selected!=state['cid'] or runtime.selected_started!=state['started'] or runtime.selected_pid!=state['selected_pid']:raise Held('fixed-launch-runtime-identity')
         if process.pid!=state['attach_pid'] or (not terminal_present and (process.poll() is not None or process_start(state['selected_pid'])!=state['start'])) or (terminal_present and process.poll()!=0):raise Held('fixed-launch-process-incarnation')
         if (os.getpid(),threading.get_ident())!=state['owner'] or now>state['deadline']:raise Held('fixed-launch-owner-lifetime')
         if process.stdin is not state['stdin'] or process.stdout is not state['stdout']:raise Held('fixed-launch-pipe-objects')
         for fd,fact in state['pipes']:
             if nine(os.fstat(fd))!=fact:raise Held('fixed-launch-original-pipe')
-        parent=row['modules']['comic_retained_standalone_parent.py']
+        parent=owning_parent(row)
         parent.raw(state['bootframe']);parent.raw(state['inputframe']);raw(row['frame'])
         # No replaceable closure helper after these original physical checks.
         for frame in (state['bootframe'],state['inputframe']):
@@ -338,9 +422,9 @@ class OriginalLaunch:
             elif actual!=expected:raise Held('fixed-launch-original-boot-value')
         if any(state.get(key) is not value for key,value in original['objects']) or any(state.get(key)!=value for key,value in original['values']):raise Held('fixed-launch-final-originals')
         if (self in _EXITS)!=terminal_present or (terminal_present and _EXITS[self] is not terminal_original):raise Held('fixed-launch-final-exit-registry')
-        if row['modules']['comic_retained_standalone_parent.py']._RUNTIMES is not original['runtime_table'] or row['modules']['comic_retained_standalone_parent.py']._TERMINALS is not original['terminal_table'] or row['modules']['comic_retained_standalone_parent.py']._RUNTIMES.get(runtime) is not original['runtime_registry']:raise Held('fixed-launch-final-runtime-registry')
+        if owning_parent(row)._RUNTIMES is not original['runtime_table'] or owning_parent(row)._TERMINALS is not original['terminal_table'] or owning_parent(row)._RUNTIMES.get(runtime) is not original['runtime_registry']:raise Held('fixed-launch-final-runtime-registry')
         if (runtime in parent._TERMINALS)!=terminal_present or (terminal_present and parent._TERMINALS[runtime] is not terminal_original):raise Held('fixed-launch-final-terminal-registry')
-        if _LAUNCHES.get(self) is not state or _LAUNCH_SEALS.get(self) is not seal or _PHASES.get(self) is not phase or tuple(state.get(key) for key in ('deadline','admission','sequence','previous','auth_challenge'))!=phase:raise Held('fixed-launch-final-registry')
+        if _LAUNCHES.get(self) is not state or _LAUNCH_SEALS.get(self) is not seal or _PHASES.get(self) is not phase or phase_original(state)!=phase:raise Held('fixed-launch-final-registry')
         return state
 
 def _image(value):
@@ -350,7 +434,7 @@ def _image(value):
 
 def _host_original_ref(reference, mounts):
     """Translate a CHILD pathname only; preserve its original bytes/hash/full9."""
-    if type(reference) is not dict or set(reference)!={'path','sha256','signature9'} or type(reference['path']) is not str or not hexadecimal(reference['sha256']) or type(reference['signature9']) not in (list,tuple) or len(reference['signature9'])!=9 or any(type(v) is not int for v in reference['signature9']):raise Held('fixed-child-control-reference')
+    control_reference(reference)
     reference_original=(reference['path'],reference['sha256'],tuple(reference['signature9']))
     mount_original=tuple((row.get('Type'),row.get('Source'),row.get('Destination'),row.get('RW'),row.get('Name')) for row in mounts)
     child=Path(reference['path'])
@@ -401,38 +485,196 @@ def _close_unpaused_original(runtime,parent):
 
 
 def _verify_runtime_receipt(document,runtime):
-    if document['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
-    before=runtime.baseline['native']
+    _,_,_,purpose,policy=installation_contract(document)
+    if document['profile']!=policy:raise Held('fixed-source-owned-logical-policy')
+    before=runtime.baseline['worker' if purpose=='retained-pack' else 'native']
     if _image(before['Image'])!=document['image']:raise Held('fixed-external-image-receipt')
     # Real ConfiguredRuntime.static is already canonical encoded bytes.
     profile=runtime.static(before)
     if type(profile) is not bytes or sha(profile)!=document['runtime_profile_sha256']:raise Held('fixed-external-profile-receipt')
 
 
+def native_control_original(installation,runtime,session):
+    """Invoke only the installed loopback observer as the Native file owner.
+
+    This transport returns a checked observation, never reader-resume authority.
+    The owning pack conversation must call it outside its Writer interval.
+    """
+    if type(installation) is not Installation:raise Held('fixed-root-installation-type')
+    row=installation.close();document=row['document']
+    if installation_contract(document)[3]!='retained-pack':raise Held('fixed-native-control-purpose')
+    parent=owning_parent(row)
+    if type(runtime) is not parent.ConfiguredRuntime or runtime not in parent._RUNTIMES:raise Held('fixed-native-control-original-runtime')
+    if runtime.ids!=document['ids']:raise Held('fixed-native-control-runtime-IDs')
+    parent.ConfiguredRuntime.close(runtime)
+    _verify_runtime_receipt(document,runtime)
+    code=read(PACKAGE/'comic_retained_native_control.py',row['frame'])
+    if sha(code)!=document['host_sources']['comic_retained_native_control.py']:raise Held('fixed-native-control-source')
+    reference=document['native_config_ref']
+    _,config_frame=parent.read_original(_host_original_ref(reference,runtime.baseline['native']['Mounts']),limit=2*1024**2)
+    # Freeze request bytes before any subprocess callback, and retain the owning
+    # installation deadline rather than minting a new observation lifetime.
+    packet=canonical(dict(version=1,kind='root-retained-native-control-v1',nonce=session['nonce'],
+        config_ref=reference,session=session,deadline=row['deadline']))
+    if len(packet)>4096:raise Held('fixed-native-control-input-bound')
+    parent.raw(config_frame);parent.ConfiguredRuntime.close(runtime);installation.close()
+    remaining=row['deadline']-time.monotonic()
+    if remaining<=0:raise Held('fixed-native-control-deadline')
+    try:
+        result=subprocess.run(['docker','exec','--interactive','--user','1000:1000',document['ids']['native'],
+            'python3','-I','-B','-c',code.decode()],input=packet,capture_output=True,
+            timeout=min(60,remaining),check=True)
+    except (subprocess.SubprocessError,OSError):raise Held('fixed-native-control-held') from None
+    if not 1<len(result.stdout)<=4097 or not result.stdout.endswith(b'\n') or result.stderr:raise Held('fixed-native-control-output')
+    answer=parse(result.stdout[:-1]);frozen=parse(packet)
+    if (set(answer)!={'version','kind','nonce','config_signature9','response_sha256','response'}
+            or type(answer['version']) is not int or answer['version']!=1
+            or answer['kind']!='root-retained-native-control-result-v1' or answer['nonce']!=frozen['nonce']
+            or answer['config_signature9']!=frozen['config_ref']['signature9']
+            or not hexadecimal(answer['response_sha256'])):raise Held('fixed-native-control-result')
+    # The exact installed child validates the API response. Reclose all owning
+    # originals after decoding and Docker observations, before returning bytes.
+    encoded=canonical(answer)
+    parent.ConfiguredRuntime.close(runtime);installation.close();parent.raw(config_frame)
+    raw(row['frame'])
+    return encoded
+
+
+def _pack_preflight(installation,runtime,boot,nonce):
+    """Bind actual configured scopes and existing receipts before any launch."""
+    row=installation.close();parent=owning_parent(row);worker=runtime.baseline['worker']
+    fields={'version','kind','nonce','challenge','parent_sha256','request','config_ref','data_root','source_map_ref','review_ref'}
+    if (set(boot)!=fields or type(boot['version']) is not int or boot['version']!=1
+            or boot['kind']!='pack-retained-bootstrap-v1'
+            or not all(hexadecimal(boot[k]) for k in ('nonce','challenge','parent_sha256'))):raise Held('fixed-pack-bootstrap')
+    request=boot['request']
+    required={'version','kind','ddl_id','pack_id','member_id','source_generation','source_sha256','target_sha256','owner','review_sha256'}
+    if (type(request) is not dict or set(request)!=required or type(request['version']) is not int or request['version']!=1
+            or request['kind']!='retained-ddl-existing-target-v1'
+            or not all(hexadecimal(request[k]) for k in ('pack_id','member_id','source_generation','source_sha256','target_sha256','review_sha256'))):raise Held('fixed-pack-request')
+    import re
+    owner=request['owner']
+    if (type(request['ddl_id']) is not str or re.fullmatch(r'[0-9]{1,20}(?:-[0-9]{1,8})?',request['ddl_id']) is None
+            or type(owner) is not dict or set(owner)!={'table','issueid','parentcomicid','releasecomicid'}
+            or owner['table'] not in ('issues','annuals')
+            or any(type(owner[k]) is not str or re.fullmatch('[1-9][0-9]{0,15}',owner[k]) is None for k in ('issueid','parentcomicid','releasecomicid'))
+            or owner['table']=='issues' and owner['parentcomicid']!=owner['releasecomicid']):raise Held('fixed-pack-owner')
+    references={key:_host_original_ref(boot[key],worker['Mounts']) for key in ('config_ref','source_map_ref','review_ref')}
+    # Capture every known reference/ancestor before configuration or receipt reads.
+    frame=(tuple((ref['path'],tuple(ref['signature9'])) for ref in references.values()),
+           tuple((str(p),five(os.lstat(p))) for ref in references.values() for p in Path(ref['path']).parents),())
+    parent.raw(frame)
+    blobs={key:parent.read_original(ref)[0] for key,ref in references.items()}
+    cfg=document(blobs['config_ref']);mapping=document(blobs['source_map_ref']);review=document(blobs['review_ref'])
+    if not 1<=len(mapping)<=512 or any(type(name) is not str or re.fullmatch(r'[a-z_][a-z0-9_]*\.py',name) is None or not hexadecimal(pin) for name,pin in mapping.items()):raise Held('fixed-pack-source-map')
+    review_fields={'version','kind','request','native_api_sha256','native_sources','native_image'}
+    native_names={'native_writers.py','publication_retained_api.py','publication_retained_delivery.py','publication_retained_finalize.py'}
+    if (set(review)!=review_fields or type(review['version']) is not int or review['version']!=1
+            or review['kind']!='retained-pack-reviewed-native-cohort' or canonical(review['request'])!=canonical(request)
+            or not hexadecimal(review['native_api_sha256']) or review['native_image']!=_image(runtime.baseline['native']['Image'])
+            or type(review['native_sources']) is not dict or set(review['native_sources'])!=native_names
+            or not all(hexadecimal(pin) for pin in review['native_sources'].values())
+            or review['native_sources']['native_writers.py']!=row['document']['daemon_sources']['/app/mylar3/mylar/native_writers.py']):raise Held('fixed-pack-native-review')
+    state_child=cfg.get('state','/state');state=Path(parent.mapped_host(worker['Mounts'],state_child))
+    data_child=boot['data_root'];data=Path(parent.mapped_host(runtime.baseline['native']['Mounts'],data_child))
+    native_root=Path(parent.mapped_host(runtime.baseline['native']['Mounts'],'/config'))
+    reader_root=Path(parent.mapped_host(runtime.baseline['reader']['Mounts'],'/config'))
+    if not data.is_relative_to(native_root):raise Held('fixed-pack-covered-native-data')
+    config_dir=cfg.get('mylar',{}).get('config_dir','/mylar')
+    if (Path(parent.mapped_host(worker['Mounts'],config_dir))!=data
+            or Path(parent.mapped_host(worker['Mounts'],cfg['writer_state']))!=data/'media-writer'):raise Held('fixed-pack-shared-native-binding')
+    scopes=[dict(role='native_config',root=str(native_root),databases=[str(data.relative_to(native_root)/name) for name in ('mylar.db','workflow.sqlite')]),
+            dict(role='worker_state',root=str(state),databases=[]),
+            dict(role='reader_config',root=str(reader_root),databases=['database.sqlite','tasks.sqlite'])]
+    receipt=state/'maintenance/packs'/request['pack_id']/'receipt.json'
+    receipt_frame=(((str(receipt),nine(os.lstat(receipt))),),tuple((str(p),five(os.lstat(p))) for p in receipt.parents),())
+    receipt_ref,receipt_bytes=parent._ref(receipt,limit=4*1024**2);local=document(receipt_bytes)
+    parent.raw(receipt_frame)
+    members=[m for m in local.get('members',[]) if type(m) is dict and m.get('id')==request['member_id']]
+    if (len(members)!=1 or local.get('id')!=request['pack_id'] or local.get('source_generation')!=request['source_generation']
+            or local.get('inventory_complete') is not True or local.get('cleaned_at') or local.get('cleanup_verified_at')):raise Held('fixed-pack-original-local-receipt')
+    member=members[0]
+    if member.get('phase') not in ('review','ready','submitted','confirmed') or member.get('ordinary_import_token') or member.get('retained_finalization'):raise Held('fixed-pack-original-member')
+    roots=[str(parent.mapped_host(worker['Mounts'],p)) for p in [*cfg['roots'],cfg['maintenance']['ddl_cache']]]
+    roots=sorted(set(roots));roots=[p for p in roots if not any(p!=other and Path(p).is_relative_to(Path(other)) for other in roots)]
+    if any(scope.is_relative_to(Path(root)) for root in roots for scope in (state,data,reader_root)):
+        raise Held('fixed-pack-media-root-covers-mutable-control-state')
+    token=sha((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode())
+    # Known transaction outputs must be absent before creating a child or
+    # stopping the reader. An earlier attempt is status-only, never replayed.
+    pending_paths=(data/'retained-delivery-v1'/token,
+        state/'maintenance/retained-pack-handoffs'/(token+'.intent.json'),
+        state/'maintenance/retained-pack-handoffs'/(token+'.done.json'),
+        receipt.parent/('.retained-'+token+'.new'))
+    if any(os.path.lexists(path) for path in pending_paths):raise Held('fixed-pack-existing-transaction-no-replay')
+    source=parent.mapped_host(worker['Mounts'],member['source']);target=parent.mapped_host(worker['Mounts'],member['destination'])
+    capture=parent.mapped_host(worker['Mounts'],local['capture_source'])
+    streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
+    if target not in streams:raise Held('fixed-pack-covered-current-target')
+    helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes])
+    parent9=nine(os.lstat(BACKUP_PARENT))
+    if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
+    free=os.statvfs(BACKUP_PARENT);required=2*bytes_needed+(bytes_needed+19)//20+1024**2
+    if free.f_bavail*free.f_frsize<required:raise Held('fixed-pack-backup-capacity')
+    parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
+    return dict(scopes=scopes,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
+                worker_state=str(state),state_child=state_child,native_data=str(data),native_config=str(native_root),
+                config_dir=config_dir,source=source,target=target,capture_source=capture,roots=roots,streams=sorted(set(streams)),
+                mapping=mapping,review=review,backup_parent9=parent9,required=required)
+
+
 def launch_original(installation, input_ref, input_child):
     """No caller command/key/profile/image. Root receipt owns every launch pin."""
+    resources=[]
+    try:return _launch_bound(installation,input_ref,input_child,resources)
+    except BaseException as primary:
+        cleanup=None
+        for value in reversed(resources):
+            try:value.release()
+            except BaseException as error:
+                if cleanup is None:cleanup=error
+        if cleanup is not None:raise primary from cleanup
+        raise
+
+
+def _launch_bound(installation,input_ref,input_child,resources):
     if type(installation) is not Installation:raise Held('fixed-root-installation-type')
-    row=installation.close();document=row['document'];parent=row['modules']['comic_retained_standalone_parent.py']
-    runtime=parent.ConfiguredRuntime.observe(document['ids'], installed_anchors=True)
-    _verify_runtime_receipt(document,runtime)
+    control_reference(input_ref)
+    input_ref=dict(path=input_ref['path'],sha256=input_ref['sha256'],signature9=list(tuple(input_ref['signature9'])))
+    row=installation.close();document=row['document'];parent=owning_parent(row)
+    pack=installation_contract(document)[3]=='retained-pack'
     bootstrap=read(PACKAGE/'BOOTSTRAP.py',row['frame'])
     if sha(bootstrap)!=document['bootstrap_sha256']:raise Held('fixed-original-bootstrap-pin')
     bootframe=(tuple((str(path),value) for path,value in row['frame'][0] if path==PACKAGE/'BOOTSTRAP.py'),tuple((str(path),value) for path,value in row['frame'][1]),())
     inputs,inputframe=parent.read_original(input_ref)
-    if parent.mapped_host(runtime.baseline['native']['Mounts'],input_child)!=input_ref['path']:raise Held('fixed-input-original-bind')
     boot=parent.decode(inputs)
     if boot['parent_sha256']!=document['parent_sha256']:raise Held('fixed-input-parent')
+    if not hexadecimal(boot.get('nonce')):raise Held('fixed-input-nonce')
+    runtime=parent.ConfiguredRuntime.observe(document['ids'], installed_anchors=True)
+    _verify_runtime_receipt(document,runtime)
+    selected=runtime.baseline['worker' if pack else 'native']
+    if parent.mapped_host(selected['Mounts'],input_child)!=input_ref['path']:raise Held('fixed-input-original-bind')
     # Installation is not a reader-stop/backup grant. Owning quiescence is real.
-    recovery=observe_recovery_original(installation,runtime,boot)
+    recovery=observe_recovery_original(installation,runtime,dict(config_ref=document['native_config_ref']) if pack else boot)
     if boot['data_root']!=recovery['data']:raise Held('fixed-original-daemon-data-root')
     nonce=os.urandom(32).hex()
-    preflight=_preflight_original_capacity(installation,runtime,boot,nonce)
-    runtime.quiesce()
-    native=runtime.baseline['native']
-    arguments=['create','--pull','never','--interactive','--read-only','--network','none','--user','1000:1000',
+    preflight=_pack_preflight(installation,runtime,boot,nonce) if pack else _preflight_original_capacity(installation,runtime,boot,nonce)
+    name=('rd-pack-' if pack else 'rd-standalone-')+boot['nonce']
+    if runtime.command(['ps','--all','--filter','name=^/'+name+'$','--format','{{.ID}}']):raise Held('fixed-original-helper-already-exists')
+    native_image=worker_image=None
+    if pack:
+        if recovery['publication'].get('state')!='ready':raise Held('fixed-pack-native-ready-required')
+        observer=row['modules']['comic_retained_pack_observation.py']
+        pins={str(Path('/app/mylar3/mylar')/key):pin for key,pin in preflight['review']['native_sources'].items()}
+        pins['/app/mylar3/mylar/api.py']=preflight['review']['native_api_sha256']
+        native_image=observer.ProcessImageObservation.capture(runtime,'native',pins);resources.append(native_image)
+    else:runtime.quiesce()
+    networks=tuple(selected['NetworkSettings']['Networks']) if pack else ('none',)
+    if not 1<=len(networks)<=4:raise Held('fixed-selected-network-bound')
+    arguments=['create','--name',name,'--pull','never','--interactive','--read-only','--network',networks[0],'--user','1000:1000',
                '--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','python3']
     volume_originals=[]
-    for mount in native['Mounts']:
+    for mount in selected['Mounts']:
         target=Path(mount['Destination']);protected=Path('/opt/mylar-publication-launch')
         if target.is_relative_to(protected) or protected.is_relative_to(target):raise Held('fixed-auth-installation-overlay')
         if any(c in mount['Source']+mount['Destination'] for c in ',\n\r'):raise Held('fixed-original-bind-profile')
@@ -444,9 +686,9 @@ def launch_original(installation, input_ref, input_child):
         arguments+=['--mount',spec+('' if mount['RW'] else ',readonly')]
     for name in ANCHOR_NAMES:
         arguments+=['--mount','type=bind,src='+str(CHILD_ANCHORS/name)+',dst=/opt/mylar-publication-launch/'+name+',readonly']
-    for value in native['Config']['Env']:arguments+=['--env',value]
+    for value in selected['Config']['Env']:arguments+=['--env',value]
     command=['-I','-B','-c',bootstrap.decode(),'--input',input_child,'--input-sha256',input_ref['sha256']]
-    arguments += [native['Image'],*command]
+    arguments += [selected['Image'],*command]
     runtime.close();installation.close();parent.raw(bootframe);parent.raw(inputframe)
     for mount,volume in volume_originals:
         if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-before-create')
@@ -458,7 +700,10 @@ def launch_original(installation, input_ref, input_child):
             if nine(os.lstat(path))!=tuple(original):raise Held('fixed-precreate-original-file')
     cid=runtime.command(arguments).decode().strip()
     if not hexadecimal(cid):raise Held('fixed-created-child-ID')
-    observed=runtime.inspect(cid);parent.selected_profile(native,observed,installed_anchors=True)
+    for network in networks[1:]:
+        installation.close();parent.raw(inputframe);runtime.close()
+        runtime.command(['network','connect',network,cid])
+    observed=runtime.inspect(cid);parent.selected_profile(selected,observed,installed_anchors=True)
     for mount,volume in volume_originals:
         if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-after-create')
     if observed['Config']['Entrypoint']!=['python3'] or observed['Config']['Cmd']!=command or observed['HostConfig'].get('Init'):raise Held('fixed-child-direct-PID1')
@@ -473,21 +718,32 @@ def launch_original(installation, input_ref, input_child):
     runtime.process=process
     # Original actual Popen FDs precede the next inspection/validation callback.
     pipes=tuple((stream.fileno(),nine(os.fstat(stream.fileno()))) for stream in (process.stdin,process.stdout,process.stderr))
-    running=runtime.inspect(cid);parent.selected_profile(native,running,installed_anchors=True)
+    left=row['deadline']-time.monotonic()
+    if left<=0 or not select.select([process.stdout.fileno()],[],[],left)[0]:raise Held('fixed-child-initial-frame-unavailable')
+    running=runtime.inspect(cid);parent.selected_profile(selected,running,installed_anchors=True)
     if running['State']['Running'] is not True or running['State']['Pid']<=0 or runtime.static(running)!=runtime.selected_static:raise Held('fixed-original-child-start')
     runtime.selected_started=running['State']['StartedAt'];runtime.selected_pid=running['State']['Pid']
+    if pack:
+        inventory=parse(read(CHILD_ANCHORS/'inventory-v1.json',row['frame']))
+        pins=dict(inventory['sources']);pins.update({str(Path('/app')/name):pin for name,pin in preflight['mapping'].items()})
+        pins.update({'/opt/mylar-publication-launch/'+name:document[key] for name,key in zip(ANCHOR_NAMES,('anchor_sha256','inventory_sha256','key_sha256'))})
+        worker_image=observer.ProcessImageObservation.capture(runtime,'worker',pins);resources.append(worker_image)
     obj=object.__new__(OriginalLaunch)
     _LAUNCHES[obj]=dict(installation=installation,runtime=runtime,process=process,cid=cid,started=runtime.selected_started,
                        selected_pid=runtime.selected_pid,start=process_start(runtime.selected_pid),attach_pid=process.pid,
                        pipes=pipes,stdin=process.stdin,stdout=process.stdout,owner=(os.getpid(),threading.get_ident()),
                        deadline=time.monotonic()+PREAUTH_SECONDS,total_deadline=row['deadline'],bootframe=bootframe,inputframe=inputframe,
                        recovery=recovery,preflight=preflight,boot=boot,input_sha256=input_ref['sha256'],input_bytes=inputs,bootstrap=bootstrap,
-                       nonce=nonce,session=os.urandom(32).hex(),admission=None,sequence=0,previous=b'',auth_challenge=None)
+                       nonce=nonce,session=os.urandom(32).hex(),admission=None,sequence=0,previous=b'',auth_challenge=None,
+                       purpose=installation_contract(document)[3],writer_interval=False)
     state=_LAUNCHES[obj]
     object_keys=('installation','runtime','process','stdin','stdout')
-    value_keys=('cid','started','selected_pid','start','attach_pid','pipes','owner','total_deadline','bootframe','inputframe','input_sha256','input_bytes','bootstrap','nonce','session')
+    if pack:
+        state.update(native_image=native_image,worker_image=worker_image)
+        object_keys+=('native_image','worker_image')
+    value_keys=('cid','started','selected_pid','start','attach_pid','pipes','owner','total_deadline','bootframe','inputframe','input_sha256','input_bytes','bootstrap','nonce','session','purpose')
     _LAUNCH_SEALS[obj]=(state,dict(objects=tuple((key,state[key]) for key in object_keys),values=tuple((key,state[key]) for key in value_keys),boot=json.loads(inputs),preflight=copy.deepcopy(preflight),recovery=copy.deepcopy(recovery),runtime_registry=parent._RUNTIMES[runtime],runtime_table=parent._RUNTIMES,terminal_table=parent._TERMINALS))
-    _PHASES[obj]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[obj]=phase_original(state)
     parent.raw(bootframe);parent.raw(inputframe);obj.close();return obj
 
 
@@ -507,16 +763,16 @@ def _packet(launch):
 def _signed(launch, assertion):
     state=launch.close();row=state['installation'].close();crypto=row['modules']['private_crypto.py']
     if type(assertion) is not dict:raise Held('fixed-signer-owned-assertion')
-    domain=assertion.get('domain')
-    if domain=='standalone-fixed-launch-admission-v1':
-        if set(assertion)!={'domain','measured','challenge','child_pid','child_start','challenge_frame','session','broker_nonce','purpose','lifetime_ms','host_observation'} or state['admission'] is not None or assertion['session']!=state['session'] or assertion['broker_nonce']!=state['nonce'] or assertion['child_pid']!=1 or assertion['child_start']!=state['start'] or assertion['purpose']!='retained-standalone' or type(assertion['lifetime_ms']) is not int or assertion['lifetime_ms']!=5000 or not hexadecimal(assertion['challenge']) or not hexadecimal(assertion['challenge_frame']):raise Held('fixed-signer-owned-admission')
+    protocol=launch_protocol(row['document']);domain=assertion.get('domain')
+    if domain==protocol[2]:
+        if set(assertion)!={'domain','measured','challenge','child_pid','child_start','challenge_frame','session','broker_nonce','purpose','lifetime_ms','host_observation'} or state['admission'] is not None or assertion['session']!=state['session'] or assertion['broker_nonce']!=state['nonce'] or assertion['child_pid']!=1 or assertion['child_start']!=state['start'] or assertion['purpose']!=protocol[0] or type(assertion['lifetime_ms']) is not int or assertion['lifetime_ms']!=5000 or not hexadecimal(assertion['challenge']) or not hexadecimal(assertion['challenge_frame']):raise Held('fixed-signer-owned-admission')
         expected=dict(installation=row['document']['anchor_sha256'],key=row['document']['key_sha256'],broker_sources=row['document']['broker_sources'],child_sources=row['document']['inventory_sha256'],bootstrap=row['document']['bootstrap_sha256'],input=state['input_sha256'],review=state['boot']['review_ref']['sha256'],deployment=row['document']['deployment'],profile=row['document']['profile'])
         if assertion['measured']!=expected or assertion['host_observation']!=dict(container=state['cid'],start=sha(state['started'].encode()),host_pid=os.getpid(),image=row['document']['image']):raise Held('fixed-signer-original-observations')
-    elif domain=='standalone-fixed-stage-v3':
+    elif domain==protocol[3]:
         sequence=state['sequence']+1
         if set(assertion)!={'domain','session','admission','challenge','sequence','kind','previous','payload','payload_digest'} or sequence not in (2,4,6) or type(assertion['sequence']) is not int or assertion['sequence']!=sequence or assertion['kind']!={2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence] or assertion['session']!=state['session'] or assertion['admission']!=state['admission'] or assertion['challenge']!=state['auth_challenge'] or assertion['previous']!=state['previous'].hex():raise Held('fixed-signer-owned-stage')
         wire=assertion['payload']
-        if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!='standalone-retained-repeat-v3' or wire['kind']!=assertion['kind'] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or assertion['payload_digest']!=sha(canonical(wire)):raise Held('fixed-signer-original-stage-wire')
+        if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!=protocol[4] or wire['kind']!=assertion['kind'] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or assertion['payload_digest']!=sha(canonical(wire)):raise Held('fixed-signer-original-stage-wire')
     else:raise Held('fixed-signer-finite-domain')
     data=canonical(assertion);key_original=dict(row['frame'][0])[KEY]
     fd=os.open(KEY,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
@@ -543,28 +799,33 @@ def authenticate_original(launch):
     state=launch.close()
     if state['admission'] is not None:raise Held('fixed-preauth-once')
     challenge_raw=_packet(launch);challenge=parse(challenge_raw);row=state['installation'].close();doc=row['document']
+    purpose,challenge_domain,admission_domain,_,_=launch_protocol(doc)
+    protocol=launch_protocol(doc)
     expected=dict(installation=doc['anchor_sha256'],key=doc['key_sha256'],broker_sources=doc['broker_sources'],
                   child_sources=doc['inventory_sha256'],bootstrap=doc['bootstrap_sha256'],input=state['input_sha256'],
                   review=state['boot']['review_ref']['sha256'],deployment=doc['deployment'],profile=doc['profile'])
-    if set(challenge)!={'domain','challenge','child_pid','child_start','measured'} or challenge['domain']!='standalone-launch-challenge-v3' or not hexadecimal(challenge['challenge']) or challenge['child_pid']!=1 or challenge['child_start']!=state['start'] or challenge['measured']!=expected:raise Held('fixed-original-child-challenge')
-    assertion=dict(domain='standalone-fixed-launch-admission-v1',measured=expected,challenge=challenge['challenge'],
+    if set(challenge)!={'domain','challenge','child_pid','child_start','measured'} or challenge['domain']!=protocol[1] or not hexadecimal(challenge['challenge']) or challenge['child_pid']!=1 or challenge['child_start']!=state['start'] or challenge['measured']!=expected:raise Held('fixed-original-child-challenge')
+    assertion=dict(domain=protocol[2],measured=expected,challenge=challenge['challenge'],
                    child_pid=1,child_start=state['start'],challenge_frame=sha(challenge_raw),session=state['session'],
-                   broker_nonce=state['nonce'],purpose='retained-standalone',lifetime_ms=5000,
+                   broker_nonce=state['nonce'],purpose=protocol[0],lifetime_ms=5000,
                    host_observation=dict(container=state['cid'],start=sha(state['started'].encode()),host_pid=os.getpid(),image=doc['image']))
     packet,raw_signature,signature=_signed(launch,assertion)
     _send_original(launch,packet)
     state['admission']=sha(raw_signature+signature);state['previous']=hashlib.sha256(challenge_raw+raw_signature+signature).digest()
     state['deadline']=min(state['total_deadline'],_PHASES[launch][0]-PREAUTH_SECONDS+1800);state['auth_challenge']=challenge['challenge']
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[launch]=phase_original(state)
     launch.close();return state['admission']
 
 
 def _send_original(launch,packet):
-    state=launch.close();view=memoryview(packet+b'\n')
+    state=launch.close();view=memoryview(packet)
     while view:
+        launch.close()
         count=os.write(state['stdin'].fileno(),view)
         if count<=0:raise Held('fixed-original-short-write')
         view=view[count:]
+    launch.close()
+    if os.write(state['stdin'].fileno(),b'\n')!=1:raise Held('fixed-original-delimiter-write')
     launch.close()
 
 
@@ -577,14 +838,15 @@ def _recovery_publication(value):
 
 
 def observe_recovery_original(installation,runtime,boot):
-    row=installation.close();parent=row['modules']['comic_retained_standalone_parent.py']
+    row=installation.close();parent=owning_parent(row)
     if type(runtime) is not parent.ConfiguredRuntime or runtime.quiescent:raise Held('fixed-recovery-before-pause')
     scope=row['modules']['publication_native_configured_scope.py']
     probe=read(PACKAGE/'comic_native_process_probe.py',row['frame'])
     scope_bytes=read(PACKAGE/'publication_native_configured_scope.py',row['frame'])
     native_mounts=runtime.baseline['native']['Mounts']
     config_host=_host_original_ref(boot['config_ref'],native_mounts)
-    config,config_frame=parent.read_original(config_host)
+    config,config_frame=(parent.read_original(config_host,limit=2*1024**2)
+                         if installation_contract(row['document'])[3]=='retained-pack' else parent.read_original(config_host))
     before=runtime.inspect(runtime.ids['native']);static=runtime.static(before)
     if static!=runtime.static(runtime.baseline['native']) or before['State']['Running'] is not True or before['State']['Paused'] is not False:raise Held('fixed-recovery-original-native')
     nonce=os.urandom(32).hex();request=dict(version=1,nonce=nonce,source_sha256=sha(probe),seconds=30,module_pins=dict(row['document']['daemon_sources']),scope_source=scope_bytes.decode())
@@ -745,7 +1007,7 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
     import configparser
     import sqlite3
     from contextlib import closing
-    row=installation.close();parent=row['modules']['comic_retained_standalone_parent.py']
+    row=installation.close();parent=owning_parent(row)
     helper=row['modules']['comic_retained_standalone_backup.py']
     native_mounts=runtime.baseline['native']['Mounts'];reader_mounts=runtime.baseline['reader']['Mounts']
     data=parent.mapped_host(native_mounts,boot['data_root'])
@@ -810,7 +1072,8 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
                     required=required,free=free,output=str(BACKUP_PARENT/nonce))
         _close_unpaused_original(runtime,parent);installation.close();parent.raw(config_frame);helper.raw(original)
         if nine(os.fstat(parent_fd))!=parent_original or nine(os.lstat(BACKUP_PARENT))!=parent_original or tuple(sorted(os.listdir(BACKUP_PARENT)))!=names:raise Held('fixed-capacity-final-parent')
-        if os.fstatvfs(parent_fd)!=space:raise Held('fixed-capacity-free-space-changed')
+        current_space=os.fstatvfs(parent_fd)
+        if current_space.f_bavail*current_space.f_frsize<required:raise Held('fixed-capacity-insufficient-free-space')
         for path,stamp in db_nodes:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=stamp:raise Held('fixed-capacity-final-DB-node')
@@ -843,31 +1106,38 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
 
 
 def _receive_stage(launch, sequence, kind):
-    state=launch.close();data=_packet(launch);wire=parse(data)
-    if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!='standalone-retained-repeat-v3' or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['kind']!=kind or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or state['sequence']!=sequence-1:raise Held('fixed-original-child-stage')
+    state=launch.close();protocol=launch_protocol(state['installation'].close()['document']);data=_packet(launch);wire=parse(data)
+    if type(wire) is not dict or set(wire)!={'version','protocol','kind','nonce','sequence','challenge','payload'} or type(wire['version']) is not int or wire['version']!=3 or wire['protocol']!=protocol[4] or type(wire['sequence']) is not int or wire['sequence']!=sequence or wire['kind']!=kind or wire['nonce']!=state['boot']['nonce'] or wire['challenge']!=state['boot']['challenge'] or state['sequence']!=sequence-1:raise Held('fixed-original-child-stage')
     normalized=canonical(dict(sequence=sequence,kind='final-ACK' if sequence==5 else kind,payload=wire))
     launch.close()
     state['previous']=hashlib.sha256(state['previous']+normalized).digest();state['sequence']=sequence
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    _PHASES[launch]=phase_original(state)
     launch.close();return data,wire
 
 
 def _send_stage(launch, sequence, kind, payload, *, exit_permission=False):
-    state=launch.close()
+    state=launch.close();protocol=launch_protocol(state['installation'].close()['document'])
+    purpose=protocol[0]
     if state['sequence']!=sequence-1 or sequence not in (2,4,6) or kind!={2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence] or exit_permission is not (sequence==6):raise Held('fixed-own-host-stage')
-    regular=dict(version=3,protocol='standalone-retained-repeat-v3',kind=kind,nonce=state['boot']['nonce'],sequence=sequence,challenge=state['boot']['challenge'],payload=payload)
-    assertion=dict(domain='standalone-fixed-stage-v3',session=state['session'],admission=state['admission'],challenge=state['auth_challenge'],sequence=sequence,kind=kind,previous=state['previous'].hex(),payload=regular,payload_digest=sha(canonical(regular)))
+    regular=dict(version=3,protocol=protocol[4],kind=kind,nonce=state['boot']['nonce'],sequence=sequence,challenge=state['boot']['challenge'],payload=payload)
+    assertion=dict(domain=protocol[3],session=state['session'],admission=state['admission'],challenge=state['auth_challenge'],sequence=sequence,kind=kind,previous=state['previous'].hex(),payload=regular,payload_digest=sha(canonical(regular)))
     packet,data,signature=_signed(launch,assertion)
     # Every encoding/signature callback completes while the original child is held.
     launch.close()
+    if purpose=='retained-pack' and sequence==2:
+        if state['writer_interval'] is not False:raise Held('fixed-pack-Writer-interval-once')
+        state['writer_interval']=True;_PHASES[launch]=phase_original(state)
     if exit_permission:
-        parent=state['installation'].close()['modules']['comic_retained_standalone_parent.py'];runtime=state['runtime']
+        parent=owning_parent(state['installation'].close());runtime=state['runtime']
         if launch in _EXITS or runtime in parent._TERMINALS:raise Held('fixed-original-terminal-absence')
-        view=memoryview(packet+b'\n')
+        view=memoryview(packet)
         while view:
+            launch.close()
             count=os.write(state['stdin'].fileno(),view)
             if count<=0:raise Held('fixed-original-exit-short-write')
             view=view[count:]
+        launch.close()
+        if os.write(state['stdin'].fileno(),b'\n')!=1:raise Held('fixed-original-exit-delimiter-write')
         # Only the exact original child may exit after the complete signed sixth frame.
         code=state['process'].wait(timeout=min(180,max(0.001,state['deadline']-time.monotonic())))
         if code!=0 or launch in _EXITS or runtime in parent._TERMINALS:raise Held('fixed-original-natural-exit')
@@ -875,15 +1145,280 @@ def _send_stage(launch, sequence, kind, payload, *, exit_permission=False):
         parent._TERMINALS[runtime]=terminal;_EXITS[launch]=terminal
     else:_send_original(launch,packet)
     state['previous']=hashlib.sha256(state['previous']+data+signature).digest();state['sequence']=sequence
-    if sequence==2:state['deadline']=min(state['total_deadline'],time.monotonic()+180)
-    _PHASES[launch]=tuple(state[key] for key in ('deadline','admission','sequence','previous','auth_challenge'))
+    if sequence==2 and purpose=='retained-standalone':state['deadline']=min(state['total_deadline'],time.monotonic()+180)
+    _PHASES[launch]=phase_original(state)
     launch.close()
+
+
+def _pack_current_scopes(backup):
+    """Measure actual current trees through the original verified primitive."""
+    module=backup.__class__.__module__
+    helper=sys.modules[module]
+    c,seal=helper._original(backup);original=json.loads(seal[6]);measured={}
+    for scope in original['source_scopes']:
+        rows,_=helper._primitive_call(c['module'],seal[8],'inventory',Path(scope['path']),'tree')
+        measured[scope['name']]=rows
+    backup.close_copies();helper._original(backup)
+    return original,measured
+
+
+def _pack_scope_successor(before,after,*,changed,new_files,new_directories):
+    """Complete census and preservation, with explicit transaction-owned deltas."""
+    old={row['path']:row for row in before};current={row['path']:row for row in after}
+    if len(old)!=len(before) or len(current)!=len(after) or not set(old)<=set(current):
+        raise Held('fixed-pack-preserved-scope-census')
+    additions=set(current)-set(old)
+    if additions!=set(new_files)|set(new_directories):raise Held('fixed-pack-only-declared-additions')
+    touched=set()
+    for path in (*new_files,*new_directories,*changed):
+        touched.update(str(p) for p in Path(path).parents)
+    for path,previous in old.items():
+        row=current[path]
+        if path in changed:
+            if row['kind']!='file' or previous['kind']!='file' or row['stamp'][8]!=1:
+                raise Held('fixed-pack-original-transaction-file')
+            # Atomic receipt replacement is explicit; SQLite keeps its inode.
+            if changed[path]!='replace' and row['stamp'][:2]!=previous['stamp'][:2]:
+                raise Held('fixed-pack-original-SQL-inode')
+            if any(row['attributes'][key]!=previous['attributes'][key] for key in ('mode','uid','gid','xattrs')):
+                raise Held('fixed-pack-transaction-file-preservation')
+        elif previous['kind']=='directory' and path in touched:
+            if (row['kind']!='directory' or row['stamp'][:2]!=previous['stamp'][:2]
+                    or any(row['attributes'][key]!=previous['attributes'][key] for key in ('mode','uid','gid','xattrs'))):
+                raise Held('fixed-pack-original-journal-parent')
+        elif row!=previous:raise Held('fixed-pack-unrelated-state-changed')
+    for path in additions:
+        row=current[path];directory=path in new_directories
+        if (row['kind']!=('directory' if directory else 'file')
+                or row['attributes']['mode']!=(0o700 if directory else 0o600)
+                or (row['attributes']['uid'],row['attributes']['gid'])!=(1000,1000)
+                or not directory and row['stamp'][8]!=1):raise Held('fixed-pack-private-transaction-output')
+
+
+def _pack_actual_facts(original,measured,media):
+    result={key:{} for key in ('files','nodes','names','hashes','attrs')}
+    for key in result:result[key].update(media[key])
+    for scope in original['source_scopes']:
+        root=Path(scope['path']);rows=measured[scope['name']]
+        for row in rows:
+            path=str(root if row['path']=='.' else root/row['path']);stamp=row['stamp']
+            if path in result['files'] and result['files'][path]!=stamp:raise Held('fixed-pack-overlapping-observation')
+            result['files'][path]=stamp
+            if row['kind']=='directory':
+                result['nodes'][path]=[stamp[i] for i in (0,1,5,6,7)];result['names'][path]=[]
+            if row['kind']=='file':
+                result['hashes'][path]=row['sha256'];result['attrs'][path]=row['attributes']['xattrs']
+        for row in rows:
+            if row['path']!='.':result['names'][str((root/row['path']).parent)].append(Path(row['path']).name)
+    for path in result['names']:result['names'][path]=sorted(result['names'][path])
+    # These are original Root-readable scope ancestors, never an NFS walk.
+    for scope in original['source_scopes']:
+        for path in Path(scope['path']).parents:
+            result['nodes'].setdefault(str(path),list(five(os.lstat(path))))
+    return result
+
+
+def _pack_join_vectors(frame,*,mounts,facts,image):
+    """Join every detached Worker/Native fact to a current independent owner."""
+    image_files=image.data();image_nodes=image.nodes()
+    def mapped(path):
+        matches=[m for m in mounts if Path(path).is_relative_to(Path(m['Destination']))]
+        if not matches:return None
+        mount=max(matches,key=lambda m:len(Path(m['Destination']).parts))
+        return str(Path(mount['Source'])/Path(path).relative_to(Path(mount['Destination'])))
+    def observed(group,path):
+        if group in ('files','hashes','attrs') and path in image_files:
+            return image_files[path][{'files':'signature9','hashes':'sha256','attrs':'attrs'}[group]]
+        if group=='nodes' and path in image_nodes:return image_nodes[path]
+        host=mapped(path)
+        if host is not None:
+            if host in facts[group]:return facts[group][host]
+            raise Held('fixed-pack-independent-bound-fact-missing')
+        if group=='nodes' and path in image_nodes:return image_nodes[path]
+        if path in image_files:
+            return image_files[path][{'files':'signature9','hashes':'sha256','attrs':'attrs'}[group]]
+        raise Held('fixed-pack-independent-image-fact-missing')
+    for group in ('files','nodes','names','hashes','attrs'):
+        for path,wanted in frame.get(group,{}).items():
+            if canonical(observed(group,path))!=canonical(wanted):raise Held('fixed-pack-independent-'+group)
+    for path in frame.get('absent',[]):
+        host=mapped(path)
+        if host is None:raise Held('fixed-pack-unproven-image-absence')
+        parent=str(Path(host).parent)
+        if host in facts['files'] or parent not in facts['names'] or Path(host).name in facts['names'][parent]:
+            raise Held('fixed-pack-independent-absence')
+    for path,wanted in frame.get('claims',{}).items():
+        if wanted is None:
+            _pack_join_vectors(dict(absent=[path]),mounts=mounts,facts=facts,image=image)
+        else:
+            stamp=observed('nodes' if wanted[5] is None else 'files',path)
+            actual=list(stamp)+[None] if wanted[5] is None else [stamp[i] for i in (0,1,5,6,7,8)]
+            if canonical(actual)!=canonical(wanted):raise Held('fixed-pack-independent-claim')
+    image.close()
+
+
+def _pack_native_journal(parent,files,nodes,mounts,folder,root):
+    # Producer facts remain in the Native namespace. Convert each leaf through
+    # the original inspected mounts before comparing it with host-owned scopes.
+    result=set()
+    for child in files:
+        if child in nodes:continue
+        if not any(Path(child).is_relative_to(Path(m['Destination'])) for m in mounts):continue
+        host=Path(parent.mapped_host(mounts,child))
+        if host.is_relative_to(folder):result.add(str(host.relative_to(root)))
+    return result
+
+
+def _pack_terminal(launch,backup,media,header,artifact,reference):
+    """Owning current-state proof, separate from the child's factual reply."""
+    state=launch.close();parent=owning_parent(state['installation'].close());plan=state['preflight'];request=state['boot']['request']
+    body,frame=parent.decode_terminal_artifact(artifact,reference,header,request)
+    reply=document(body['reply_text'].encode());transition=reply['data']['transition'];token=reply['data']['token']
+    original,measured=_pack_current_scopes(backup)
+    data=Path(plan['native_data']);native_root=Path(plan['native_config'])
+    workflow_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'workflow.sqlite',state['deadline'])
+    catalog_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'mylar.db',state['deadline'])
+    workflow=parent.retained_sql_model(data/'workflow.sqlite',state['deadline'])
+    catalog=parent.retained_sql_model(data/'mylar.db',state['deadline'])
+    database=lambda name:original['databases']['native_config:'+str(data.relative_to(native_root)/name)]
+    parent.verify_retained_sql(workflow_before,catalog_before,backup_workflow=database('workflow.sqlite'),
+        backup_catalog=database('mylar.db'),request=request,reply=reply,current=workflow,current_catalog=catalog)
+    if canonical(body['catalog_before'])!=canonical(catalog_before):raise Held('fixed-pack-original-catalog-observation')
+    media.close();facts=_pack_actual_facts(original,measured,media.data())
+    worker_mounts=state['runtime'].baseline['worker']['Mounts'];native_mounts=state['runtime'].baseline['native']['Mounts']
+    _pack_join_vectors(frame,mounts=worker_mounts,facts=facts,image=state['worker_image'])
+    vectors=transition['committed_vectors']
+    native_frame=dict(files=dict(vectors['files9']),nodes=dict(vectors['nodes5']),absent=vectors['absent'],
+                      names=dict(vectors['namespaces']),claims=dict(vectors['claims']),hashes=transition['committed_hashes'])
+    _pack_join_vectors(native_frame,mounts=native_mounts,facts=facts,image=state['native_image'])
+    for ref in transition['native_sources']:
+        actual=state['native_image'].data().get(ref['path'])
+        if actual is None or actual['signature9']!=ref['signature9'] or actual['sha256']!=ref['sha256']:
+            raise Held('fixed-pack-original-native-producer-source')
+    journal=data/'retained-delivery-v1';folder=journal/token
+    native_files=_pack_native_journal(parent,native_frame['files'],native_frame['nodes'],native_mounts,folder,native_root)
+    required={str((folder/name).relative_to(native_root)) for name in ('intent.json','accepted.json','issued.json',
+        'target-preserved'+Path(plan['target']).suffix.lower(),'target-restored'+Path(plan['target']).suffix.lower())}
+    optional={str((folder/('source'+Path(plan['source']).suffix.lower())).relative_to(native_root))}
+    if not required<=native_files or not native_files<=required|optional:raise Held('fixed-pack-finite-native-journal')
+    native_old=next(s['records'] for s in original['source_scopes'] if s['name']=='native_config')
+    dirs={str(p.relative_to(native_root)) for p in (journal,folder)}-{row['path'] for row in native_old}
+    changed={str((data/name).relative_to(native_root)):'sqlite' for name in ('workflow.sqlite','mylar.db')}
+    _pack_scope_successor(native_old,measured['native_config'],changed=changed,new_files=native_files,new_directories=dirs)
+    state_root=Path(plan['worker_state']);receipt=Path(plan['receipt_ref']['path'])
+    expected=document(plan['receipt_bytes'].encode());members=[m for m in expected['members'] if m.get('id')==request['member_id']]
+    # Map the actual Native target through its inspected bind, then back through
+    # the permanent Worker's existing mounts. No guessed path-prefix alias.
+    target=parent.mapped_host(native_mounts,json.loads(transition['record_bytes'])['target'])
+    worker_targets=[str(Path(m['Destination'])/Path(target).relative_to(Path(m['Source']))) for m in worker_mounts if Path(target).is_relative_to(Path(m['Source']))]
+    if len(worker_targets)!=1 or target!=plan['target']:raise Held('fixed-pack-original-target-alias')
+    members[0].update(phase='retained-accepted',retained_finalization=token,destination=worker_targets[0],destination_sha256=request['target_sha256']);expected['phase']='review'
+    current_ref,current_bytes=parent._ref(receipt,limit=4*1024**2)
+    if canonical(document(current_bytes))!=canonical(expected):raise Held('fixed-pack-only-selected-local-member')
+    handoff=state_root/'maintenance/retained-pack-handoffs';intent=handoff/(token+'.intent.json');done=handoff/(token+'.done.json')
+    expected_intent=dict(version=1,kind='retained-pack-dispatch-intent',request=request,
+        receipt_sha256=sha(plan['receipt_bytes'].encode()),historical_import_ack=False,cleanup_grant=False)
+    _,intent_bytes=parent._ref(intent)
+    if canonical(document(intent_bytes))!=canonical(expected_intent):raise Held('fixed-pack-original-local-intent')
+    worker_old=next(s['records'] for s in original['source_scopes'] if s['name']=='worker_state')
+    _pack_scope_successor(worker_old,measured['worker_state'],changed={str(receipt.relative_to(state_root)):'replace'},
+        new_files={str(p.relative_to(state_root)) for p in (intent,done)},new_directories=set())
+    reader_old=next(s['records'] for s in original['source_scopes'] if s['name']=='reader_config')
+    _pack_scope_successor(reader_old,measured['reader_config'],changed={},new_files=set(),new_directories=set())
+    # Final complete source/name closure follows SQL, decoding and semantic work.
+    fresh_original,fresh=_pack_current_scopes(backup)
+    if canonical(fresh_original)!=canonical(original) or canonical(fresh)!=canonical(measured):raise Held('fixed-pack-terminal-physical-drift')
+    media.close();state['native_image'].close();state['worker_image'].close();launch.close()
+    return dict(workflow_sha256=sha(canonical(workflow)),catalog_sha256=sha(canonical(catalog)),record_sha256=reply['data']['record_sha256'],token=token)
+
+
+def native_session_request(boot,action,proof=None):
+    """One wire shape shared by Root open and terminal close."""
+    return dict(version=1,kind='retained-native-session-v1',action=action,
+                nonce=boot['nonce'],request=boot['request'],proof=proof)
+
+
+def _run_pack_original(launch):
+    state=launch.close();parent=owning_parent(state['installation'].close());plan=state['preflight'];boot=state['boot']
+    if state['sequence']!=0 or state['admission'] is not None:raise Held('fixed-original-run-once')
+    authenticate_original(launch)
+    initial_raw,initial=_receive_stage(launch,1,'initialized')
+    request=boot['request'];session=native_session_request(boot,'open')
+    opened=document(native_control_original(state['installation'],state['runtime'],session))
+    if opened['response']['data']['pid']!=state['recovery']['process']['pid']:raise Held('fixed-pack-native-original-session-PID')
+    observer=state['installation'].close()['modules']['comic_retained_pack_observation.py']
+    first=observer.OwnerObservation.capture(plan['roots'],plan['streams'],deadline=state['total_deadline']);metadata=first.data()
+    capture=Path(plan['capture_source']);streams=set(plan['streams'])
+    streams.update(p for p,s in metadata['files'].items() if Path(p).is_relative_to(capture) and s[5]&0o170000==0o100000)
+    media=observer.OwnerObservation.capture(plan['roots'],sorted(streams),deadline=state['total_deadline'])
+    if any(canonical(media.data()[key])!=canonical(metadata[key]) for key in ('files','nodes','names')):raise Held('fixed-pack-original-media-census')
+    first.close();media.close();launch.close()
+    state['runtime'].quiesce()
+    helper=state['installation'].close()['modules']['comic_retained_pack_backup.py']
+    primitive=PACKAGE/'comic_reader_backup_primitives.py'
+    try:
+        backup=helper.copy_and_verify(plan['scopes'],Path(plan['output']),primitive,state['installation'].close()['document']['host_sources'][primitive.name])
+        summary=backup.close();media.close()
+    finally:
+        # Only this already-owned pause may be released. Reader resumption still
+        # requires the complete terminal proof, including after backup failure.
+        state['runtime'].open_native()
+    launch.close()
+    _send_stage(launch,2,'backup-ready',dict(kind='verified-retained-backup-v1',backup_digest=summary['digest'],
+        initialized_sha256=sha(canonical(initial['payload'])),pack_id=request['pack_id'],member_id=request['member_id']))
+    observed_raw,observed=_receive_stage(launch,3,'observed');header=observed['payload']
+    child_ref=header['artifact_ref'];host_ref=_host_original_ref(child_ref,state['runtime'].baseline['worker']['Mounts'])
+    artifact,artifact_frame=parent.read_original(host_ref,limit=64*1024**2)
+    proof=_pack_terminal(launch,backup,media,header,artifact,child_ref)
+    released=dict(observed_sha256=sha(observed_raw),frame_sha256=header['frame_sha256'],artifact_sha256=child_ref['sha256'],token=header['token'])
+    parent.raw(artifact_frame);launch.close();_send_stage(launch,4,'observed-release',released)
+    ack_raw,ack=_receive_stage(launch,5,'observed-final-ACK')
+    if canonical(ack['payload'])!=canonical(dict(released,writer_released=True)):raise Held('fixed-pack-original-Writer-release-ACK')
+    state['writer_interval']=False;_PHASES[launch]=phase_original(state);launch.close()
+    if _pack_terminal(launch,backup,media,header,artifact,child_ref)!=proof:raise Held('fixed-pack-terminal-after-release')
+    parent.raw(artifact_frame);_send_stage(launch,6,'observed-exit',ack['payload'],exit_permission=True)
+    if _pack_terminal(launch,backup,media,header,artifact,child_ref)!=proof:raise Held('fixed-pack-terminal-before-resume')
+    resumed=state['runtime'].resume_reader()
+    media.close();backup.close_copies();launch.close()
+    session=native_session_request(boot,'close',{key:proof[key] for key in ('workflow_sha256','catalog_sha256','record_sha256')})
+    session['proof'].update(root_release_nonce=os.urandom(32).hex(),worker_ack_sha256=sha(ack_raw))
+    closed=document(native_control_original(state['installation'],state['runtime'],session))
+    # Native close is the ordinary-writer release commit. Its successful reply
+    # closes the reserved SQL proof; later background work is not compared to
+    # the pre-release media baseline. Backup/source/process custody still closes.
+    backup.close_copies();launch.close()
+    result=dict(version=1,kind='root-retained-pack-complete-v1',nonce=boot['nonce'],request=request,
+        backup_sha256=summary['digest'],terminal=proof,worker_ack_sha256=sha(ack_raw),reader=resumed,
+        native_close_sha256=sha(canonical(closed)),mutation_authority=False,ordinary_import_grant=False,
+        cleanup_grant=False,reader_index_acceptance=False,automatic_replay=False)
+    output=Path(plan['output']).with_name(Path(plan['output']).name+'.completion.json')
+    parent._exclusive(output,canonical(result),0,0)
+    backup.close_copies();launch.close()
+    return result
 
 
 def run_original(launch):
     """Fixed six-frame owner; no caller signer, ready payload, job, or grant callback."""
     if type(launch) is not OriginalLaunch:raise Held('fixed-original-run-type')
-    state=launch.close();parent=state['installation'].close()['modules']['comic_retained_standalone_parent.py']
+    state=launch.close();parent=owning_parent(state['installation'].close())
+    if installation_contract(state['installation'].close()['document'])[3]=='retained-pack':
+        releases=tuple((image,type(image).release,type(image).release.__code__,type(image).release.__defaults__)
+                       for image in (state['worker_image'],state['native_image']))
+        try:return _run_pack_original(launch)
+        finally:
+            # The one-shot conversation consumes its process-image witnesses on
+            # success or hold. Cleanup never changes a service or closes a reused
+            # foreign descriptor, and every original is attempted independently.
+            primary=sys.exc_info()[1];failures=[]
+            for image,release,code,defaults in releases:
+                try:
+                    if release.__code__ is not code or release.__defaults__ is not defaults:
+                        raise Held('fixed-original-image-release-implementation')
+                    release(image)
+                except BaseException as error:failures.append(error)
+            if failures:
+                if primary is not None:raise primary from failures[0]
+                raise failures[0]
     if state['sequence']!=0 or state['admission'] is not None:raise Held('fixed-original-run-once')
     mounts=json.loads(canonical(state['runtime'].baseline['native']['Mounts']))
     boot=json.loads(canonical(state['boot']));hostboot=dict(boot,input_sha256=state['input_sha256'])

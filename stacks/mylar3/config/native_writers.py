@@ -11,7 +11,7 @@ _PUBLICATION = False
 _MODE_LOCK = threading.Lock()
 _OPERATIONS = 0
 _STARTUP_COMPLETE = False
-SELF_ADMITTED_API = ('retainedDeliveryFinalize','retainedDeliveryStatus')
+SELF_ADMITTED_API = ('retainedDeliveryFinalize','retainedDeliveryStatus','retainedDeliverySession')
 
 
 def self_admitted_api(handler):
@@ -33,11 +33,14 @@ def owner():
 
 
 @contextmanager
-def _mode():
+def _mode(*,retained_session=None):
     global _OPERATIONS
     with _MODE_LOCK:
-        _OPERATIONS += 1
         publication = _PUBLICATION
+        if publication:
+            from . import publication_retained_api
+            publication_retained_api.session_mode(retained_session)
+        _OPERATIONS += 1
     try:
         yield publication
     finally:
@@ -46,10 +49,10 @@ def _mode():
 
 
 @contextmanager
-def operation(*, reconcile=False, startup=False, ordinary=False):
+def operation(*, reconcile=False, startup=False, ordinary=False, retained_session=None):
     if type(ordinary) is not bool or ordinary and (reconcile or startup):
         raise ValueError('Invalid ordinary native operation purpose')
-    with _mode() as publication:
+    with _mode(retained_session=retained_session) as publication:
         if ordinary and not publication:
             from .publication_guard import Unavailable
             raise Unavailable('Ordinary native operation requires publication mode')
@@ -64,7 +67,7 @@ def operation(*, reconcile=False, startup=False, ordinary=False):
                          allow_tagger_pending=not ordinary, allow_release_pending=not ordinary, timeout=180):
             outer = not getattr(_LOCAL, 'depth', 0)
             if publication:
-                admission(writer,startup=startup)
+                admission(writer,startup=startup,retained_session=retained_session)
             else:
                 from . import tagger_native
             if not publication and outer and (reconcile or writer.fenced(tagger=True)):
@@ -89,7 +92,7 @@ def operation(*, reconcile=False, startup=False, ordinary=False):
                 _LOCAL.startup=previous_startup
                 if publication:
                     from .publication_guard import Unavailable
-                    try:admission(writer,startup=startup)
+                    try:admission(writer,startup=startup,retained_session=retained_session)
                     except Unavailable:
                         # Preserve the terminal refusal while held state still
                         # denies the next operation. This grants no admission.
@@ -124,7 +127,10 @@ def authority_probe():
     """Passive existing-only authority; never cached authorization or recovery."""
     import mylar
     from .publication_guard import authority_status
+    from . import publication_retained_api
     root=Path(mylar.DATA_DIR)
+    if publication_retained_api.session_fenced(root/'media-writer'):
+        return dict(version=1,state='held',reason='retained-session',census=None)
     return authority_status(root/'workflow.sqlite',root/'media-writer')
 
 
@@ -219,13 +225,15 @@ def cleanup_admission(database):
     return check(database)
 
 
-def admission(writer, *, startup=False):
+def admission(writer, *, startup=False, retained_session=None):
     """Validate full current authority under raw Writer before workflow LOCK."""
     import mylar
     from .publication_guard import media_snapshot, Unavailable, ordinary_purpose
     if not getattr(writer.local[1],'depth',0):
         raise Unavailable('Raw Writer required before publication admission')
     ordinary_purpose(writer)
+    from . import publication_retained_api
+    publication_retained_api.session_file(writer,retained_session)
     census,_=media_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
     import os
     if (os.path.lexists(writer.root/'tagger-publication-v1.json')
@@ -236,6 +244,7 @@ def admission(writer, *, startup=False):
     if not startup and not _STARTUP_COMPLETE:
         raise Unavailable('Native initialization requires restart after authority review')
     ordinary_purpose(writer)
+    publication_retained_api.session_file(writer,retained_session)
     return census
 
 

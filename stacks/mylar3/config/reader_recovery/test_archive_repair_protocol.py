@@ -108,7 +108,7 @@ class Protocol(unittest.TestCase):
    path=Path(t)/'original';path.write_bytes(b'original');z=path.stat();v=a.seal_vectors({}, {}, (), {path:(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)}, {})
    def late(mode):path.chmod(0o640);raise AssertionError('final semantic helper must never run')
    with patch.object(a.stat,'S_ISDIR',side_effect=late):a.close_vectors(v)
-   self.assertEqual(path.stat().st_mode&0o777,0o644)
+   self.assertEqual(a.nine(path.stat()),a.nine(z))
  def test_sealed_observation_file_incarnation(self):
   with tempfile.TemporaryDirectory() as t:
    pth=Path(t)/'file';pth.write_bytes(b'original');v=a.seal_vectors({pth:a.nine(pth.stat())},{},(),{},{});q=pth.with_name('replacement');q.write_bytes(b'original');os.replace(q,pth)

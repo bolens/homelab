@@ -179,7 +179,7 @@ class Tests(unittest.TestCase):
     else:bad[index]['Config']['Labels']['com.homelab.archive.'+('bootstrap' if field=='nonce' else 'purpose')]='foreign'
     with self.assertRaisesRegex(a.Held,'fixture-original-disposable-roles'):a.fixture_roles(value,bad)
  def test_private_DATA_stage_mode_refused(self):
-  public=self.root/'public';public.mkdir(mode=0o755);self.stage=public/'stage'
+  public=self.root/'public';public.mkdir(mode=0o755);public.chmod(0o755);self.stage=public/'stage'
   with self.assertRaisesRegex(a.Held,'fixture-private-DATA-stage'):self.apply()
   self.assertEqual(self.source.read_bytes(),self.raw)
  def test_missing_writer_session_refuses_before_catalog_or_stage(self):

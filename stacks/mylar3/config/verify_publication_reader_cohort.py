@@ -7,6 +7,13 @@ import stat
 import sys
 
 
+def verify_retained_routes(writers, retained_api):
+    """Keep the native admission set equal to the finite owning HTTP routes."""
+    commands = ('retainedDeliveryFinalize', 'retainedDeliveryStatus', 'retainedDeliverySession')
+    assert writers.SELF_ADMITTED_API == retained_api.COMMANDS == commands
+    assert writers.PASSIVE_API == ('publicationControl', 'getHealth', 'getVersion', 'restart', 'shutdown', 'ordinaryImportObservation')
+
+
 def main():
     assert sys.dont_write_bytecode, 'Requires -B'
     fixes = Path(__file__).parent
@@ -77,8 +84,7 @@ def main():
     try:retained_api.NativeRetainedAdmission()
     except ValueError:pass
     else:raise AssertionError('Retained admission constructor must stay closed')
-    assert writers.SELF_ADMITTED_API == ('retainedDeliveryFinalize', 'retainedDeliveryStatus')
-    assert writers.PASSIVE_API == ('publicationControl', 'getHealth', 'getVersion', 'restart', 'shutdown', 'ordinaryImportObservation')
+    verify_retained_routes(writers, retained_api)
     assert callable(finalizer.response_existing) and callable(finalizer.response_sources)
     loader = modules['publication_negative_namespace']
     kernel = loader.kernel()

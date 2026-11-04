@@ -44,6 +44,41 @@ class Install(unittest.TestCase):
         self.assertEqual(set(p.name for p in self.target.parent.iterdir()), {'auth'})
         for p in self.target.iterdir(): self.assertEqual(stat.S_IMODE(p.stat().st_mode), 0o444)
 
+    def test_restrictive_umask_does_not_change_created_public_directory_modes(self):
+        previous=os.umask(0o077)
+        try:self.install()
+        finally:os.umask(previous)
+        for path in (self.target.parent,self.target):
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode),0o755)
+        self.installer.verify_installed(self.target)
+
+    def test_directory_replaced_before_open_is_not_adopted_or_chmodded(self):
+        foreign=self.root/'foreign';foreign.mkdir(mode=0o700);foreign.chmod(0o700)
+        before=foreign.stat();real=self.installer.os.open;fired=[]
+        def replaced(path,flags,*args,**kwargs):
+            if Path(path)==self.target.parent and flags&os.O_DIRECTORY and not fired:
+                Path(path).rename(self.root/'original-born-directory')
+                foreign.rename(path);fired.append(True)
+            return real(path,flags,*args,**kwargs)
+        with patch.object(self.installer.os,'open',replaced):
+            with self.assertRaisesRegex(ValueError,'created private directory'):self.install()
+        after=self.target.parent.stat();self.assertTrue(fired)
+        self.assertEqual((after.st_dev,after.st_ino,stat.S_IMODE(after.st_mode)),(before.st_dev,before.st_ino,0o700))
+        self.assertFalse(self.target.exists())
+
+    def test_no_late_directory_resample_can_rebase_published_mode(self):
+        real=self.installer.os.fstat;counts={};fired=[]
+        def changed(fd):
+            observed=real(fd)
+            if stat.S_ISDIR(observed.st_mode):
+                key=(observed.st_dev,observed.st_ino);counts[key]=counts.get(key,0)+1
+                if counts[key]==4:
+                    os.fchmod(fd,0o700);fired.append(True);return real(fd)
+            return observed
+        with patch.object(self.installer.os,'fstat',changed):self.install()
+        self.assertFalse(fired)
+        for path in (self.target.parent,self.target):self.assertEqual(stat.S_IMODE(path.stat().st_mode),0o755)
+
     def test_interrupted_publication_retains_private_partial_source(self):
         write=self.installer.os.write;created=[]
         def interrupted(fd,data):
@@ -145,7 +180,7 @@ class Install(unittest.TestCase):
         real = self.installer.os.fsync; fired = []
         def late(fd):
             real(fd)
-            if not fired: os.fchmod(fd, 0o640); fired.append(True)
+            if stat.S_ISREG(os.fstat(fd).st_mode) and not fired: os.fchmod(fd, 0o640); fired.append(True)
         with patch.object(self.installer.os, 'fsync', late):
             with self.assertRaisesRegex(ValueError, 'created source changed'): self.install()
         self.assertTrue(fired)

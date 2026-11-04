@@ -16,6 +16,7 @@ from unittest.mock import patch
 import test_retained_native_operation as actual
 import test_publication_retained_finalize as fixture
 import patch_retained_delivery_api as installer
+import patch_publication_startup as startup_installer
 
 ROOT=Path(__file__).parent
 API_SHA='7cd81fc5e511f27d0943507df7606df68f660ffe6688677b937eafba92a00c6a'
@@ -29,13 +30,17 @@ class Endpoint(unittest.TestCase):
   physical=ROOT/'api.py';before=physical.read_bytes()
   source=(ROOT.parent/'preimages/api.py').read_text()
   self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),API_SHA)
-  source=installer.patched_source(source);physical.write_text(source)
+  source=installer.patched_source(source)
+  self.assertEqual(source.count(startup_installer.OLD_API_PREFIX),1)
+  source=source.replace(startup_installer.OLD_API_PREFIX,startup_installer.API_PREFIX,1)
+  physical.write_text(source)
   self.addCleanup(physical.write_bytes,before)
   tree=ast.parse(source);node=next(x for x in tree.body if isinstance(x,ast.ClassDef) and x.name=='Api')
-  keep={'_successResponse','_failureResponse','fetchData','_retainedDeliveryFinalize','_retainedDeliveryStatus'}
+  keep={'checkParams','_successResponse','_failureResponse','fetchData','_retainedDeliveryFinalize','_retainedDeliveryStatus','_retainedDeliverySession'}
   node.body=[x for x in node.body if isinstance(x,ast.FunctionDef) and x.name in keep]
   module=ModuleType('mylar.api');module.__file__=str(physical)
-  module.__dict__.update(mylar=self.pkg,cherrypy=self.http,json=json,native_writers=self.n,API_ERROR_CODE_DEFAULT=0,
+  self.pkg.SSE_KEY='s'*32
+  module.__dict__.update(cmd_list=list(installer.COMMANDS)+['getIndex'],mylar=self.pkg,cherrypy=self.http,json=json,native_writers=self.n,API_ERROR_CODE_DEFAULT=0,
                          logger=SimpleNamespace(fdebug=lambda value:None))
   ctx=patch.dict(sys.modules,{'mylar.api':module});ctx.start();self.addCleanup(ctx.stop)
   ctx=patch.object(self.pkg,'api',module,create=True);ctx.start();self.addCleanup(ctx.stop)
@@ -47,9 +52,366 @@ class Endpoint(unittest.TestCase):
   self.handler=object.__new__(module.Api)
   self.handler.__dict__.update(cmd='retainedDeliveryFinalize',apikey='x'*32,apitype='normal',headers='application/json',
                               kwargs={'request':self.base.raw()},img=None,file=None,comicrn=False,data='OK')
- def call(self,command='retainedDeliveryFinalize',raw=None):
-  self.handler.cmd=command;self.handler.kwargs={'request':raw if raw is not None else self.base.raw()};self.handler.data='OK'
+ def call(self,command='retainedDeliveryFinalize',raw=None,*,apikey=None):
+  self.handler.checkParams(cmd=command,apikey=self.pkg.CONFIG.API_KEY if apikey is None else apikey,request=raw if raw is not None else self.base.raw())
   return json.loads(self.handler.fetchData())
+ def session_call(self,action,nonce='9'*64,proof=None):
+  body=dict(version=1,kind='retained-native-session-v1',action=action,nonce=nonce,
+            request=json.loads(self.base.raw()),proof=proof)
+  self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(body))
+  return json.loads(self.handler.fetchData())
+ def test_actual_broker_session_packet_is_accepted_by_actual_handler(self):
+  spec=importlib.util.spec_from_file_location('retained_broker_wire',ROOT/'standalone_launch_host/comic_retained_standalone_broker.py')
+  broker=importlib.util.module_from_spec(spec);spec.loader.exec_module(broker)
+  boot=dict(nonce='9'*64,request=json.loads(self.base.raw()))
+  packet=broker.native_session_request(boot,'open')
+  self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(packet))
+  answer=json.loads(self.handler.fetchData());self.assertTrue(answer['success'])
+  self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  packet=broker.native_session_request(boot,'observe')
+  self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(packet))
+  self.assertEqual(json.loads(self.handler.fetchData())['data']['state'],'active-original-process')
+
+ def test_native_session_blocks_background_but_allows_exact_retained_action(self):
+  before=self.c.c.database.read_bytes();opened=self.session_call('open')
+  self.assertTrue(opened['success']);self.assertEqual(self.c.c.database.read_bytes(),before)
+  with self.assertRaisesRegex(sys.modules['mylar.media_writer'].Busy,'reserved'):
+   with self.n.operation():self.fail('Background operation entered reservation')
+  self.assertEqual(self.n._OPERATIONS,0)
+  self.assertTrue(self.pkg.CONFIG.API_ENABLED)
+  self.assertEqual(self.session_call('observe')['data']['state'],'active-original-process')
+  answer=self.call();self.assertTrue(answer['success'])
+  self.assertEqual(self.call('retainedDeliveryStatus'),answer)
+  self.assertTrue((self.c.c.writer_root/self.endpoint._SESSION_PENDING).is_file())
+ def test_native_session_rejects_busy_duplicate_foreign_and_restarted_contexts(self):
+  with patch.object(self.n,'_OPERATIONS',1):self.assertFalse(self.session_call('open')['success'])
+  self.assertIsNone(self.endpoint._ROOT_SESSION)
+  self.assertTrue(self.session_call('open')['success']);record=self.endpoint._ROOT_SESSION
+  self.assertFalse(self.session_call('open')['success'])
+  self.assertFalse(self.session_call('observe',nonce='8'*64)['success'])
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   with self.assertRaisesRegex(sys.modules['mylar.media_writer'].Busy,'original-process review'):
+    with self.n.operation():self.fail('Saved marker minted live reservation')
+   self.assertEqual(self.session_call('observe')['data']['state'],'factual-held')
+   self.assertFalse(self.session_call('close',proof={})['success'])
+  self.assertIs(self.endpoint._ROOT_SESSION,record)
+ def test_native_session_close_requires_complete_actual_terminal_SQL(self):
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  def model(path):return r._sql(path,r.o.signature(path))
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(model(self.c.c.database)),catalog_sha256=digest(model(self.c.c.native_database)),
+             record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  bad=dict(proof,workflow_sha256='0'*64)
+  self.assertFalse(self.session_call('close',proof=bad)['success'])
+  self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  closed=self.session_call('close',proof=proof);self.assertTrue(closed['success'])
+  self.assertEqual(closed['data']['proof'],proof)
+  self.assertIsNone(self.endpoint._ROOT_SESSION)
+  self.assertFalse((self.c.c.writer_root/self.endpoint._SESSION_PENDING).exists())
+  self.assertFalse((self.c.c.writer_root/self.endpoint._SESSION_CLOSED).exists())
+  history=self.c.c.writer_root/self.endpoint._SESSION_HISTORY/('9'*64)
+  self.assertEqual(sorted(p.name for p in history.iterdir()),['closed.json','pending.json'])
+  self.assertEqual(json.loads((history/'closed.json').read_bytes())['proof'],proof)
+  self.assertTrue(all(p.stat().st_nlink==1 for p in history.iterdir()))
+  with self.n.operation():pass
+  from mylar import publication_api,publication_guard
+  with patch.object(publication_api,'__package__','mylar'),patch.object(publication_guard,'__package__','mylar'):
+   self.assertEqual(self.n.startup_status()['state'],'ready')
+   with self.n.owner().hold(timeout=0) as writer:publication_api._ordinary_native_session(writer)
+  self.assertFalse(self.session_call('close',proof=proof)['success'])
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['state'],'ready')
+   with self.n.operation():pass
+  self.assertFalse(self.session_call('open')['success'])
+  self.assertTrue(self.session_call('open',nonce='8'*64)['success'])
+ def test_closed_without_pending_or_live_custody_is_negative_evidence(self):
+  marker=self.c.c.writer_root/self.endpoint._SESSION_CLOSED
+  marker.write_bytes(b'{"untrusted":"saved-completion"}');marker.chmod(0o600)
+  self.assertIsNone(self.endpoint._ROOT_SESSION)
+  self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+  with self.assertRaises(sys.modules['mylar.media_writer'].Busy):
+   with self.n.operation():self.fail('Saved close receipt granted ordinary admission')
+  from mylar import publication_api
+  with self.n.owner().hold(timeout=0) as writer,self.assertRaises(publication_api.guard.Unavailable):
+   publication_api._ordinary_native_session(writer)
+ def test_retained_session_router_keeps_ordinary_commands_held(self):
+  self.assertTrue(self.session_call('open')['success'])
+  self.assertFalse(self.call('getIndex')['success'])
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertFalse(self.call()['success'])
+   self.assertEqual(self.session_call('observe')['data']['state'],'factual-held')
+
+ def test_publication_control_raw_writer_paths_refuse_reserved_marker(self):
+  self.assertTrue(self.session_call('open')['success'])
+  from mylar import publication_api
+  with self.n.owner().hold(timeout=0) as writer:
+   with self.assertRaisesRegex(publication_api.guard.Unavailable,'reserved'):
+    publication_api._ordinary_native_session(writer)
+
+ def test_native_session_status_and_health_are_held_without_SQL_access(self):
+  self.assertTrue(self.session_call('open')['success'])
+  self.assertEqual(self.n.startup_status(),dict(version=1,state='held',reason='retained-session',census=None))
+  spec=importlib.util.spec_from_file_location('mylar.worker_health',ROOT/'worker_health.py')
+  health=importlib.util.module_from_spec(spec);spec.loader.exec_module(health)
+  with patch.object(health,'_snapshot',side_effect=AssertionError('Reserved health read SQL')):
+   answer=health.snapshot()
+  self.assertEqual(answer['publication']['reason'],'retained-session')
+  self.assertNotIn('busy_workers',answer)
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.initialize_publication()['reason'],'retained-session')
+   self.assertEqual(self.n.startup_status()['state'],'held')
+   self.assertEqual(health.snapshot()['publication']['state'],'held')
+ def test_live_session_remains_held_after_pending_marker_disappears(self):
+  self.assertTrue(self.session_call('open')['success'])
+  (self.c.c.writer_root/self.endpoint._SESSION_PENDING).unlink()
+  self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+  with self.assertRaises(sys.modules['mylar.media_writer'].Busy):
+   with self.n.operation():self.fail('Lost marker bypassed live custody')
+  from mylar import publication_api
+  with patch.object(publication_api,'__package__','mylar'):
+   with patch.object(self.c.c,'_dispatch',side_effect=AssertionError('Raw dispatch entered reservation')):
+    with self.assertRaises(publication_api.guard.Unavailable):
+     self.c.c.dispatch(dict(action='review'))
+ def test_reserved_fresh_preparation_is_refused_before_preparer(self):
+  self.assertTrue(self.session_call('open')['success'])
+  from mylar import publication_api
+  preparer=ModuleType('mylar.publication_fresh')
+  preparer.prepare=lambda *a,**k:self.fail('Fresh preparation ran while reserved')
+  with patch.object(publication_api,'__package__','mylar'),patch.dict(sys.modules,{'mylar.publication_fresh':preparer}):
+   with self.assertRaises(sys.modules['mylar.media_writer'].Busy):
+    self.c.c.dispatch(dict(action='prepare-fresh',backup={},epoch=0))
+
+ def test_tick_advisory_ready_to_reservation_race_is_harmless(self):
+  tree=ast.parse((ROOT/'workflow.py').read_text())
+  node=next(x for x in tree.body if isinstance(x,ast.FunctionDef) and x.name=='tick')
+  module=ModuleType('mylar.reservation_tick');module.__package__='mylar'
+  module._tick=lambda queue:self.fail('Reserved tick entered workflow')
+  exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(ROOT/'workflow.py'),'exec'),module.__dict__)
+  self.assertTrue(self.session_call('open')['success'])
+  module.tick(None)
+  with patch.object(self.n,'startup_status',return_value=dict(state='ready')):
+   module.tick(None)
+  self.assertEqual(self.n._OPERATIONS,0)
+ def test_native_session_open_cannot_overlap_actual_counted_operation(self):
+  import threading
+  entered=threading.Event();release=threading.Event();failures=[]
+  def ordinary():
+   try:
+    with self.n.operation():
+     entered.set()
+     if not release.wait(10):raise AssertionError('Test release missing')
+   except BaseException as error:failures.append(error);entered.set()
+  thread=threading.Thread(target=ordinary);thread.start()
+  try:
+   self.assertTrue(entered.wait(10));self.assertFalse(failures)
+   self.assertFalse(self.session_call('open')['success'])
+   self.assertIsNone(self.endpoint._ROOT_SESSION)
+   self.assertFalse((self.c.c.writer_root/self.endpoint._SESSION_PENDING).exists())
+  finally:release.set();thread.join(10)
+  self.assertFalse(thread.is_alive());self.assertFalse(failures)
+  self.assertEqual(self.n._OPERATIONS,0)
+  self.assertTrue(self.session_call('open')['success'])
+ def test_native_session_close_fsync_failure_keeps_restart_fence(self):
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+   catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+   record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  pending=self.c.c.writer_root/self.endpoint._SESSION_PENDING;real_fsync=os.fsync
+  def failed(fd):
+   if (self.c.c.writer_root/self.endpoint._SESSION_CLOSED).exists():raise OSError('Synthetic close sync failure')
+   return real_fsync(fd)
+  with patch.object(self.endpoint.os,'fsync',failed):
+   self.assertFalse(self.session_call('close',proof=proof)['success'])
+  self.assertTrue(pending.exists());self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+  self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+  from mylar import publication_api
+  with patch.object(publication_api,'__package__','mylar'),self.assertRaises(publication_api.guard.Unavailable):
+   self.c.c.dispatch(dict(action='review'))
+
+ def test_native_session_late_retirement_sync_failure_restores_restart_fence(self):
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+   catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+   record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  root=self.c.c.writer_root;real_fsync=os.fsync;failed_once=[]
+  def failed(fd):
+   if not failed_once and not any((root/name).exists() for name in (self.endpoint._SESSION_PENDING,self.endpoint._SESSION_CLOSED)):
+    failed_once.append(True);raise OSError('Synthetic final commit sync failure')
+   return real_fsync(fd)
+  with patch.object(self.endpoint.os,'fsync',failed):
+   self.assertFalse(self.session_call('close',proof=proof)['success'])
+  self.assertTrue(failed_once);self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  self.assertTrue((root/self.endpoint._SESSION_CLOSED).is_file())
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+
+ def test_native_session_Writer_exit_failure_restores_restart_fence(self):
+  from contextlib import contextmanager
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+   catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+   record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  root=self.c.c.writer_root;writer_type=type(self.n.owner());hold=writer_type.hold;failed=[]
+  @contextmanager
+  def uncertain(writer,*args,**kwargs):
+   with hold(writer,*args,**kwargs):yield writer
+   if not any((root/name).exists() for name in (self.endpoint._SESSION_PENDING,self.endpoint._SESSION_CLOSED)):
+    failed.append(True);raise OSError('Synthetic Writer exit uncertainty')
+  with patch.object(writer_type,'hold',uncertain):
+   self.assertFalse(self.session_call('close',proof=proof)['success'])
+  self.assertEqual(failed,[True]);self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  self.assertTrue((root/self.endpoint._SESSION_CLOSED).exists())
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+
+ def test_retirement_recloses_copies_at_each_sync_boundary(self):
+  import tempfile
+  endpoint=self.endpoint;real_fsync=os.fsync
+  for fault in range(1,7):
+   with self.subTest(sync=fault),tempfile.TemporaryDirectory() as directory:
+    root=Path(directory);history=root/'history';history.mkdir(mode=0o700)
+    marker=b'pending';closed=b'closed'
+    pending9=endpoint._session_save(root,endpoint._SESSION_PENDING,marker)
+    closed9=endpoint._session_save(root,endpoint._SESSION_CLOSED,closed)
+    record=SimpleNamespace(root=root,root5=endpoint._session_five(root.stat()),history=history,
+     history5=endpoint._session_five(history.stat()),history_parent5=endpoint._session_five(root.stat()),
+     marker_bytes=marker,marker9=pending9,files=(),nodes=())
+    calls=[]
+    def failed(fd):
+     calls.append(fd)
+     if len(calls)==fault:raise OSError('Synthetic retirement sync failure')
+     return real_fsync(fd)
+    with patch.object(endpoint,'_ROOT_SESSION',record),patch.object(endpoint.os,'fsync',failed):
+     with self.assertRaisesRegex(OSError,'Synthetic retirement'):
+      try:endpoint._session_retire(record,closed9,((),(),()))
+      except BaseException:
+       endpoint._session_refence(record,closed);raise
+    self.assertTrue(any((root/name).exists() for name in (endpoint._SESSION_PENDING,endpoint._SESSION_CLOSED)))
+
+ def test_retirement_detects_postcommit_history_replacement_and_closes_failed_open(self):
+  import tempfile
+  endpoint=self.endpoint;real_fsync=os.fsync;real_open=os.open
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);history=root/'history';history.mkdir(mode=0o700)
+   pending9=endpoint._session_save(root,endpoint._SESSION_PENDING,b'pending')
+   closed9=endpoint._session_save(root,endpoint._SESSION_CLOSED,b'closed')
+   record=SimpleNamespace(root=root,root5=endpoint._session_five(root.stat()),history=history,
+    history5=endpoint._session_five(history.stat()),history_parent5=endpoint._session_five(root.stat()),
+    marker_bytes=b'pending',marker9=pending9,files=(),nodes=())
+   before=set(os.listdir('/proc/self/fd'))
+   def refused(path,*args,**kwargs):
+    if path==history:raise OSError('Synthetic history open failure')
+    return real_open(path,*args,**kwargs)
+   with patch.object(endpoint.os,'open',refused),self.assertRaises(OSError):
+    endpoint._session_retire(record,closed9,((),(),()))
+   self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+   changed=[]
+   def corrupt(fd):
+    if not changed and not (root/endpoint._SESSION_PENDING).exists():
+     changed.append(True);p=history/'closed.json';p.unlink();p.write_bytes(b'closed');p.chmod(0o600)
+    return real_fsync(fd)
+   with patch.object(endpoint,'_ROOT_SESSION',record),patch.object(endpoint.os,'fsync',corrupt):
+    with self.assertRaises(ValueError):
+     try:endpoint._session_retire(record,closed9,((),(),()))
+     except BaseException:
+      endpoint._session_refence(record,b'closed');raise
+   self.assertTrue(changed);self.assertTrue((root/endpoint._SESSION_CLOSED).exists())
+
+ def test_reserved_liveness_needs_original_custody_but_not_external_Writer(self):
+  import threading
+  self.assertTrue(self.session_call('open')['success']);record=self.endpoint._ROOT_SESSION
+  spec=importlib.util.spec_from_file_location('mylar.worker_health',ROOT/'worker_health.py')
+  health=importlib.util.module_from_spec(spec);spec.loader.exec_module(health)
+  values=dict(POST_PROCESSING=False,ENABLE_DDL=False,NZB_DOWNLOADER=0,NZBGET_CLIENT_POST_PROCESSING=False,
+   SAB_CLIENT_POST_PROCESSING=False,ENABLE_TORRENTS=False,AUTO_SNATCH=False,TORRENT_DOWNLOADER=0)
+  for name,value in values.items():setattr(self.pkg.CONFIG,name,value)
+  self.pkg.OS_DETECT='Linux'
+  queues=ModuleType('mylar.queues');rows=[SimpleNamespace(name='SEARCH-QUEUE',is_alive=True,size=0)]
+  queues.queue_info=lambda:rows
+  entered=threading.Event();release=threading.Event();errors=[]
+  def hold():
+   try:
+    with self.n.owner().hold():
+     entered.set()
+     if not release.wait(10):raise AssertionError('Test release missing')
+   except BaseException as error:errors.append(error);entered.set()
+  thread=threading.Thread(target=hold);thread.start()
+  try:
+   self.assertTrue(entered.wait(10));self.assertFalse(errors)
+   with patch.dict(sys.modules,{'mylar.queues':queues}),patch.object(health,'_snapshot',side_effect=AssertionError('Reserved health read SQL')),patch('sqlite3.connect',side_effect=AssertionError('Reserved health opened SQL')):
+    sample=health.snapshot()
+    self.assertEqual(sample['publication'],dict(version=1,state='held',reason='retained-session',census=None))
+    self.assertTrue(sample['busy_workers']['queues']['SEARCH-QUEUE']['alive'])
+    with patch.object(self.endpoint,'_ROOT_SESSION',None):
+     self.assertNotIn('busy_workers',health.snapshot())
+    with patch.object(self.endpoint.time,'monotonic',return_value=record.deadline):
+     self.assertNotIn('busy_workers',health.snapshot())
+    original=queues.queue_info
+    def replaced():
+     result=original();self.endpoint._ROOT_SESSION=record._replace(pid=record.pid+1);return result
+    with patch.object(queues,'queue_info',replaced):
+     self.assertNotIn('busy_workers',health.snapshot())
+    self.endpoint._ROOT_SESSION=record
+    (self.c.c.writer_root/self.endpoint._SESSION_PENDING).unlink()
+    (self.c.c.writer_root/self.endpoint._SESSION_CLOSED).write_bytes(b'untrusted-saved-closure')
+    with patch.object(self.endpoint,'_ROOT_SESSION',None):
+     orphan=health.snapshot()
+     self.assertEqual(orphan['publication']['reason'],'retained-session')
+     self.assertNotIn('busy_workers',orphan)
+  finally:
+   release.set();thread.join(10)
+  self.assertFalse(thread.is_alive());self.assertFalse(errors)
+
+ def test_original_session_spans_distinct_live_HTTP_threads_and_handlers(self):
+  import threading
+  release=threading.Event();threads=[];errors=[];results={};identities=[]
+  defaults=dict(self.handler.__dict__)
+  def invoke(name,command,raw):
+   finished=threading.Event()
+   def request():
+    try:
+     handler=object.__new__(self.api.Api);handler.__dict__.update(defaults)
+     handler.checkParams(cmd=command,apikey=self.pkg.CONFIG.API_KEY,request=raw)
+     results[name]=json.loads(handler.fetchData());identities.append(threading.get_ident())
+    except BaseException as error:errors.append(error)
+    finally:
+     finished.set()
+     if not release.wait(30):errors.append(AssertionError('HTTP fixture release missing'))
+   thread=threading.Thread(target=request);threads.append(thread);thread.start()
+   self.assertTrue(finished.wait(30));self.assertFalse(errors)
+   self.assertTrue(results[name]['success'],results[name])
+   return results[name]
+  request=json.loads(self.base.raw())
+  def session(action,proof=None):
+   return json.dumps(dict(version=1,kind='retained-native-session-v1',action=action,
+    nonce='9'*64,request=request,proof=proof))
+  try:
+   invoke('open','retainedDeliverySession',session('open'))
+   answer=invoke('finalize','retainedDeliveryFinalize',self.base.raw())
+   self.assertEqual(invoke('status','retainedDeliveryStatus',self.base.raw()),answer)
+   r=fixture.r
+   digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+   proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+    catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+    record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+   invoke('close','retainedDeliverySession',session('close',proof))
+   self.assertEqual(len(identities),4);self.assertEqual(len(set(identities)),4)
+   self.assertTrue(all(thread.is_alive() for thread in threads))
+  finally:
+   release.set()
+   for thread in threads:thread.join(30)
+   self.assertFalse(any(thread.is_alive() for thread in threads))
+  self.assertFalse(errors);self.assertEqual(self.n._OPERATIONS,0)
+
  def test_current_actual_installer_idempotence(self):
   raw=(ROOT.parent/'preimages/api.py').read_text();patched=installer.patched_source(raw)
   self.assertEqual(installer.patched_source(patched),patched)
@@ -61,8 +423,8 @@ class Endpoint(unittest.TestCase):
   self.assertFalse(answer['data']['ordinary_import_grant']);self.assertFalse(answer['data']['cleanup_grant'])
   self.assertEqual(self.c.case.original.read_bytes(),source);self.assertEqual(self.c.case.target.read_bytes(),target)
  def test_auth_default_method_and_callback_refuse_before_producer(self):
-  for field,value in [('apikey','y'*32),('apitype','secondary')]:
-   with patch.object(self.handler,field,value):self.assertFalse(self.call()['success'])
+  for key in ('y'*32,self.pkg.SSE_KEY):
+   self.assertFalse(self.call(apikey=key)['success'])
   for field,value in [('API_ENABLED',False),('API_KEY','short')]:
    with patch.object(self.pkg.CONFIG,field,value):self.assertFalse(self.call()['success'])
   with patch.object(self.http.request,'method','GET'):self.assertFalse(self.call()['success'])
@@ -166,7 +528,8 @@ class Endpoint(unittest.TestCase):
   @contextmanager
   def late(writer,**kwargs):
    with real(writer,**kwargs):yield writer
-   if not getattr(writer.local[1],'depth',0) and not fired:
+   if (not getattr(writer.local[1],'depth',0) and not fired
+       and 'closed' in self.endpoint._ADMISSION_PHASES.values()):
     self.c.case.target.chmod(0o640);fired.append(True)
   with patch.object(cls,'hold',late):self.assertFalse(self.call()['success'])
   self.assertTrue(fired)

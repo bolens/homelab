@@ -17,7 +17,7 @@ from publication_guard import current, scope, remote_unlocked, evidence
 ENABLED=False
 NATIVE_SOURCE_ROOT='/app/mylar3/mylar'
 NATIVE_API_SHA=None  # Root must prove final installed canonical API bytes.
-NATIVE_SOURCE_PINS={'native_writers.py': '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74', 'publication_retained_api.py': '27da14fc1392534a984309460682e02a740a02e0dd06e652d1f730427eb86dad', 'publication_retained_delivery.py': '470fdc9eed9e379f7f897bfb98d5906aa77e8e6f9184dbe8b81370b76d282d45', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
+NATIVE_SOURCE_PINS={'native_writers.py': 'ca683bd94d3284770c912fcb73fb10cf450a4844b4b4f25f41de8257a9310954', 'publication_retained_api.py': '5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d', 'publication_retained_delivery.py': 'e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
 # Missing installed api.py source pin keeps operational export consumption held.
 
 _RETURN=Maintenance.retained_pack_return
@@ -752,9 +752,26 @@ def _terminal_projection(c,phase=None):
     return tuple(out)
 
 
+def terminal_core(action):
+    """A sealed consumed result is observation-only, beyond mutation expiry.
+
+    The original control pipe still bounds its whole lifecycle. This does not
+    renew dispatch/consume admission or hydrate a result from saved JSON.
+    """
+    check(type(action) is RetainedPackAction,'retained-owning-action-type')
+    c=_CORES.get(action);record=_TERMINAL_EXPORTS.get(action)
+    check(c is not None and c['phase']=='consumed' and record is not None and record[0] is c
+          and c['pid']==os.getpid() and c['thread']==threading.get_ident()
+          and _terminal_projection(c)==record[4],'retained-original-terminal-export')
+    if c.get('authorization') is not None:
+        check(_AUTH_OPERATIONS.get(c['maintenance']) is c['authorization']
+              and _authorization(c['maintenance']) is c['authorization'],'retained-original-terminal-admission')
+    return c
+
+
 def close_terminal(action):
     """Read-only same-live consumed-action originals under its actual ordinary Writer."""
-    c=_core(action,'consumed');record=_TERMINAL_EXPORTS.get(action)
+    c=terminal_core(action);record=_TERMINAL_EXPORTS.get(action)
     check(record is not None and record[0] is c,'retained-original-terminal-export')
     frame=json.loads(record[1]);m=c['maintenance'];a=current(m.worker)
     check(a.writer.local is c['writer'].local,'retained-same-terminal-Writer');evidence.ordinary_purpose(a.writer)

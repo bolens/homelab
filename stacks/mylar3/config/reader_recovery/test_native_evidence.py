@@ -21,7 +21,7 @@ class ProbeTests(unittest.TestCase):
     def setUp(self):
         self.t=tempfile.TemporaryDirectory();self.addCleanup(self.t.cleanup);self.root=Path(self.t.name)
         self.data=self.root/'config';self.data.mkdir();self.config=self.data/'config.ini'
-        self.config.write_text('[General]\napi_key='+'k'*32+'\napi_enabled=1\nhttp_port=8090\nhttp_root=/mylar\nenable_https=0\ndestination_dir=/data/comics\n')
+        self.config.write_text('[API]\napi_key='+'k'*32+'\napi_enabled=1\n[Interface]\nhttp_port=8090\nhttp_root=/mylar/\nenable_https=0\n[General]\ndestination_dir=/data/comics\n')
         self.proc=self.root/'proc';self.proc.mkdir();d=self.proc/'123';d.mkdir()
         self.argv=['/lsiopy/bin/python3','/app/mylar3/Mylar.py','--datadir',str(self.data)]
         (d/'cmdline').write_bytes(b'\0'.join(x.encode() for x in self.argv)+b'\0')

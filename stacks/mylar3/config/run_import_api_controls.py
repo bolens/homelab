@@ -51,6 +51,7 @@ NATIVE_PROCESSOR_FIXTURES = frozenset(('test_fixtures/ordinary_import/PostProces
 STANDALONE_MANIFEST = 'standalone_control_sources.json'
 
 HOST_SOURCES = {
+    'reader_recovery/comic_reader_lifecycle_parent.py': 'comic_reader_lifecycle_parent.py',
     'reader_recovery/comic_retained_pack_parent.py': 'comic_retained_pack_parent.py',
     'reader_recovery/comic_retained_pack_backup.py': 'comic_retained_pack_backup.py',
     'reader_recovery/retained_pack_control.py': 'retained_pack_control.py',

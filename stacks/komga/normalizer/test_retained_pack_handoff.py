@@ -16,6 +16,24 @@ class Mechanics(unittest.TestCase):
  def test_exclusive_private_output_actual_fd_readback(self):
   v=h._journal_write(self.path,b'original',self.parent)
   self.assertEqual(h._read(self.path,v),b'original');self.assertEqual(v[5]&0o7777,0o600)
+ def consumed_mechanics(self):
+  # Registry-seal mechanics only, not a native result or publication grant.
+  action=object.__new__(h.RetainedPackAction)
+  core=dict(phase='consumed',pid=os.getpid(),thread=h.threading.get_ident(),deadline=-1.0,authorization=None)
+  h._CORES[action]=core;h._TERMINAL_EXPORTS[action]=(core,b'frame',b'workflow',b'catalog',h._terminal_projection(core))
+  self.addCleanup(h._CORES.pop,action,None);self.addCleanup(h._TERMINAL_EXPORTS.pop,action,None)
+  return action,core
+ def test_expired_mutation_admission_does_not_expire_sealed_readonly_terminal(self):
+  action,core=self.consumed_mechanics()
+  self.assertIs(h.terminal_core(action),core)
+  with self.assertRaisesRegex(ValueError,'live-action'):h._core(action,'consumed')
+  with self.assertRaisesRegex(ValueError,'live-action'):h._core(action,'prepared')
+ def test_readonly_terminal_requires_original_sealed_consumed_state(self):
+  action,core=self.consumed_mechanics()
+  for key,value in (('phase','prepared'),('deadline',999999999999.0),('pid',-1),('authorization',object())):
+   old=core[key];core[key]=value
+   with self.subTest(field=key),self.assertRaisesRegex(ValueError,'terminal-export'):h.terminal_core(action)
+   core[key]=old
  def test_created_fd_first_fsync_mode_drift_refuses(self):
   real=os.fsync;fired=[]
   def late(fd):

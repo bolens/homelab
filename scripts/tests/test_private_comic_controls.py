@@ -126,6 +126,7 @@ class Controls(unittest.TestCase):
     def runtime(self, failing=False):
         test = self.source / 'test_actor.py'
         test.write_text("from pathlib import Path\nimport unittest\nclass T(unittest.TestCase):\n def test_actor(self):\n  p=Path(__file__);p.chmod(0o640);p.parent.chmod(0o750)\n  self.assertEqual(" + ('1,2' if failing else '1,1') + ")\n")
+        test.chmod(0o644)
         self.document['files']['test_actor.py'] = {'sha256': hashlib.sha256(test.read_bytes()).hexdigest(), 'mode': 0o644}
         manifest = self.root / 'manifest.json'
         manifest.write_text(json.dumps(self.document))
@@ -171,6 +172,7 @@ class Controls(unittest.TestCase):
     def test_complete_worker_refuses_skipped_controls(self):
         actor = self.source / 'test_actor.py'
         actor.write_text("import unittest\nclass T(unittest.TestCase):\n @unittest.skip('synthetic absent tool')\n def test_actor(self): pass\n")
+        actor.chmod(0o644)
         self.document['files']['test_actor.py'] = {
             'sha256': hashlib.sha256(actor.read_bytes()).hexdigest(), 'mode': 0o644}
         manifest = self.root / 'manifest.json'

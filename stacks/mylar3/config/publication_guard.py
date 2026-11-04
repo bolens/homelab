@@ -775,6 +775,18 @@ def authority_status(database, writer_root):
         writer = Writer(writer_root, create=False)
         with writer.hold(allow_pending=True, allow_tagger_pending=True,
                          allow_release_pending=True, timeout=0):
+            # A persisted reservation cannot regain authority after restart.
+            if __package__:
+                from .media_writer import NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED
+            else:
+                from media_writer import NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED
+            if __package__:
+                from . import publication_retained_api
+                reserved=publication_retained_api.session_fenced(writer.root)
+            else:
+                reserved=any(os.path.lexists(writer.root/name) for name in (NATIVE_SESSION_PENDING,NATIVE_SESSION_CLOSED))
+            if reserved:
+                return dict(version=1,state='held',reason='retained-session',census=None)
             census, _ = media_snapshot(database, writer.root / 'publication-v1.json')
             pending = (writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
                        or os.path.lexists(writer.root/'tagger-publication-v1.json')

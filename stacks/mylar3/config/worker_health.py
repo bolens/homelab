@@ -26,7 +26,10 @@ def snapshot(*, writer_wait=0):
                     if status['state']!='ready':return _held_snapshot(status,native_writers)
                     with native_writers.operation():return dict(_snapshot(),publication=status)
             except Busy:
-                return _held_snapshot(dict(version=1,state='held',reason='writer-busy',census=None),native_writers)
+                status=native_writers.startup_status()
+                if status['state']=='ready':
+                    status=dict(version=1,state='held',reason='writer-busy',census=None)
+                return _held_snapshot(status,native_writers)
     return _snapshot()
 
 
@@ -37,12 +40,35 @@ OBSERVED_QUEUE_NAMES=QUEUE_NAMES+('JD2-QUEUE',)
 
 def _held_snapshot(status,native):
     result=dict(publication=status,time=time.time())
+    if (status['state'],status.get('reason'))==('held','retained-session') and native._STARTUP_COMPLETE is True:
+        try:result['busy_workers']=_retained_workers(native)
+        except (ImportError,OSError,ValueError,TypeError,AttributeError,KeyError,RuntimeError):pass
     if (status['state'],status.get('reason'))==('held','writer-busy') and native._STARTUP_COMPLETE is True:
         try:
             packet=_busy_workers()
             if native._STARTUP_COMPLETE is True:result['busy_workers']=packet
         except (ImportError,OSError,ValueError,TypeError,AttributeError,KeyError):pass
     return result
+
+
+def _retained_workers(native):
+    """Passive liveness only while the original request reserves native work.
+
+    Do not take Writer: the original worker may hold it while Root verifies its
+    terminal artifacts. No Store, SQL, import or readiness grant is observed.
+    """
+    from . import publication_retained_api
+    with native._MODE_LOCK:
+        record=publication_retained_api._ROOT_SESSION
+        if record is None or native._STARTUP_COMPLETE is not True:
+            raise ValueError('Original active native reservation required')
+        writer=native.owner()
+        publication_retained_api.session_file(writer,record)
+        packet=_busy_workers()
+        publication_retained_api.session_file(writer,record)
+        if publication_retained_api._ROOT_SESSION is not record or native._STARTUP_COMPLETE is not True:
+            raise ValueError('Original native reservation health changed')
+        return packet
 
 
 def _busy_workers():

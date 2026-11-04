@@ -7,7 +7,9 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent))
 import comic_retained_pack_parent as terminal
 import comic_reader_backup_primitives as primitives
@@ -27,6 +29,48 @@ def snapshot(path):
 
 
 class SQL(unittest.TestCase):
+    def test_terminal_artifact_reader_has_separate_bounded_large_file_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'done.json';data=b'x'*(1024**2+1);path.write_bytes(data);path.chmod(0o600)
+            reference=dict(path=str(path),sha256=hashlib.sha256(data).hexdigest(),signature9=list(terminal.nine(path.stat())))
+            with self.assertRaisesRegex(ValueError,'control-reference-byte-bound'):terminal.read_original(reference)
+            actual,frame=terminal.read_original(reference,limit=64*1024**2)
+            self.assertEqual(actual,data);terminal.raw(frame)
+            path.chmod(0o644)
+            with self.assertRaises(ValueError):terminal.read_original(reference,limit=64*1024**2)
+
+    def test_native_INI_limit_does_not_expand_control_or_artifact_defaults(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'config.ini';data=b'x'*(1024**2+1);path.write_bytes(data)
+            reference=dict(path=str(path),sha256=hashlib.sha256(data).hexdigest(),signature9=list(terminal.nine(path.stat())))
+            with self.assertRaisesRegex(ValueError,'byte-bound'):terminal.read_original(reference)
+            self.assertEqual(terminal.read_original(reference,limit=2*1024**2)[0],data)
+            for limit in (True,0,3*1024**2):
+                with self.subTest(limit=limit),self.assertRaisesRegex(ValueError,'byte-bound'):terminal.read_original(reference,limit=limit)
+
+    def test_owning_readonly_model_matches_complete_physical_SQL(self):
+        before=self.workflow.read_bytes();model=terminal.retained_sql_model(self.workflow,time.monotonic()+30)
+        self.assertEqual(model,snapshot(self.workflow));self.assertEqual(self.workflow.read_bytes(),before)
+        self.assertEqual(terminal.retained_sql_fingerprint(model),
+                         {key:primitives.database(self.workflow)[key] for key in ('schema','tables')})
+        self.assertFalse(any(Path(str(self.workflow)+suffix).exists() for suffix in ('-wal','-shm','-journal')))
+
+    def test_owning_model_refuses_sidecar_without_SQL_dispatch(self):
+        Path(str(self.workflow)+'-wal').write_bytes(b'original retained WAL')
+        with patch.object(sqlite3,'connect',side_effect=AssertionError('SQLite dispatch')):
+            with self.assertRaisesRegex(ValueError,'no-live-companion'):terminal.retained_sql_model(self.workflow,time.monotonic()+30)
+
+    def test_owning_model_recloses_after_serialization(self):
+        encode=terminal.encode;fired=[];original=self.workflow.read_bytes()
+        def changed(value):
+            answer=encode(value)
+            if type(value) is dict and set(value)=={'schema','rows'}:
+                self.workflow.chmod(0o640);fired.append(True)
+            return answer
+        with patch.object(terminal,'encode',changed),self.assertRaises(ValueError):
+            terminal.retained_sql_model(self.workflow,time.monotonic()+30)
+        self.assertTrue(fired);self.assertEqual(self.workflow.read_bytes(),original)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.workflow = Path(self.temp.name)/'workflow.sqlite'

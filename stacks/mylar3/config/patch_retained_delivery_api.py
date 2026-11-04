@@ -3,12 +3,12 @@ import ast
 from pathlib import Path
 import sys
 
-from publication_retained_api import API_METHODS as METHODS
+from publication_retained_api import API_METHODS as METHODS, COMMANDS
 
 
 def patched_source(source):
     if '# homelab-retained-delivery-api-v1' in source:
-        if source.count(METHODS)!=1 or source.count("'retainedDeliveryFinalize'")!=1 or source.count("'retainedDeliveryStatus'")!=1:raise ValueError('Retained owning hook changed')
+        if source.count(METHODS)!=1 or any(source.count(repr(name))!=1 for name in COMMANDS):raise ValueError('Retained owning hook changed')
         ast.parse(source);return source
     tree=ast.parse(source);classes=[x for x in tree.body if isinstance(x,ast.ClassDef) and x.name=='Api']
     if len(classes)!=1:raise ValueError('Exact native Api required')
@@ -16,9 +16,9 @@ def patched_source(source):
     lists=[x for x in ast.walk(tree) if isinstance(x,ast.List) and all(isinstance(y,ast.Constant) and isinstance(y.value,str) for y in x.elts) and any(y.value=='packCatalog' for y in x.elts)]
     if len(methods)!=1 or len(lists)!=1:raise ValueError('Exact installed dispatcher required')
     node=lists[0]
-    if any(x.value in ('retainedDeliveryFinalize','retainedDeliveryStatus') for x in node.elts):raise ValueError('Partial retained hook')
+    if any(x.value in COMMANDS for x in node.elts):raise ValueError('Partial retained hook')
     lines=source.splitlines(keepends=True);line=lines[node.end_lineno-1].encode()
-    lines[node.end_lineno-1]=(line[:node.end_col_offset-1]+b", 'retainedDeliveryFinalize', 'retainedDeliveryStatus'"+line[node.end_col_offset-1:]).decode()
+    lines[node.end_lineno-1]=(line[:node.end_col_offset-1]+(', '+', '.join(repr(name) for name in COMMANDS)).encode()+line[node.end_col_offset-1:]).decode()
     lines.insert(methods[0].lineno-1,METHODS)
     result=''.join(lines);ast.parse(result)
     if result.count(METHODS)!=1:raise ValueError('Retained hook installation drift')

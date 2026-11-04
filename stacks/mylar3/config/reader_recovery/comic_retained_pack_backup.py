@@ -33,13 +33,14 @@ def snapshot(roots):
     def walk(p):
         nonlocal total
         z=os.lstat(p);stamp=nine(z);kind=z.st_mode&0o170000
-        need(kind in (0o040000,0o100000),'backup-tree-type')
+        need(kind in (0o040000,0o100000,0o120000),'backup-tree-type')
         need(str(p) not in files or files[str(p)]==stamp,'backup-original-conflict');files[str(p)]=stamp
         if kind==0o100000:
             need(z.st_nlink==1,'backup-selected-alias');total+=z.st_size;need(total<=MAX_BYTES,'backup-byte-bound')
-        else:
+        elif kind==0o040000:
             nodes[str(p)]=five(z);names=tuple(sorted(os.listdir(p)));spaces[str(p)]=names
             for name in names:walk(p/name)
+        else:need(z.st_nlink==1,'backup-selected-symlink-alias')
         need(len(files)<=MAX_NODES,'backup-node-bound')
     # Known roots and ancestors precede first enumeration.
     for root in roots:

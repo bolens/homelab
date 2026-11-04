@@ -24,6 +24,7 @@ class Controls(unittest.TestCase):
         f.library.rename(f.common/'comics');f.library=f.common/'comics'
         f.retention.rename(f.common/'.repair');f.retention=f.common/'.repair'
         f.common.chmod(0o777);f.library.chmod(0o777);(f.common/'manga').mkdir(mode=0o775)
+        (f.common/'manga').chmod(0o775)
         self.document['publication_geometry']=dict(version=3,kind='configured-common-root-nfs',
             **{role:f.directory(path) for role,path in
                (('common_root',f.common),('library',f.library),('retention',f.retention))},

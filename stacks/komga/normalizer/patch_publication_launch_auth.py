@@ -148,11 +148,22 @@ def main(directory):
         if node(os.lstat(path)) != original: raise ValueError('Auth source ancestor changed')
     for directory in (target.parent, target):
         if not directory.exists():
-            os.mkdir(directory, 0o755)
-            z = os.lstat(directory); security(z)
-            if not stat.S_ISDIR(z.st_mode) or stat.S_IMODE(z.st_mode) != 0o755:
-                raise ValueError('Auth created directory')
-            nodes[directory] = node(z)
+            # Private birth and descriptor publication make the final mode
+            # independent of the caller's umask. Existing nodes are never chmodded.
+            os.mkdir(directory, 0o700)
+            born=full(os.lstat(directory))
+            fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            try:
+                opened=full(os.fstat(fd));security(os.fstat(fd))
+                if (opened!=born or not stat.S_ISDIR(born[5]) or born[5]&0o077
+                        or full(os.lstat(directory))!=born):
+                    raise ValueError('Auth created private directory')
+                os.fchmod(fd,0o755);os.fsync(fd);published=full(os.fstat(fd))
+                if (tuple(published[i] for i in (0,1,2,3,6,7,8))!=tuple(born[i] for i in (0,1,2,3,6,7,8))
+                        or stat.S_IMODE(published[5])!=0o755 or full(os.lstat(directory))!=published):
+                    raise ValueError('Auth created directory publication changed')
+                nodes[directory]=(published[0],published[1],published[5],published[6],published[7])
+            finally:os.close(fd)
     for path, data in payloads.items():
         if destinations[path] is not None: continue
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)

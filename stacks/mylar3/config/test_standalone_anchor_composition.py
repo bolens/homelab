@@ -92,7 +92,14 @@ class Anchors(unittest.TestCase):
             warnings.simplefilter('error',DeprecationWarning)
             warnings.simplefilter('error',SyntaxWarning)
             tree=ast.parse((HOST/'BOOTSTRAP.py').read_bytes())
-        self.assertEqual([n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value==r'[a-z_]+\.py'],[r'[a-z_]+\.py'])
+        import re
+        checks=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
+                and n.func.attr=='fullmatch' and len(n.args)==2 and isinstance(n.args[1],ast.Name) and n.args[1].id=='k']
+        self.assertEqual(len(checks),1)
+        predicate=compile(ast.Expression(checks[0]),str(HOST/'BOOTSTRAP.py'),'eval')
+        for name,accepted in (('normalize.py',True),('operations_v2.py',True),('__init__.py',True),
+                              ('../source.py',False),('2source.py',False),('source.pyc',False)):
+            with self.subTest(name=name):self.assertEqual(bool(eval(predicate,{'re':re,'k':name})),accepted)
         names={'need','nine','read'}
         selected=ast.Module(body=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names],type_ignores=[])
         module=types.ModuleType('original_bootstrap_read');module.os=os
@@ -127,12 +134,12 @@ class Profile(unittest.TestCase):
         import ast
         broker=load('comic_retained_standalone_broker')
         tree=ast.parse((HOST/'comic_retained_standalone_broker.py').read_bytes())
-        method=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='launch_original')
+        method=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_launch_bound')
         first=next(i for i,n in enumerate(method.body) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='arguments' for t in n.targets))
         last=next(i for i,n in enumerate(method.body[first:],first) if isinstance(n,ast.AugAssign) and isinstance(n.target,ast.Name) and n.target.id=='arguments')
         body=ast.Module(body=method.body[first:last+1],type_ignores=[])
         native=dict(self.native,Config={'Env':[]})
-        scope=dict(Path=Path,Held=broker.Held,native=native,ANCHOR_NAMES=broker.ANCHOR_NAMES,CHILD_ANCHORS=Path('/etc/mylar-publication-launch/child'),bootstrap=b'# public argv fixture',input_child='/config/input.json',input_ref={'sha256':'f'*64})
+        scope=dict(Path=Path,Held=broker.Held,selected=native,networks=('none',),name='rd-standalone-'+'a'*64,ANCHOR_NAMES=broker.ANCHOR_NAMES,CHILD_ANCHORS=Path('/etc/mylar-publication-launch/child'),bootstrap=b'# public argv fixture',input_child='/config/input.json',input_ref={'sha256':'f'*64})
         exec(compile(body,str(HOST/'comic_retained_standalone_broker.py'),'exec'),scope)
         args=scope['arguments'];mounts=[args[i+1] for i,x in enumerate(args) if x=='--mount']
         self.assertEqual(mounts,['type=bind,src=/public/data,dst=/config']+['type=bind,src=/etc/mylar-publication-launch/child/'+n+',dst=/opt/mylar-publication-launch/'+n+',readonly' for n in broker.ANCHOR_NAMES])

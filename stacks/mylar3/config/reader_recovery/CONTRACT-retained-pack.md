@@ -1,10 +1,10 @@
-# Retained pack pre-proof parent and worker proposal
+# Retained pack recovery protocol
 
-This retained-recovery protocol remains default-disabled. Its original same-live worker conversation and terminal gates remain in force. The follow-up fixed public-anchor composition below changes only the scoped installation/profile, copied-source pins and image layout; it changes no Maintenance delegate, normal tick, API activation or existing 90-second selection/action deadline. It does not implement independent terminal restart acceptance.
+This retained-recovery protocol remains default-disabled. Its original same-live worker conversation and terminal gates remain in force. The follow-up fixed public-anchor composition below changes only the scoped installation/profile, copied-source pins and image layout; it changes no Maintenance delegate, normal tick, API activation or existing 90-second selection/action deadline. The Root broker now composes independent terminal verification and guarded reader resume. Matching installed-image and configured runtime acceptance remain required; source tests do not complete them.
 
 ## Files and identities
 
-Install locations for a future reviewed integration are `stacks/mylar3/config/reader_recovery/comic_retained_pack_parent.py` and adjacent `comic_retained_pack_backup.py`, and `stacks/komga/normalizer/retained_pack_control.py`. The parent also needs an adjacent byte-identical control module for its pipe mechanism, plus existing neutral `comic_reader_backup_primitives.py`. The parent imports no Reader-specific phase or negative-five capability. The copied primitive source is an existing dependency, not a production edit.
+Install locations for a future reviewed integration are `stacks/mylar3/config/reader_recovery/comic_retained_pack_parent.py` and adjacent `comic_retained_pack_backup.py`, and `stacks/komga/normalizer/retained_pack_control.py`. The parent also needs an adjacent byte-identical control module for its pipe mechanism, plus existing neutral `comic_reader_backup_primitives.py`. The parent reuses the existing reader profile comparators for owned stop/start transitions; it imports no Reader-specific phase or negative-five capability. The copied primitive source is an existing dependency, not a production edit.
 
 The worker uses actual Normalizer, Maintenance, OperationsV2 session, Writer, source frames, action and fixed finalize/status transport. It holds the actual existing worker.lock FD across initialization, waiting, selection and result. Selection starts only after the original parent challenge joins its actual sealed BackupObservation. There is no session/action/observation deserializer, generic inspect engine parameter, backup callback or repeated finalize.
 
@@ -38,7 +38,7 @@ These are refusal ceilings tested on actual disposable state, not measured live 
 
 ## Activation graph and remaining gates
 
-Parent and legacy direct worker gates remain disabled. The native API can mint a finite admission only for the primary normal API key, an enabled API, POST, the exact installed handler/request/source cohort and ordinary Writer. Direct kernels remain disabled without that original admission. The worker accepts a separate typed admission from its fixed public-anchor loader, bound to the original reviewed Parent, request, sources and channel. These admissions grant no Root backup or reader-resume authority. The Root configured pack launcher and independent terminal/resume bridge remain unfinished; public image anchors remain empty and ordinary worker startup stays unchanged.
+Parent and legacy direct worker gates remain disabled. The native API can mint a finite admission only for the primary normal API key, an enabled API, POST, the exact installed handler/request/source cohort and ordinary Writer. Direct kernels remain disabled without that original admission. The worker accepts a separate typed admission from its fixed public-anchor loader, bound to the original reviewed Parent, request, sources and channel. These admissions grant no Root backup or reader-resume authority. The fixed Root configured pack launcher now owns the terminal/resume bridge described below. Public image anchors remain empty and ordinary worker startup stays unchanged; a reviewed private installation and actual runtime acceptance are still required.
 
 Mandatory remaining gates: selected Python3.10 canonical installed control and full API authentication/transport; real source/mount/pipe full9 geometry; actual pause/unpause native background admissibility; original configured network IDs and profile stability in real Docker; measured state-copy capacity; independent exact current native/worker terminal/SQL/receipt/backup closure plus compatible reader restart. `collect` returns reader_resume_grant=False and operational_custody_complete=False. No restart, backup deletion, active daemon change, historical delivery acknowledgement, indexing acceptance or completed-feature claim follows this result.
 
@@ -49,7 +49,7 @@ and payload. It derives only the native two-row successor and requires every
 other row, schema and catalog entry unchanged. Worker preparation checks those
 same original member conditions before writing an intent or dispatching, and
 its reply consumer binds the returned pack row to that exact original selection.
-These source checks do not complete the unwired host terminal/reader gate. Persistent finalization records use schema v2: the exact raw pack-row preimage and a complete-workflow commitment replace an embedded workflow snapshot. Restart status reverses only the recorded two-row successor and checks the reconstructed complete preimage. Earlier final records are preserved without recursively copying them. This factual reconciliation cannot reconstruct a live event or authorize replay or reader resume.
+These source checks do not complete configured host terminal/reader acceptance. Persistent finalization records use schema v2: the exact raw pack-row preimage and a complete-workflow commitment replace an embedded workflow snapshot. Restart status reverses only the recorded two-row successor and checks the reconstructed complete preimage. Earlier final records are preserved without recursively copying them. This factual reconciliation cannot reconstruct a live event or authorize replay or reader resume.
 
 ## Controls and packaging
 
@@ -75,12 +75,12 @@ V3 remains immutable and held after the unchanged first-factory callback install
 
 ## Fixed public anchor composition (follow-up profile v2)
 
-This composition is implemented by `standalone_launch_host/` and applies to its
-standalone parent/broker. The pack parent's legacy configured launcher has not
-adopted it: it still accepts bind mounts only and its worker entry stays disabled.
-T028 must compose the actual reviewed pack activation, original named volumes
-and owner-principal NFS reads before any configured pack acceptance. The
-standalone source controls below do not establish that pack runtime proof.
+This composition is implemented by `standalone_launch_host/` for its standalone
+and retained-pack broker purposes. The legacy direct pack launcher remains
+disabled and bind-only. The fixed broker preserves the original configured bind
+or named-volume mappings, networks and worker image and adds only the three
+fixed public-anchor leaves. T028 still requires matching installed-image and
+actual configured runtime acceptance.
 
 
 The ordinary image remains unprovisioned: it carries public auth code and only
@@ -101,3 +101,39 @@ profile, creator, inode, mode, symlink or foreign destination holds without
 repairing unknown state. This is a security-relevant scoped launch contract
 revision; it changes no ordinary service mounts, startup or availability. No
 configured live or historical ACK acceptance follows source tests.
+
+## Root terminal and resume ownership
+
+The fixed pack broker starts the selected worker while Native remains available
+for initialization. After the initialized frame, it reserves Native operations
+for the exact request, captures owner-principal media originals, pauses Native,
+stops the reader, and verifies all three state backups and isolated restores.
+It releases its Native pause before sending the signed backup frame. A backup
+failure still reaches that one owned unpause; it grants no reader resume.
+
+From signed stage 2 through validated stage 5, runtime closure uses original
+local process, pipe, source and namespace descriptors without Docker or HTTP.
+The independent terminal observer checks actual all-table SQL against the
+original verified backup, the precise two-row successor, complete state censuses,
+selected local receipt replacement, finite Native preservation/journal outputs,
+media originals and image source facts. Container paths are mapped through the
+original inspected mounts before host-scope comparisons. Large terminal artifacts
+have a separate 64 MiB read bound; Native INI reads retain their 2 MiB bound,
+ordinary config/control reads retain their 1 MiB bound,
+and selected local receipts retain the Worker's 4 MiB bound.
+
+Only the validated Writer-release ACK and exact natural worker exit permit
+another complete terminal check and the one guarded reader start. Unknown
+lifecycle ACKs cannot be retried or rebased. Native reservation close then checks
+the final record and complete SQL proof, archives independently verified private
+markers, and retires the active restart fence. Caught late failures restore a
+negative fence. Its successful close is the ordinary-writer release commit;
+subsequent normal background activity is not compared with a pre-release media
+snapshot. Backup copies, original sources, pipes and process profiles still close.
+Saved receipts grant no mutation, replay, import, indexing or general cleanup.
+
+The composed source test joins actual backup/restore, Native HTTP finalization,
+Worker CAS and Root terminal verification, and refuses changed reader state.
+Its namespace/principal adapters are explicit fixtures. Separate non-identity
+mount tests cover host/container journal mapping; neither test establishes the
+actual configured Docker lifecycle or selected-image acceptance.

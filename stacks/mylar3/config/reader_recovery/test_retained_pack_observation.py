@@ -148,5 +148,65 @@ class OwnerReads(unittest.TestCase):
             held.close()
 
 
+class ProcessImageReads(unittest.TestCase):
+    """Actual self-process namespace/FDs with an explicit runtime/principal double."""
+    def setUp(self):
+        import comic_retained_pack_parent as parent
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.path=self.root/'public.py';self.path.write_bytes(b'# public source\n');self.path.chmod(0o644)
+        self.runtime=object.__new__(parent.ConfiguredRuntime)
+        self.runtime.baseline={'native':{'State':{'Pid':os.getpid()},'Mounts':[]}};self.runtime.deadline=time.monotonic()+30
+        self.runtime.process=None;parent._RUNTIMES[self.runtime]=b'explicit mechanics fixture'
+        self.addCleanup(parent._RUNTIMES.pop,self.runtime,None)
+        uid=os.geteuid()
+        for context in (patch.object(parent.ConfiguredRuntime,'close_local',lambda _:None),
+                        patch.object(observation.os,'geteuid',return_value=0),
+                        patch.object(observation,'IMAGE_SOURCE_UID',uid),
+                        patch.object(observation,'IMAGE_SOURCE_PREFIXES',(str(self.root),))):
+            context.start();self.addCleanup(context.stop)
+        self.pins={str(self.path):hashlib.sha256(self.path.read_bytes()).hexdigest()}
+    def capture(self):return observation.ProcessImageObservation.capture(self.runtime,'native',self.pins)
+    def test_live_namespace_and_source_FDs_close_without_engine_calls(self):
+        value=self.capture();data=value.data();self.assertEqual(data[str(self.path)]['sha256'],self.pins[str(self.path)])
+        original=value.close();fds=original[15];value.release()
+        for fd in fds:
+            with self.assertRaises(OSError):os.fstat(fd)
+    def test_same_bytes_replacement_refuses_and_release_still_closes_owned_FDs(self):
+        value=self.capture();fds=value.close()[15]
+        replacement=self.root/'replacement';replacement.write_bytes(self.path.read_bytes());replacement.chmod(0o644)
+        os.replace(replacement,self.path)
+        with self.assertRaisesRegex(ValueError,'original-source'):value.close()
+        with self.assertRaises(ValueError):value.release()
+        for fd in fds:
+            with self.assertRaises(OSError):os.fstat(fd)
+    def test_changed_same_result_helper_is_not_a_new_source_witness(self):
+        value=self.capture();encode=observation.encode
+        with patch.object(observation,'encode',lambda data:encode(data)):
+            with self.assertRaisesRegex(ValueError,'original-helper'):value.close()
+        value.release()
+    def test_foreign_checker_is_refused_before_it_can_run(self):
+        value=self.capture();called=[]
+        def foreign(*args):called.append(True)
+        with patch.object(observation,'need',foreign):
+            with self.assertRaisesRegex(ValueError,'original-helper'):value.close()
+        self.assertEqual(called,[]);value.release()
+
+    def test_release_preserves_foreign_reused_FD_and_closes_other_owned_FDs(self):
+        value=self.capture();original=value.close();selected=original[10][0][1]
+        foreign=self.root/'foreign';foreign.write_bytes(b'foreign')
+        os.close(selected);replacement=os.open(foreign,os.O_RDONLY)
+        self.addCleanup(os.close,replacement);self.assertEqual(replacement,selected)
+        with self.assertRaises(ValueError):value.release()
+        self.assertEqual(os.fstat(replacement).st_ino,foreign.stat().st_ino)
+        for fd in original[15]:
+            if fd!=replacement:
+                with self.assertRaises(OSError):os.fstat(fd)
+
+    def test_failed_capture_closes_all_new_descriptors(self):
+        original=len(os.listdir('/proc/self/fd'));self.pins[str(self.path)]='a'*64
+        with self.assertRaisesRegex(ValueError,'original-bytes'):self.capture()
+        self.assertEqual(len(os.listdir('/proc/self/fd')),original)
+
+
 if __name__ == '__main__':
     unittest.main()

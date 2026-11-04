@@ -138,7 +138,11 @@ The separate disabled retained-pack parent keeps one selected worker and its
 original pipes and worker lock alive through initialization, consistent state
 backup, isolated restore, one member action, and the final result exchange. Its
 neutral backup covers native configuration, worker state and reader configuration.
-The result grants no automatic restart, cleanup or reader acceptance. The exact
+The factual result grants no automatic restart, cleanup or reader acceptance.
+The fixed Root broker separately verifies current SQL, complete state and media
+originals, Worker release and natural exit before its guarded reader resume and
+Native reservation close. Matching installed-image and configured runtime proof
+remain required. The exact
 worker control is an adjacent host dependency, not a Mylar SDK module. See
 [the retained-pack contract](CONTRACT-retained-pack.md). The mandatory copied API
 gate runs its 48 owning controls; the historical 591 recovery controls include three additional complete-census NFS controls. Actual installed source, bind geometry, state capacity and native
