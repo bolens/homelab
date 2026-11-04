@@ -60,6 +60,18 @@ class Endpoint(unittest.TestCase):
             request=json.loads(self.base.raw()),proof=proof)
   self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(body))
   return json.loads(self.handler.fetchData())
+ def test_actual_broker_session_packet_is_accepted_by_actual_handler(self):
+  spec=importlib.util.spec_from_file_location('retained_broker_wire',ROOT/'standalone_launch_host/comic_retained_standalone_broker.py')
+  broker=importlib.util.module_from_spec(spec);spec.loader.exec_module(broker)
+  boot=dict(nonce='9'*64,request=json.loads(self.base.raw()))
+  packet=broker.native_session_request(boot,'open')
+  self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(packet))
+  answer=json.loads(self.handler.fetchData());self.assertTrue(answer['success'])
+  self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  packet=broker.native_session_request(boot,'observe')
+  self.handler.checkParams(cmd='retainedDeliverySession',apikey=self.pkg.CONFIG.API_KEY,request=json.dumps(packet))
+  self.assertEqual(json.loads(self.handler.fetchData())['data']['state'],'active-original-process')
+
  def test_native_session_blocks_background_but_allows_exact_retained_action(self):
   before=self.c.c.database.read_bytes();opened=self.session_call('open')
   self.assertTrue(opened['success']);self.assertEqual(self.c.c.database.read_bytes(),before)
@@ -96,22 +108,27 @@ class Endpoint(unittest.TestCase):
   closed=self.session_call('close',proof=proof);self.assertTrue(closed['success'])
   self.assertEqual(closed['data']['proof'],proof)
   self.assertIsNone(self.endpoint._ROOT_SESSION)
-  self.assertTrue((self.c.c.writer_root/self.endpoint._SESSION_PENDING).is_file())
-  self.assertTrue((self.c.c.writer_root/self.endpoint._SESSION_CLOSED).is_file())
+  self.assertFalse((self.c.c.writer_root/self.endpoint._SESSION_PENDING).exists())
+  self.assertFalse((self.c.c.writer_root/self.endpoint._SESSION_CLOSED).exists())
+  history=self.c.c.writer_root/self.endpoint._SESSION_HISTORY/('9'*64)
+  self.assertEqual(sorted(p.name for p in history.iterdir()),['closed.json','pending.json'])
+  self.assertEqual(json.loads((history/'closed.json').read_bytes())['proof'],proof)
+  self.assertTrue(all(p.stat().st_nlink==1 for p in history.iterdir()))
   with self.n.operation():pass
   from mylar import publication_api,publication_guard
   with patch.object(publication_api,'__package__','mylar'),patch.object(publication_guard,'__package__','mylar'):
    self.assertEqual(self.n.startup_status()['state'],'ready')
    with self.n.owner().hold(timeout=0) as writer:publication_api._ordinary_native_session(writer)
   self.assertFalse(self.session_call('close',proof=proof)['success'])
-  with patch.object(self.endpoint,'_ROOT_COMPLETED',None):
-   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
-   with self.assertRaises(sys.modules['mylar.media_writer'].Busy):
-    with self.n.operation():self.fail('Saved completion restored ordinary custody')
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['state'],'ready')
+   with self.n.operation():pass
+  self.assertFalse(self.session_call('open')['success'])
+  self.assertTrue(self.session_call('open',nonce='8'*64)['success'])
  def test_closed_without_pending_or_live_custody_is_negative_evidence(self):
   marker=self.c.c.writer_root/self.endpoint._SESSION_CLOSED
   marker.write_bytes(b'{"untrusted":"saved-completion"}');marker.chmod(0o600)
-  self.assertIsNone(self.endpoint._ROOT_SESSION);self.assertIsNone(self.endpoint._ROOT_COMPLETED)
+  self.assertIsNone(self.endpoint._ROOT_SESSION)
   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
   with self.assertRaises(sys.modules['mylar.media_writer'].Busy):
    with self.n.operation():self.fail('Saved close receipt granted ordinary admission')
@@ -215,6 +232,99 @@ class Endpoint(unittest.TestCase):
   from mylar import publication_api
   with patch.object(publication_api,'__package__','mylar'),self.assertRaises(publication_api.guard.Unavailable):
    self.c.c.dispatch(dict(action='review'))
+
+ def test_native_session_late_retirement_sync_failure_restores_restart_fence(self):
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+   catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+   record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  root=self.c.c.writer_root;real_fsync=os.fsync;failed_once=[]
+  def failed(fd):
+   if not failed_once and not any((root/name).exists() for name in (self.endpoint._SESSION_PENDING,self.endpoint._SESSION_CLOSED)):
+    failed_once.append(True);raise OSError('Synthetic final commit sync failure')
+   return real_fsync(fd)
+  with patch.object(self.endpoint.os,'fsync',failed):
+   self.assertFalse(self.session_call('close',proof=proof)['success'])
+  self.assertTrue(failed_once);self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  self.assertTrue((root/self.endpoint._SESSION_CLOSED).is_file())
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+
+ def test_native_session_Writer_exit_failure_restores_restart_fence(self):
+  from contextlib import contextmanager
+  self.assertTrue(self.session_call('open')['success']);answer=self.call();self.assertTrue(answer['success'])
+  r=fixture.r
+  digest=lambda value:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+  proof=dict(workflow_sha256=digest(r._sql(self.c.c.database,r.o.signature(self.c.c.database))),
+   catalog_sha256=digest(r._sql(self.c.c.native_database,r.o.signature(self.c.c.native_database))),
+   record_sha256=answer['data']['record_sha256'],root_release_nonce='7'*64,worker_ack_sha256='6'*64)
+  root=self.c.c.writer_root;writer_type=type(self.n.owner());hold=writer_type.hold;failed=[]
+  @contextmanager
+  def uncertain(writer,*args,**kwargs):
+   with hold(writer,*args,**kwargs):yield writer
+   if not any((root/name).exists() for name in (self.endpoint._SESSION_PENDING,self.endpoint._SESSION_CLOSED)):
+    failed.append(True);raise OSError('Synthetic Writer exit uncertainty')
+  with patch.object(writer_type,'hold',uncertain):
+   self.assertFalse(self.session_call('close',proof=proof)['success'])
+  self.assertEqual(failed,[True]);self.assertIsNotNone(self.endpoint._ROOT_SESSION)
+  self.assertTrue((root/self.endpoint._SESSION_CLOSED).exists())
+  with patch.object(self.endpoint,'_ROOT_SESSION',None):
+   self.assertEqual(self.n.startup_status()['reason'],'retained-session')
+
+ def test_retirement_recloses_copies_at_each_sync_boundary(self):
+  import tempfile
+  endpoint=self.endpoint;real_fsync=os.fsync
+  for fault in range(1,7):
+   with self.subTest(sync=fault),tempfile.TemporaryDirectory() as directory:
+    root=Path(directory);history=root/'history';history.mkdir(mode=0o700)
+    marker=b'pending';closed=b'closed'
+    pending9=endpoint._session_save(root,endpoint._SESSION_PENDING,marker)
+    closed9=endpoint._session_save(root,endpoint._SESSION_CLOSED,closed)
+    record=SimpleNamespace(root=root,root5=endpoint._session_five(root.stat()),history=history,
+     history5=endpoint._session_five(history.stat()),history_parent5=endpoint._session_five(root.stat()),
+     marker_bytes=marker,marker9=pending9,files=(),nodes=())
+    calls=[]
+    def failed(fd):
+     calls.append(fd)
+     if len(calls)==fault:raise OSError('Synthetic retirement sync failure')
+     return real_fsync(fd)
+    with patch.object(endpoint,'_ROOT_SESSION',record),patch.object(endpoint.os,'fsync',failed):
+     with self.assertRaisesRegex(OSError,'Synthetic retirement'):
+      try:endpoint._session_retire(record,closed9,((),(),()))
+      except BaseException:
+       endpoint._session_refence(record,closed);raise
+    self.assertTrue(any((root/name).exists() for name in (endpoint._SESSION_PENDING,endpoint._SESSION_CLOSED)))
+
+ def test_retirement_detects_postcommit_history_replacement_and_closes_failed_open(self):
+  import tempfile
+  endpoint=self.endpoint;real_fsync=os.fsync;real_open=os.open
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);history=root/'history';history.mkdir(mode=0o700)
+   pending9=endpoint._session_save(root,endpoint._SESSION_PENDING,b'pending')
+   closed9=endpoint._session_save(root,endpoint._SESSION_CLOSED,b'closed')
+   record=SimpleNamespace(root=root,root5=endpoint._session_five(root.stat()),history=history,
+    history5=endpoint._session_five(history.stat()),history_parent5=endpoint._session_five(root.stat()),
+    marker_bytes=b'pending',marker9=pending9,files=(),nodes=())
+   before=set(os.listdir('/proc/self/fd'))
+   def refused(path,*args,**kwargs):
+    if path==history:raise OSError('Synthetic history open failure')
+    return real_open(path,*args,**kwargs)
+   with patch.object(endpoint.os,'open',refused),self.assertRaises(OSError):
+    endpoint._session_retire(record,closed9,((),(),()))
+   self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+   changed=[]
+   def corrupt(fd):
+    if not changed and not (root/endpoint._SESSION_PENDING).exists():
+     changed.append(True);p=history/'closed.json';p.unlink();p.write_bytes(b'closed');p.chmod(0o600)
+    return real_fsync(fd)
+   with patch.object(endpoint,'_ROOT_SESSION',record),patch.object(endpoint.os,'fsync',corrupt):
+    with self.assertRaises(ValueError):
+     try:endpoint._session_retire(record,closed9,((),(),()))
+     except BaseException:
+      endpoint._session_refence(record,b'closed');raise
+   self.assertTrue(changed);self.assertTrue((root/endpoint._SESSION_CLOSED).exists())
 
  def test_reserved_liveness_needs_original_custody_but_not_external_Writer(self):
   import threading

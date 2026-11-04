@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "e5e7ab45c2afbe7ef3b811d5783cd6cac978f006ffb5c6b2bc412c10fbd72ea9",
+  "base_cohort_sha256": "f718b4130938b1539126681f8d0278d08038dad2db0ed5c88ad1c1446e5f571f",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -127,7 +127,7 @@
     "combined_cleanup.py": "9d6a91a25dbf6a84d4c937c5536874be976e0383001d6a97eca9a3c0a9f537df",
     "combined_publication.py": "13cf0f3d7572db2f8fe748f36c6ffec0adb90410aa5350aeb258d0a6343646af",
     "comic_format_preference.py": "134a033489a3bd8909cad5fdcc29864e296fd1e752ff596f7882fdb86a5ccedf",
-    "comic_retained_standalone_action.py": "66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411",
+    "comic_retained_standalone_action.py": "6c2e263ae168b902e7cf2b085ee7e025c5b0f621699285b358d6da6193c7f978",
     "comicbookdb.py": "17ffa052c7988c30f6ea785edc577bd0253f82110ee14d4a92727bb9165a7823",
     "config.py": "2cb652ef535220bf71624c66089643c9f0396a13e76e4375e4d23a104e98876c",
     "converted_catalog.py": "3e33eb0424ca2c908c0153ad8b7a0a12267eb31ba3b4df8459c0bdb907a5d4b3",
@@ -234,7 +234,7 @@
     "publication_rename.py": "4e1e16228f8a246472839e43abcc183c13b9fbff7a70e827c6b809486697e9af",
     "publication_rescan.py": "c12f336ec3c271b588c46d07cea36db9cf7981c9d97bfa5aad02a601e422f539",
     "publication_retained_api.py":
-      "1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9",
+      "5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d",
     "publication_retained_delivery.py": "e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804",
     "publication_retained_finalize.py": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44",
     "publication_retained_standalone.py": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
@@ -330,7 +330,7 @@
         "owning_adapters": [
           "patch_publication_retained_standalone.py"
         ],
-        "tracked_source_sha256": "66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411"
+        "tracked_source_sha256": "6c2e263ae168b902e7cf2b085ee7e025c5b0f621699285b358d6da6193c7f978"
       },
       "converted_catalog": {
         "owning_adapters": [
@@ -602,7 +602,7 @@
         "owning_adapters": [
           "patch_retained_delivery_api.py"
         ],
-        "tracked_source_sha256": "1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9"
+        "tracked_source_sha256": "5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d"
       },
       "publication_retained_delivery": {
         "owning_adapters": [

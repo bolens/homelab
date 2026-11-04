@@ -40,12 +40,12 @@ class Preproof(base.Composed):
   states={ids['reader']:dict(Running=True,Paused=False,Pid=111,StartedAt='reader-original',Status='running'),ids['native']:dict(Running=True,Paused=False,Pid=222,StartedAt='native-original',Status='running'),ids['worker']:dict(Running=False,Paused=False,Pid=0,StartedAt='',Status='created')}
   def row(cid):
    if cid==selected and proc.poll() is not None:states[cid].update(Running=False,Pid=0,Status='exited',ExitCode=proc.returncode)
-   return dict(Id=cid,Image='sha256:'+'5'*64,Config=dict(User='1000:1000'),HostConfig=dict(),Mounts=[],NetworkSettings=dict(Networks={}),State=copy.deepcopy(states[cid]))
+   return dict(Id=cid,Name='/fixture-'+cid,Path='/init',Args=[],Image='sha256:'+'5'*64,Config=dict(User='1000:1000'),HostConfig=dict(),Mounts=[],NetworkSettings=dict(Networks={}),State=copy.deepcopy(states[cid]))
   def engine(owner,args):
    if args[0]=='inspect':return json.dumps([row(args[1])]).encode()
-   if args[0]=='pause':states[args[1]]['Paused']=True;return b''
-   if args[0]=='stop':states[args[-1]].update(Running=False,Pid=0,Status='exited');return b''
-   if args[0]=='unpause':states[args[1]]['Paused']=False;return b''
+   if args[0]=='pause':states[args[1]]['Paused']=True;return (args[1]+'\n').encode()
+   if args[0]=='stop':states[args[-1]].update(Running=False,Pid=0,Status='exited');return (args[-1]+'\n').encode()
+   if args[0]=='unpause':states[args[1]]['Paused']=False;return (args[1]+'\n').encode()
    if args[0]=='events':return b''
    raise AssertionError(args)
   primitive=Path(os.environ['RETAINED_PRIMITIVES']);pin=hashlib.sha256(primitive.read_bytes()).hexdigest()

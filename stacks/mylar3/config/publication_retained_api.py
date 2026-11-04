@@ -265,10 +265,9 @@ if __package__:
     from .media_writer import NATIVE_SESSION_CLOSED as _SESSION_CLOSED
 else:
     from media_writer import NATIVE_SESSION_CLOSED as _SESSION_CLOSED
-_NativeSession=namedtuple('_NativeSession','root root5 nonce request_bytes config pid deadline marker_bytes marker9 files nodes hashes')
+_SESSION_HISTORY='retained-native-session-history-v1'
+_NativeSession=namedtuple('_NativeSession','root root5 nonce request_bytes config pid deadline marker_bytes marker9 files nodes hashes history history5 history_parent5')
 _ROOT_SESSION=None
-_NativeCompleted=namedtuple('_NativeCompleted','session closed_bytes closed9')
-_ROOT_COMPLETED=None
 
 
 def _session_nine(value):
@@ -293,31 +292,113 @@ def _session_read(path,stamp):
     finally:os.close(fd)
 
 
-def _session_save(root,name,data):
-    path=root/name;fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-    try:
-        born=_session_nine(os.fstat(fd))
-        if born[5]&0o177777!=0o100600 or born[6:]!=(os.geteuid(),os.getegid(),1):
-            raise ValueError('Private native reservation birth required')
-        view=memoryview(data)
-        while view:
-            count=os.write(fd,view)
-            if count<=0:raise ValueError('Native reservation short write')
-            view=view[count:]
-        os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);stamp=_session_nine(os.fstat(fd))
-        if (stamp[:2]+stamp[5:]!=born[:2]+born[5:] or stamp[2]!=len(data)
-                or os.read(fd,len(data)+1)!=data or _session_nine(os.lstat(path))!=stamp):
-            raise ValueError('Native reservation created file changed')
-    finally:os.close(fd)
+def _session_save(root,name,data,root5=None):
+    original=_session_five(os.lstat(root)) if root5 is None else root5
     d=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
-    try:os.fsync(d)
+    try:
+        if _session_five(os.fstat(d))!=original:raise ValueError('Original native reservation directory changed')
+        fd=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=d)
+        try:
+            born=_session_nine(os.fstat(fd))
+            if born[5]&0o177777!=0o100600 or born[6:]!=(os.geteuid(),os.getegid(),1):
+                raise ValueError('Private native reservation birth required')
+            view=memoryview(data)
+            while view:
+                count=os.write(fd,view)
+                if count<=0:raise ValueError('Native reservation short write')
+                view=view[count:]
+            os.fsync(fd);os.lseek(fd,0,os.SEEK_SET);stamp=_session_nine(os.fstat(fd))
+            if (stamp[:2]+stamp[5:]!=born[:2]+born[5:] or stamp[2]!=len(data)
+                    or os.read(fd,len(data)+1)!=data or _session_nine(os.stat(name,dir_fd=d,follow_symlinks=False))!=stamp):
+                raise ValueError('Native reservation created file changed')
+        finally:os.close(fd)
+        os.fsync(d)
+        if (_session_five(os.fstat(d))!=original or _session_five(os.lstat(root))!=original
+                or _session_nine(os.stat(name,dir_fd=d,follow_symlinks=False))!=stamp):
+            raise ValueError('Native reservation final directory changed')
+        return stamp
     finally:os.close(d)
-    return stamp
 
 
 def session_pending():
     """Negative authority only: live custody never becomes a readiness grant."""
     return _ROOT_SESSION is not None
+
+
+def _session_history(root,nonce):
+    parent=root/_SESSION_HISTORY
+    try:os.mkdir(parent,0o700)
+    except FileExistsError:pass
+    parent5=_session_five(os.lstat(parent))
+    if parent5[2]&0o177777!=0o40700 or parent5[3:]!=(os.geteuid(),os.getegid()):
+        raise ValueError('Private native session history required')
+    d=os.open(parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        if _session_five(os.fstat(d))!=parent5 or len(os.listdir(d))>=4096:
+            raise ValueError('Original bounded native session history required')
+        os.mkdir(nonce,0o700,dir_fd=d)
+        birth=_session_five(os.stat(nonce,dir_fd=d,follow_symlinks=False))
+        os.fsync(d)
+        if _session_five(os.stat(nonce,dir_fd=d,follow_symlinks=False))!=birth:
+            raise ValueError('Original native session history creation changed')
+    finally:os.close(d)
+    return parent/nonce,birth,parent5
+
+
+def _session_retire(record,closed9,sql_original):
+    """Archive verified independent copies; unlink pending is the commit point.
+
+    Before that point the original pending marker fences restart. After it,
+    caught failures restore a negative fence; saved history never grants access.
+    """
+    d=os.open(record.root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        h=os.open(record.history,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            def originals():
+                if (_ROOT_SESSION is not record or _session_five(os.fstat(d))!=record.root5
+                        or _session_five(os.lstat(record.root))!=record.root5
+                        or _session_five(os.fstat(h))!=record.history5
+                        or _session_five(os.lstat(record.history))!=record.history5
+                        or _session_five(os.lstat(record.history.parent))!=record.history_parent5):
+                    raise ValueError('Original native retirement directories changed')
+                for path,stamp in (*record.files,*sql_original[0]):
+                    if _session_nine(os.lstat(path))!=stamp:raise ValueError('Original native retirement source changed')
+                for path,stamp in (*record.nodes,*sql_original[1]):
+                    if _session_five(os.lstat(path))!=stamp:raise ValueError('Original native retirement ancestor changed')
+                for path in sql_original[2]:
+                    if os.path.lexists(path):raise ValueError('Native retirement SQL sidecar appeared')
+            originals()
+            if os.listdir(h):raise ValueError('Original empty retirement destination required')
+            archived=[]
+            for name,stamp,target in ((_SESSION_PENDING,record.marker9,'pending.json'),(_SESSION_CLOSED,closed9,'closed.json')):
+                data=_session_read(record.root/name,stamp)
+                copied=_session_save(record.history,target,data,record.history5)
+                archived.append((target,copied,data))
+            def copies():
+                if sorted(os.listdir(h))!=['closed.json','pending.json']:
+                    raise ValueError('Native retirement namespace changed')
+                for name,stamp,data in archived:
+                    if _session_read(record.history/name,stamp)!=data:
+                        raise ValueError('Original native retirement copy changed')
+            copies();originals()
+            if _session_nine(os.stat(_SESSION_CLOSED,dir_fd=d,follow_symlinks=False))!=closed9:
+                raise ValueError('Original native completion record changed')
+            os.unlink(_SESSION_CLOSED,dir_fd=d);os.fsync(d)
+            copies();originals()
+            if _session_read(record.root/_SESSION_PENDING,record.marker9)!=record.marker_bytes:
+                raise ValueError('Original native pending record changed')
+            # All business state and both durable copies precede the commit.
+            os.unlink(_SESSION_PENDING,dir_fd=d);os.fsync(d)
+            copies();originals()
+        finally:os.close(h)
+    finally:os.close(d)
+
+
+def _session_refence(record,closed):
+    """A caught post-commit failure retains negative restart evidence."""
+    if not any(os.path.lexists(record.root/name) for name in (_SESSION_PENDING,_SESSION_CLOSED)):
+        _session_save(record.root,_SESSION_CLOSED,closed,record.root5)
 
 
 def session_fenced(root):
@@ -326,33 +407,8 @@ def session_fenced(root):
 
 
 def _session_fenced(root):
-    """Only original in-process completion may exempt its retained marker.
-
-    The marker remains untouched through completion. Restart, absent/replaced
-    markers, or unknown close state are held; saved JSON never restores custody.
-    """
-    import mylar
-    root=Path(root)
-    if _ROOT_SESSION is not None:return True
-    completed=_ROOT_COMPLETED
-    if completed is None:return any(os.path.lexists(root/name) for name in (_SESSION_PENDING,_SESSION_CLOSED))
-    if type(completed) is not _NativeCompleted:return True
-    record=completed.session
-    if (type(record) is not _NativeSession or record.pid!=os.getpid() or root!=record.root
-            or _session_five(os.lstat(root))!=record.root5
-            or record.config!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,
-                              mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)):
-        return True
-    if (_session_read(root/_SESSION_PENDING,record.marker9)!=record.marker_bytes
-            or _session_read(root/_SESSION_CLOSED,completed.closed9)!=completed.closed_bytes):return True
-    for path,stamp in record.files:
-        if _session_nine(os.lstat(path))!=stamp:return True
-    for path,stamp in record.nodes:
-        if _session_five(os.lstat(path))!=stamp:return True
-    return (_ROOT_COMPLETED is not completed or _ROOT_SESSION is not None
-            or _session_nine(os.lstat(root/_SESSION_PENDING))!=record.marker9
-            or _session_nine(os.lstat(root/_SESSION_CLOSED))!=completed.closed9
-            or _session_five(os.lstat(root))!=record.root5)
+    """Active or incomplete markers fence; retired history grants no custody."""
+    return _ROOT_SESSION is not None or any(os.path.lexists(Path(root)/name) for name in (_SESSION_PENDING,_SESSION_CLOSED))
 
 
 def session_mode(record):
@@ -379,7 +435,9 @@ def session_file(writer,record):
     if (writer.root!=record.root or _session_five(os.lstat(record.root))!=record.root5
             or record.config!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,
                               mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)
-            or _session_read(record.root/_SESSION_PENDING,record.marker9)!=record.marker_bytes):
+            or _session_read(record.root/_SESSION_PENDING,record.marker9)!=record.marker_bytes
+            or _session_five(os.lstat(record.history))!=record.history5
+            or _session_five(os.lstat(record.history.parent))!=record.history_parent5 or os.listdir(record.history)):
         raise ValueError('Original native reservation changed')
     for path,digest in record.hashes:
         if hashlib.sha256(_session_source_read(path,dict(record.files)[path],record.deadline)).hexdigest()!=digest:
@@ -448,11 +506,12 @@ def _session_sql(data_root,request,proof_items):
             or json.loads(rows[0][2]).get('request')!=request):
         raise ValueError('Original finalized retained record required before native release')
     retained._raw(files,nodes,absent,{})
+    return tuple(files.items()),tuple(nodes.items()),tuple(absent)
 
 
 def session_execute(handler,raw):
     """Primary POST control for one exact request; no Reader or import grants."""
-    global _ROOT_SESSION,_ROOT_COMPLETED
+    global _ROOT_SESSION
     from mylar import native_writers,publication_retained_delivery as retained,publication_retained_finalize as finalizer
     deadline=time.monotonic()+_SESSION_SECONDS
     caller,config=_http_original(handler,raw)
@@ -478,12 +537,14 @@ def session_execute(handler,raw):
                     or os.path.lexists(root/_SESSION_PENDING) or os.path.lexists(root/_SESSION_CLOSED)):
                 raise ValueError('Retained native reservation already present or publication unavailable')
             with writer.hold(timeout=0):
+                root5=_session_five(os.lstat(root))
                 native_writers.admission(writer);_http_close(caller,config)
                 marker=retained.o.compact(dict(version=1,kind='retained-native-session-fence-v1',nonce=nonce,
                     request_sha256=hashlib.sha256(request_bytes).hexdigest(),pid=os.getpid()))
-                stamp=_session_save(root,_SESSION_PENDING,marker)
-                record=_NativeSession(root,_session_five(os.lstat(root)),nonce,request_bytes,config,
-                    os.getpid(),deadline,marker,stamp,files,nodes,hashes)
+                history,history5,history_parent5=_session_history(root,nonce)
+                stamp=_session_save(root,_SESSION_PENDING,marker,root5)
+                record=_NativeSession(root,root5,nonce,request_bytes,config,
+                    os.getpid(),deadline,marker,stamp,files,nodes,hashes,history,history5,history_parent5)
                 if _ROOT_SESSION is not None:raise ValueError('Original native reservation absence changed')
                 _ROOT_SESSION=record;session_file(writer,record)
                 answer=dict(version=1,kind='retained-native-session-opened',nonce=record.nonce,
@@ -493,27 +554,30 @@ def session_execute(handler,raw):
             record=_ROOT_SESSION
             if (record is None or record.nonce!=nonce or record.request_bytes!=request_bytes):
                 raise ValueError('Only original live native reservation can close')
-            with writer.hold(timeout=0):
-                session_file(writer,record);_http_close(caller,config)
-                _session_sql(config[0],value,proof_items);session_file(writer,record)
-                answer=dict(version=1,kind='retained-native-session-closed',nonce=record.nonce,
-                    request_sha256=hashlib.sha256(request_bytes).hexdigest(),proof=dict(proof_items),pid=record.pid)
-                closed=retained.o.compact(answer);closed9=_session_save(root,_SESSION_CLOSED,closed)
-                completed=_NativeCompleted(record,closed,closed9)
-                answer.update(mutation_authority=False,reader_resume_grant=False,ordinary_import_grant=False,cleanup_grant=False)
-                result=retained.o.compact(dict(success=True,data=answer)).decode()
-                _http_close(caller,config)
-                _session_sql(config[0],value,proof_items)
-                session_file(writer,record)
-                if (_session_read(root/_SESSION_CLOSED,closed9)!=closed or _ROOT_COMPLETED is not None):
-                    raise ValueError('Native reservation close uncertainty')
-                _http_close(caller,config);session_file(writer,record)
-                if _session_nine(os.lstat(root/_SESSION_CLOSED))!=closed9:
-                    raise ValueError('Original native completion record changed')
-                # No marker removal and no callback after the original closure.
-                # Unknown replies cannot replay close. Restart retains the hold.
-                _ROOT_COMPLETED=completed;_ROOT_SESSION=None
-                return result
+            closed=None
+            try:
+                with writer.hold(timeout=0):
+                    session_file(writer,record);_http_close(caller,config)
+                    _session_sql(config[0],value,proof_items);session_file(writer,record)
+                    answer=dict(version=1,kind='retained-native-session-closed',nonce=record.nonce,
+                        request_sha256=hashlib.sha256(request_bytes).hexdigest(),proof=dict(proof_items),pid=record.pid)
+                    closed=retained.o.compact(answer);closed9=_session_save(root,_SESSION_CLOSED,closed,record.root5)
+                    answer.update(mutation_authority=False,reader_resume_grant=False,ordinary_import_grant=False,cleanup_grant=False)
+                    result=retained.o.compact(dict(success=True,data=answer)).decode()
+                    _http_close(caller,config)
+                    sql_original=_session_sql(config[0],value,proof_items)
+                    session_file(writer,record)
+                    if _session_read(root/_SESSION_CLOSED,closed9)!=closed:
+                        raise ValueError('Native reservation close uncertainty')
+                    _http_close(caller,config);session_file(writer,record)
+                    if _session_nine(os.lstat(root/_SESSION_CLOSED))!=closed9:
+                        raise ValueError('Original native completion record changed')
+                    _session_retire(record,closed9,sql_original)
+            except BaseException:
+                if closed is not None:_session_refence(record,closed)
+                raise
+            _ROOT_SESSION=None
+            return result
         answer.update(mutation_authority=False,reader_resume_grant=False,ordinary_import_grant=False,cleanup_grant=False)
         _http_close(caller,config)
         result=retained.o.compact(dict(success=True,data=answer)).decode()

@@ -218,7 +218,7 @@
     },
     {
       "path": "publication_retained_api.py",
-      "sha256": "1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9"
+      "sha256": "5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d"
     },
     {
       "path": "publication_retained_delivery.py",

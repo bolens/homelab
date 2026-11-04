@@ -76,6 +76,86 @@ class Composed(unittest.TestCase):
     reply_sha256=body['reply_sha256'],frame_sha256=answer['terminal_frame_sha256'])
   decoded,frame=parent.decode_terminal_artifact(data,reference,header,request)
   self.assertEqual(decoded,body);self.assertEqual(frame['hashes'][str(done)],reference['sha256'])
+ def test_genuine_artifact_against_actual_Root_backup_scope_and_SQL_terminal(self):
+  # Real backup/restore, HTTP/native and worker CAS. Container/image and media
+  # principal adapters below are explicit local fixtures, never a launch grant.
+  import importlib.util
+  import os
+  import select
+  import time
+  from types import SimpleNamespace
+  import comic_retained_pack_parent as parent
+  import comic_retained_pack_backup as backup_module
+  import comic_reader_backup_primitives as primitives
+  spec=importlib.util.spec_from_file_location('root_terminal_composed_broker',Path(__file__).parent/'standalone_launch_host/comic_retained_standalone_broker.py')
+  broker=importlib.util.module_from_spec(spec);spec.loader.exec_module(broker)
+  plan=self.plan();plan.update(root_observation_barrier=True,check_terminal_hash=True)
+  with tempfile.TemporaryDirectory() as directory:
+   private=Path(directory);private.chmod(0o700);worker_state=private/'worker';reader=private/'reader'
+   worker_state.mkdir();reader.mkdir();(reader/'protected').write_bytes(b'original reader state')
+   plan['worker_config']['state']=str(worker_state)
+   path=private/'plan.json';path.write_text(json.dumps(plan))
+   normalizer=Path(__file__).parent/'test_fixtures/retained_pack_worker'
+   process=subprocess.Popen([sys.executable,'-I','-B',str(normalizer/'check_retained_pack_composed_worker.py'),str(path)],
+     cwd=normalizer,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+   self.addCleanup(lambda:process.kill() if process.poll() is None else None)
+   self.assertTrue(select.select([process.stdout],[],[],30)[0]);self.assertEqual(json.loads(process.stdout.readline())['kind'],'synthetic-root-backup-boundary')
+   receipt=worker_state/'maintenance/packs'/plan['pack_id']/'receipt.json';receipt_bytes=receipt.read_bytes()
+   scopes=[dict(role='native_config',root=str(self.c.root),databases=['workflow.sqlite','mylar.db']),
+     dict(role='worker_state',root=str(worker_state),databases=[]),dict(role='reader_config',root=str(reader),databases=[])]
+   primitive=Path(primitives.__file__);backup=backup_module.copy_and_verify(scopes,private/'backup-operation',primitive,hashlib.sha256(primitive.read_bytes()).hexdigest())
+   original,_=backup_module._original(backup);media_roots=[self.case.case.library,self.case.cache]
+   def media_facts():
+    result={key:{} for key in ('files','nodes','names','hashes','attrs')}
+    for root in media_roots:
+     rows,_=primitives.inventory(root,'tree')
+     for row in rows:
+      path=root if row['path']=='.' else root/row['path'];text=str(path);stamp=row['stamp'];result['files'][text]=stamp
+      for ancestor in path.parents:result['nodes'].setdefault(str(ancestor),list(parent.five(ancestor.stat())))
+      if row['kind']=='directory':result['nodes'][text]=[stamp[i] for i in (0,1,5,6,7)];result['names'][text]=sorted(os.listdir(path))
+      else:result['hashes'][text]=row['sha256'];result['attrs'][text]=row['attributes']['xattrs']
+    return result
+   before_media=media_facts()
+   class Media:
+    def data(inner):return json.loads(json.dumps(before_media))
+    def close(inner):
+     if media_facts()!=before_media:raise AssertionError('Original media changed')
+   public=Path(__file__).parent;image_paths=[*public.glob('*.py'),*normalizer.glob('*.py')]
+   image_files={str(p):dict(signature9=list(parent.nine(p.stat())),sha256=hashlib.sha256(p.read_bytes()).hexdigest(),attrs=primitives.attrs(p)['xattrs']) for p in image_paths}
+   image_nodes={str(a):list(parent.five(a.stat())) for p in image_paths for a in p.parents}
+   # The host fixture uses absolute host paths as its child namespace. Its
+   # physical mount ancestors therefore include these private temporary parents.
+   image_nodes.update({str(a):list(parent.five(a.stat())) for p in (self.c.root,worker_state,*media_roots) for a in p.parents})
+   class Image:
+    def data(inner):return image_files
+    def nodes(inner):return image_nodes
+    def close(inner):
+     for path,row in image_files.items():
+      if list(parent.nine(Path(path).stat()))!=row['signature9']:raise AssertionError('Original public source changed')
+   process.stdin.write(b'verified-backup\n');process.stdin.flush()
+   stdout,stderr=process.communicate(timeout=90);self.assertEqual(process.returncode,0,stderr.decode())
+   answer=json.loads(stdout);self.assertTrue(answer['terminal_hash_verified'])
+   done=next((worker_state/'maintenance/retained-pack-handoffs').glob('*.done.json'));artifact=done.read_bytes();body=json.loads(artifact);request=body['request']
+   reference=dict(path=str(done),signature9=list(parent.nine(done.stat())),sha256=hashlib.sha256(artifact).hexdigest())
+   header=dict(artifact_ref=reference,token=body['token'],pack_id=request['pack_id'],member_id=request['member_id'],
+     request_sha256=hashlib.sha256(json.dumps(request,sort_keys=True,separators=(',',':')).encode()).hexdigest(),reply_sha256=body['reply_sha256'],frame_sha256=answer['terminal_frame_sha256'])
+   mounts=[dict(Type='bind',Source=str(root),Destination=str(root),RW=True) for root in (self.c.root,worker_state)]
+   runtime=SimpleNamespace(baseline=dict(native=dict(Mounts=mounts),worker=dict(Mounts=mounts)))
+   preflight=dict(native_data=str(self.c.root),native_config=str(self.c.root),worker_state=str(worker_state),
+     receipt_ref=dict(path=str(receipt)),receipt_bytes=receipt_bytes.decode(),source=plan['source'],target=plan['target'],output=str(private/'backup-operation'))
+   row=dict(document=dict(kind='pack-root-deployment-v1'),modules={'comic_retained_pack_parent.py':parent})
+   state=dict(installation=SimpleNamespace(close=lambda:row),runtime=runtime,preflight=preflight,boot=dict(request=request),
+     native_image=Image(),worker_image=Image(),deadline=time.monotonic()+60)
+   launch=SimpleNamespace(close=lambda:state)
+   try:proof=broker._pack_terminal(launch,backup,Media(),header,artifact,reference)
+   except broker.Held as error:
+    trace=error.__traceback__
+    while trace.tb_next is not None:trace=trace.tb_next
+    self.fail(str(error)+' '+str({key:trace.tb_frame.f_locals.get(key) for key in ('group','path')}))
+   self.assertEqual(proof['token'],body['token']);self.assertEqual(proof['record_sha256'],json.loads(body['reply_text'])['data']['record_sha256'])
+   (reader/'protected').write_bytes(b'foreign reader state')
+   with self.assertRaises(broker.Held):broker._pack_terminal(launch,backup,Media(),header,artifact,reference)
+
  def refuse_original_member_before_dispatch(self,change):
   pack=self.base.c.store.get('pack',self.case.body['pack_id']);pack['members'][0].update(change)
   self.base.c.store.set('pack',self.case.body['pack_id'],pack)

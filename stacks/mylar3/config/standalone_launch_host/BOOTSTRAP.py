@@ -64,7 +64,7 @@ for key in ('config_ref','source_map_ref','review_ref'):
 close(files,nodes)
 map_ref=boot['source_map_ref'];map_raw=read(map_ref['path'],files[map_ref['path']],LIMIT)
 need(hashlib.sha256(map_raw).hexdigest()==map_ref['sha256'],'bootstrap-map-SHA');mapping=decode(map_raw)
-need(type(mapping) is dict and 1<=len(mapping)<=1024 and canonical(mapping)==map_raw and all(type(k) is str and re.fullmatch(r'[a-z_]+\.py',k) and type(v) is str and re.fullmatch('[0-9a-f]{64}',v) for k,v in mapping.items()),'bootstrap-map-schema')
+need(type(mapping) is dict and 1<=len(mapping)<=1024 and canonical(mapping)==map_raw and all(type(k) is str and re.fullmatch(r'[a-z_][a-z0-9_]*\.py',k) and type(v) is str and re.fullmatch('[0-9a-f]{64}',v) for k,v in mapping.items()),'bootstrap-map-schema')
 required={'__init__.py','config.py','publication_api.py','media_writer.py','publication_guard.py','publication_archive_owned.py','publication_retained_delivery.py','publication_retained_standalone.py','comic_retained_standalone_action.py'}
 if PACK:required={'normalize.py','maintenance.py','publication_guard.py','publication_evidence.py','media_writer.py','retained_pack_control.py','retained_pack_handoff.py','retained_pack_operations.py'}
 need(required<=set(mapping),'bootstrap-complete-map')

@@ -156,13 +156,17 @@ Close it only against the original nonce, actual final record and complete SQL
 proof, then retain the closed receipt for accepted owning cleanup. This is an
 implementation requirement of T028, not accepted configured execution.
 
-Completion preserves the original pending marker. Only the original native
-process's verified completed object may exempt that exact marker for ordinary
-work. A saved closed receipt, missing marker or daemon restart cannot restore
-that exception. Fresh owning restart reconciliation and eventual marker
-retirement remain required T028 acceptance work. Reservation health reports
-held publication authority with current worker liveness; it does not acquire
-the worker-held Writer, read SQL or grant import/readiness authority.
+Completion archives independently verified pending and closed records in the
+original nonce's private history directory. The original pending marker remains
+the restart fence until both copies and final business state are verified. Its
+removal is the commit point; caught later failures restore a negative fence.
+Live custody clears only after the Writer context exits successfully. Saved
+history grants no authority and its nonce cannot be reused. A crash before
+commit holds; a crash after commit retains the already verified durable history.
+Reservation health reports held publication authority with current worker
+liveness; it does not acquire the worker-held Writer, read SQL or grant
+import/readiness authority. Actual configured completion remains T028 acceptance
+work until the Root transcript, terminal checks and guarded resume are proved.
 
 The participating worker pack stage consumes the effective native policy from the authenticated, prefetched `getHealth` reply. The snapshot binds the existing config bytes, reservation inode and physical cache roots. It is read under the shared Writer without another API call and mapped only through existing `/mylar` and `/ddl-cache` binds. Normal admitted startup initializes the native lock; health never creates it and the worker opens it existing-only through its read-only native config mount. Missing, stale or unmapped policy refuses staging without guessed defaults.
 

@@ -226,13 +226,14 @@ class CurrentBase(unittest.TestCase):
     CURRENT_PINS=(
         ('publication_guard.py',
          hashlib.sha256(Path(__file__).parent.parent.joinpath('publication_guard.py').read_bytes()).hexdigest()),
-        ('comic_retained_standalone_action.py','66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411'),
+        ('comic_retained_standalone_action.py',
+         hashlib.sha256(Path(__file__).with_name('comic_retained_standalone_action.py').read_bytes()).hexdigest()),
         ('api.py',
          '2a17aca196b9876c6800d670977c715c7b63e6affd050fecfd9068a2965d2a4d'),
         ('native_writers.py',
          hashlib.sha256(Path(__file__).parent.parent.joinpath('native_writers.py').read_bytes()).hexdigest()),
         ('pack_catalog.py',
-         '00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f'))
+         hashlib.sha256(Path(__file__).parent.parent.joinpath('pack_catalog.py').read_bytes()).hexdigest()))
     OLD_PINS=(('getcomics.py','200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744'),('comic_retained_standalone_action.py','3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
                   '23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d'),('native_writers.py','cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202'),('pack_catalog.py','908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20'))
     OLD_PINS=OLD_PINS+(('publication_guard.py','dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),('native_writers.py','98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'))

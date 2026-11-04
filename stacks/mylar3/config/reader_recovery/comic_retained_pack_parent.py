@@ -8,6 +8,7 @@ import secrets
 import threading
 import time
 import weakref
+import comic_reader_lifecycle_parent as reader_profiles
 
 from comic_retained_pack_backup import BackupObservation,copy_and_verify,encode,five,nine,need,raw
 from retained_pack_control import Pipe,TOTAL_SECONDS,WAITING_SECONDS
@@ -27,6 +28,8 @@ _RUNTIMES=weakref.WeakKeyDictionary()
 _TERMINALS=weakref.WeakKeyDictionary()
 _TERMINAL_ABSENT=object()
 _RUNTIME_ANCHORS=weakref.WeakKeyDictionary()
+_READER_RESUMES=weakref.WeakKeyDictionary()
+_QUIESCENCE_ATTEMPTS=weakref.WeakKeyDictionary()
 ANCHOR_NAMES=('installation-v1.json','inventory-v1.json','public-ed25519.der')
 ANCHOR_PREFIX=Path('/opt/mylar-publication-launch')
 ANCHOR_HOST=Path('/etc/mylar-publication-launch/child')
@@ -57,6 +60,44 @@ def retained_sql_fingerprint(model):
             values.append(_retained_sql_digest(value))
         result[name] = dict(rows=len(values), digest=_retained_sql_digest(sorted(values)))
     return dict(schema=_retained_sql_digest(model['schema']), tables=result)
+
+
+def retained_sql_model(path,deadline):
+    """Read actual all-table rows without creating a live WAL index or sidecar."""
+    import sqlite3
+    from contextlib import closing
+    path=Path(path);need(path.is_absolute() and str(path)==str(path.absolute()) and not path.is_symlink(),
+                          'retained-SQL-original-path')
+    initial=nine(os.lstat(path));nodes=tuple((str(p),five(os.lstat(p))) for p in path.parents)
+    frame=(((str(path),initial),),nodes,())
+    companions=tuple(Path(str(path)+suffix) for suffix in ('-wal','-shm','-journal'))
+    need(not any(os.path.lexists(p) for p in companions),'retained-SQL-no-live-companion')
+    need(initial[5]&0o170000==0o100000 and initial[8]==1,'retained-SQL-original-file')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        need(nine(os.fstat(fd))==initial,'retained-SQL-original-FD')
+        with closing(sqlite3.connect(path.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+            db.execute('PRAGMA query_only=ON');db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+            need(db.execute('PRAGMA integrity_check').fetchall()==[('ok',)],'retained-SQL-integrity')
+            schema=[list(row) for row in db.execute('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name,tbl_name,sql')]
+            tables={};size=len(encode(schema))
+            for kind,name,_,_ in schema:
+                if kind!='table':continue
+                quoted='"'+name.replace('"','""')+'"';rows=[]
+                for row in db.execute('SELECT * FROM '+quoted):
+                    need(time.monotonic()<deadline,'retained-SQL-original-deadline')
+                    encoded=encode([dict(blob=v.hex()) if isinstance(v,bytes) else v for v in row]).decode()
+                    rows.append(encoded);size+=len(encoded.encode())+4
+                    need(len(rows)<=1000000 and size<=64*1024**2,'retained-SQL-model-bound')
+                tables[name]=sorted(rows)
+            model=dict(schema=schema,rows=tables)
+        # Closing SQLite and serialization precede the original physical tail.
+        need(len(encode(model))<=64*1024**2,'retained-SQL-model-bound')
+        raw(frame)
+        need(nine(os.fstat(fd))==initial and not any(os.path.lexists(p) for p in companions)
+             and time.monotonic()<deadline,'retained-SQL-original-tail')
+        return model
+    finally:os.close(fd)
 
 
 def verify_retained_sql(before, catalog, *, backup_workflow, backup_catalog, request,
@@ -556,9 +597,17 @@ class ConfiguredRuntime:
         return encode(observed)
 
     def quiesce(self):
-        need(not self.quiescent,'runtime-quiesce-once')
-        self.command(['pause',self.ids['native']]);self.command(['stop','--timeout','30',self.ids['reader']]);self.quiescent=True
-        self.stopped_reader=self.inspect(self.ids['reader'])['State'];self.paused_native=self.inspect(self.ids['native'])['State'];self.close()
+        self.close();need(not self.quiescent and self not in _QUIESCENCE_ATTEMPTS,'runtime-quiesce-once')
+        attempt=object();_QUIESCENCE_ATTEMPTS[self]=attempt
+        need(self.command(['pause',self.ids['native']])==(self.ids['native']+'\n').encode(),'native-exact-pause-ACK')
+        need(self.command(['stop','--timeout','30',self.ids['reader']])==(self.ids['reader']+'\n').encode(),'reader-exact-stop-ACK')
+        self.stopped_reader_row=self.inspect(self.ids['reader'])
+        self.stopped_reader=self.stopped_reader_row['State'];self.paused_native=self.inspect(self.ids['native'])['State']
+        need(_QUIESCENCE_ATTEMPTS.get(self) is attempt,'quiescence-original-transition')
+        self.quiescent=True;self.close()
+    @staticmethod
+    def reader_static(row):
+        return {key:row[key] for key in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')}
     def close_local(self):
         original=_RUNTIME_ANCHORS.get(self)
         need(original is not None and original[0] is _RUNTIMES and original[1] is _RUNTIMES.get(self)
@@ -577,7 +626,25 @@ class ConfiguredRuntime:
         for key,cid in self.ids.items():
             row=self.inspect(cid);need(self.static(row)==self.static(self.baseline[key]),'runtime-original-profile')
             if not self.quiescent:need(self.state_epoch(row['State'])==self.state_epoch(self.baseline[key]['State']),'runtime-before-owned-quiescence')
-            elif key=='reader':need(row['State']==self.stopped_reader and row['State']['Running'] is False,'reader-stopped-incarnation')
+            elif key=='reader':
+                resume=_READER_RESUMES.get(self)
+                if resume is None:
+                    need(row['State']==self.stopped_reader and row['State']['Running'] is False,'reader-stopped-incarnation')
+                    need(reader_profiles.checked_reader_stopped_static(self.reader_static(self.baseline[key]),self.reader_static(row),cid),
+                         'reader-stopped-compatible-profile')
+                    need(self.reader_static(row)==self.reader_static(self.stopped_reader_row),'reader-original-stopped-profile')
+                else:
+                    need(resume[0] is _TERMINALS.get(self) and resume[1]==encode(self.stopped_reader_row)
+                         and resume[2] is not None,'reader-resume-original-ACK')
+                    started=json.loads(resume[2])
+                    need(reader_profiles.checked_reader_resumed_profile(self.baseline[key],row,cid)
+                         and self.reader_static(row)==self.reader_static(started)
+                         and all(row['State'][field]==started['State'][field] for field in ('Pid','StartedAt','FinishedAt')),
+                         'reader-resumed-incarnation')
+                    if 'Health' in row['State']:
+                        health=row['State']['Health']
+                        need(health.get('Status') in ('starting','healthy') and type(health.get('FailingStreak')) is int
+                             and health['FailingStreak']==0,'reader-resumed-health')
             elif key=='worker':need(row['State']==self.baseline[key]['State'],'normal-worker-stays-stopped')
             else:
                 state=row['State'];before=self.baseline[key]['State']
@@ -591,7 +658,7 @@ class ConfiguredRuntime:
             action=event.get('Action',event.get('status'))
             if action not in ('pause','unpause','stop','kill','die','start','restart','destroy'):continue
             need(self.quiescent,'runtime-event-before-owned-quiescence')
-            allowed={'pause','unpause'} if actor==self.ids['native'] else ({'stop','kill','die'} if actor==self.ids['reader'] else set())
+            allowed={'pause','unpause'} if actor==self.ids['native'] else ({'stop','kill','die'}|({'start'} if self in _READER_RESUMES else set()) if actor==self.ids['reader'] else set())
             need(action in allowed,'runtime-unexpected-event')
             key=(actor,action);counts[key]=counts.get(key,0)+1;need(counts[key]<=1,'runtime-repeated-lifecycle-event')
             if actor==self.ids['native'] and action=='unpause':need(self.native_open,'native-unpause-before-owned-transition')
@@ -602,10 +669,35 @@ class ConfiguredRuntime:
             else:need(terminal==(self.selected,self.selected_started,self.selected_static,self.process) and self.process.poll()==0 and row['State']['Running'] is False and row['State']['Status']=='exited' and row['State']['Pid']==0 and row['State']['ExitCode']==0 and row['State'].get('Paused') is False and not any(row['State'].get(k) for k in ('Restarting','Dead','OOMKilled')),'selected-original-terminal-exit')
     def open_native(self):
         self.close();need(not self.native_open,'native-open-once');self.native_open=True
-        try:self.command(['unpause',self.ids['native']]);self.close()
+        try:
+            ack=self.command(['unpause',self.ids['native']])
+            need(ack==(self.ids['native']+'\n').encode(),'native-exact-unpause-ACK');self.close()
         except Exception:
             # Unknown ACK keeps custody uncertain, never replay unpause or restart.
             raise
+    def resume_reader(self):
+        """One lifecycle mechanism; the owning broker must first close terminal data."""
+        self.close()
+        need(self.quiescent and self.native_open and self in _TERMINALS
+             and self.selected is not None and self.process is not None
+             and self not in _READER_RESUMES,'reader-owned-terminal-resume-once')
+        original=_TERMINALS[self]
+        pending=(original,encode(self.stopped_reader_row),None)
+        _READER_RESUMES[self]=pending
+        # Unknown command/ACK remains pending. No retry, inferred success or
+        # baseline refresh can turn that pending attempt into a resume grant.
+        ack=self.command(['start',self.ids['reader']])
+        need(ack==(self.ids['reader']+'\n').encode(),'reader-exact-start-ACK')
+        row=self.inspect(self.ids['reader'])
+        need(reader_profiles.checked_reader_resumed_profile(self.baseline['reader'],row,self.ids['reader']),
+             'reader-compatible-start-ACK')
+        encoded=encode(row)
+        need(_READER_RESUMES.get(self) is pending and _TERMINALS.get(self) is original,
+             'reader-resume-original-transition')
+        self.close_local();_READER_RESUMES[self]=(original,pending[1],encoded)
+        self.close()
+        return dict(kind='retained-reader-resumed',container=self.ids['reader'],
+                    started_at=row['State']['StartedAt'],ordinary_import_grant=False)
     def selected_profile(self,row):
         self.close_local()
         return selected_profile(self.baseline['worker'],row,installed_anchors=self.installed_anchors)
@@ -737,7 +829,7 @@ def _strict_ref(ref):
     return ref
 
 
-def read_original(reference):
+def read_original(reference,*,limit=1024**2):
     _strict_ref(reference)
     path=Path(reference['path'])
     need(path.is_absolute() and str(path)==reference['path'] and not str(path).startswith('//')
@@ -745,7 +837,7 @@ def read_original(reference):
     original=(((str(path),tuple(reference['signature9'])),),
               tuple((str(parent),five(os.lstat(parent))) for parent in path.parents),())
     raw(original)
-    actual,data=_ref(path)
+    actual,data=_ref(path,limit=limit)
     need(encode(actual)==encode(reference),'control-original-reference-readback')
     raw(original);return data,original
 
@@ -767,8 +859,8 @@ def mapped_host(mounts,child):
     return str(_mapped_host(dict(Mounts=mounts),child))
 
 
-def _ref(path):
-    path=Path(path);stamp=nine(os.lstat(path));need(stamp[5]&0o170000==0o100000 and stamp[8]==1,'regular-original-reference');need(stamp[2]<=1024*1024,'control-reference-byte-bound')
+def _ref(path,*,limit=1024**2):
+    path=Path(path);stamp=nine(os.lstat(path));need(stamp[5]&0o170000==0o100000 and stamp[8]==1,'regular-original-reference');need(type(limit) is int and limit in (1024**2,2*1024**2,4*1024**2,64*1024**2) and stamp[2]<=limit,'control-reference-byte-bound')
     nodes=tuple((str(p),five(os.lstat(p))) for p in path.parents);parent=dict(nodes)[str(path.parent)]
     directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     try:
@@ -777,7 +869,7 @@ def _ref(path):
         try:
             need(nine(os.fstat(fd))==stamp,'reference-original-leaf-FD');parts=[];size=0
             while chunk:=os.read(fd,65536):
-                size+=len(chunk);need(size<=1024*1024,'reference-stream-bound');parts.append(chunk)
+                size+=len(chunk);need(size<=limit,'reference-stream-bound');parts.append(chunk)
             data=b''.join(parts);need(nine(os.fstat(fd))==stamp,'reference-original-read-FD')
         finally:os.close(fd)
         need(nine(os.stat(path.name,dir_fd=directory,follow_symlinks=False))==stamp and five(os.fstat(directory))==parent,'reference-original-relative-CAS')

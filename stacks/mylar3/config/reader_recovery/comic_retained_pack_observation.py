@@ -22,6 +22,9 @@ MAX_WIRE=64*1024**2
 MAX_HASH_BYTES=32*1024**3
 _OBSERVATIONS=weakref.WeakKeyDictionary()
 _SEALS=weakref.WeakKeyDictionary()
+_PROCESS_IMAGES=weakref.WeakKeyDictionary()
+IMAGE_SOURCE_PREFIXES=('/app','/opt/mylar-publication-launch')
+IMAGE_SOURCE_UID=0
 
 
 def need(value,reason):
@@ -80,6 +83,13 @@ def _measure(roots,streams,deadline):
                     need(len(result)<MAX_NODES and spelling<=MAX_WIRE,'owner-observation-namespace-bound')
                     result.append(entry.name)
             return tuple(sorted(result))
+        def attributes(fd):
+            keys=os.listxattr(fd);need(len(keys)<=64,'owner-observation-xattr-count')
+            result={};size=0
+            for key in keys:
+                value=os.getxattr(fd,key);size+=len(key.encode())+2*len(value)
+                need(size<=1048576,'owner-observation-xattr-bound');result[key]=value.hex()
+            return result
         # Capture all known roots and first ancestors before enumerating anything.
         for text in roots:
             path=Path(text)
@@ -119,12 +129,7 @@ def _measure(roots,streams,deadline):
                 while block:=os.read(fd,1048576):
                     alive();size+=len(block);need(size<=original[2],'owner-observation-stream-growth');digest.update(block)
                 need(size==original[2] and nine(os.fstat(fd))==original,'owner-observation-stream-original')
-                keys=os.listxattr(fd);need(len(keys)<=64,'owner-observation-xattr-count')
-                attributes={};attribute_bytes=0
-                for key in keys:
-                    raw=os.getxattr(fd,key);attribute_bytes+=len(key.encode())+2*len(raw)
-                    need(attribute_bytes<=1048576,'owner-observation-xattr-bound');attributes[key]=raw.hex()
-                retain(attrs,text,attributes);retain(hashes,text,digest.hexdigest())
+                retain(attrs,text,attributes(fd));retain(hashes,text,digest.hexdigest())
                 need(nine(os.fstat(fd))==original,'owner-observation-stream-final-FD')
             finally:os.close(fd)
         # Full final physical closure follows content and attribute callbacks.
@@ -265,3 +270,164 @@ class OwnerObservation:
         result=json.loads(original[4])
         need(self.original() is original,'owner-observation-final-registry')
         return result
+
+
+def process_ticks(pid):
+    fd=os.open('/proc/'+str(pid)+'/stat',os.O_RDONLY|os.O_NOFOLLOW)
+    try:raw=os.read(fd,65537)
+    finally:os.close(fd)
+    need(len(raw)<=65536,'image-process-bound')
+    fields=raw.rsplit(b')',1)[1].split()
+    return fields[19]
+
+
+def image_mounts(fd):
+    os.lseek(fd,0,os.SEEK_SET);result=bytearray()
+    while block:=os.read(fd,65536):
+        result.extend(block)
+        need(len(result)<=4*1024**2,'image-mountinfo-bound')
+    return bytes(result)
+
+
+def _close_image_fds(originals):
+    errors=[]
+    for fd,wanted in reversed(originals):
+        try:
+            z=os.fstat(fd)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=wanted:
+                raise ValueError('image-cleanup-foreign-FD')
+            os.close(fd)
+        except (OSError,ValueError) as error:errors.append(error)
+    if errors:raise errors[0]
+
+
+class ProcessImageObservation:
+    """Original image source FDs; closure requires no Docker or HTTP under Writer."""
+    __slots__=('__weakref__',)
+    def __init__(self,*args,**kwargs):raise ValueError('Original process image required')
+    @classmethod
+    def capture(cls,runtime,role,pins):
+        import comic_retained_pack_parent as parent
+        if cls is not ProcessImageObservation:raise ValueError('image-original-class')
+        table=_PROCESS_IMAGES
+        cleanup=_close_image_fds
+        helpers=tuple((name,globals()[name],globals()[name].__code__,globals()[name].__defaults__)
+                      for name in ('need','absolute','encode','nine','five','process_ticks','image_mounts','_close_image_fds'))
+        methods=tuple((name,getattr(cls,name).__func__ if name=='capture' else getattr(cls,name))
+                      for name in ('capture','data','nodes','close','release'))
+        methods=tuple((name,function,function.__code__,function.__defaults__) for name,function in methods)
+        need(os.geteuid()==0 and type(runtime) is parent.ConfiguredRuntime and role in ('native','worker'),
+             'image-owning-root-runtime')
+        parent.ConfiguredRuntime.close_local(runtime)
+        need(type(pins) is dict and 1<=len(pins)<=512,'image-source-map-bound')
+        expected=tuple(sorted((absolute(path),digest) for path,digest in pins.items()))
+        need(all(any(Path(path).is_relative_to(Path(prefix)) for prefix in IMAGE_SOURCE_PREFIXES)
+                 and type(digest) is str and len(digest)==64 and all(c in '0123456789abcdef' for c in digest)
+                 for path,digest in expected),'image-fixed-source-paths')
+        pid=runtime.baseline['native']['State']['Pid'] if role=='native' else runtime.selected_pid
+        need(type(pid) is int and pid>0,'image-original-process')
+        tick=process_ticks(pid);owner=(os.getpid(),threading.get_ident());fds=[];owned=[];published=False
+        def held(fd):
+            fds.append(fd);z=os.fstat(fd);owned.append((fd,(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)));return fd
+        try:
+            root=held(os.open('/proc/'+str(pid)+'/root',os.O_RDONLY|os.O_DIRECTORY))
+            namespace=held(os.open('/proc/'+str(pid)+'/ns/mnt',os.O_RDONLY))
+            mount_fd=held(os.open('/proc/'+str(pid)+'/mountinfo',os.O_RDONLY|os.O_NOFOLLOW))
+            mount9=nine(os.fstat(mount_fd));mount_bytes=image_mounts(mount_fd)
+            directories={'/':(root,five(os.fstat(root)))};files=[];total=0
+            def directory(path):
+                if path in directories:return directories[path][0]
+                value=Path(path);up=directory(str(value.parent))
+                fd=held(os.open(value.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=up))
+                directories[path]=(fd,five(os.fstat(fd)));return fd
+            for mount in runtime.baseline[role]['Mounts']:
+                for ancestor in Path(mount['Destination']).parents:directory(str(ancestor))
+            for path,digest in expected:
+                value=Path(path);directory_fd=directory(str(value.parent))
+                fd=held(os.open(value.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=directory_fd))
+                stamp=nine(os.fstat(fd))
+                need(stat.S_ISREG(stamp[5]) and stamp[6]==IMAGE_SOURCE_UID and not stamp[5]&0o022
+                     and stamp[8]==1 and 0<stamp[2]<=4*1024**2,'image-protected-source')
+                sha=hashlib.sha256();size=0
+                while block:=os.read(fd,65536):
+                    size+=len(block);total+=len(block)
+                    need(size<=stamp[2] and total<=MAX_WIRE and time.monotonic()<runtime.deadline,'image-source-byte-bound')
+                    sha.update(block)
+                attributes={key:os.getxattr(fd,key).hex() for key in os.listxattr(fd)}
+                need(len(attributes)<=64 and sum(len(k.encode())+len(v) for k,v in attributes.items())<=1048576,'image-source-attributes')
+                need(size==stamp[2] and sha.hexdigest()==digest and nine(os.fstat(fd))==stamp,'image-source-original-bytes')
+                files.append((path,fd,stamp,digest,attributes))
+            output=encode({path:dict(signature9=list(stamp),sha256=digest,attrs=attributes) for path,fd,stamp,digest,attributes in files})
+            value=object.__new__(cls)
+            original=(runtime,role,pid,tick,owner,runtime.deadline,root,namespace,nine(os.fstat(namespace)),
+                      tuple(directories.items()),tuple(files),output,parent._RUNTIMES,parent._RUNTIMES[runtime],
+                      runtime.process,tuple(fds),process_ticks,process_ticks.__code__,table,methods,helpers,
+                      mount_fd,mount9,mount_bytes,tuple(owned))
+            need(_PROCESS_IMAGES is table,'image-original-factory-table')
+            _PROCESS_IMAGES[value]=original;value.close();published=True;return value
+        finally:
+            if not published:
+                primary=sys.exc_info()[1]
+                try:cleanup(tuple(owned))
+                except BaseException as error:
+                    if primary is not None:raise primary from error
+                    raise
+    def data(self):
+        original=self.close();answer=json.loads(original[11]);self.close();return answer
+    def nodes(self):
+        original=self.close();answer={path:list(stamp) for path,(_,stamp) in original[9]};self.close();return answer
+    def close(self):
+        import comic_retained_pack_parent as parent
+        original=_PROCESS_IMAGES.get(self)
+        if type(self) is not ProcessImageObservation or original is None:raise ValueError('image-original-observation')
+        runtime,role,pid,tick,owner,deadline,root,namespace,ns9,directories,files,_,table,entry,process,_,ticks,code=original[:18]
+        if not ((os.getpid(),threading.get_ident())==owner and os.geteuid()==0 and time.monotonic()<deadline
+             and table is parent._RUNTIMES and table.get(runtime) is entry
+             and process_ticks is ticks and process_ticks.__code__ is code and original[18] is _PROCESS_IMAGES):
+            raise ValueError('image-original-custody')
+        for name,function,source,defaults in original[19]:
+            current=getattr(type(self),name);current=current.__func__ if name=='capture' else current
+            if current is not function or current.__code__ is not source or current.__defaults__ is not defaults:raise ValueError('image-original-method')
+        for name,function,source,defaults in original[20]:
+            current=globals().get(name)
+            if current is not function or current.__code__ is not source or current.__defaults__ is not defaults:raise ValueError('image-original-helper')
+        parent.ConfiguredRuntime.close_local(runtime)
+        terminal=parent._TERMINALS.get(runtime)
+        exited=(role=='worker' and terminal is not None)
+        if exited:
+            need(terminal==(runtime.selected,runtime.selected_started,runtime.selected_static,process)
+                 and runtime.process is process and process.poll()==0,'image-owning-natural-exit')
+        else:
+            need(process_ticks(pid)==tick and nine(os.stat('/proc/'+str(pid)+'/ns/mnt'))==ns9
+                 and five(os.stat('/proc/'+str(pid)+'/root'))==dict(directories)['/'][1],
+                 'image-original-live-namespace')
+            need(nine(os.fstat(original[21]))==original[22] and image_mounts(original[21])==original[23],
+                 'image-original-mount-geometry')
+        for path,(fd,stamp) in directories:
+            need(five(os.fstat(fd))==stamp,'image-original-directory-FD')
+            if path!='/':
+                p=Path(path);up=dict(directories)[str(p.parent)][0]
+                need(five(os.stat(p.name,dir_fd=up,follow_symlinks=False))==stamp,'image-original-directory-path')
+        for path,fd,stamp,digest,attributes in files:
+            p=Path(path);directory=dict(directories)[str(p.parent)][0]
+            need(nine(os.fstat(fd))==stamp and nine(os.stat(p.name,dir_fd=directory,follow_symlinks=False))==stamp,
+                 'image-original-source')
+        need(nine(os.fstat(namespace))==ns9 and _PROCESS_IMAGES.get(self) is original,'image-final-original')
+        return original
+    def release(self):
+        original=_PROCESS_IMAGES.get(self)
+        if type(self) is not ProcessImageObservation or original is None:raise ValueError('image-original-release')
+        close,close_code=next((fn,code) for name,fn,code,_ in original[19] if name=='close')
+        cleanup,cleanup_code=next((fn,code) for name,fn,code,_ in original[20] if name=='_close_image_fds')
+        try:
+            if close.__code__ is not close_code:raise ValueError('image-original-close-implementation')
+            close(self)
+        finally:
+            primary=sys.exc_info()[1]
+            if original[18].get(self) is original:original[18].pop(self)
+            try:
+                if cleanup.__code__ is not cleanup_code:raise ValueError('image-original-cleanup-implementation')
+                cleanup(original[24])
+            except BaseException as error:
+                if primary is not None:raise primary from error
+                raise

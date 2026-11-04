@@ -34,7 +34,7 @@
       "owning_adapters": [
         "patch_publication_retained_standalone.py"
       ],
-      "tracked_source_sha256": "66b9f4c6f7d54f2d2c16160404ade18b3f2266278c9d27356a167d9a18b03411"
+      "tracked_source_sha256": "6c2e263ae168b902e7cf2b085ee7e025c5b0f621699285b358d6da6193c7f978"
     },
     "converted_catalog": {
       "owning_adapters": [
@@ -306,7 +306,7 @@
       "owning_adapters": [
         "patch_retained_delivery_api.py"
       ],
-      "tracked_source_sha256": "1eedadfa708c7172bffc45f3dcc4997ade9e5ffdde64559566bea1b645a0f7e9"
+      "tracked_source_sha256": "5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d"
     },
     "publication_retained_delivery": {
       "owning_adapters": [

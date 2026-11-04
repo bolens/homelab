@@ -22,6 +22,20 @@ def load(path,name):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 class BrokerTests(unittest.TestCase):
+    def test_actual_bootstrap_map_accepts_versioned_worker_modules(self):
+        import ast,re
+        tree=ast.parse((HERE/'source/BOOTSTRAP.py').read_bytes())
+        predicate=next(n.args[0] for n in ast.walk(tree) if isinstance(n,ast.Call)
+            and isinstance(n.func,ast.Name) and n.func.id=='need' and len(n.args)==2
+            and isinstance(n.args[1],ast.Constant) and n.args[1].value=='bootstrap-map-schema')
+        code=compile(ast.Expression(predicate),'bootstrap-map-predicate','eval')
+        def accepts(name):
+            mapping={name:'a'*64};scope=dict(mapping=mapping,map_raw=self.m.canonical(mapping),canonical=self.m.canonical,re=re)
+            return eval(code,scope)
+        for name in ('operations_v2.py','v3_auth_core.py','__init__.py'):
+            with self.subTest(name=name):self.assertTrue(accepts(name))
+        for name in ('../operations_v2.py','.py','3module.py','path/module.py'):
+            with self.subTest(name=name):self.assertFalse(accepts(name))
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(prefix='fixed-launch-fixture-',dir=Path.home()/'.cache');self.root=Path(self.tmp.name);self.root.chmod(0o700)
         self.pkg=self.root/'package';self.pkg.mkdir(mode=0o700)
@@ -271,6 +285,105 @@ class WriteOrderingTests(unittest.TestCase):
         self.assertFalse(self.waited)
 
 
+class PackSuccessorTests(unittest.TestCase):
+    """Actual complete-census validator with synthetic preserved state."""
+    def setUp(self):
+        self.m=load(HERE/'source/comic_retained_standalone_broker.py','pack_successor_fixture')
+        self.root=tempfile.TemporaryDirectory();self.addCleanup(self.root.cleanup)
+        self.path=Path(self.root.name);(self.path/'keep').write_bytes(b'original')
+        (self.path/'database').write_bytes(b'before');(self.path/'receipt').write_bytes(b'before')
+        self.primitive=load(OLD/'comic_reader_backup_primitives.py','pack_successor_primitive')
+        self.before=self.rows()
+    def rows(self):return self.primitive.inventory(self.path,'tree')[0]
+    def verify(self,rows,**overrides):
+        args=dict(changed={},new_files=set(),new_directories=set());args.update(overrides)
+        return self.m._pack_scope_successor(self.before,rows,**args)
+    def test_complete_unchanged_scope_accepts(self):self.verify(self.rows())
+    def test_unrelated_payload_metadata_namespace_and_inode_drift_refuse(self):
+        import copy
+        rows=self.rows()
+        for change in ('payload','metadata','inode','extra','missing'):
+            current=copy.deepcopy(rows);selected=next(r for r in current if r['path']=='keep')
+            if change=='payload':selected['sha256']='0'*64
+            elif change=='metadata':selected['attributes']['uid']+=1
+            elif change=='inode':selected['stamp'][1]+=1
+            elif change=='extra':current.append(dict(selected,path='extra'))
+            else:current.remove(selected)
+            with self.subTest(change=change),self.assertRaises(self.m.Held):self.verify(current)
+    def test_SQL_inode_preserved_but_explicit_receipt_replacement_allowed(self):
+        rows=self.rows();selected=next(r for r in rows if r['path']=='receipt')
+        selected['stamp'][1]+=1;selected['sha256']='0'*64
+        self.verify(rows,changed={'receipt':'replace'})
+        with self.assertRaises(self.m.Held):self.verify(rows,changed={'receipt':'sqlite'})
+        selected['attributes']['mode']^=0o040
+        with self.assertRaises(self.m.Held):self.verify(rows,changed={'receipt':'replace'})
+    def test_only_private_owned_finite_journal_additions_allowed(self):
+        import copy
+        rows=self.rows();base=next(r for r in rows if r['path']=='keep')
+        added=copy.deepcopy(base);added.update(path='journal',sha256='1'*64)
+        added['attributes'].update(mode=0o600,uid=1000,gid=1000)
+        added['stamp'][5:9]=[0o100600,1000,1000,1];rows.append(added)
+        self.verify(rows,new_files={'journal'})
+        for field,value in (('uid',0),('mode',0o644)):
+            changed=copy.deepcopy(rows);changed[-1]['attributes'][field]=value
+            with self.subTest(field=field),self.assertRaises(self.m.Held):self.verify(changed,new_files={'journal'})
+        with self.assertRaises(self.m.Held):self.verify(rows,new_files={'another'})
+    def test_failed_run_uses_original_release_and_preserves_primary_error(self):
+        m=self.m;calls=[];foreign=[];fds=os.pipe()
+        class Image:
+            def __init__(inner,fd):inner.fd=fd
+            def release(inner):
+                calls.append(inner.fd);os.close(inner.fd)
+                raise ValueError('Synthetic original cleanup uncertainty')
+        images=tuple(Image(fd) for fd in fds)
+        document=dict(kind='pack-root-deployment-v1')
+        row=dict(document=document,modules={'comic_retained_pack_parent.py':object()})
+        state=dict(installation=SimpleNamespace(close=lambda:row),worker_image=images[0],native_image=images[1])
+        launch=object.__new__(m.OriginalLaunch);primary=OSError('Synthetic run failure')
+        def failed(_):
+            Image.release=lambda image:foreign.append(image.fd)
+            raise primary
+        try:
+            with patch.object(m.OriginalLaunch,'close',return_value=state),patch.object(m,'_run_pack_original',failed):
+                with self.assertRaises(OSError) as error:m.run_original(launch)
+            self.assertIs(error.exception,primary);self.assertEqual(calls,list(fds));self.assertEqual(foreign,[])
+            for fd in fds:
+                with self.assertRaises(OSError):os.fstat(fd)
+        finally:
+            for fd in fds:
+                try:os.close(fd)
+                except OSError:pass
+
+    def test_native_journal_container_paths_are_mapped_before_host_census(self):
+        # Real mapping mechanism from the standalone parent, with ordinary
+        # differing host/container paths rather than identity mounts.
+        with patch.dict(sys.modules):
+            load(OLD/'comic_retained_standalone_backup.py','comic_retained_standalone_backup')
+            mapping=load(OLD/'comic_retained_standalone_parent.py','journal_namespace_parent')
+        mounts=[dict(Type='bind',Source='/srv/native',Destination='/config',RW=True)]
+        folder=Path('/srv/native/data/retained-delivery-v1')/('a'*64)
+        names=('intent.json','accepted.json','issued.json','target-preserved.cbz','target-restored.cbz')
+        files={str(Path('/config/data/retained-delivery-v1')/('a'*64)/name):[] for name in names}
+        files['/app/mylar3/mylar/api.py']=[]
+        result=self.m._pack_native_journal(mapping,files,{},mounts,folder,Path('/srv/native'))
+        self.assertEqual(result,{str(Path('data/retained-delivery-v1')/('a'*64)/name) for name in names})
+
+    def test_detached_vectors_join_actual_bind_and_image_facts(self):
+        class Image:
+            def data(inner):return {'/app/source.py':dict(signature9=[1,2,3,4,5,0o100444,0,0,1],sha256='a'*64,attrs={})}
+            def nodes(inner):return {'/':[1,1,0o40755,0,0]}
+            def close(inner):pass
+        stamp=[1,3,4,5,6,0o100600,1000,1000,1]
+        facts=dict(files={'/host/file':stamp},nodes={'/host':[1,4,0o40700,1000,1000]},names={'/host':['file']},hashes={'/host/file':'b'*64},attrs={'/host/file':{}})
+        mounts=[dict(Source='/host',Destination='/state')]
+        frame=dict(files={'/state/file':stamp},nodes={'/state':facts['nodes']['/host']},names={'/state':['file']},hashes={'/state/file':'b'*64,'/app/source.py':'a'*64},absent=['/state/absent'])
+        self.m._pack_join_vectors(frame,mounts=mounts,facts=facts,image=Image())
+        frame['absent']=['/state/file']
+        with self.assertRaises(self.m.Held):self.m._pack_join_vectors(frame,mounts=mounts,facts=facts,image=Image())
+        frame['absent']=[];frame['hashes']['/state/file']='c'*64
+        with self.assertRaises(self.m.Held):self.m._pack_join_vectors(frame,mounts=mounts,facts=facts,image=Image())
+
+
 class MappingTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name)
@@ -285,7 +398,7 @@ class MappingTests(unittest.TestCase):
         m=self.m;helper=self.root/'comic_retained_native_control.py';helper.write_bytes(b'# public fixed helper\n')
         frame=(((helper,m.nine(helper.lstat())),),tuple((p,m.five(p.lstat())) for p in helper.parents))
         config_frame=(((self.file,m.nine(self.file.lstat())),),tuple((p,m.five(p.lstat())) for p in self.file.parents))
-        parent=SimpleNamespace(read_original=lambda ref:(b'original',config_frame),raw=m.raw)
+        parent=SimpleNamespace(read_original=lambda ref,**kwargs:(b'original',config_frame),raw=m.raw)
         worker=dict(Image='sha256:'+'e'*64,Mounts=[]);native=dict(Image='sha256:'+'f'*64,Mounts=self.mounts)
         self.closed=[]
         owner=self

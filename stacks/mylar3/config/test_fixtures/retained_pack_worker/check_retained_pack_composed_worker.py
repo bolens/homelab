@@ -24,6 +24,9 @@ def run(plan):
    destination=str(target),destination_sha256=hashlib.sha256(target.read_bytes()).hexdigest(),issueid=plan['owner']['issueid'],comicid=plan['owner']['parentcomicid'])
  receipt=folder/'receipt.json';body=dict(id=plan['pack_id'],inventory_complete=True,phase='review',capture_source=plan['capture_source'],
    source_generation=plan['source_generation'],members=[member]);receipt.write_bytes(h.compact(body));receipt.chmod(0o600)
+ if plan.get('root_observation_barrier'):
+  print(json.dumps(dict(kind='synthetic-root-backup-boundary')),flush=True)
+  if sys.stdin.readline()!='verified-backup\n':raise AssertionError('Original synthetic backup release missing')
  before=receipt.read_bytes();writer=Writer(config['writer_state'],create=False)
  projection={'ENABLED':True,'NATIVE_API_SHA':plan['host_projection']['api_sha256'],'NATIVE_SOURCE_ROOT':plan['host_projection']['source_root']}
  # Only literal host fixture paths/API bytes and real backend locator differ. Never action/event/type substitution.
