@@ -916,6 +916,29 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
     expected_albums = {album_identity(value) for value in album_titles}
     if len(album_titles) != len(title_lines) or len(expected_albums) > 1 or "" in expected_albums:
         return None
+    cue_disc = re.search(r"(?:^|[ ._-])(?:cd|disc|disk)[ ._-]*([1-9][0-9]?)$",
+                         extension_target(cue).stem, re.IGNORECASE)
+    candidate_discs = set()
+    if cue_disc and len(album_titles) == 1:
+        candidate_discs = {metadata_position(flac_album_metadata(path)[0], ("DISCNUMBER", "DISC"),
+                                             ("DISCTOTAL", "TOTALDISCS"), "disc")[0] for path in candidates}
+    if cue_disc and len(album_titles) == 1 and len(candidate_discs) > 1:
+        performer_lines = re.findall(r"^[\ufeff \t]*PERFORMER[ \t]", header, re.MULTILINE | re.IGNORECASE)
+        if len(performer_lines) != 1:
+            return None
+        positions = {}
+        totals = set()
+        for path in candidates:
+            tags, embedded = flac_album_metadata(path)
+            disc, total = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+            if (embedded or tags.get("CUESHEET") or not re.fullmatch(r"[1-9][0-9]?", disc)
+                    or not re.fullmatch(r"[1-9][0-9]?", total) or int(disc) > int(total)):
+                return None
+            positions[path] = int(disc)
+            totals.add(int(total))
+        if len(totals) != 1 or set(positions.values()) != set(range(1, next(iter(totals)) + 1)):
+            return None
+        candidates = [path for path in candidates if positions[path] == int(cue_disc[1])]
     albums = set()
     matches = []
     for path in candidates:

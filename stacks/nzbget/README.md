@@ -363,6 +363,11 @@ entries that leave a plausible, internally complete set.
 Disc-labelled cue filenames can resolve DTT-prefixed FLAC exports when the disc,
 track, tagged album, artist, title and complete filename identity agree. Ambiguous
 references and different mix or release-group suffixes remain errors.
+When metadata-based matching is ambiguous across discs in a flat release,
+a cue filename ending in `CD1`, `Disc 1` or `Disk 1` selects that tagged disc. This requires an explicit
+album title and performer in the cue header, consistent disc totals on every
+candidate, and all declared discs present. Missing or conflicting disc tags
+still fail before any files change.
 
 Preview strict processing without changing a release:
 
