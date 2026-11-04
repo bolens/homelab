@@ -50,6 +50,58 @@ class RecordsTest(unittest.TestCase):
         self.assertFalse(self.module.evidence(['1'])['1'][1])
         self.assertEqual(self.store.get('pack',self.key)['phase'],'review')
 
+    def ready_report(self, kind='issue', **extra):
+        return json.dumps({'id':self.key,'inventory_complete':True,'members':[
+            dict(id='b'*64,kind=kind,phase='ready',issueid='10',comicid='20',**extra)]})
+
+    def test_ready_member_records_current_owner_without_import_history(self):
+        self.module.report(self.ready_report())
+        member=self.store.get('pack',self.key)['members'][0]
+        self.assertEqual(member['releasecomicid'],'20')
+        self.assertNotIn('destination',member)
+        self.assertNotIn('ordinary_import_token',member)
+        self.assertEqual(member['phase'],'ready')
+
+    def test_ready_annual_retains_distinct_catalog_release(self):
+        self.mylar.publication_native.owner=lambda *_:dict(table='annuals',issueid='10',parentcomicid='20',releasecomicid='30')
+        self.module.report(self.ready_report('annual'))
+        self.assertEqual(self.store.get('pack',self.key)['members'][0]['releasecomicid'],'30')
+
+    def test_ready_member_cannot_supply_a_different_release(self):
+        with self.assertRaises(ValueError):
+            self.module.report(self.ready_report(releasecomicid='30'))
+        self.assertEqual(self.store.get('pack',self.key)['members'],[])
+
+    def test_ready_member_cannot_mislabel_catalog_table(self):
+        with self.assertRaises(ValueError):
+            self.module.report(self.ready_report('annual'))
+        self.assertEqual(self.store.get('pack',self.key)['members'],[])
+
+    def test_ready_member_without_current_catalog_owner_refuses(self):
+        self.mylar.publication_native.owner=lambda *_:None
+        with self.assertRaises(ValueError):
+            self.module.report(self.ready_report())
+        self.assertEqual(self.store.get('pack',self.key)['members'],[])
+
+    def test_existing_release_owner_is_not_silently_replaced(self):
+        self.module.report(self.ready_report())
+        before=self.store.get('pack',self.key)
+        self.mylar.publication_native.owner=lambda *_:dict(table='issues',issueid='10',parentcomicid='20',releasecomicid='30')
+        with self.assertRaises(ValueError):
+            self.module.report(self.ready_report())
+        self.assertEqual(self.store.get('pack',self.key),before)
+
+    def test_ready_member_owner_drift_before_commit_refuses(self):
+        owner=self.mylar.publication_native.owner
+        calls=[]
+        def changing(*args):
+            calls.append(True)
+            return owner(*args) if len(calls)==1 else None
+        self.mylar.publication_native.owner=changing
+        with self.assertRaises(ValueError):
+            self.module.report(self.ready_report())
+        self.assertEqual(self.store.get('pack',self.key)['members'],[])
+
     def test_archive_present_without_ordinary_ack_cannot_confirm_pack(self):
         target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
         self.mylar.ordinary_import_history.confirmed_token=lambda *_:False

@@ -101,7 +101,7 @@
   },
   {
     "path": "pack_intake.py",
-    "sha256": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89",
+    "sha256": "6d03eb6585b487de4eb29911f41ae5185c1a403307cc06978babcf32b9bdcd47",
     "target": "fixtures/child/source/pack_intake.py"
   },
   {
@@ -351,7 +351,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "e7c057d957d11e51cc97eb69424631b4d0e46d8dbf172def5e7c8637540ea2c1",
+    "sha256": "5f9a98404600a02e9644b49eb049416b7812454022a871be1ba5920f532a2547",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
@@ -501,7 +501,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "26c5c7754ea56d5b7e817f58577c5916f2f41bdba54cc8cb1a1e1fd076f1efac",
+    "sha256": "2bd5cf9606557d56c03a5f504e02963007c392270b2155a74e16a8d2d7a326c5",
     "target": "tests/test_fixed_broker.py"
   },
   {
@@ -531,7 +531,7 @@
   },
   {
     "path": "test_pack_records.py",
-    "sha256": "68b99605e80b6fcea5e35948a16948ddc8dc2dccc2e923cc76e9e1bfe8bc3a48",
+    "sha256": "28f12fb81100439a6bf00eb94b0c227978dd8bacfc15b6a445c0d202d1ac742e",
     "target": "fixtures/child/source/test_pack_records.py"
   },
   {

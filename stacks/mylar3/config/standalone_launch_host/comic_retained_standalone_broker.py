@@ -540,6 +540,18 @@ def native_control_original(installation,runtime,session):
     return encoded
 
 
+def _pack_existing_target(review,request,member):
+    witness=review.get('existing_target')
+    if type(witness) is not dict or set(witness)!={'path','sha256'}:raise Held('fixed-pack-current-target-witness')
+    text=witness['path']
+    if (type(text) is not str or '\x00' in text or text.startswith('//') or not Path(text).is_absolute()
+            or str(Path(text))!=text or '..' in Path(text).parts or Path(text)==Path('/')):raise Held('fixed-pack-current-target-path')
+    if not hexadecimal(witness['sha256']) or witness['sha256']!=request['target_sha256']:raise Held('fixed-pack-current-target-hash')
+    if (('destination' in member and member['destination']!=text)
+            or ('destination_sha256' in member and member['destination_sha256']!=witness['sha256'])):raise Held('fixed-pack-original-target-conflict')
+    return text
+
+
 def _pack_preflight(installation,runtime,boot,nonce):
     """Bind actual configured scopes and existing receipts before any launch."""
     row=installation.close();parent=owning_parent(row);worker=runtime.baseline['worker']
@@ -567,7 +579,7 @@ def _pack_preflight(installation,runtime,boot,nonce):
     blobs={key:parent.read_original(ref)[0] for key,ref in references.items()}
     cfg=document(blobs['config_ref']);mapping=document(blobs['source_map_ref']);review=document(blobs['review_ref'])
     if not 1<=len(mapping)<=512 or any(type(name) is not str or re.fullmatch(r'[a-z_][a-z0-9_]*\.py',name) is None or not hexadecimal(pin) for name,pin in mapping.items()):raise Held('fixed-pack-source-map')
-    review_fields={'version','kind','request','native_api_sha256','native_sources','native_image'}
+    review_fields={'version','kind','request','native_api_sha256','native_sources','native_image','existing_target'}
     native_names={'native_writers.py','publication_retained_api.py','publication_retained_delivery.py','publication_retained_finalize.py'}
     if (set(review)!=review_fields or type(review['version']) is not int or review['version']!=1
             or review['kind']!='retained-pack-reviewed-native-cohort' or canonical(review['request'])!=canonical(request)
@@ -607,7 +619,8 @@ def _pack_preflight(installation,runtime,boot,nonce):
         state/'maintenance/retained-pack-handoffs'/(token+'.done.json'),
         receipt.parent/('.retained-'+token+'.new'))
     if any(os.path.lexists(path) for path in pending_paths):raise Held('fixed-pack-existing-transaction-no-replay')
-    source=parent.mapped_host(worker['Mounts'],member['source']);target=parent.mapped_host(worker['Mounts'],member['destination'])
+    source=parent.mapped_host(worker['Mounts'],member['source'])
+    target=parent.mapped_host(worker['Mounts'],_pack_existing_target(review,request,member))
     capture=parent.mapped_host(worker['Mounts'],local['capture_source'])
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
@@ -1352,6 +1365,7 @@ def _run_pack_original(launch):
     streams.update(p for p,s in metadata['files'].items() if Path(p).is_relative_to(capture) and s[5]&0o170000==0o100000)
     media=observer.OwnerObservation.capture(plan['roots'],sorted(streams),deadline=state['total_deadline'])
     if any(canonical(media.data()[key])!=canonical(metadata[key]) for key in ('files','nodes','names')):raise Held('fixed-pack-original-media-census')
+    if media.data()['hashes'].get(plan['target'])!=request['target_sha256']:raise Held('fixed-pack-current-target-content')
     first.close();media.close();launch.close()
     state['runtime'].quiesce()
     helper=state['installation'].close()['modules']['comic_retained_pack_backup.py']

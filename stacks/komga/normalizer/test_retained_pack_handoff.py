@@ -10,6 +10,13 @@ from unittest.mock import patch
 import retained_pack_handoff as h
 
 class Mechanics(unittest.TestCase):
+ def test_current_target_witness_is_canonical_and_request_bound(self):
+  request={'target_sha256':'a'*64}
+  self.assertEqual(h._target_witness({'path':'/library/current.cbz','sha256':'a'*64},request),Path('/library/current.cbz'))
+  for text in ('relative.cbz','//library/current.cbz','/library/../current.cbz','/','/library//current.cbz','/library/./current.cbz','/library/\x00.cbz'):
+   with self.subTest(path=repr(text)),self.assertRaises(ValueError):h._target_witness({'path':text,'sha256':'a'*64},request)
+  for value in ({'path':'/library/current.cbz','sha256':'b'*64},{'path':'/library/current.cbz','sha256':'a'*64,'historical_ack':True}):
+   with self.assertRaises(ValueError):h._target_witness(value,request)
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
   self.root.chmod(0o700);self.parent=h.five(os.lstat(self.root));self.path=self.root/'out.json'

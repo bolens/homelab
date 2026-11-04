@@ -2,6 +2,7 @@
 
 JAVA_HOME_21 ?= $(JAVA_HOME_21_X64)
 MYLAR_PYTHON ?= python3
+PUBLICATION_HOST_PYTHON ?= python3
 SOURCE_LINT_TOOLING ?=
 ARCHIVING_UTILS_ROOT ?= /opt/archiving-utils
 PUBLICATION_AUTH_BACKEND ?= host
@@ -62,8 +63,10 @@ source-lint:
 
 mylar-source-check:
 	@test -f "$(ARCHIVING_UTILS_ROOT)/lib/archive_backend.py" || { echo "The complete publication gate requires ARCHIVING_UTILS_ROOT pointing to the checked archive SDK." >&2; exit 1; }
+	@$(PUBLICATION_HOST_PYTHON) -c "import fcntl, os, sys; sys.exit(0 if hasattr(os, 'memfd_create') and all(hasattr(fcntl, name) for name in ('F_ADD_SEALS', 'F_GET_SEALS', 'F_SEAL_WRITE', 'F_SEAL_GROW', 'F_SEAL_SHRINK', 'F_SEAL_SEAL')) else 'Authenticated host controls require Linux memfd and seal support')"
 	$(MYLAR_PYTHON) -B -m unittest discover -s stacks/mylar3/config -p test_workflow.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_health.py
+	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_pack_records.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_verify_status_routing.py
 	$(MYLAR_PYTHON) -I -B stacks/mylar3/config/test_publication_launch_auth.py
 	# Tagging host controls share real admission; three executable cases remain image-only.
@@ -75,7 +78,7 @@ mylar-source-check:
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/test_publication_archive_nfs.py
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_import_api_controls.py --family all
 	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_standalone_controls.py --family all
-	$(MYLAR_PYTHON) -B stacks/mylar3/config/run_authenticated_standalone_controls.py --backend "$(PUBLICATION_AUTH_BACKEND)"
+	$(PUBLICATION_HOST_PYTHON) -B stacks/mylar3/config/run_authenticated_standalone_controls.py --backend "$(PUBLICATION_AUTH_BACKEND)"
 
 komga-source-check:
 	@test -n "$(JAVA_HOME_21)" || (echo "JDK 21 is required: set JAVA_HOME_21=/path/to/jdk-21 (or JAVA_HOME_21_X64)." >&2; exit 2)

@@ -22,6 +22,22 @@ def load(path,name):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 class BrokerTests(unittest.TestCase):
+    def test_pack_target_witness_needs_no_ordinary_destination_history(self):
+        request={'target_sha256':'a'*64}
+        review={'existing_target':{'path':'/library/current.cbz','sha256':'a'*64}}
+        self.assertEqual(self.m._pack_existing_target(review,request,{}),'/library/current.cbz')
+        for member in ({'destination':'/library/foreign.cbz'},{'destination_sha256':'b'*64}):
+            with self.assertRaises(self.m.Held):self.m._pack_existing_target(review,request,member)
+
+    def test_pack_target_witness_refuses_wrong_hash_or_noncanonical_path(self):
+        request={'target_sha256':'a'*64}
+        for witness in ({'path':'/library/current.cbz','sha256':'b'*64},
+                        {'path':'/library/../current.cbz','sha256':'a'*64},
+                        {'path':'//library/current.cbz','sha256':'a'*64},
+                        {'path':'/','sha256':'a'*64},
+                        {'path':'/library/current.cbz','sha256':'a'*64,'ack':True}):
+            with self.assertRaises(self.m.Held):self.m._pack_existing_target({'existing_target':witness},request,{})
+
     def test_actual_bootstrap_map_accepts_versioned_worker_modules(self):
         import ast,re
         tree=ast.parse((HERE/'source/BOOTSTRAP.py').read_bytes())

@@ -311,6 +311,7 @@ def report(payload, handoff=None):
     if not set(previous_members)<= {row.get('id') for row in members}:
         raise ValueError('Pack report cannot erase prior member evidence')
     clean = []
+    owners = {}
     seen = set()
     for row in members:
         token = row.get('id', '')
@@ -330,6 +331,16 @@ def report(payload, handoff=None):
         member.update(name=label(row.get('name'), 255), reason=label(row.get('reason', '')),
                       format=label(row.get('format', ''), 20), issueid=identifier(row.get('issueid')),
                       comicid=identifier(row.get('comicid')))
+        if member['kind'] in ('issue', 'annual') and member['issueid'] and member['comicid']:
+            import mylar
+            from mylar import publication_native
+            owner = publication_native.owner(mylar.DATA_DIR, member['issueid'], member['comicid'])
+            if (owner is None or owner['table'] != ('annuals' if member['kind']=='annual' else 'issues')
+                    or ('releasecomicid' in row and identifier(row['releasecomicid']) != owner['releasecomicid'])
+                    or previous_member.get('releasecomicid', owner['releasecomicid']) != owner['releasecomicid']):
+                raise ValueError('Pack member differs from current catalog owner')
+            member['releasecomicid'] = owner['releasecomicid']
+            owners[token] = owner
         if member['kind'] == 'sidecar' and member['phase'] == 'preserved':
             encoded = row.get('sidecar', '')
             if not isinstance(encoded, str) or len(encoded) > 350000:
@@ -381,6 +392,10 @@ def report(payload, handoff=None):
         # Recheck under the journal write transaction. A delayed HTTP report
         # must not publish pre-mutation signatures after binding finalization.
         for member in clean:
+            if member['id'] in owners:
+                from mylar import publication_native
+                if publication_native.owner(__import__('mylar').DATA_DIR, member['issueid'], member['comicid']) != owners[member['id']]:
+                    raise ValueError('Pack catalog owner changed before report commit')
             if member['kind'] != 'sidecar' and member['phase'] in ('confirmed', 'preserved'):
                 path = Path(member['destination'])
                 info = path.stat()

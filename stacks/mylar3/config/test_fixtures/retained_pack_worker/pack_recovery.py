@@ -124,6 +124,18 @@ def source_state(source, content=False, *, max_bytes=32 * 1024**3):
     return hashlib.sha256(json.dumps(entries, separators=(',', ':')).encode()).hexdigest()
 
 
+def catalog_destination(worker, database, matched):
+    """Resolve a current target without creating import or receipt history."""
+    with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as connection:
+        current = issue_state(connection, matched)
+        parent = connection.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', [matched['comicid']]).fetchone()
+        if current and current[0] in ('Downloaded', 'Archived') and current[1] and parent and parent[0]:
+            from publication_guard import catalog_path
+            path = catalog_path(worker, Path(parent[0]) / current[1])
+            return path if scoped_file(path, worker.roots) else None
+    return None
+
+
 class Packs:
     def __init__(self, maintenance):
         self.m = maintenance
@@ -501,14 +513,7 @@ class Packs:
         return rows[0]
 
     def destination(self, matched):
-        with closing(sqlite3.connect('file:' + str(self.db) + '?mode=ro', uri=True)) as database:
-            current = issue_state(database, matched)
-            parent = database.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', [matched['comicid']]).fetchone()
-            if current and current[0] in ('Downloaded', 'Archived') and current[1] and parent and parent[0]:
-                from publication_guard import catalog_path
-                path = catalog_path(self.worker,Path(parent[0]) / current[1])
-                return path if scoped_file(path, self.worker.roots) else None
-        return None
+        return catalog_destination(self.worker, self.db, matched)
 
     def preserve_extra(self, source, member, points, info, comicid=None):
         authority=None
