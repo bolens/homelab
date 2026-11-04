@@ -60,6 +60,8 @@ UNWANTED_SUFFIXES = {
     ".sfv",
     ".srr",
     ".toc",
+    ".tif",
+    ".tiff",
     ".txt",
     ".url",
     ".website",
@@ -77,7 +79,7 @@ KNOWN_MEDIA_SUFFIXES = {
     ".m4v", ".mka", ".mkv", ".mov", ".mp3", ".mp4", ".ogg", ".opus",
     ".wav", ".webm", ".wma", ".wmv",
 }
-IMAGE_SUFFIXES = {".jpg", ".png"}
+IMAGE_SUFFIXES = {".jpg", ".png", ".tif"}
 CLEANUP_SIGNATURE_SUFFIXES = IMAGE_SUFFIXES | {".pdf"}
 MAX_MEMBERS = 20000
 MAX_ARCHIVES = 100
@@ -130,6 +132,8 @@ def detected_suffix(path: Path) -> str | None:
         header = stream.read(4096)
         if header.startswith(b"ID3") and flac_stream_offset(stream) is not None:
             return ".flac"
+    if header[:4] in (b"II\x2a\x00", b"MM\x00\x2a") and is_tiff_image(path):
+        return ".tif"
     for signature, suffix in MEDIA_SIGNATURES:
         if header.startswith(signature):
             return suffix
@@ -151,6 +155,149 @@ def detected_suffix(path: Path) -> str | None:
         return ".webm" if b"webm" in header else ".mkv"
     # A readable prefix does not prove the whole file is a disposable sidecar.
     return None
+
+
+def is_tiff_image(path: Path) -> bool:
+    """Recognise single-IFD classic TIFF rasters with in-bounds strip/tile payloads."""
+    size = path.stat().st_size
+    with path.open('rb') as stream:
+        header = stream.read(8)
+        if len(header) != 8 or header[:4] not in (b'II\x2a\x00', b'MM\x00\x2a'):
+            return False
+        order = 'little' if header[:2] == b'II' else 'big'
+        offset = int.from_bytes(header[4:], order)
+        if not 8 <= offset <= size - 6:
+            return False
+        stream.seek(offset)
+        count = int.from_bytes(stream.read(2), order)
+        if not 1 <= count <= 4096 or offset + 6 + count * 12 > size:
+            return False
+        entries = stream.read(count * 12)
+        if stream.read(4) != bytes(4):
+            return False
+        fields = {}
+        for index in range(count):
+            entry = entries[index * 12:(index + 1) * 12]
+            tag = int.from_bytes(entry[:2], order)
+            if tag not in {256, 257, 273, 279, 324, 325}:
+                continue
+            kind = int.from_bytes(entry[2:4], order)
+            length = int.from_bytes(entry[4:8], order)
+            if tag in fields or kind not in (3, 4) or not 1 <= length <= 4096:
+                return False
+            width = 2 if kind == 3 else 4
+            raw = entry[8:12]
+            if width * length > 4:
+                address = int.from_bytes(raw, order)
+                if not 8 <= address <= size - width * length:
+                    return False
+                stream.seek(address)
+                raw = stream.read(width * length)
+            fields[tag] = [int.from_bytes(raw[i:i + width], order) for i in range(0, width * length, width)]
+        if any(len(fields.get(tag, [])) != 1 or fields[tag][0] == 0 for tag in (256, 257)):
+            return False
+        offsets, lengths = (fields.get(273), fields.get(279)) if 273 in fields else (fields.get(324), fields.get(325))
+        return bool(offsets and lengths and len(offsets) == len(lengths)
+                    and all(length > 0 and 8 <= address <= size - length for address, length in zip(offsets, lengths)))
+
+
+def is_windows_thumbnail_cache(path: Path) -> bool:
+    """Recognise bounded v3 Thumbs.db files containing only hashed JPEG thumbnails."""
+    if path.name.casefold() != 'thumbs.db' or not 1536 <= path.stat().st_size <= 8 * 1024**2:
+        return False
+    with path.open('rb') as stream:
+        raw = stream.read(8 * 1024**2 + 1)
+    if (len(raw) > 8 * 1024**2 or len(raw) % 512
+            or raw[:8] != b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'
+            or raw[8:24] != bytes(16) or raw[26:34] != b'\x03\x00\xfe\xff\x09\x00\x06\x00'
+            or raw[34:44] != bytes(10) or int.from_bytes(raw[56:60], 'little') != 4096
+            or raw[68:76] != b'\xfe\xff\xff\xff\x00\x00\x00\x00'):
+        return False
+    def number(data: bytes) -> int:
+        return int.from_bytes(data, 'little')
+    sectors = len(raw) // 512 - 1
+    fat_count = number(raw[44:48])
+    fat_ids = [number(raw[i:i + 4]) for i in range(76, 512, 4)]
+    if (not 1 <= fat_count <= 109 or len(set(fat_ids[:fat_count])) != fat_count
+            or any(sid >= sectors for sid in fat_ids[:fat_count])
+            or any(sid != 0xffffffff for sid in fat_ids[fat_count:])):
+        return False
+    fat_data = b''.join(raw[(sid + 1) * 512:(sid + 2) * 512] for sid in fat_ids[:fat_count])
+    fat = [number(fat_data[i:i + 4]) for i in range(0, len(fat_data), 4)]
+    if (len(fat) < sectors or any(fat[sid] != 0xfffffffd for sid in fat_ids[:fat_count])
+            or any(value != 0xffffffff for value in fat[sectors:])):
+        return False
+    used = set(fat_ids[:fat_count])
+    def chain(sid: int, limit: int) -> bytes:
+        chunks = []
+        while sid != 0xfffffffe:
+            if sid >= sectors or sid in used or len(chunks) >= limit:
+                raise ValueError('invalid thumbnail sector chain')
+            used.add(sid)
+            chunks.append(raw[(sid + 1) * 512:(sid + 2) * 512])
+            sid = fat[sid]
+        return b''.join(chunks)
+    try:
+        directory = chain(number(raw[48:52]), 256)
+        mini_count = number(raw[64:68])
+        mini = chain(number(raw[60:64]), sectors)
+        if len(mini) != mini_count * 512 or any(value != 255 for value in mini):
+            return False
+        thumbnails = 0
+        names = set()
+        nodes = {}
+        for index in range(0, len(directory), 128):
+            entry = directory[index:index + 128]
+            kind = entry[66]
+            if kind == 0:
+                if entry[68:80] != b'\xff' * 12:
+                    return False
+                continue
+            length = number(entry[64:66])
+            if not 2 <= length <= 64 or length % 2 or entry[length - 2:length] != b'\0\0':
+                return False
+            name = entry[:length - 2].decode('utf-16-le')
+            left, right, child = (number(entry[p:p + 4]) for p in (68, 72, 76))
+            nodes[index // 128] = (left, right, child)
+            if entry[67] not in (0, 1):
+                return False
+            start, size = number(entry[116:120]), number(entry[120:128])
+            if index == 0:
+                if (kind != 5 or name != 'Root Entry' or size or start != 0xfffffffe
+                        or left != 0xffffffff or right != 0xffffffff):
+                    return False
+                continue
+            if (kind != 2 or child != 0xffffffff or not re.fullmatch(r'256_[0-9a-f]{1,16}', name)
+                    or name in names or not 4096 <= size <= len(raw)):
+                return False
+            names.add(name)
+            payload = chain(start, (size + 511) // 512)
+            if len(payload) != (size + 511) // 512 * 512:
+                return False
+            payload = payload[:size]
+            if (payload[:8] != b'\x18\x00\x00\x00\x03\x00\x00\x00'
+                    or number(payload[8:12]) != size - 24 or payload[24:27] != b'\xff\xd8\xff'
+                    or payload[-2:] != b'\xff\xd9'):
+                return False
+            thumbnails += 1
+        if 0 not in nodes:
+            return False
+        visited = {0}
+        pending = [nodes[0][2]]
+        while pending:
+            sid = pending.pop()
+            if sid == 0xffffffff:
+                continue
+            if sid not in nodes or sid in visited:
+                return False
+            visited.add(sid)
+            pending.extend(nodes[sid][:2])
+        if visited != set(nodes):
+            return False
+        return bool(directory and directory[66] == 5 and thumbnails
+                    and all(sid in used or fat[sid] == 0xffffffff for sid in range(sectors)))
+    except (ValueError, UnicodeDecodeError):
+        return False
 
 
 def audio_frame(data: bytes, offset: int) -> tuple[str, int] | None:
@@ -342,6 +489,7 @@ def is_text_sidecar(path: Path, *, suffix: str | None = None) -> bool:
         with path.open(encoding=encoding) as stream:
             while chunk := stream.read(65536):
                 if any(not char.isprintable() and char not in "\t\r\n\f"
+                       and not (char == "\u00a0" and effective_suffix == ".nfo")
                        and not (char == "\u200e" and effective_suffix == ".txt") for char in chunk):
                     return False
     except UnicodeDecodeError:
@@ -349,7 +497,7 @@ def is_text_sidecar(path: Path, *, suffix: str | None = None) -> bool:
             return False
         if effective_suffix == ".log":
             with path.open("rb") as stream:
-                if not stream.read(128).startswith(b"Exact Audio Copy "):
+                if not stream.read(128).startswith((b"Exact Audio Copy ", b"AUDIOCHECKER v")):
                     return False
         # Scene NFOs mix drawing glyphs with accented release text. Keep the
         # drawing alphabet separate from Windows text. Only bounded, framed NFO
@@ -602,15 +750,40 @@ def is_windows_folder_metadata(path: Path) -> bool:
 
 
 
+def wrapped_posting_name(path: Path) -> tuple[str, bool] | None:
+    match = re.fullmatch(
+        r'(?:\[N3wZ\] _[A-Za-z0-9]+___)?\[PRiVATE\]-\[WtFnZb\]-\[([^/\\\r\n]{1,256})\]'
+        r'-\[[0-9]+_[0-9]+\] - __ yEnc +[0-9]+ \([0-9]+_[0-9]+\)(\.flac)?', path.name, re.IGNORECASE)
+    if not match or match[1].startswith('.') or not all(c.isprintable() for c in match[1]):
+        return None
+    return match[1], bool(match[2])
+
+
+def is_wrapped_text_sidecar(path: Path) -> bool:
+    posting = wrapped_posting_name(path)
+    if posting is None or posting[1] or path.stat().st_size > 65536 or detected_suffix(path) is not None:
+        return False
+    suffix = PurePosixPath(posting[0]).suffix.casefold()
+    return suffix in {'.accurip', '.log', '.txt'} and is_text_sidecar(path, suffix=suffix)
+
+
 def wrapped_posting_target(path: Path) -> Path | None:
     """Restore only the observed disc-scoped WtFnZb wrapper and verified content."""
     match = re.fullmatch(
         r"(?:\[N3wZ\] _[A-Za-z0-9]+___)?\[PRiVATE\]-\[WtFnZb\]-\[_[^/\\\r\n]{1,256}_CD([1-9][0-9]?)_"
         r"([^/\\\r\n]{1,180}\.(flac|cue|log|txt))\]-\[[0-9]+_[0-9]+\] - __ yEnc +[0-9]+ \([0-9]+_[0-9]+\)(\.flac)?",
         path.name, re.IGNORECASE)
-    if not match or len(re.findall(r"(?=_CD[1-9][0-9]?_)", path.name, re.IGNORECASE)) != 1:
+    if match:
+        disc, name, suffix, appended = match[1], match[2], "." + match[3].casefold(), bool(match[4])
+    else:
+        posting = wrapped_posting_name(path)
+        image = re.fullmatch(r"(.+\.\(CD([1-9][0-9]?)\))\.(flac|cue|log|txt|accurip)",
+                             posting[0], re.IGNORECASE) if posting else None
+        if image is None:
+            return None
+        disc, name, suffix, appended = image[2], posting[0], "." + image[3].casefold(), posting[1]
+    if len(re.findall(r"(?=_CD[1-9][0-9]?_)|\(CD[1-9][0-9]?\)", path.name, re.IGNORECASE)) != 1:
         return None
-    name, suffix = match[2], "." + match[3].casefold()
     if (name.startswith(".") or not all(char.isprintable() for char in name)
             or PureWindowsPath(name).drive or any(char in name for char in ':"<>|?*')):
         return None
@@ -619,7 +792,7 @@ def wrapped_posting_target(path: Path) -> Path | None:
         if detected != ".flac":
             return None
     else:
-        if match[4] or detected is not None or path.stat().st_size > 65536 or not is_text_sidecar(path, suffix=suffix):
+        if appended or detected is not None or path.stat().st_size > 65536 or not is_text_sidecar(path, suffix=suffix):
             return None
         if suffix == ".cue":
             raw = path.read_bytes()
@@ -630,7 +803,7 @@ def wrapped_posting_target(path: Path) -> Path | None:
                 text = raw.decode("cp1252")
             if not any(CUE_FILE.fullmatch(line) for line in text.splitlines()):
                 return None
-    return path.parent / ("CD" + match[1]) / name
+    return path.parent / ("CD" + disc) / name
 
 
 def disposable(path: Path) -> bool:
@@ -645,10 +818,12 @@ def disposable(path: Path) -> bool:
     if suffix not in UNWANTED_SUFFIXES:
         if suffix in KNOWN_MEDIA_SUFFIXES | {".cue"} or detected_suffix(path) is not None:
             return False
+        if playlist_entries(path) is not None:
+            return False
         wrapped = wrapped_posting_target(path)
         if wrapped is not None and wrapped.suffix.casefold() in {".log", ".txt"}:
             return True
-        return (is_windows_folder_metadata(path) or is_synology_metadata(path)
+        return (is_wrapped_text_sidecar(path) or is_windows_thumbnail_cache(path) or is_windows_folder_metadata(path) or is_synology_metadata(path)
                 or is_srr_sidecar(path) or is_obfuscated_posting_sidecar(path))
     # Playlist disposal needs the whole release, including files from later
     # archives. Never discard a duplicate before completeness is established.

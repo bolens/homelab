@@ -24,6 +24,125 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
 
+    @staticmethod
+    def classic_tiff(order: str = '<') -> bytes:
+        prefix = b'II' if order == '<' else b'MM'
+        entries = [(256, 1), (257, 1), (273, 62), (279, 1)]
+        return (prefix + struct.pack(order + 'HIH', 42, 8, len(entries))
+                + b''.join(struct.pack(order + 'HHII', tag, 4, 1, value) for tag, value in entries)
+                + bytes(4) + b'\x00')
+
+    @staticmethod
+    def thumbnail_database() -> bytes:
+        header = bytearray(512)
+        header[:8] = bytes.fromhex('d0cf11e0a1b11ae1')
+        struct.pack_into('<HHHHH', header, 24, 0x3e, 3, 0xfffe, 9, 6)
+        for offset, value in ((44, 1), (48, 1), (56, 4096), (60, 0xfffffffe), (68, 0xfffffffe)):
+            struct.pack_into('<I', header, offset, value)
+        struct.pack_into('<109I', header, 76, 0, *([0xffffffff] * 108))
+        jpeg = b'\xff\xd8\xff' + bytes(4091) + b'\xff\xd9'
+        payload = struct.pack('<III', 24, 3, len(jpeg)) + bytes(12) + jpeg
+        fat = [0xffffffff] * 128
+        fat[0], fat[1] = 0xfffffffd, 0xfffffffe
+        for index in range(2, 11):
+            fat[index] = index + 1 if index < 10 else 0xfffffffe
+        directory = bytearray(512)
+        for offset in range(0, 512, 128):
+            struct.pack_into('<III', directory, offset + 68, 0xffffffff, 0xffffffff, 0xffffffff)
+        for offset, name, kind, start, size in ((0, 'Root Entry', 5, 0xfffffffe, 0),
+                                               (128, '256_0123456789abcdef', 2, 2, len(payload))):
+            encoded = (name + '\0').encode('utf-16-le')
+            directory[offset:offset + len(encoded)] = encoded
+            struct.pack_into('<H', directory, offset + 64, len(encoded))
+            directory[offset + 66] = kind
+            directory[offset + 67] = 1
+            struct.pack_into('<III', directory, offset + 68, 0xffffffff, 0xffffffff, 1 if kind == 5 else 0xffffffff)
+            struct.pack_into('<IQ', directory, offset + 116, start, size)
+        return bytes(header) + struct.pack('<128I', *fat) + directory + payload.ljust(9 * 512, b'\0')
+
+    def test_tiff_and_thumbnail_cleanup_protects_audio_unknowns_and_retries(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b'fLaC' + bytes(32)
+                files = {'booklet.tif': self.classic_tiff(), 'disc.TIFF': self.classic_tiff('>'),
+                         'obfuscated-image': self.classic_tiff(), 'Thumbs.db': self.thumbnail_database(),
+                         'song.tiff': audio, 'song.db': audio, 'unknown.tiff': b'\0binary',
+                         'unrelated.db': self.thumbnail_database()}
+                if archive:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root)
+                expected = {'song.tiff.flac': audio, 'song.db.flac': audio,
+                            'unknown.tiff': files['unknown.tiff'], 'unrelated.db': files['unrelated.db']}
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, expected)
+
+    def test_tiff_and_thumbnail_cleanup_cue_disabled_and_empty_guards(self) -> None:
+        for name, payload in (('booklet.tiff', self.classic_tiff()), ('Thumbs.db', self.thumbnail_database())):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(payload)
+                with self.assertRaisesRegex(ValueError, 'no files would remain'):
+                    main.process_release(root)
+                main.process_release(root, cleanup=False)
+                self.assertEqual((root / name).read_bytes(), payload)
+                cue = ('FILE "' + name + '" BINARY\n').encode()
+                (root / 'release.cue').write_bytes(cue)
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {name: payload, 'release.cue': cue})
+
+    def test_tiff_rejects_truncated_invalid_and_out_of_bounds_rasters(self) -> None:
+        valid = self.classic_tiff()
+        variants = [valid[:4], valid[:10], b'II*\0' + bytes(12)]
+        for offset, value in ((4, 0xffffffff), (8, 4097), (18, 0), (42, 0xffffffff), (54, 0xffffffff), (58, 8), (58, 0xffffffff)):
+            damaged = bytearray(valid)
+            struct.pack_into('<I' if offset != 8 else '<H', damaged, offset, value)
+            variants.append(bytes(damaged))
+        for payload in variants:
+            with self.subTest(payload=payload[:10]), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / 'booklet.tiff'
+                path.write_bytes(payload)
+                self.assertFalse(main.is_tiff_image(path))
+                self.assertFalse(main.disposable(path))
+
+    def test_thumbnail_cache_rejects_other_ole_streams_and_malformed_chains(self) -> None:
+        valid = self.thumbnail_database()
+        variants = [valid[:512], valid[:-1], b'fLaC' + valid[4:]]
+        for offset, value in ((44, 110), (48, 0), (512 + 10 * 4, 2), (1024 + 128 + 116, 1),
+                              (1024 + 128 + 120, 4000), (1536 + 8, 1), (1024 + 76, 0), (1024 + 76, 0x12345678),
+                              (1152 + 68, 1), (1152 + 76, 0), (512 + 127 * 4, 0xfffffffe),
+                              (1280 + 68, 0)):
+            damaged = bytearray(valid)
+            struct.pack_into('<I', damaged, offset, value)
+            variants.append(bytes(damaged))
+        damaged = bytearray(valid)
+        name = 'WordDocument\0'.encode('utf-16-le')
+        damaged[1152:1216] = name.ljust(64, b'\0')
+        struct.pack_into('<H', damaged, 1216, len(name))
+        variants.append(bytes(damaged))
+        for payload in variants:
+            with self.subTest(payload=payload[:8]), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / 'Thumbs.db'
+                path.write_bytes(payload)
+                self.assertFalse(main.is_windows_thumbnail_cache(path))
+                self.assertFalse(main.disposable(path))
+
+    def test_scene_nfo_nonbreaking_spaces_keep_other_controls_protected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            text = 'Artist : Example\nTitle : A\u00a0measure\nTracks : 1\n'.encode('utf-8')
+            nfo = root / 'scene.nfo'
+            nfo.write_bytes(text)
+            self.assertTrue(main.disposable(nfo))
+            nfo.write_bytes(text + b'\0')
+            self.assertFalse(main.disposable(nfo))
+
     def test_jpeg_sidecar_extension_cleanup_protects_disguised_audio_and_binary(self) -> None:
         for archive in (False, True):
             with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
@@ -1407,6 +1526,101 @@ class MusicProcessingSeamTest(unittest.TestCase):
             main.process_release(root)
             self.assertFalse((root / "scene.nfo").exists())
             self.assertEqual(len(list(root.glob("invalid*.nfo"))), 7)
+
+    @staticmethod
+    def parenthesized_posting(name: str) -> str:
+        return f'[PRiVATE]-[WtFnZb]-[{name}]-[1_20] - __ yEnc  1024 (1_1)'
+
+    def test_parenthesized_disc_images_cues_reports_and_retries(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                files = {}
+                for disc in (1, 2):
+                    stem = f'Fixture.-.Example.(CD{disc})'
+                    files[self.parenthesized_posting(stem + '.flac') + '.flac'] = self.tagged_flac({})
+                    files[self.parenthesized_posting(stem + '.cue')] = (
+                        f'FILE "Fixture - Example (CD{disc}).flac" WAVE\r\n TRACK 01 AUDIO\r\n INDEX 01 00:00:00\r\n'
+                        ' TRACK 02 AUDIO\r\n INDEX 01 03:00:00\r\n').encode()
+                    files[self.parenthesized_posting(stem + '.accurip')] = b'AccurateRip report\n'
+                    files[self.parenthesized_posting('foo_dr.txt')] = b'Analysis report\n'
+                if archive:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        for name, payload in files.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in files.items():
+                        (root / name).write_bytes(payload)
+                main.process_release(root, require_completeness=True)
+                expected = {}
+                for disc in (1, 2):
+                    stem = f'Fixture.-.Example.(CD{disc})'
+                    expected[f'CD{disc}/{stem}.flac'] = files[self.parenthesized_posting(stem + '.flac') + '.flac']
+                    cue = (root / f'CD{disc}/{stem}.cue').read_bytes()
+                    self.assertIn(f'FILE "{stem}.flac" WAVE'.encode(), cue)
+                    expected[f'CD{disc}/{stem}.cue'] = cue
+                self.assertEqual({p.relative_to(root).as_posix(): p.read_bytes() for p in main.tree_files(root)}, expected)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual({p.relative_to(root).as_posix(): p.read_bytes() for p in main.tree_files(root)}, expected)
+
+    def test_parenthesized_wrappers_reject_ambiguous_discs_and_cross_disc_cues(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in ('Fixture.(CD1).(CD2).flac', '_Fixture_CD1_image.(CD2).flac'):
+                path = root / (self.parenthesized_posting(name) + '.flac')
+                path.write_bytes(self.tagged_flac({}))
+                self.assertIsNone(main.wrapped_posting_target(path))
+            cue = root / self.parenthesized_posting('Fixture.(CD1).cue')
+            cue.write_text('FILE "Fixture.(CD2).flac" WAVE\n')
+            audio = root / (self.parenthesized_posting('Fixture.(CD2).flac') + '.flac')
+            audio.write_bytes(self.tagged_flac({}))
+            before = {p.name: p.read_bytes() for p in root.iterdir()}
+            with self.assertRaisesRegex(ValueError, 'FILE reference'):
+                main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
+
+    def test_wrapped_text_reports_preserve_binary_media_playlists_and_cues(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            report = root / self.parenthesized_posting('Report.txt')
+            report.write_text('Analysis report\n')
+            self.assertTrue(main.disposable(report))
+            for name, payload in (('Report.txt', b'\0binary'), ('Report.log', b'fLaC' + bytes(32)),
+                                  ('Report.cue', b'FILE "track.flac" WAVE\n'),
+                                  ('Report.m3u', b'track.flac\n')):
+                path = root / self.parenthesized_posting(name)
+                path.write_bytes(payload)
+                self.assertFalse(main.disposable(path))
+            report.write_text('Analysis report\n')
+            (root / 'track.flac').write_bytes(self.tagged_flac({'TRACKNUMBER': '1', 'TRACKTOTAL': '1'}))
+            main.process_release(root, cleanup=False, extensions=False)
+            self.assertTrue(report.exists())
+
+    def test_conflicting_wrapped_text_playlists_keep_archive_and_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            name = self.parenthesized_posting('Report.txt')
+            (root / name).write_bytes(b'01.flac\n02.flac\n')
+            self.assertFalse(main.disposable(root / name))
+            for track in (1, 2):
+                (root / f'{track:02}.flac').write_bytes(self.tagged_flac({'TRACKNUMBER': str(track), 'TRACKTOTAL': '2'}))
+            with zipfile.ZipFile(root / 'release.zip', 'w') as archive:
+                archive.writestr(name, b'01.flac\n03-missing.flac\n')
+            before = {p.name: p.read_bytes() for p in root.iterdir()}
+            with self.assertRaises((FileExistsError, ValueError)):
+                main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
+
+    def test_windows_audiochecker_log_text_validation_is_complete(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'audiochecker.log'
+            payload = 'AUDIOCHECKER v2.0 beta\n01 -=- 01. Móige.flac -=- CDDA (100%)\n'.encode('cp1252')
+            path.write_bytes(payload)
+            self.assertTrue(main.disposable(path))
+            path.write_bytes(payload + b'\0')
+            self.assertFalse(main.disposable(path))
+            path.write_bytes(payload.replace(b'AUDIOCHECKER', b'Unknown tool'))
+            self.assertFalse(main.disposable(path))
 
     @staticmethod
     def wrapped_disc_name(name: str, disc: int = 1) -> str:
