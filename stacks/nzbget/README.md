@@ -68,10 +68,20 @@ It preserves the processing directory itself, its parents such as
 `usenet/completed/music`, and sibling release directories. An empty music
 category directory is retained.
 After successful extraction, `.accurip`, `.ffp`, `.htm`, `.html`, `.jpg`, `.jpeg`, `.log`, `.lrc`, `.m3u`,
-`.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
-`.txt` sidecar files are removed, along with `.url` and `.website` shortcuts, while audio and
+`.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`,
+`.tif`, `.tiff`, and `.txt` sidecar files are removed, along with `.url` and `.website` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in
 unpacker has already removed the archive before this extension starts.
+Single-IFD classic TIFF images require a valid raster directory and in-bounds strip or tile
+payloads before cleanup. A file named `Thumbs.db` is removed only when its bounded
+Windows v3 compound-file structure contains hashed JPEG thumbnail streams and no
+other allocated content. Other database layouts, malformed files and cue-referenced
+files stay protected. UTF-8 NFO text may contain nonbreaking spaces, and Windows-1252
+AUDIOCHECKER logs use the same whole-file text validation as EAC logs.
+Parenthesized `(CD1)` and `(CD2)` posting wrappers restore verified FLAC images and
+cue sheets together into their disc folders. Wrapped `.accurip`, `.log` and `.txt`
+reports require the complete posting filename and verified text content.
+
 Files left with obfuscated or missing extensions are identified from their
 content first, including files carrying a sidecar extension such as `.txt` or
 `.nfo`. Recognized media receives an extension instead of being deleted. This includes
