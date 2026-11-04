@@ -1521,7 +1521,7 @@
   },
   {
     "path": "test_publication_archive_nfs.py",
-    "sha256": "0c4caa24bab8f15fd6cba4dc762c112c4645f7f49ffaf839cb129a3ad3c4c512",
+    "sha256": "b32853cf278e07d82453bf25abb837ba0577482b31420b41fcf6fa58c49383ec",
     "target": "test_publication_archive_nfs.py"
   },
   {
