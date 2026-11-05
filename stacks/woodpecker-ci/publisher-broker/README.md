@@ -116,8 +116,11 @@ Under `publisher-broker/runtime/private`, supply:
   packaging merge coordinator. The publisher exits `packaging_pending` rather
   than occupying a CI runner while waiting for its own PR checks; that
   coordinator does not build, test or publish. PR events still receive no lease.
-  Current Pages publication writes the existing `gh-pages` branch and needs no
-  Pages API permission. Appicon/uDDNS dispatch paths need Actions write.
+  Native Pages publication uses the App token to push the existing `gh-pages`
+  branch with Contents write. The retained hosted control uses its own
+  `GITHUB_TOKEN` with Pages write to request an explicit build in GitHub's builtin
+  branch-based Pages mode. The broker token receives no Pages API permission.
+  Appicon/uDDNS dispatch paths need Actions write.
 - `ghcr-token`, mode 0600, with only the required package-publishing authority
   for Audio/uDDNS. Keep it out of `stack.env` and pipeline command environments.
 
