@@ -38,7 +38,7 @@ steps:
   - name: komga-source-controls
     image: eclipse-temurin:21-jdk-noble@sha256:114cabb73033ca4ce7ceec3deb62396bc1b716282bae051ed3c1d82e38fcab2d
     commands:
-      - apt-get update && apt-get install -y --no-install-recommends git make python3 python3-venv python3-pip util-linux ca-certificates
+      - apt-get update && apt-get install -y --no-install-recommends git make python3 python3-venv python3-pip util-linux tar ca-certificates
       - git config --global --add safe.directory "$CI_WORKSPACE"
       - bash scripts/ci/check-native.sh komga
 

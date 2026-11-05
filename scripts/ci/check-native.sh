@@ -80,13 +80,17 @@ case "$mode" in
         export JAVA_HOME_21="$JAVA_HOME"
         "$JAVA_HOME_21/bin/java" -version
         if (( EUID == 0 )); then
-            # The owning compiler gate refuses root; only these new dirs change owner.
+            # The owning compiler/fixture gates require a caller-owned source copy.
             unprivileged=$(mktemp -d "$scratch/komga-user.XXXXXXXX")
-            mkdir "$unprivileged/tmp" "$unprivileged/cache"
-            chown 1000:1000 "$unprivileged" "$unprivileged/tmp" "$unprivileged/cache"
+            mkdir "$unprivileged/tmp" "$unprivileged/cache" "$unprivileged/source"
+            chown 1000:1000 "$unprivileged" "$unprivileged/tmp" "$unprivileged/cache" "$unprivileged/source"
+            # Archive only the tested revision: no Git metadata, ignored or live state.
+            # pipefail preserves both producer and unprivileged extraction failures.
+            git archive "$source_revision" | setpriv --reuid=1000 --regid=1000 --clear-groups \
+                tar --extract --no-same-owner --directory "$unprivileged/source"
             env HOME="$unprivileged" TMPDIR="$unprivileged/tmp" XDG_CACHE_HOME="$unprivileged/cache" \
                 PIP_CACHE_DIR="$unprivileged/cache/pip" npm_config_cache="$unprivileged/cache/npm" \
-                setpriv --reuid=1000 --regid=1000 --clear-groups make komga-source-check
+                setpriv --reuid=1000 --regid=1000 --clear-groups make -C "$unprivileged/source" komga-source-check
         else
             make komga-source-check
         fi
