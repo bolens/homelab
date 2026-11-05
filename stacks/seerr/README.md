@@ -50,7 +50,7 @@ docker compose --env-file stack.env restart seerr
 |------|---------|
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `seerr:5055`) |
 | **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP |
-| **Image** | `ghcr.io/seerr-team/seerr:latest` (pin a `vX.Y.Z` tag for reproducible deploys) |
+| **Image** | `ghcr.io/seerr-team/seerr:v3.5.1`, pinned by digest in `docker-compose.yml` |
 | **Storage** | `SEERR_CONFIG_PATH` (default `${HOME}/.config/seerr`) → `/app/config` (SQLite by default; see [database options](https://docs.seerr.dev/extending-seerr/database-config)) |
 | **Process user** | Runs as UID **1000** (`node`). If you bind-mount config instead of the named volume, `chown -R 1000:1000` that path. |
 
