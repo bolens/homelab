@@ -2,3 +2,4 @@
 !Dockerfile
 !package.json
 !package-lock.json
+!test-runtime.mjs
