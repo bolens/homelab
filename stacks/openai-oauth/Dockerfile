@@ -1,4 +1,4 @@
-FROM node:26.12.1-bookworm-slim@sha256:88e480776c6149ff1d098cd304f44bf18057fb5d284a3329b78162d29821e28c
+FROM node:26.13.0-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9
 WORKDIR /opt/openai-oauth
 COPY package.json package-lock.json test-runtime.mjs ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
