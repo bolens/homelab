@@ -3249,6 +3249,94 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertFalse((root / "release.m3u").exists())
 
+    def scene_playlist_tail_fixture(self, root: Path) -> tuple[list[Path], Path]:
+        tracks = []
+        for number in (1, 2):
+            path = root / f"{number:02d}-artist-song_{number}_(remaster)-1234abc{number}.flac"
+            path.write_bytes(self.tagged_flac({
+                "ALBUM": "Fixture", "ALBUMARTIST": "Artist", "ARTIST": "Artist",
+                "TITLE": f"Song {number}", "TRACKNUMBER": str(number), "TRACKTOTAL": "2", "DISCNUMBER": "1/1"}))
+            tracks.append(path)
+        playlist = root / "release.m3u"
+        playlist.write_text("\n".join(p.name for p in tracks) + "\ner)-1234abc2.flac\n")
+        return tracks, playlist
+
+    def test_redundant_scene_playlist_tail_requires_complete_tagged_disc(self) -> None:
+        for strict, archive in itertools.product((False, True), repeat=2):
+            with self.subTest(strict=strict, archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tracks, playlist = self.scene_playlist_tail_fixture(root)
+                before = {p.name: p.read_bytes() for p in tracks}
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for path in root.iterdir():
+                            if path.suffix != '.zip':
+                                output.write(path, 'Release/' + path.name)
+                    for path in [*tracks, playlist]:
+                        path.unlink()
+                main.process_release(root, require_completeness=strict)
+                self.assertEqual({p.name: p.read_bytes() for p in root.glob('*.flac')}, before)
+                playlist = root / 'release.m3u'
+                if strict:
+                    self.assertEqual(playlist.read_text().splitlines(), list(before))
+                    stable = {p.name: p.read_bytes() for p in root.iterdir()}
+                    main.process_release(root, require_completeness=True)
+                    self.assertEqual(stable, {p.name: p.read_bytes() for p in root.iterdir()})
+                else:
+                    self.assertFalse(playlist.exists())
+
+    def test_redundant_scene_playlist_tail_preserves_encoding_and_comments(self) -> None:
+        for encoding in ('utf-8-sig', 'utf-16-le', 'utf-16-be', 'cp1252'):
+            with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tracks, playlist = self.scene_playlist_tail_fixture(root)
+                bom = {'utf-16-le': b'\xff\xfe', 'utf-16-be': b'\xfe\xff'}.get(encoding, b'')
+                text = '#EXTM3U\r\n# Café\r\n' + '\r\n'.join(p.name for p in tracks) + '\r\ner)-1234abc2.flac\r\n\r\n'
+                playlist.write_bytes(bom + text.encode(encoding))
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(playlist.read_bytes(), bom + text.replace('\r\ner)-1234abc2.flac\r\n', '\r\n').encode(encoding))
+
+    def test_scene_playlist_tail_does_not_hide_missing_or_foreign_tracks(self) -> None:
+        variants = ('no_total', 'missing_track', 'other_album', 'other_artist', 'other_disc', 'wrong_position',
+                    'wrong_total', 'extra_audio', 'resolving_tail', 'different_hash', 'numbered_tail',
+                    'not_suffix', 'extensionless', 'reordered', 'cue_protected')
+        for variant in variants:
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tracks, playlist = self.scene_playlist_tail_fixture(root)
+                if variant in {'no_total', 'other_album', 'other_artist', 'other_disc', 'wrong_position', 'wrong_total'}:
+                    tags = main.flac_album_metadata(tracks[-1])[0]
+                    if variant == 'no_total':
+                        tags.pop('TRACKTOTAL')
+                    else:
+                        key, value = {'other_album': ('ALBUM', 'Other'), 'other_artist': ('ALBUMARTIST', 'Other'),
+                                      'other_disc': ('DISCNUMBER', '2/2'), 'wrong_position': ('TRACKNUMBER', '1'),
+                                      'wrong_total': ('TRACKTOTAL', '3')}[variant]
+                        tags[key] = value
+                    tracks[-1].write_bytes(self.tagged_flac(tags))
+                elif variant == 'missing_track':
+                    tracks[0].unlink()
+                elif variant in {'extra_audio', 'resolving_tail'}:
+                    (root / ('extra.flac' if variant == 'extra_audio' else 'er)-1234abc2.flac')).write_bytes(b'fLaC' + bytes(32))
+                elif variant in {'different_hash', 'numbered_tail', 'not_suffix'}:
+                    replacement = {'different_hash': 'er)-8765abcd.flac', 'numbered_tail': '3-er)-1234abc2.flac',
+                                   'not_suffix': 'other-1234abc2.flac'}[variant]
+                    playlist.write_text(playlist.read_text().replace('\ner)-1234abc2.flac', '\n' + replacement))
+                elif variant == 'extensionless':
+                    playlist = playlist.rename(root / 'list')
+                elif variant == 'reordered':
+                    rows = playlist.read_text().splitlines()
+                    playlist.write_text('\n'.join([rows[1], rows[0], rows[2]]) + '\n')
+                else:
+                    (root / 'release.cue').write_text('FILE "release.m3u" WAVE\n  TRACK 01 AUDIO\n    INDEX 01 00:00:00\n')
+                before = {p.name: p.read_bytes() for p in root.iterdir()}
+                if variant in {'resolving_tail', 'cue_protected'}:
+                    main.process_release(root, require_completeness=True)
+                else:
+                    with self.assertRaises(ValueError):
+                        main.process_release(root, require_completeness=True)
+                self.assertEqual(before, {p.name: p.read_bytes() for p in root.iterdir()})
+
     def test_partial_playlist_inside_archive_preserves_original_archive_and_sidecars(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

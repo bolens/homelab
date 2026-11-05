@@ -1577,9 +1577,44 @@ def playlist_title(value: str) -> str:
     return "".join(word for word in words if word not in {"and", "feat", "ft", "featuring"})
 
 
+def redundant_playlist_tail(entries: list[PurePosixPath], audio: list[Path], playlist: Path) -> bool:
+    """Recognise a repeated scene filename tail only beside a complete tagged disc."""
+    if playlist.suffix.casefold() not in {".m3u", ".m3u8"} or len(entries) < 3:
+        return False
+    tail, previous = entries[-1], entries[-2]
+    if (len(tail.parts) != 1 or len(previous.parts) != 1 or tail == previous
+            or not re.fullmatch(r"[^0-9/\\][^/\\]{0,63}-[0-9a-fA-F]{8}\.flac", tail.name)
+            or not re.fullmatch(r"[0-9]{1,5}-.+-[0-9a-fA-F]{8}\.flac", previous.name)
+            or not previous.name.endswith(tail.name)):
+        return False
+    resolved = playlist_local_targets(entries, audio, playlist.parent)
+    if resolved[-1] or any(len(paths) != 1 for paths in resolved[:-1]):
+        return False
+    tracks = [next(iter(paths)) for paths in resolved[:-1]]
+    if len(set(tracks)) != len(tracks) or set(tracks) != {p for p in audio if p.parent == playlist.parent}:
+        return False
+    identities = set()
+    for index, path in enumerate(tracks, 1):
+        if detected_suffix(path) != ".flac":
+            return False
+        tags, embedded = flac_album_metadata(path)
+        number, total = metadata_position(tags, ("TRACKNUMBER", "TRACK"),
+                                          ("TRACKTOTAL", "TOTALTRACKS"), "track")
+        disc, disc_total = metadata_position(tags, ("DISCNUMBER", "DISC"),
+                                             ("DISCTOTAL", "TOTALDISCS"), "disc")
+        artist = (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST") or tags.get("ARTIST", "")).strip().casefold()
+        album = tags.get("ALBUM", "").strip().casefold()
+        if (embedded or tags.get("CUESHEET") or not artist or not album or not tags.get("TITLE", "").strip()
+                or number != str(index) or total != str(len(tracks))):
+            return False
+        identities.add((artist, album, disc, disc_total))
+    return len(identities) == 1
+
+
 def check_playlists(files: list[Path], protected: set[Path],
                     covered: set[Path] | None = None,
                     references: dict[Path, dict[PurePosixPath, Path]] | None = None,
+                    redundant_tails: dict[Path, PurePosixPath] | None = None,
                     validate: bool = True) -> set[Path]:
     recognised = set()
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
@@ -1588,6 +1623,10 @@ def check_playlists(files: list[Path], protected: set[Path],
         entries = playlist_entries(playlist)
         if entries is None:
             continue
+        if playlist not in protected and redundant_playlist_tail(entries, audio, playlist):
+            if redundant_tails is not None:
+                redundant_tails[playlist] = entries[-1]
+            entries = entries[:-1]
         resolved = playlist_local_targets(entries, audio, playlist.parent)
         local = [bool(matches) for matches in resolved]
         if all(local):
@@ -1662,7 +1701,9 @@ def plan_tree(root: Path, *, flatten: bool = True,
     proven = check_album_tracks(files, completeness_cues, root, completeness_manifests) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
-    playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
+    redundant_tails: dict[Path, PurePosixPath] = {}
+    playlists = check_playlists(files, protected, covered, playlist_refs, redundant_tails,
+                               validate=cleanup or require_completeness)
     available_names = {target.as_posix().casefold() for path in files for target in (path, extension_target(path))}
     if any(path not in playlist_refs and (path.suffix.casefold() in {".m3u", ".m3u8"}
            or any((path.parent / entry).as_posix().casefold() in available_names
@@ -1729,6 +1770,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
         lines = []
         for line in raw[len(bom):].decode(encoding).splitlines(keepends=True):
             entry = playlist_reference(line)
+            if entry is not None and entry == redundant_tails.get(playlist):
+                continue
             if entry in refs:
                 relative = os.path.relpath(plans[refs[entry]], plans[playlist].parent).replace(os.sep, "/")
                 rendered = "./" + relative if relative.startswith("#") or relative != relative.strip() else relative
