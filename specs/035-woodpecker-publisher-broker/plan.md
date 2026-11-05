@@ -6,7 +6,7 @@ example, explicit preparation, metadata and operating documentation. The owning
 Woodpecker step runs race tests, repository preparation fixtures and vet. Docker
 and Go module updates are monitored by Dependabot.
 
-The broker uses the same HTTPS signature library as Woodpecker 3.18.1. A public
+The broker uses the same HTTPS signature library as Woodpecker 3.20.1. A public
 PEM pin identifies the intended instance; database-backed server signing state
 normally survives restart. Private files supply the publication App key and
 limited GHCR PAT. A persistent local directory holds signature fingerprints and

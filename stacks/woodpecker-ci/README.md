@@ -103,7 +103,7 @@ and [Docker backend configuration](https://woodpecker-ci.org/docs/administration
 
 The [publisher broker contract](publisher-broker/README.md) defines a separately
 selected `docker-compose.publisher-broker.yml` override for native GitHub
-publication. It authenticates exact Woodpecker 3.18.1 extension signatures and
+publication. It authenticates exact Woodpecker 3.20.1 extension signatures and
 returns short-lived, source-bound publication leases for the four configured
 repositories. Publisher helpers redeem them immediately before use through the
 existing HTTPS ingress; queueing does not consume the GitHub token lifetime.

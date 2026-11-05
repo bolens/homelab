@@ -15,7 +15,7 @@ This contract records the approved design and remaining proof during development
 
 ## Requirements
 
-- Authenticate genuine Woodpecker 3.18.1 signed extension requests using the
+- Authenticate genuine Woodpecker 3.20.1 signed extension requests using the
   pinned instance Ed25519 PEM key and official signature helper; validate body
   digest, target, freshness and persistent replay protection. Transfer no netrc.
 - Bind an explicit four-repository native GitHub allowlist by forge ID, remote

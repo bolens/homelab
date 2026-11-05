@@ -2,7 +2,7 @@
 
 [Stack documentation](../README.md)
 
-This service targets Woodpecker **3.18.1** and four explicitly configured native
+This service targets Woodpecker **3.20.1**, with the 3.18.1 request contract retained for compatibility and four explicitly configured native
 GitHub repositories: Appicon, AUR Response Toolkit, uDDNS, and Audio Utils. It is
 an optional secret extension, not a registry or a replacement CI server. It
 publishes no host ports and mounts neither a Docker socket nor a host Nix store.
@@ -18,7 +18,7 @@ read-only private files; neither enters a pipeline or image build context.
 
 1. `/secrets` accepts only Woodpecker's RFC 9421 Ed25519 signatures over
    `@request-target` and `content-digest`, verified with the pinned instance PEM
-   key and the same `httpsign` library version used by Woodpecker 3.18.1. The
+   key and the same `httpsign` v0.6.2 library used by Woodpecker 3.20.1. The
    signature must be no older than 30 seconds or more than 3 seconds in the
    future. Authenticated signature fingerprints persist across restarts.
 2. Repository forge ID, immutable GitHub repository ID, exact full name, source

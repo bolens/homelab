@@ -11,6 +11,6 @@
 - [ ] Verify live signing key, private credentials, proxy and queued-helper fixtures.
 - [ ] Verify backups, unchanged state and explicitly authorized deployment.
 
-The Go vulnerability check found no reachable or imported-package vulnerability;
-required modules contain additional advisories in code outside the used surface.
-That distinction does not establish an audit of every upstream module or image.
+The current 3.20.1-aligned dependency graph reports no vulnerabilities with
+Go vulnerability tooling. Source and dependency checks do not establish a
+live deployment or an audit of unrelated upstream images.
