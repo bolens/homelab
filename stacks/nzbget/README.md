@@ -62,6 +62,13 @@ retained in full. Tracks with identical numbers and filenames stay in their
 separate disc folders, preserving different mixes without renaming the tracks.
 Filename collisions within the same disc still fail rather than overwrite a file.
 Nested numbered disc folders retain their hierarchy.
+Music jobs carrying a valid `drone` identifier from Lidarr require at least one
+audio candidate before cleanup can succeed. Audio filenames and signatures use
+the same classification as the optional audio decoding check. A payload with
+only video files is retained and reported as a failure, including inside an
+archive. Videos alongside audio are retained. Manual jobs keep their existing
+behavior. Use `VerifyAudio` to check that audio candidates actually decode.
+
 This flattening pass also handles release folders created earlier by NZBGet's
 built-in unpacker and removes empty subdirectories inside the processed release.
 It preserves the processing directory itself, its parents such as

@@ -56,6 +56,12 @@ request after restarting the same proxy image.
 
 ## Portainer
 
+For updates and redeploys, follow [AI settings persistence](../../documents/AI-SETTINGS-PERSISTENCE.md).
+Retain the private YAML, PostgreSQL volume, scoped keys, provider controls and
+the complete private override selection. Copilot authentication also needs its
+configured token-directory mount. Save `COMPOSE_FILE` in `stack.env` so preparation
+preserves the selection when it refreshes `.env`.
+
 - Repository compose path: `stacks/litellm/docker-compose.yml`.
 - Run `./prepare-stack.sh` on the host so `~/.config/litellm/config.yaml` and `stack.env` exist (or paste their contents / bind-mount paths in Portainer).
 - Attach the app to **`ai-backend`** and **`ingress-public`**; PostgreSQL stays private.
@@ -70,7 +76,7 @@ request after restarting the same proxy image.
 - **Admin UI Usage (`?page=usage`) and SVG `NaN`:** if every model has **$0** spend (typical for Ollama with no pricing), some chart builds can throw **`rect` x/width/y `NaN`**. Set tiny **`input_cost_per_token`** / **`output_cost_per_token`** under each model's **`litellm_params`** in **`config.yaml`** (see **`litellm_config.yaml.example`**) so **`/global/spend/*`** returns non-zero spend; then hard-refresh the UI.
 - **CSP report-only + `/cdn-cgi/challenge-platform`:** if the console reports violations against **`script-src 'unsafe-inline' 'unsafe-eval'`** or **`connect-src 'none'`** for Cloudflare's **`…/cdn-cgi/challenge-platform/…`** scripts, that is almost always **Cloudflare bot / challenge scripts** colliding with a **Content-Security-Policy-Report-Only** policy (from Cloudflare **Transform / Security Headers** or similar). **Report-only does not block anything**, it only logs. To reduce noise: relax or remove that report-only CSP for this hostname, lower **Security Level** / bot sensitivity for **`litellm.example.com`**, or accept the messages. This stack's **Caddy snippet does not set that CSP**; fixing it is in **Cloudflare** (or whatever adds the header), not in the proxy routes here.
 - **Browser console noise:** messages from **`console-log.service.ts`**, **`runtime.lastError`**, **`Failed to set badge state`**, or **`bitwarden_*`** / **`bootstrap-autofill-overlay.js`** are almost always **password-manager extensions** (e.g. Bitwarden), not LiteLLM. Use a private window or disable the extension on this site to confirm.
-- **Postgres** ships with this stack (`litellm-postgres`, volume **`litellm_pgdata`**). Set **`POSTGRES_PASSWORD`** in **`stack.env`**; **`DATABASE_URL`** is built in **`docker-compose.yml`**. **External DB:** remove the **`postgres`** service, remove the **`DATABASE_URL`** line under the **`litellm`** service **`environment:`** block, and set **`DATABASE_URL`** in **`stack.env`** yourself ([upstream deploy](https://docs.litellm.ai/docs/proxy/deploy#deploy-with-database)).
+- **Postgres** ships with this stack (`litellm-postgres`, volume **`litellm_pg18data`**). Set **`POSTGRES_PASSWORD`** in **`stack.env`**; **`DATABASE_URL`** is built in **`docker-compose.yml`**. **External DB:** remove the **`postgres`** service, remove the **`DATABASE_URL`** line under the **`litellm`** service **`environment:`** block, and set **`DATABASE_URL`** in **`stack.env`** yourself ([upstream deploy](https://docs.litellm.ai/docs/proxy/deploy#deploy-with-database)).
 - Do not commit **`stack.env`** or secrets inside **`~/.config/litellm/config.yaml`**; use `os.environ/VAR` for keys.
 
 ## Optional ChatGPT account proxy
