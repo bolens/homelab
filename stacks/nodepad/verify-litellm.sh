@@ -11,7 +11,7 @@ cat > "$config" <<'JSON'
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {"incremental": false},
-  "include": ["next-env.d.ts", "lib/ai-settings.ts", "components/project-sidebar.tsx", "app/api/litellm/[[...path]]/route.ts"],
+  "include": ["next-env.d.ts", "lib/ai-settings.ts", "lib/ai-ghost.ts", "components/project-sidebar.tsx", "app/api/litellm/[[...path]]/route.ts"],
   "exclude": ["node_modules"]
 }
 JSON

@@ -75,7 +75,10 @@ an external authentication policy or equivalent trusted-network restriction.
 The proxy permits model discovery and chat completions only. It filters discovery
 against the configured aliases, rejects browser-supplied upstream settings, limits
 requests to 1 MiB and 64 messages, caps output at 8192 tokens, and times upstream
-requests out after 60 seconds. It does not store prompts. Cloud model selection
+requests out after 60 seconds. It does not store prompts. Copilot Gemini and the
+optional `openrouter-free` alias use a 1200-token synthesis budget because reasoning
+counts toward their output limit. Other synthesis budgets stay unchanged.
+Cloud model selection
 sends the selected note content through LiteLLM to that provider.
 
 Run `./verify-litellm.sh` after preparing source and installing its dependencies.

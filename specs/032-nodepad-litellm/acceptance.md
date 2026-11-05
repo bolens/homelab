@@ -44,3 +44,17 @@ The deployed image, real provider discovery and synthetic completion, browser
 selection, final preservation checks and temporary resource cleanup remain open.
 Private backups for the broader app connection operation remain retained until
 its acceptance checks finish.
+
+## Reasoning synthesis follow-up
+
+The maintenance window was released and the connector was deployed. Synthetic
+client enrichment and synthesis passed through the live gateway for the original
+Google and Copilot aliases and the optional OpenRouter and Groq routes. Copilot
+Gemini and the OpenRouter free router exhausted the previous 220-token synthesis
+limit on reasoning. Their LiteLLM requests now receive 1200 tokens. Other budgets
+and the operator's existing provider defaults remain unchanged.
+
+This follow-up retains the merged proxy response sanitization and build checks.
+It adds client coverage for the per-model budgets and includes `ai-ghost.ts` in
+focused TypeScript checking. No runtime secrets or provider configuration enter
+the repository.
