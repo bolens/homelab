@@ -17,7 +17,8 @@ scratch=$(mktemp -d /tmp/homelab-native.XXXXXXXX)
 # Public source/tools only: UID1000 fixtures must traverse to the Python venv.
 # Keep listing/writes private; nested fixture directories retain their own modes.
 chmod 0711 "$scratch"
-trap 'rm -rf -- "$scratch"' EXIT
+unprivileged=''
+trap 'if [[ -n "$unprivileged" ]]; then rm -rf -- "$unprivileged"; fi; rm -rf -- "$scratch"' EXIT
 mkdir "$scratch/tmp" "$scratch/cache"
 export TMPDIR="$scratch/tmp" XDG_CACHE_HOME="$scratch/cache" PIP_CACHE_DIR="$scratch/cache/pip" npm_config_cache="$scratch/cache/npm"
 git clone --quiet --no-hardlinks --no-checkout "$source_root" "$scratch/source"
@@ -81,7 +82,9 @@ case "$mode" in
         "$JAVA_HOME_21/bin/java" -version
         if (( EUID == 0 )); then
             # The owning compiler/fixture gates require a caller-owned source copy.
-            unprivileged=$(mktemp -d "$scratch/komga-user.XXXXXXXX")
+            # Descriptor-custody fixtures open every parent directory read-only.
+            # Keep their private actor tree outside the traversal-only public scratch.
+            unprivileged=$(mktemp -d /tmp/homelab-komga.XXXXXXXX)
             mkdir "$unprivileged/tmp" "$unprivileged/cache" "$unprivileged/source"
             chown 1000:1000 "$unprivileged" "$unprivileged/tmp" "$unprivileged/cache" "$unprivileged/source"
             # Archive only the tested revision: no Git metadata, ignored or live state.
