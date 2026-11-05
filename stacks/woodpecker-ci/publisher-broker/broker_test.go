@@ -325,7 +325,7 @@ func TestSignatureRepresentationCannotReopenReplay(t *testing.T) {
 func TestPublicationPermissionBounds(t *testing.T) {
 	cfg, _, pub, _ := fixture(t)
 	cfg.Repositories[0].Permissions = map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
-	cfg.Repositories[1].Permissions = map[string]string{"contents": "write", "pull_requests": "write", "actions": "read", "actions_variables": "read", "checks": "read", "statuses": "read"}
+	cfg.Repositories[1].Permissions = map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	cfg.Repositories[2].Permissions = map[string]string{"contents": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	cfg.Repositories[3].Permissions = map[string]string{"contents": "read", "actions_variables": "read"}
 	if _, err := newBroker(cfg, pub, &fakeIssuer{}); err != nil {
@@ -334,7 +334,7 @@ func TestPublicationPermissionBounds(t *testing.T) {
 	cases := []struct {
 		repo       int
 		key, value string
-	}{{0, "variables", "read"}, {0, "administration", "write"}, {0, "checks", "write"}, {0, "statuses", "write"}, {0, "actions_variables", "write"}, {0, "issues", "write"}, {1, "actions", "write"}, {2, "pull_requests", "write"}, {3, "contents", "write"}, {3, "actions", "read"}}
+	}{{0, "variables", "read"}, {0, "administration", "write"}, {0, "checks", "write"}, {0, "statuses", "write"}, {0, "actions_variables", "write"}, {0, "issues", "write"}, {1, "checks", "write"}, {2, "pull_requests", "write"}, {3, "contents", "write"}, {3, "actions", "read"}}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", tc.repo, tc.key), func(t *testing.T) {
 			cfg, _, pub, _ := fixture(t)

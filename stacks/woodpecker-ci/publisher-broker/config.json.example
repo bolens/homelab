@@ -41,7 +41,7 @@
       "permissions": {
         "contents": "write",
         "pull_requests": "write",
-        "actions": "read",
+        "actions": "write",
         "actions_variables": "read",
         "checks": "read",
         "statuses": "read"

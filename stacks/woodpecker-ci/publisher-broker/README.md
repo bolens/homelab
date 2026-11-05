@@ -106,6 +106,10 @@ Under `publisher-broker/runtime/private`, supply:
   four intended repositories. Contents read/write and Actions permissions are
   independently scoped by repository; Variables read (`actions_variables` in the GitHub API) is required for the flag.
   The obsolete `variables` permission key is rejected.
+  Appicon/AUR Actions write also permits dispatching a thin, same-repository
+  packaging merge coordinator. The publisher exits `packaging_pending` rather
+  than occupying a CI runner while waiting for its own PR checks; that
+  coordinator does not build, test or publish. PR events still receive no lease.
   Current Pages publication writes the existing `gh-pages` branch and needs no
   Pages API permission. Appicon/uDDNS dispatch paths need Actions write.
 - `ghcr-token`, mode 0600, with only the required package-publishing authority

@@ -357,7 +357,7 @@ func publisherPermissions(name string) map[string]string {
 	case "appicon":
 		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "aur-response-toolkit":
-		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "read", "actions_variables": "read", "checks": "read", "statuses": "read"}
+		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "uddns":
 		return map[string]string{"contents": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "audio-utils":
