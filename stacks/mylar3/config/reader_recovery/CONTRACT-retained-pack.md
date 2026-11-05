@@ -12,6 +12,14 @@ The worker uses actual Normalizer, Maintenance, OperationsV2 session, Writer, so
 
 The native observation executes only the exact pinned existing readonly daemon probe buffer. The pure configured-scope parser derives DATA from that actual observed process argv; actual host config bytes join the fixed original config ref and inspected mount. Ready publication state is mandatory; healthy-container state is insufficient. A fresh matching observation is required after the one unpause. Existing background/native activity admissibility remains an operational prerequisite, not a guarantee inferred from a ready label.
 
+The existing pack producer uses `normalize.save`, so receipt modes follow its
+umask: `0644` under `022`, `0640` under `027`, and `0600` under `077`. Retained
+admission requires the executing Worker's exact UID/GID, one regular-file link
+and one of these modes. Receipt CAS preserves the original mode and xattrs on
+the newly owned replacement; it does not chmod the original. Intent and terminal
+journal files remain `0600`. Post-capture mode, owner, link or identity drift
+still refuses through the complete original frame.
+
 ## Root runtime input
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:

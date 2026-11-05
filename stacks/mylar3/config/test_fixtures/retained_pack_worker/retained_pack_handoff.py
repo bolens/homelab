@@ -328,7 +328,18 @@ class RetainedPackAction:
     def __init__(self,*a,**k):raise ValueError('Retained action owning factory only')
 
 
-def _journal_write(path,data,parent,attrs=None):
+def _receipt_mode(stamp):
+    # normalize.save emits these modes under the supported 077/027/022 umasks.
+    # Read access may differ; ownership, single-link identity and no foreign
+    # write permissions remain mandatory. Never chmod the original receipt.
+    mode=stamp[5]&0o7777
+    check(stamp[5]&0o170000==0o100000 and mode in (0o600,0o640,0o644)
+          and tuple(stamp[6:])==(os.geteuid(),os.getegid(),1),'retained-owned-original-receipt')
+    return mode
+
+
+def _journal_write(path,data,parent,attrs=None,*,mode=0o600):
+    check(type(mode) is int and mode in (0o600,0o640,0o644),'retained-output-mode')
     d=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     try:
         check(five(os.fstat(d))==tuple(parent) and five(os.lstat(path.parent))==tuple(parent),'retained-admitted-output-parent')
@@ -339,8 +350,9 @@ def _journal_write(path,data,parent,attrs=None):
             for name,value in (attrs or {}).items():os.setxattr(fd,name,bytes.fromhex(value))
             view=memoryview(data)
             while view:n=os.write(fd,view);check(n>0,'retained-output-write');view=view[n:]
-            os.fsync(fd);z=os.fstat(fd);final=nine(z)
-            check(final[:2]==first[:2] and final[5:]==first[5:] and final[2]==len(data),'retained-output-attributes')
+            os.fchmod(fd,mode);os.fsync(fd);z=os.fstat(fd);final=nine(z)
+            check(final[:2]==first[:2] and final[6:]==first[6:] and final[5]&0o170000==0o100000
+                  and final[5]&0o7777==mode and final[2]==len(data),'retained-output-attributes')
             os.lseek(fd,0,os.SEEK_SET);check(os.read(fd,len(data)+1)==data,'retained-output-readback')
             check(nine(os.stat(path.name,dir_fd=d,follow_symlinks=False))==final,'retained-output-path')
             os.fsync(d)
@@ -404,7 +416,7 @@ def prepare(maintenance,pack_id,member_id,*,initialized=None):
     absent=[str(p)+s for p in (a.database,a.catalog) for s in ('-journal','-wal','-shm')]+[str(a.writer.root/n) for n in _MARKERS]
     first=_capture(controls,absent,trees=[receipt.parent,journal,*maintenance.worker.roots,Path(maintenance.settings['ddl_cache'])]);raw=_read(receipt,first['files'][str(receipt)],_LIMIT);local=evidence.decode_json(raw)
     evidence.ordinary_purpose(a.writer);a.admission()
-    check(first['files'][str(receipt)][5]&0o7777==0o600,'retained-private-original-receipt')
+    _receipt_mode(first['files'][str(receipt)])
     check(local.get('id')==pack_id and local.get('inventory_complete') is True and not local.get('cleaned_at') and not local.get('cleanup_verified_at'),'retained-original-local-pack')
     members=[m for m in local['members'] if m.get('id')==member_id];check(len(members)==1,'retained-unique-local-member');member=members[0]
     check(member.get('phase') in ('review','ready','submitted','confirmed') and not member.get('ordinary_import_token') and not member.get('retained_finalization'),'retained-local-member-phase')
@@ -664,7 +676,8 @@ def consume(action):
     # Bind originals and final values BEFORE any output callback.
     receipt=c['receipt'];temp=receipt.with_name('.retained-'+c['token']+'.new');_nodes(frame,temp)
     check(not os.path.lexists(temp),'retained-exclusive-CAS-temp');frame['absent']+=tuple([str(temp)])
-    _raw(_detached(frame));stamp=_journal_write(temp,encoded,frame['nodes'][str(receipt.parent)],frame['attrs'][str(receipt)])
+    _raw(_detached(frame));stamp=_journal_write(temp,encoded,frame['nodes'][str(receipt.parent)],frame['attrs'][str(receipt)],
+        mode=_receipt_mode(frame['files'][str(receipt)]))
     frame['absent']=tuple(p for p in frame['absent'] if p!=str(temp));frame['files'][str(temp)]=stamp;frame['attrs'][str(temp)]=frame['attrs'][str(receipt)];frame['names'][str(receipt.parent)]=tuple(sorted((*frame['names'][str(receipt.parent)],temp.name)))
     _raw(_detached(frame))
     w=a.writer

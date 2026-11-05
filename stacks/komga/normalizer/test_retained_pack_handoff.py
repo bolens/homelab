@@ -23,6 +23,31 @@ class Mechanics(unittest.TestCase):
  def test_exclusive_private_output_actual_fd_readback(self):
   v=h._journal_write(self.path,b'original',self.parent)
   self.assertEqual(h._read(self.path,v),b'original');self.assertEqual(v[5]&0o7777,0o600)
+ def test_receipt_modes_match_real_producer_umasks_and_owned_CAS(self):
+  from normalize import save
+  for mask,mode in ((0o022,0o644),(0o027,0o640),(0o077,0o600)):
+   with self.subTest(umask=oct(mask)):
+    receipt=self.root/('receipt-'+str(mask)+'.json');previous=os.umask(mask)
+    try:save(receipt,{'original':True})
+    finally:os.umask(previous)
+    original=h.nine(receipt.stat());self.assertEqual(h._receipt_mode(original),mode)
+    output=self.root/('cas-'+str(mask));stamp=h._journal_write(output,b'new',self.parent,mode=h._receipt_mode(original))
+    self.assertEqual(stamp[5]&0o7777,mode);self.assertEqual(h.nine(receipt.stat()),original)
+ def test_receipt_mode_rejects_writable_foreign_owner_and_hardlink(self):
+  self.path.write_bytes(b'original');self.path.chmod(0o644);original=list(h.nine(self.path.stat()))
+  for index,value in ((5,0o100664),(5,0o100666),(5,0o104644),(6,os.geteuid()+1),(7,os.getegid()+1)):
+   frame=list(original);frame[index]=value
+   with self.subTest(field=index,value=value),self.assertRaises(ValueError):h._receipt_mode(frame)
+  os.link(self.path,self.root/'alias')
+  with self.assertRaises(ValueError):h._receipt_mode(h.nine(self.path.stat()))
+ def test_receipt_CAS_mode_metadata_is_durable_before_readback(self):
+  events=[];real_mode=os.fchmod;real_sync=os.fsync;real_read=os.read
+  def mode(fd,value):events.append('mode');return real_mode(fd,value)
+  def sync(fd):events.append('sync');return real_sync(fd)
+  def read(fd,count):events.append('read');return real_read(fd,count)
+  with patch.object(h.os,'fchmod',side_effect=mode),patch.object(h.os,'fsync',side_effect=sync),patch.object(h.os,'read',side_effect=read):
+   h._journal_write(self.path,b'new',self.parent,mode=0o644)
+  self.assertLess(events.index('mode'),events.index('sync'));self.assertLess(events.index('sync'),events.index('read'))
  def consumed_mechanics(self):
   # Registry-seal mechanics only, not a native result or publication grant.
   action=object.__new__(h.RetainedPackAction)

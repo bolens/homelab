@@ -9,7 +9,7 @@ import traceback
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
 from maintenance import Maintenance
-from normalize import Normalizer, identity
+from normalize import Normalizer, identity, save
 from media_writer import Writer
 from publication_guard import scope, Authority
 import retained_pack_handoff as h
@@ -18,7 +18,7 @@ import retained_pack_handoff as h
 def run(plan):
  config=plan['worker_config'];worker=Normalizer(config);m=Maintenance(worker)
  if not plan.get('operations'):h.initialize(m)
- folder=m.state/'packs'/plan['pack_id'];folder.mkdir(parents=True)
+ folder=m.state/'packs'/plan['pack_id'];folder.mkdir(parents=True,mode=0o700)
  src=Path(plan['source']);target=Path(plan['target'])
  member=dict(id=plan['member_id'],phase='review',source=str(src),identity=identity(src),sha256=hashlib.sha256(src.read_bytes()).hexdigest(),
    destination=str(target),destination_sha256=hashlib.sha256(target.read_bytes()).hexdigest(),issueid=plan['owner']['issueid'],comicid=plan['owner']['parentcomicid'])
@@ -26,7 +26,13 @@ def run(plan):
   member.pop('destination');member.pop('destination_sha256')
  member.update(plan.get('local_member_overrides',{}))
  receipt=folder/'receipt.json';body=dict(id=plan['pack_id'],inventory_complete=True,phase='review',capture_source=plan['capture_source'],
-   source_generation=plan['source_generation'],members=[member]);receipt.write_bytes(h.compact(body));receipt.chmod(0o600)
+   source_generation=plan['source_generation'],members=[member])
+ mask=os.umask(plan.get('receipt_umask',0o022))
+ try:save(receipt,body)
+ finally:os.umask(mask)
+ original_mode=receipt.stat().st_mode&0o7777
+ if plan.get('receipt_xattrs'):os.setxattr(receipt,'user.retained-mode',b'original')
+ if plan.get('unsafe_receipt_mode'):receipt.chmod(plan['unsafe_receipt_mode'])
  if plan.get('root_observation_barrier'):
   print(json.dumps(dict(kind='synthetic-root-backup-boundary')),flush=True)
   if sys.stdin.readline()!='verified-backup\n':raise AssertionError('Original synthetic backup release missing')
@@ -151,6 +157,8 @@ def run(plan):
    return dict(held=True,fired=bool(locals().get('fired')),error=str(exc),receipt_changed=receipt.read_bytes()!=before,done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))))
  result=json.loads(receipt.read_bytes())
  result_out=dict(answer=answer,receipt_changed=receipt.read_bytes()!=before,member_phase=result['members'][0]['phase'],
+   original_receipt_mode=original_mode,receipt_mode=receipt.stat().st_mode&0o7777,
+   journal_modes=[p.stat().st_mode&0o7777 for p in (m.state/'retained-pack-handoffs').glob('*.json')],
    ordinary_import_token_present='ordinary_import_token' in result['members'][0],
    token=result['members'][0].get('retained_finalization'),intent_count=len(list((m.state/'retained-pack-handoffs').glob('*.intent.json'))),
    done_count=len(list((m.state/'retained-pack-handoffs').glob('*.done.json'))),host_fixture_projection=True,installed_authentication_acceptance=False)

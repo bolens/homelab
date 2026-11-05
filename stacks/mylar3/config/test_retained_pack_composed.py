@@ -57,6 +57,13 @@ class Composed(unittest.TestCase):
  def test_genuine_factories_native_two_rows_and_worker_receipt_CAS_over_HTTP(self):
   answer=self.execute();self.assertTrue(answer['receipt_changed']);self.assertEqual(answer['member_phase'],'retained-accepted')
   self.assertFalse(answer['answer']['cleanup_grant']);self.assertEqual((answer['intent_count'],answer['done_count']),(1,1))
+ def test_producer_receipt_mode_and_private_journals_survive_CAS(self):
+  answer=self.execute()
+  self.assertEqual((answer['original_receipt_mode'],answer['receipt_mode']),(0o644,0o644))
+  self.assertEqual(answer['journal_modes'],[0o600,0o600])
+ def test_foreign_writable_receipt_refuses_before_native_dispatch(self):
+  answer=self.execute(prepare_refusal=True,unsafe_receipt_mode=0o664)
+  self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed']);self.assertEqual(self.requests,[])
  def test_ready_original_without_destination_history_uses_current_catalog(self):
   answer=self.execute(no_destination_history=True)
   self.assertEqual(answer['member_phase'],'retained-accepted')
@@ -96,6 +103,12 @@ class Composed(unittest.TestCase):
   decoded,frame=parent.decode_terminal_artifact(data,reference,header,request)
   self.assertEqual(decoded,body);self.assertEqual(frame['hashes'][str(done)],reference['sha256'])
  def test_genuine_artifact_against_actual_Root_backup_scope_and_SQL_terminal(self):
+  self.root_terminal_case(0o022)
+ def test_private_producer_receipt_passes_actual_Root_terminal(self):
+  self.root_terminal_case(0o077)
+ def test_group_read_producer_receipt_passes_actual_Root_terminal(self):
+  self.root_terminal_case(0o027)
+ def root_terminal_case(self,receipt_umask):
   # Real backup/restore, HTTP/native and worker CAS. Container/image and media
   # principal adapters below are explicit local fixtures, never a launch grant.
   import importlib.util
@@ -108,7 +121,7 @@ class Composed(unittest.TestCase):
   import comic_reader_backup_primitives as primitives
   spec=importlib.util.spec_from_file_location('root_terminal_composed_broker',Path(__file__).parent/'standalone_launch_host/comic_retained_standalone_broker.py')
   broker=importlib.util.module_from_spec(spec);spec.loader.exec_module(broker)
-  plan=self.plan();plan.update(root_observation_barrier=True,check_terminal_hash=True)
+  plan=self.plan();plan.update(root_observation_barrier=True,check_terminal_hash=True,receipt_umask=receipt_umask,receipt_xattrs=True)
   with tempfile.TemporaryDirectory() as directory:
    private=Path(directory);private.chmod(0o700);worker_state=private/'worker';reader=private/'reader'
    worker_state.mkdir();reader.mkdir();(reader/'protected').write_bytes(b'original reader state')
@@ -119,7 +132,7 @@ class Composed(unittest.TestCase):
      cwd=normalizer,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
    self.addCleanup(lambda:process.kill() if process.poll() is None else None)
    self.assertTrue(select.select([process.stdout],[],[],30)[0]);self.assertEqual(json.loads(process.stdout.readline())['kind'],'synthetic-root-backup-boundary')
-   receipt=worker_state/'maintenance/packs'/plan['pack_id']/'receipt.json';receipt_bytes=receipt.read_bytes()
+   receipt=worker_state/'maintenance/packs'/plan['pack_id']/'receipt.json';receipt_bytes=receipt.read_bytes();original_mode=receipt.stat().st_mode&0o7777
    scopes=[dict(role='native_config',root=str(self.c.root),databases=['workflow.sqlite','mylar.db']),
      dict(role='worker_state',root=str(worker_state),databases=[]),dict(role='reader_config',root=str(reader),databases=[])]
    primitive=Path(primitives.__file__);backup=backup_module.copy_and_verify(scopes,private/'backup-operation',primitive,hashlib.sha256(primitive.read_bytes()).hexdigest())
@@ -172,6 +185,9 @@ class Composed(unittest.TestCase):
     while trace.tb_next is not None:trace=trace.tb_next
     self.fail(str(error)+' '+str({key:trace.tb_frame.f_locals.get(key) for key in ('group','path')}))
    self.assertEqual(proof['token'],body['token']);self.assertEqual(proof['record_sha256'],json.loads(body['reply_text'])['data']['record_sha256'])
+   self.assertEqual(original_mode,0o666&~receipt_umask);self.assertEqual(receipt.stat().st_mode&0o7777,original_mode)
+   self.assertEqual(os.getxattr(receipt,'user.retained-mode'),b'original')
+   self.assertEqual(sorted(p.stat().st_mode&0o7777 for p in done.parent.glob('*.json')),[0o600,0o600])
    (reader/'protected').write_bytes(b'foreign reader state')
    with self.assertRaises(broker.Held):broker._pack_terminal(launch,backup,Media(),header,artifact,reference)
 
