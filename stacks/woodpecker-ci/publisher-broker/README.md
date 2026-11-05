@@ -107,6 +107,10 @@ Under `publisher-broker/runtime/private`, supply:
 - `github-app.pem`, mode 0600, from the publication App installed only on the
   four intended repositories. Contents read/write and Actions permissions are
   independently scoped by repository; Variables read (`actions_variables` in the GitHub API) is required for the flag.
+  Audio uses Contents read, Variables read and Actions write to dispatch its own
+  thin Docker promotion workflow after candidate publication. Its token cannot
+  write repository contents or pull requests. The promotion job uses its own
+  repository-scoped GitHub job token; GHCR credentials remain plugin-filtered.
   The obsolete `variables` permission key is rejected.
   Appicon/AUR Actions write also permits dispatching a thin, same-repository
   packaging merge coordinator. The publisher exits `packaging_pending` rather

@@ -361,7 +361,7 @@ func publisherPermissions(name string) map[string]string {
 	case "uddns":
 		return map[string]string{"contents": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "audio-utils":
-		return map[string]string{"contents": "read", "actions_variables": "read"}
+		return map[string]string{"contents": "read", "actions": "write", "actions_variables": "read"}
 	default:
 		return nil
 	}
