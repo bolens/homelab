@@ -14,6 +14,9 @@ if [[ -n "${CI_COMMIT_SHA:-}" ]]; then test "$source_revision" = "$CI_COMMIT_SHA
 test "$(git -C "$source_root" rev-parse --is-shallow-repository)" = false
 export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
 scratch=$(mktemp -d /tmp/homelab-native.XXXXXXXX)
+# Public source/tools only: UID1000 fixtures must traverse to the Python venv.
+# Keep listing/writes private; nested fixture directories retain their own modes.
+chmod 0711 "$scratch"
 trap 'rm -rf -- "$scratch"' EXIT
 mkdir "$scratch/tmp" "$scratch/cache"
 export TMPDIR="$scratch/tmp" XDG_CACHE_HOME="$scratch/cache" PIP_CACHE_DIR="$scratch/cache/pip" npm_config_cache="$scratch/cache/npm"
