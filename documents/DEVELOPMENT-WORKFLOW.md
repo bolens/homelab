@@ -231,9 +231,10 @@ explicit incomplete-report warning and establishes no link success; it remains
 nonblocking. Internal errors/timeouts and missing tools remain fatal, as do
 checksum or tool-install failures before a scan.
 
-Each lane checks the exact committed revision in its own full disposable clone.
-Python environments, npm modules, downloads and caches live under a unique `/tmp`
-directory and are removed on exit. Docker/Compose are checksum-bound CLI tools
+The wrapper-based validation lanes check the exact committed revision in separate
+full disposable clones. Their Python environments, npm modules, downloads and
+caches live under a unique `/tmp` directory and are removed on exit. The existing
+Gitleaks and Go lanes use the initial pipeline checkout. Docker/Compose are checksum-bound CLI tools
 used only to render configurations; their socket points to an absent task-local
 path. No Alpine/glibc Python environment or browser cache is shared across images.
 
