@@ -34,7 +34,7 @@ Config is stored in the `nzbhydra2_config` named volume so it survives container
 
 ## Upgrading from NZBHydra 8
 
-The pinned image runs NZBHydra 9.1.1. Its first startup migrates H2 from
+The pinned image runs NZBHydra 9.2.0. Its first startup migrates H2 from
 2.1 to 2.4, which can take several minutes. Stop NZBHydra before backing up
 the complete `nzbhydra2_config` volume and Compose/environment configuration.
 Verify an isolated restore and retain the previous image reference before
@@ -84,3 +84,18 @@ Add a corresponding `nzbhydra.yourdomain.com` block in the public HTTPS section 
   - Categories: TV, Movies, Music, Books, etc., depending on the app.
 - **Indexers upstream:** Configure all your Usenet indexers once in NZBHydra 2 and point Prowlarr (and/or the *arr apps directly) at NZBHydra 2 so you get unified search, history, and statistics.
 
+## Updating from NZBHydra 9.1
+
+Version 9.2.0 keeps the supported Newznab API and existing volume and
+environment contract. It fixes authentication and credential handling,
+restricted-user event delivery, duplicate indexer results and history cleanup.
+Review the [9.2.0 release notes](https://github.com/theotherp/nzbhydra2/releases/tag/v9.2.0).
+
+Before deployment, verify an isolated restore of the complete config volume
+and private configuration with the previous image. Test the new image on a
+separate restored copy, then verify login restrictions, indexer searches, client
+downloads, history and statistics against their baseline. Version 9.2 also
+refreshes CA trust and removes compromised or expired roots. Check each indexer
+for TLS failures and verify its server supplies a valid certificate chain;
+repair the server chain rather than disabling certificate verification. Keep custom clients
+on the supported external API and retain the reverse proxy access policy.

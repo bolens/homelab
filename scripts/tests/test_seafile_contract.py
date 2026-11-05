@@ -21,7 +21,7 @@ class SeafileContractTests(unittest.TestCase):
 
     def test_redis_is_ephemeral_authenticated_and_not_published(self):
         redis = self.services['redis']
-        self.assertEqual(redis['image'], 'redis:8-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0')
+        self.assertEqual(redis['image'], 'redis:8-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537')
         self.assertEqual(redis['networks'], ['default'])
         self.assertNotIn('ports', redis)
         self.assertNotIn('volumes', redis)
