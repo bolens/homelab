@@ -7,6 +7,7 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ingress-admin"
+prepare_stack_msg "Compose manages the agent identity volume; preserve an existing agent.conf before first adding its state mount"
 # This local, application-owned state is created only on explicit opt-in.
 if [[ "${WOODPECKER_PREPARE_PUBLISHER_BROKER:-0}" == 1 ]]; then
   for dir in publisher-broker/runtime publisher-broker/runtime/private \

@@ -38,6 +38,9 @@ volumes:
 - name: woodpecker_pg18_data
   role: app_data
   critical: true
+- name: woodpecker_agent_data
+  role: app_data
+  critical: true
 - name: ./publisher-broker/runtime/private
   role: config
   critical: true
