@@ -2693,7 +2693,7 @@ class MusicProcessingSeamTest(unittest.TestCase):
                      mock.patch.object(main, "process_release") as process:
                     self.assertEqual(main.main(), status)
                     if value == "yes":
-                        process.assert_called_once_with(root, verify_audio=False, require_completeness=True)
+                        process.assert_called_once_with(root, verify_audio=False, require_completeness=True, require_audio=False)
                     else:
                         process.assert_not_called()
             with mock.patch.object(main, "preview") as preview:
@@ -3249,6 +3249,72 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertFalse((root / "release.m3u").exists())
 
+    def test_catalog_music_without_audio_preserves_files_and_archives(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                files = {'Release/movie.mkv': b'\x1aE\xdf\xa3' + bytes(32), 'Release/info.nfo': b'release info'}
+                if archive:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        for name, data in files.items():
+                            output.writestr(name, data)
+                else:
+                    for name, data in files.items():
+                        path = root / name
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_bytes(data)
+                before = self.snapshot(root)
+                states = {p: main.file_state(p) for p in main.tree_files(root)}
+                with mock.patch.dict(os.environ, {'NZBPP_CATEGORY': 'music', 'NZBPP_FINALDIR': str(root),
+                                                 'NZBPR_DRONE': 'A' * 32}, clear=True):
+                    self.assertEqual(main.main(), main.FAILURE)
+                self.assertEqual(self.snapshot(root), before)
+                self.assertEqual({p: main.file_state(p) for p in main.tree_files(root)}, states)
+
+    def test_catalog_music_keeps_audio_and_video_and_supports_retries(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = self.tagged_flac({'ALBUM': 'Fixture', 'TRACKNUMBER': '1', 'TRACKTOTAL': '1'})
+                video = b'\x1aE\xdf\xa3' + bytes(32)
+                if archive:
+                    with zipfile.ZipFile(root / 'release.zip', 'w') as output:
+                        output.writestr('Release/song.txt', audio)
+                        output.writestr('Release/video.mkv', video)
+                else:
+                    (root / 'song.txt').write_bytes(audio)
+                    (root / 'video.mkv').write_bytes(video)
+                with mock.patch.dict(os.environ, {'NZBPP_CATEGORY': 'music', 'NZBPP_FINALDIR': str(root),
+                                                 'NZBPR_DRONE': 'a' * 32}, clear=True):
+                    self.assertEqual(main.main(), main.SUCCESS)
+                    self.assertEqual((root / 'song.txt.flac').read_bytes(), audio)
+                    self.assertEqual((root / 'video.mkv').read_bytes(), video)
+                    before = self.snapshot(root)
+                    self.assertEqual(main.main(), main.SUCCESS)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_manual_video_jobs_keep_existing_behavior(self) -> None:
+        for drone in ('', 'manual', 'g' * 32):
+            with self.subTest(drone=drone), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                video = b'\x1aE\xdf\xa3' + bytes(32)
+                (root / 'video.mkv').write_bytes(video)
+                with mock.patch.dict(os.environ, {'NZBPP_CATEGORY': 'music', 'NZBPP_FINALDIR': str(root),
+                                                 'NZBPR_DRONE': drone}, clear=True):
+                    self.assertEqual(main.main(), main.SUCCESS)
+                self.assertEqual(self.snapshot(root), {'video.mkv': video})
+
+    def test_catalog_audio_guard_uses_existing_audio_classification(self) -> None:
+        for name, data in (('audio.mka', b'\x1aE\xdf\xa3' + bytes(32)),
+                           ('audio.m4a', b'\x00\x00\x00\x18ftypisom' + bytes(32))):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(data)
+                with mock.patch.dict(os.environ, {'NZBPP_CATEGORY': 'music', 'NZBPP_FINALDIR': str(root),
+                                                 'NZBPR_DRONE': 'a' * 32}, clear=True):
+                    self.assertEqual(main.main(), main.SUCCESS)
+                self.assertEqual((root / name).read_bytes(), data)
+
     def scene_playlist_tail_fixture(self, root: Path) -> tuple[list[Path], Path]:
         tracks = []
         for number in (1, 2):
@@ -3456,7 +3522,7 @@ class MusicProcessingSeamTest(unittest.TestCase):
                                               "NZBPO_VERIFYAUDIO": "yes"}, clear=True), \
                  mock.patch.object(main, "process_release") as process:
                 self.assertEqual(main.main(), main.SUCCESS)
-                process.assert_called_once_with(root, verify_audio=True, require_completeness=False)
+                process.assert_called_once_with(root, verify_audio=True, require_completeness=False, require_audio=False)
             with mock.patch.object(main, "preview") as preview:
                 self.assertEqual(main.cli(["--preview", str(root), "--verify-audio"]), 0)
                 preview.assert_called_once_with(root, verify_audio=True, require_completeness=False)

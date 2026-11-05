@@ -1494,9 +1494,18 @@ AUDIO_SUFFIXES = {
 }
 
 
+def audio_candidates(plan: ProcessingPlan) -> list[Path]:
+    return [source for source, target in plan.targets.items()
+            if target.suffix.casefold() in AUDIO_SUFFIXES or detected_suffix(source) in AUDIO_SUFFIXES]
+
+
+def require_audio_files(plan: ProcessingPlan) -> None:
+    if not audio_candidates(plan):
+        raise ValueError("music catalog download contains no audio files; retaining the original release")
+
+
 def verify_audio_files(plan: ProcessingPlan) -> None:
-    audio = [source for source, target in plan.targets.items()
-             if target.suffix.casefold() in AUDIO_SUFFIXES or detected_suffix(source) in AUDIO_SUFFIXES]
+    audio = audio_candidates(plan)
     if not audio:
         return
     executable = shutil.which("ffmpeg")
@@ -1962,7 +1971,7 @@ def cleanup_workspace(workspace: Path) -> None:
 
 def process_release(directory: Path, *, extract: bool = True, flatten: bool = True,
                     extensions: bool = True, cleanup: bool = True, verify_audio: bool = False,
-                    require_completeness: bool = False) -> None:
+                    require_completeness: bool = False, require_audio: bool = False) -> None:
     if directory.is_symlink() or not directory.is_dir():
         raise ValueError("download directory must be an existing directory without a symlink")
     root = directory.resolve()
@@ -1970,13 +1979,14 @@ def process_release(directory: Path, *, extract: bool = True, flatten: bool = Tr
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
         process_locked(root, extract=extract, flatten=flatten, extensions=extensions, cleanup=cleanup, verify_audio=verify_audio,
-                       require_completeness=require_completeness)
+                       require_completeness=require_completeness, require_audio=require_audio)
     finally:
         os.close(descriptor)
 
 
 def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool, cleanup: bool,
-                   verify_audio: bool = False, require_completeness: bool = False) -> None:
+                   verify_audio: bool = False, require_completeness: bool = False,
+                   require_audio: bool = False) -> None:
     if any(path.name.startswith(".unpack-music-") for path in root.iterdir()):
         raise ValueError("unfinished music processing workspace found; recover it before retrying")
     originals = tree_files(root)
@@ -1987,6 +1997,8 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
                                  require_completeness=require_completeness)
         if cleanup and not initial_plan.targets:
             raise ValueError("no files would remain after music cleanup; retaining the original release")
+        if require_audio:
+            require_audio_files(initial_plan)
         if verify_audio:
             verify_audio_files(initial_plan)
             audio_verified = True
@@ -2014,6 +2026,8 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
         archives, duplicates = extract_archives(stage, scratch) if extract else ([], 0)
         plan = plan_tree(stage, flatten=flatten, extensions=extensions, cleanup=cleanup,
                          require_completeness=require_completeness)
+        if require_audio:
+            require_audio_files(plan)
         if verify_audio and not audio_verified:
             verify_audio_files(plan)
         normalize_tree(stage, scratch, flatten=flatten, extensions=extensions, cleanup=cleanup, plan=plan)
@@ -2304,7 +2318,9 @@ def main() -> int:
         strict = os.environ.get("NZBPO_REQUIRECOMPLETENESS", "no").casefold()
         if strict not in {"yes", "no"}:
             raise ValueError("RequireCompleteness must be yes or no")
-        process_release(Path(directory_value), verify_audio=option == "yes", require_completeness=strict == "yes")
+        catalog_job = re.fullmatch(r"[0-9a-fA-F]{32}", os.environ.get("NZBPR_DRONE", "")) is not None
+        process_release(Path(directory_value), verify_audio=option == "yes", require_completeness=strict == "yes",
+                        require_audio=catalog_job)
     except (OSError, tarfile.TarError, zipfile.BadZipFile, ValueError, RuntimeError,
             NotImplementedError, EOFError) as error:
         print(f"[ERROR] Music post-processing failed: {error}", file=sys.stderr)
