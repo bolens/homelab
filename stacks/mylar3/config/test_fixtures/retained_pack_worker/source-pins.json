@@ -1,8 +1,8 @@
 {
   "archive_repair_handoff.py": "d9a165610980da31308753abfc6b392efb5a71c9c66679298ec30e8f6637cb2d",
   "cache_reservation.py": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf",
-  "check_preproof_session.py": "1d16faa1f3d616329c77b11ed541c195044b1409fb670f8eb145011e2b40c3d9",
-  "check_retained_pack_composed_worker.py": "4570f1d8dc72aaaa993a861c9ecfc3135a2f536f849247c7732f63ea3460fe0a",
+  "check_preproof_session.py": "abb15b602b13eecb2a72f98c0f86ccca23bb218c8f3a8268d26dd0df53871963",
+  "check_retained_pack_composed_worker.py": "bcecc9387b023e37c3601d5659d0117f971e6d7fe1c347e0cd0b28d858930e3c",
   "check_retained_pack_export.py": "1dd5511b1ce45cbf158ce812f1d121060c7c0cd563287e4b948295157b71f93e",
   "combined_handoff.py": "1b0e456799c3ab8c1e425a36ee487130575d996a8598987a8b0905ca88267809",
   "conversion_handoff.py": "06f407d961b007e41d04b36974cd35676f9e4d7d5bd544c5b92bd86b4573b7d4",
@@ -38,7 +38,7 @@
   "reader_scan.py": "2963ee58ec016bb2ee488b2c64fac0e5f2d2d4963f961ce548b31fa99fe88700",
   "release_naming.py": "4479b6027a5180b31ee5a994202bca87e5bb1cb2f1685d6cb7463f736b1526e8",
   "retained_pack_control.py": "53b8546838adc32fbd4bded66b0e0d12a369826d88e4652c84d103255153fa57",
-  "retained_pack_handoff.py": "4c4c9c65ef6e2d9f95d190f949a15cc9c8f0fff1f4251a7efcf5d8eabeec780e",
+  "retained_pack_handoff.py": "5a48632e77fc5cae30feb70ecb31441aed3de15b15aa08dd203d9b84267523ba",
   "retained_pack_operations.py": "01513d97e510312294a9493d61d5990c3c7323f1b2670c5ceb6aa512f543d981",
   "worker_cache.py": "efb31f946b4664c32133533e9f19aee3f378b892c78c06066c8cd9319bd615b5",
   "writer_cycle.py": "f9e8b1008f295fcf335e7f1fb192da7e03e81722b738c7a00356cfe1d95d02e2"

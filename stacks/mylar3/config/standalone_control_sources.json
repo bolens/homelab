@@ -1176,12 +1176,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/check_preproof_session.py",
-    "sha256": "1d16faa1f3d616329c77b11ed541c195044b1409fb670f8eb145011e2b40c3d9",
+    "sha256": "abb15b602b13eecb2a72f98c0f86ccca23bb218c8f3a8268d26dd0df53871963",
     "target": "test_fixtures/retained_pack_worker/check_preproof_session.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py",
-    "sha256": "4570f1d8dc72aaaa993a861c9ecfc3135a2f536f849247c7732f63ea3460fe0a",
+    "sha256": "bcecc9387b023e37c3601d5659d0117f971e6d7fe1c347e0cd0b28d858930e3c",
     "target": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py"
   },
   {
@@ -1346,7 +1346,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "4c4c9c65ef6e2d9f95d190f949a15cc9c8f0fff1f4251a7efcf5d8eabeec780e",
+    "sha256": "5a48632e77fc5cae30feb70ecb31441aed3de15b15aa08dd203d9b84267523ba",
     "target": "test_fixtures/retained_pack_worker/retained_pack_handoff.py"
   },
   {
@@ -1356,7 +1356,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "8c7fd589552e13bacee0aeba65c1f2afd81472b36d2aad9708ac23521b6e7ea8",
+    "sha256": "62371aa3ab158f4fac88db34a45b8f0d1f2657601c92e674451622a5bb745b33",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {
@@ -1846,7 +1846,7 @@
   },
   {
     "path": "test_retained_pack_composed.py",
-    "sha256": "70b8391ac23a6db1ee35b59acf41b2e1ca9f7860e26aa0ab211248ac6aec2746",
+    "sha256": "d56b91cee9942ff996d889ca4c06d1964fc9bd6a400de08fbcb6a10c45d369bd",
     "target": "test_retained_pack_composed.py"
   },
   {
