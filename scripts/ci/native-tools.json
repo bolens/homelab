@@ -26,9 +26,9 @@
       "format": "binary"
     },
     "hadolint": {
-      "version": "2.14.0",
-      "url": "https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64",
-      "sha256": "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47",
+      "version": "2.15.1",
+      "url": "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64",
+      "sha256": "c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507",
       "format": "binary",
       "output": "bin/hadolint"
     },
