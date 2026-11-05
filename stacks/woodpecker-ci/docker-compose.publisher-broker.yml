@@ -5,7 +5,7 @@ services:
     environment:
       WOODPECKER_SECRET_EXTENSION_NETRC: "false"
       # Required for the internal service endpoint; no host port is published.
-      WOODPECKER_EXTENSIONS_ALLOWED_HOSTS: private
+      WOODPECKER_EXTENSIONS_ALLOWED_HOSTS: publisher-broker
   publisher-broker:
     build:
       context: ./publisher-broker

@@ -127,8 +127,9 @@ within that process. Do not share this filesystem between replicas.
 
 Configure only the four native GitHub repositories' secret extension as
 `http://publisher-broker:8080/secrets`, without netrc transfer. The optional Compose
-override allows private extension destinations. If the server already uses other
-extensions, review its host allowlist rather than replacing unrelated choices.
+override allows the exact `publisher-broker` hostname. If the server already uses
+other extensions, preserve their explicitly approved hostnames in the comma-separated
+allowlist rather than allowing every private address.
 Caddy and the broker share `ingress-admin`; server-to-extension traffic uses the
 stack network. Only exact trusted proxy peers can assert forwarded HTTPS/host.
 The normal agent build networks do not need direct access to the internal
