@@ -1,7 +1,7 @@
 # Librarr owns direct downloads; Prowlarr and qBittorrent are optional integrations.
 services:
   librarr:
-    image: ghcr.io/jeremiahm37/librarr:v1.5.0@sha256:adab7505c58dcbc536f66b23bf30cd02e3bd4abf8ae10875ab793c8b6536bfaf
+    image: ghcr.io/jeremiahm37/librarr:v1.4.1@sha256:30fddf1a1e77eb9fc94120cea83e165858a7790857276903a45e7c2b52ddb5f8
     platform: linux/amd64
     container_name: librarr
     user: "${PUID:-1000}:${PGID:-1000}"
