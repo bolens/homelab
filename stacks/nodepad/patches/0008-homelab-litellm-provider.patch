@@ -87,6 +87,21 @@ index a6d4cb6..5627b97 100644
                      ? (draft.modelId.trim()
                          ? `${currentPreset.label} — model ${draft.modelId.trim()}`
                          : "Set a model name — AI disabled")
+diff --git a/lib/ai-ghost.ts b/lib/ai-ghost.ts
+--- a/lib/ai-ghost.ts
++++ b/lib/ai-ghost.ts
+@@ -55,7 +55,10 @@ Return ONLY valid JSON:
+
+   // Ghost synthesis is always a short JSON object (15–25 word thesis + category).
+   // Cap output to keep cost low and avoid 402 on limited-credit accounts.
+-  const MAX_GHOST_OUTPUT_TOKENS = 220
++  // Shared reasoning models count reasoning tokens against this limit. Leave enough
++  // room for the short final JSON without changing other providers' budgets.
++  const MAX_GHOST_OUTPUT_TOKENS =
++    config.provider === "litellm" && ["copilot-gemini", "openrouter-free"].includes(config.modelId) ? 1200 : 220
+
+   const baseUrl = getBaseUrl(config)
+   const response = await fetch(`${baseUrl}/chat/completions`, {
 diff --git c/lib/ai-settings.ts w/lib/ai-settings.ts
 index e9e400d..b023e9c 100644
 --- c/lib/ai-settings.ts
@@ -420,7 +435,7 @@ new file mode 100644
 index 0000000..28d7502
 --- /dev/null
 +++ w/tests/litellm-client.test.cjs
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,93 @@
 +const { test } = require('node:test')
 +const assert = require('node:assert/strict')
 +const fs = require('node:fs')
@@ -495,6 +510,24 @@ index 0000000..28d7502
 +  const { api } = settingsModule(null, { process: { env: { NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER: 'litellm' } } })
 +  assert.equal(api.freshDefaults().provider, 'litellm')
 +  assert.equal(api.freshDefaults().modelId, 'gemini-flash-lite')
++})
++
++
++test('synthesis preserves existing budgets and gives shared reasoning models headroom', async () => {
++  for (const [provider, modelId, expected] of [['openrouter', 'openai/gpt-4o', 220], ['ollama', 'gemma4:latest', 220], ['litellm', 'copilot-sonnet', 220], ['litellm', 'copilot-gemini', 1200], ['litellm', 'openrouter-free', 1200], ['litellm', 'groq-qwen', 220]]) {
++    let request
++    const { api } = settingsModule({provider, modelId, apiKey: 'fixture-key', webGrounding: false})
++    const module = {exports: {}}
++    const code = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../lib/ai-ghost.ts'), 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText
++    vm.runInNewContext(code, {module, exports: module.exports, require: name => name.endsWith('ai-settings') ? api : {parseProviderError: async () => 'fixture error'}, fetch: async (url, options) => {
++      request = JSON.parse(options.body)
++      return {ok: true, json: async () => ({choices: [{message: {content: '{"text":"A synthetic bridge.","category":"test"}'}}]})}
++    }})
++    const result = await module.exports.generateGhostClient([{text: 'Synthetic note.', category: 'test'}])
++    assert.equal(result.text, 'A synthetic bridge.')
++    assert.equal(request.max_tokens, expected)
++    assert.equal(request.response_format.type, 'json_object')
++  }
 +})
 diff --git c/tests/litellm-proxy.test.mjs w/tests/litellm-proxy.test.mjs
 new file mode 100644

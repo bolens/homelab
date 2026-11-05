@@ -22,3 +22,7 @@ Concrete request, output token, and timeout bounds are documented with the imple
 - Browser origins: exact normalized origins in `NODEPAD_ALLOWED_ORIGINS`, or the exact `NODEPAD_SITE_URL` origin when an explicit list is absent. Invalid or missing origin configuration fails closed for POST.
 - Server base: HTTP(S), without URL credentials, query, or fragment. Only the fixed model/chat suffixes are appended. Redirects are disabled.
 - Inbound body reading is separately bounded to 10 seconds before the upstream budget begins.
+
+Copilot Gemini and the optional OpenRouter free router count reasoning against
+output tokens. The client grants those LiteLLM synthesis requests 1200 tokens.
+Other provider and model budgets remain at 220 tokens.
