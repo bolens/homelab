@@ -25,7 +25,7 @@
         "contents": "write",
         "pull_requests": "write",
         "actions": "write",
-        "variables": "read",
+        "actions_variables": "read",
         "checks": "read",
         "statuses": "read"
       }
@@ -42,7 +42,7 @@
         "contents": "write",
         "pull_requests": "write",
         "actions": "read",
-        "variables": "read",
+        "actions_variables": "read",
         "checks": "read",
         "statuses": "read"
       }
@@ -60,7 +60,7 @@
       "permissions": {
         "contents": "write",
         "actions": "write",
-        "variables": "read",
+        "actions_variables": "read",
         "checks": "read",
         "statuses": "read"
       }
@@ -77,7 +77,7 @@
       ],
       "permissions": {
         "contents": "read",
-        "variables": "read"
+        "actions_variables": "read"
       }
     }
   ]

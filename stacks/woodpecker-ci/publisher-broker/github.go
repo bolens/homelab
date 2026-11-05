@@ -130,7 +130,7 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 	}
 	permissions := p.Permissions
 	if inspect {
-		permissions = map[string]string{"contents": "read", "variables": "read"}
+		permissions = map[string]string{"contents": "read", "actions_variables": "read"}
 	}
 
 	var minted struct {

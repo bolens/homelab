@@ -148,7 +148,7 @@ func newBroker(cfg config, key ed25519.PublicKey, issuer issuer) (http.Handler, 
 				return nil, errDenied
 			}
 		}
-		if len(p.Permissions) == 0 || p.Permissions["variables"] != "read" {
+		if len(p.Permissions) == 0 || p.Permissions["actions_variables"] != "read" {
 			return nil, errDenied
 		}
 		allowed := publisherPermissions(name)
@@ -348,13 +348,13 @@ func (b *broker) policyFor(req request) (policy, error) {
 func publisherPermissions(name string) map[string]string {
 	switch name {
 	case "appicon":
-		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "variables": "read", "checks": "read", "statuses": "read"}
+		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "aur-response-toolkit":
-		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "read", "variables": "read", "checks": "read", "statuses": "read"}
+		return map[string]string{"contents": "write", "pull_requests": "write", "actions": "read", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "uddns":
-		return map[string]string{"contents": "write", "actions": "write", "variables": "read", "checks": "read", "statuses": "read"}
+		return map[string]string{"contents": "write", "actions": "write", "actions_variables": "read", "checks": "read", "statuses": "read"}
 	case "audio-utils":
-		return map[string]string{"contents": "read", "variables": "read"}
+		return map[string]string{"contents": "read", "actions_variables": "read"}
 	default:
 		return nil
 	}

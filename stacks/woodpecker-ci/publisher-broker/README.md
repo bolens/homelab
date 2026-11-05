@@ -100,7 +100,8 @@ Under `publisher-broker/runtime/private`, supply:
   the intended server's `/api/signature/public-key` endpoint.
 - `github-app.pem`, mode 0600, from the publication App installed only on the
   four intended repositories. Contents read/write and Actions permissions are
-  independently scoped by repository; Variables read is required for the flag.
+  independently scoped by repository; Variables read (`actions_variables` in the GitHub API) is required for the flag.
+  The obsolete `variables` permission key is rejected.
   Current Pages publication writes the existing `gh-pages` branch and needs no
   Pages API permission. Appicon/uDDNS dispatch paths need Actions write.
 - `ghcr-token`, mode 0600, with only the required package-publishing authority

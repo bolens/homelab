@@ -80,6 +80,10 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "scope", 400)
 			return
 		}
+		if _, legacy := in.Permissions["variables"]; legacy {
+			http.Error(w, "unsupported permission", 422)
+			return
+		}
 		permissions := in.Permissions
 		if f.bad == "broad-permissions" {
 			permissions["administration"] = "write"
