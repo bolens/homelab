@@ -1,0 +1,43 @@
+# Optional: select explicitly with -f docker-compose.publisher-broker.yml.
+# Configure ONLY the four native GitHub repos' secret-extension endpoint privately.
+services:
+  server:
+    environment:
+      WOODPECKER_SECRET_EXTENSION_NETRC: "false"
+      # Required for the internal service endpoint; no host port is published.
+      WOODPECKER_EXTENSIONS_ALLOWED_HOSTS: private
+  publisher-broker:
+    build:
+      context: ./publisher-broker
+    image: woodpecker-publisher-broker:local
+    restart: unless-stopped
+    user: "${WOODPECKER_BROKER_UID:-1000}:${WOODPECKER_BROKER_GID:-1000}"
+    cpus: 0.5
+    mem_limit: 256m
+    memswap_limit: 256m
+    pids_limit: 64
+    cpu_shares: 64
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      BROKER_CONFIG_FILE: /run/private/config.json
+    volumes:
+      - type: bind
+        source: ./publisher-broker/runtime/private
+        target: /run/private
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./publisher-broker/runtime/state
+        target: /state
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    networks:
+      - default
+      - ingress-admin

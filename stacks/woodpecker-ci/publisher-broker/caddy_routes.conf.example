@@ -1,0 +1,20 @@
+# Optional: import this definition once, then explicitly use
+# `import publisher-credentials` inside the configured HTTPS Woodpecker site.
+# Replace that site's bare reverse_proxy so only the exact credential path is routed.
+(publisher-credentials) {
+	handle /publisher/credentials {
+		rewrite * /redeem
+		reverse_proxy publisher-broker:8080 {
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+		}
+	}
+	handle {
+		reverse_proxy woodpecker-server:8000 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

@@ -31,6 +31,8 @@ copying these files. Project-authored memory documents have separate ownership.
 Dependency declarations are recorded in:
 
 - `package.json`
+- `stacks/woodpecker-ci/publisher-broker/go.mod` and `go.sum`; the broker includes
+  compiled dependency notices in its [own notice file](stacks/woodpecker-ci/publisher-broker/THIRD_PARTY_NOTICES.md).
 - `stacks/acquire/requirements.txt`
 - `stacks/blackbird/requirements.txt`
 - `stacks/clark-browser/build/requirements.txt`

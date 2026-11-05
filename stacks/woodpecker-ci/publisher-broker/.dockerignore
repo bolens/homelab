@@ -1,0 +1,7 @@
+**
+!*.go
+!go.mod
+!go.sum
+!Dockerfile
+!LICENSE
+!THIRD_PARTY_NOTICES.md
