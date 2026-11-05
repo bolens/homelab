@@ -236,7 +236,11 @@ full disposable clones. Their Python environments, npm modules, downloads and
 caches live under a unique `/tmp` directory and are removed on exit. The existing
 Gitleaks and Go lanes use the initial pipeline checkout. Docker/Compose are checksum-bound CLI tools
 used only to render configurations; their socket points to an absent task-local
-path. No Alpine/glibc Python environment or browser cache is shared across images.
+path. Compose is registered in the disposable container's standard system plugin
+directory so fixtures can use their own empty `HOME`/`DOCKER_CONFIG` without
+losing the plugin. Registration refuses host execution, checksum changes and
+existing unrelated plugins. No host plugin directory is changed. No Alpine/glibc
+Python environment or browser cache is shared across images.
 
 Public executable pins and SHA-256 checksums are in
 [`scripts/ci/native-tools.json`](../scripts/ci/native-tools.json). The bootstrap

@@ -38,6 +38,11 @@ case "$mode" in
         bootstrap docker compose
         export DOCKER_CONFIG="$scratch/tools/docker-config" DOCKER_HOST="unix://$scratch/no-engine.sock"
         unset DOCKER_CONTEXT DOCKER_CERT_PATH DOCKER_TLS_VERIFY DOCKER_API_VERSION
+        # Fixtures deliberately replace HOME/DOCKER_CONFIG. Use Docker's standard
+        # container-global plugin lookup without exposing any shared credentials.
+        python3 scripts/ci/register-native-compose.py --tools "$scratch/tools"
+        expected_compose=$(python3 -c 'import json; print(json.load(open("scripts/ci/native-tools.json"))["tools"]["compose"]["version"])')
+        test "$(DOCKER_CONFIG="$scratch/isolated-docker-config" docker compose version --short)" = "$expected_compose"
         python_tools
         npm_tools
         make validate-strict

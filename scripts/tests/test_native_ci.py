@@ -27,6 +27,7 @@ def module(name):
 TOOLS = module('bootstrap-native-tools')
 DOTNET = module('check-dotnet-controls')
 LINKS = module('check-native-links')
+REGISTER = module('register-native-compose')
 
 
 class ArchiveBoundaryTests(unittest.TestCase):
@@ -172,6 +173,73 @@ class ArchiveBoundaryTests(unittest.TestCase):
                     self.assertRaises(SystemExit):
                 TOOLS.main()
             fetch.assert_not_called()
+
+
+class ComposeRegistrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name).resolve()
+        self.container = self.root / 'container'
+        self.container.mkdir()
+        (self.container / '.dockerenv').touch()
+        self.tools = self.root / 'tools'
+        self.source = self.tools / 'docker-config/cli-plugins/docker-compose'
+        self.source.parent.mkdir(parents=True)
+        self.source.write_bytes(b'verified fixture executable')
+        self.source.chmod(0o755)
+        manifest = self.root / 'manifest.json'
+        manifest.write_text(json.dumps({'tools': {'compose': {
+            'sha256': hashlib.sha256(self.source.read_bytes()).hexdigest()}}}))
+        self.patch = patch.object(REGISTER, 'MANIFEST', manifest)
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+        self.target = self.container / 'usr/local/lib/docker/cli-plugins/docker-compose'
+
+    def register(self):
+        REGISTER.register(self.tools, container_root=self.container, uid=0)
+
+    def test_system_plugin_is_independent_of_fixture_home_and_docker_config(self):
+        self.register()
+        self.assertTrue(self.target.is_symlink())
+        self.assertEqual(self.target.resolve(), self.source)
+        empty = self.root / 'isolated-config'
+        empty.mkdir()
+        with patch.dict('os.environ', HOME=str(empty), DOCKER_CONFIG=str(empty), clear=False):
+            self.register()
+            self.assertEqual(self.target.resolve(), self.source)
+            self.assertEqual(list(empty.iterdir()), [])
+
+    def test_host_nonroot_or_symlink_marker_is_refused_before_writes(self):
+        with self.assertRaises(ValueError):
+            REGISTER.register(self.tools, container_root=self.container, uid=1000)
+        (self.container / '.dockerenv').unlink()
+        with self.assertRaises(ValueError):
+            self.register()
+        (self.container / '.dockerenv').symlink_to(self.source)
+        with self.assertRaises(ValueError):
+            self.register()
+        self.assertFalse((self.container / 'usr').exists())
+
+    def test_wrong_checksum_and_unrelated_existing_plugin_are_preserved(self):
+        self.source.write_bytes(b'unexpected content')
+        with self.assertRaises(ValueError):
+            self.register()
+        self.assertFalse((self.container / 'usr').exists())
+        self.source.write_bytes(b'verified fixture executable')
+        self.target.parent.mkdir(parents=True)
+        self.target.write_bytes(b'preserve unrelated plugin')
+        with self.assertRaises(ValueError):
+            self.register()
+        self.assertEqual(self.target.read_bytes(), b'preserve unrelated plugin')
+
+    def test_indirect_system_directory_never_writes_outside_container_root(self):
+        outside = self.root / 'preserve'
+        outside.mkdir()
+        (self.container / 'usr').symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            self.register()
+        self.assertEqual(list(outside.iterdir()), [])
 
 
 class MandatoryCoverageTests(unittest.TestCase):
