@@ -94,9 +94,15 @@ jobs:
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
-          # Identify the probe: Cloudflare can reject generic curl client signatures.
+          # Reach the published Pages origin directly: a custom domain's bot
+          # protection may challenge hosted runners. Keep the URL and TLS checks.
+          page_host=$(python -c 'import os, urllib.parse; print(urllib.parse.urlsplit(os.environ["PAGE_URL"]).hostname)')
+          origin_ip=$(getent ahostsv4 "${GITHUB_REPOSITORY_OWNER}.github.io" | awk 'NR == 1 {print $1}')
+          test -n "$origin_ip"
+          printf 'PAGE_HOST=%s\nPAGE_ORIGIN_IP=%s\n' "$page_host" "$origin_ip" >> "$GITHUB_ENV"
           for _ in {1..12}; do
-            if curl --fail --silent --show-error --user-agent 'homelab-pages-visual-evidence/1.0' "$PAGE_URL" > /dev/null; then
+            if curl --fail --silent --show-error --user-agent 'homelab-pages-visual-evidence/1.0' \
+              --resolve "$page_host:443:$origin_ip" "$PAGE_URL" > /dev/null; then
               exit 0
             fi
             sleep 5
@@ -109,10 +115,13 @@ jobs:
         run: |
           mkdir -p visual-evidence
           google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --host-resolver-rules="MAP $PAGE_HOST $PAGE_ORIGIN_IP" \
             --window-size=1440,3200 --screenshot=visual-evidence/home-desktop.png "$PAGE_URL"
           google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --host-resolver-rules="MAP $PAGE_HOST $PAGE_ORIGIN_IP" \
             --window-size=390,2400 --screenshot=visual-evidence/home-mobile.png "$PAGE_URL"
           google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --host-resolver-rules="MAP $PAGE_HOST $PAGE_ORIGIN_IP" \
             --window-size=1440,3200 --screenshot=visual-evidence/catalog-desktop.png "${PAGE_URL}apps/"
 
       - name: Upload visual evidence
