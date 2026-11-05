@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   audit:
+    if: vars.WOODPECKER_LINUX_CI != 'true'
     name: Lint and audit workflows
     permissions:
       contents: read

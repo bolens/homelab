@@ -126,6 +126,12 @@ make hooks-install
 make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
+The portable [Woodpecker pipeline](.woodpecker.yml) covers Linux source, stack,
+compiler, browser and weekly-link validation without pipeline credentials.
+Hosted validation stays enabled until an operator completes the
+[native acceptance and retirement sequence](documents/DEVELOPMENT-WORKFLOW.md#hosted-retirement-and-recovery).
+Docker publishing and GitHub-managed security/deployment jobs remain hosted.
+
 The [scripts reference](scripts/README.md) explains the available helpers.
 Contributor conventions, generated documentation, and validation requirements
 are covered in [CONTRIBUTING.md](CONTRIBUTING.md).

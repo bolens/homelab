@@ -24,6 +24,11 @@ Gitleaks scan, with the shared lint checkout prepared as described in
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, sensitive-file tracking, and Compose YAML. Add repeatable `--network NAME` / `--mount PATH` checks, or set `HOMELAB_EXPECTED_NETWORKS` / `HOMELAB_MOUNT_PATHS`. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links and anchors, generated docs, and tracked-file integrity; then runs YAML, Markdown, and shell lint when available. Pass `--strict` to require every lint tool. |
 | `validate-dependency-config.py` | Parses Dependabot and Renovate configuration and catches unsupported ecosystem options before GitHub parses them. |
+| `ci/check-native.sh` | Runs an exact-revision portable CI lane in a disposable full clone with per-image tool and cache state. See the [native contract](../documents/DEVELOPMENT-WORKFLOW.md#4-woodpecker-ci). |
+| `ci/bootstrap-native-tools.py` | Installs only checksum-bound public tools from `ci/native-tools.json` into a new task-owned directory, checking HTTPS sources and archive boundaries. |
+| `ci/register-native-compose.py` | Registers the checksum-verified Compose executable through the disposable Docker container's standard plugin directory, keeping fixture Docker configurations isolated; refuses host execution and unrelated existing plugins. |
+| `ci/check-dotnet-controls.py` | Requires the pinned .NET 10/Node runtime and all default compiler controls to execute without skips. |
+| `ci/check-native-links.py` | Reuses the weekly workflow's exact internal gate and report-only external link policy. |
 | `source-lint-local.py` | Runs the hosted source lint from an explicitly prepared checkout matching the workflow's immutable tooling revision and Ruff version; refuses changed tooling and ignores inherited Git routing variables. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
 | `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |

@@ -200,12 +200,76 @@ filters, keyboard skip navigation, JavaScript errors, and mobile overflow.
 
 ## 4. Woodpecker CI
 
-1. In **Woodpecker**, enable this repository (it must be linked to your **Gitea** forge).
-2. Ensure the **Woodpecker agent** can run Docker steps (default for a Docker-based agent).
-3. Pipelines are defined in **`.woodpecker.yml`** at the repo root:
-   - **gitleaks**, secret scan on the git checkout (history included).
-   - **repository-validation**, runs the complete Compose, preparation,
-     metadata, environment-example, documentation, and generated-file checks.
+Enable the intended repository on the native GitHub or Gitea forge and use the
+root `.woodpecker.yml`. It retains the single `woodpecker` result on every push,
+PR, manual run and cron, without path filters that could omit a required result.
+The Linux Docker backend needs no published port, host mount, Docker socket,
+privileged step, registry login or pipeline secret for these checks.
+
+The pipeline runs:
+
+- full-history Gitleaks and `make validate-strict`, including all portable stack
+  contracts, generated content and the existing Python/Node suites;
+- pinned shared source lint, actionlint, offline zizmor, Spec Kit integrity and
+  Hadolint for tracked files named exactly `Dockerfile`;
+- the existing Komga source/compile controls with JDK 21;
+- the default-CI Kavita compiler controls with .NET SDK 10.0.403 and Node 26.7.0,
+  requiring at least nine executed tests and no skips;
+- the locked Playwright/Axe site suite using the existing Chrome channel;
+- publisher-broker race tests and vet; and
+- internal documentation links on cron/manual runs, with external URLs remaining
+  a report-only check under the existing weekly workflow's exact arguments.
+
+The general repository suite can still report optional compiler probes skipped
+in its Node image. The dedicated .NET lane closes the ordinary hosted compiler
+coverage; optional installed-assembly/source probes still require their explicit
+private inputs and are not claimed as executed. Neither lane runs application
+services or accesses live data.
+
+Each link scan has a 180-second reporting ceiling. An external timeout prints an
+explicit incomplete-report warning and establishes no link success; it remains
+nonblocking. Internal errors/timeouts and missing tools remain fatal, as do
+checksum or tool-install failures before a scan.
+
+The wrapper-based validation lanes check the exact committed revision in separate
+full disposable clones. Their Python environments, npm modules, downloads and
+caches live under a unique `/tmp` directory and are removed on exit. The existing
+Gitleaks and Go lanes use the initial pipeline checkout. Docker/Compose are checksum-bound CLI tools
+used only to render configurations; their socket points to an absent task-local
+path. Compose is registered in the disposable container's standard system plugin
+directory so fixtures can use their own empty `HOME`/`DOCKER_CONFIG` without
+losing the plugin. Registration refuses host execution, checksum changes and
+existing unrelated plugins. No host plugin directory is changed. No Alpine/glibc
+Python environment or browser cache is shared across images.
+
+Public executable pins and SHA-256 checksums are in
+[`scripts/ci/native-tools.json`](../scripts/ci/native-tools.json). The bootstrap
+checks HTTPS origins, archive paths, entry types, size limits and hashes before
+executing tools. Chrome for Testing is the fixed Google artifact selected there;
+Playwright's Chrome channel and locked test dependencies remain unchanged.
+Native Python tools use the hashed
+[requirements](../.github/requirements-native-ci.txt). Refresh a tool's version,
+primary-source checksum and coupled tests together; rerun its actual image lane.
+Renovate monitors Woodpecker image references, and Dependabot monitors the Python
+requirements. The raw executable manifest requires a reviewed coordinated update.
+
+### Hosted retirement and recovery
+
+`WOODPECKER_LINUX_CI` defaults off. With it absent or false, existing hosted pure
+validation still runs. An operator may set it to `true` only after the same native
+candidate passes a PR, a genuine merged-main push and a configured weekly cron
+(the existing Monday 08:41 UTC schedule), and the protected branch requires the
+actual native result on the latest SHA. Keep native trust/fork approval enabled.
+There is no publishing-flag dependency for homelab. This source change does not
+set the variable, create a cron or change protection.
+
+To recover, clear `WOODPECKER_LINUX_CI` and verify the hosted required producers
+on a new run before changing protection. Preserve the native check until its
+replacement is proven. GitHub retains actual Docker image builds/runtime tests
+and publication, Mylar and converter fixtures, CodeQL, dependency review,
+Scorecard, Pages OIDC deployment and deployment-bound browser evidence, metadata
+automation and Spec Kit update PRs. The Pages job's own pre-deployment browser
+check remains coupled to its publication rather than trusting an unrelated run.
 
 To skip a run for a commit message, use `[CI SKIP]` or `[SKIP CI]` (Woodpecker convention).
 
@@ -215,9 +279,9 @@ If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Git
 
 ## 5. GitHub Actions
 
-GitHub runs the same repository validation plus a committed-content Gitleaks
-scan. The primary workflow uses read-only repository permissions and is
-suitable for a backup mirror or pull-request checks.
+GitHub retains the same portable validation as the default fallback described
+above, plus the Docker, deployment and managed security exceptions. Validation
+uses read-only repository permissions.
 
 Additional narrowly scoped workflows provide:
 

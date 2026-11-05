@@ -83,6 +83,9 @@ python3 scripts/audit-stack-metadata.py
 echo "Auditing repository hygiene..."
 python3 scripts/audit-repo-hygiene.py
 
+echo "Checking portable native CI contracts..."
+python3 -B -m unittest discover -s scripts/tests -p test_native_ci.py
+
 echo "Validating dependency update configuration..."
 python3 scripts/validate-dependency-config.py
 python3 -B -m unittest discover -s scripts/tests -p test_dependency_config.py
