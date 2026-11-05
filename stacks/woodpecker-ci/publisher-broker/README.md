@@ -30,7 +30,9 @@ read-only private files; neither enters a pipeline or image build context.
    signed `vX.Y.Z` tag pointing to the pipeline commit, reachable from protected
    `main`; the tag ref is reread to detect retargeting. Inspection tokens are
    revoked after use. GitHub API redirects, errors and missing metadata deny
-   authorization.
+   authorization. A mint response must identify exactly the requested repository;
+   when GitHub omits its optional `repositories` field, the new token must
+   independently list exactly that repository through `/installation/repositories`.
 4. Immediately before publishing, a trusted helper redeems its capability over
    TLS. The broker repeats the policy and GitHub checks and mints a fresh,
    single-repository installation token with only the configured permissions.

@@ -99,7 +99,14 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 		if f.bad == "long-token" {
 			expires = time.Now().Add(2 * time.Hour)
 		}
-		send(map[string]any{"token": "synthetic-installation-value", "expires_at": expires, "repositories": repositories, "permissions": permissions})
+		response := map[string]any{"token": "synthetic-installation-value", "expires_at": expires, "repositories": repositories, "permissions": permissions}
+		if strings.HasPrefix(f.bad, "missing-repositories") {
+			delete(response, "repositories")
+		}
+		if f.bad == "null-repositories" {
+			response["repositories"] = nil
+		}
+		send(response)
 		return
 	}
 	if r.Header.Get("Authorization") != "Bearer synthetic-installation-value" {
@@ -109,6 +116,33 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/installation/token" && r.Method == http.MethodDelete {
 		f.revokes.Add(1)
 		w.WriteHeader(204)
+		return
+	}
+	if r.URL.Path == "/installation/repositories" {
+		if r.Method != http.MethodGet || r.URL.RawQuery != "per_page=2" || !strings.HasPrefix(f.bad, "missing-repositories") {
+			f.t.Error("unexpected scope probe")
+			http.Error(w, "scope", 400)
+			return
+		}
+		id, name, total := 1, "owner/appicon", 1
+		switch f.bad {
+		case "missing-repositories-wrong-id":
+			id = 99
+		case "missing-repositories-wrong-name":
+			name = "owner/other"
+		case "missing-repositories-broad":
+			total = 2
+		case "missing-repositories-empty":
+			send(map[string]any{"total_count": 1, "repositories": []any{}})
+			return
+		case "missing-repositories-extra":
+			send(map[string]any{"total_count": 1, "repositories": []map[string]any{{"id": 1, "full_name": name}, {"id": 99, "full_name": "owner/other"}}})
+			return
+		case "missing-repositories-unavailable":
+			http.Error(w, "private scope failure", 503)
+			return
+		}
+		send(map[string]any{"total_count": total, "repositories": []map[string]any{{"id": id, "full_name": name}}})
 		return
 	}
 	if f.bad == "unavailable" {
@@ -176,7 +210,7 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func TestGitHubImmutableMetadata(t *testing.T) {
-	for _, bad := range []string{"", "remote-id", "full-name", "default-branch", "archived", "disabled", "disabled-publishing", "unprotected", "source-sha", "broad-permissions", "broad-repositories", "expired-token", "long-token", "unavailable", "redirect"} {
+	for _, bad := range []string{"", "missing-repositories", "missing-repositories-wrong-id", "missing-repositories-wrong-name", "missing-repositories-broad", "missing-repositories-empty", "missing-repositories-extra", "missing-repositories-unavailable", "null-repositories", "remote-id", "full-name", "default-branch", "archived", "disabled", "disabled-publishing", "unprotected", "source-sha", "broad-permissions", "broad-repositories", "expired-token", "long-token", "unavailable", "redirect"} {
 		t.Run(bad, func(t *testing.T) {
 			g, f := mockAPI(t, bad, false)
 			cfg, r, _, _ := fixture(t)
@@ -184,7 +218,7 @@ func TestGitHubImmutableMetadata(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			cred, err := g.Authorize(ctx, r, p)
-			if bad == "" {
+			if bad == "" || bad == "missing-repositories" {
 				if err != nil || cred.Token == "" {
 					t.Fatalf("valid metadata rejected:%v", err)
 				}

@@ -134,12 +134,10 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 	}
 
 	var minted struct {
-		Token        string    `json:"token"`
-		Expires      time.Time `json:"expires_at"`
-		Repositories []struct {
-			ID int64 `json:"id"`
-		} `json:"repositories"`
-		Permissions map[string]string `json:"permissions"`
+		Token        string            `json:"token"`
+		Expires      time.Time         `json:"expires_at"`
+		Repositories json.RawMessage   `json:"repositories"`
+		Permissions  map[string]string `json:"permissions"`
 	}
 	err = g.call(ctx, http.MethodPost, fmt.Sprintf("/app/installations/%d/access_tokens", p.InstallationID), jwt, map[string]any{"repository_ids": []int64{remoteID}, "permissions": permissions}, &minted)
 	if err != nil {
@@ -153,8 +151,30 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 			_ = g.call(revokeCtx, http.MethodDelete, "/installation/token", minted.Token, nil, nil)
 		}
 	}()
-	if minted.Token == "" || len(minted.Repositories) != 1 || minted.Repositories[0].ID != remoteID || minted.Expires.Before(time.Now().Add(time.Minute)) || minted.Expires.After(time.Now().Add(65*time.Minute)) {
+	if minted.Token == "" || minted.Expires.Before(time.Now().Add(time.Minute)) || minted.Expires.After(time.Now().Add(65*time.Minute)) {
 		return credential{}, errDenied
+	}
+	var repositories []struct {
+		ID int64 `json:"id"`
+	}
+	if len(minted.Repositories) != 0 {
+		if json.Unmarshal(minted.Repositories, &repositories) != nil || len(repositories) != 1 || repositories[0].ID != remoteID {
+			return credential{}, errDenied
+		}
+	} else {
+		// GitHub's mint response makes repositories optional. Independently prove
+		// the new token's scope when that field is absent; never infer it from
+		// repository_selection or the original installation's broader access.
+		var scope struct {
+			Total        int `json:"total_count"`
+			Repositories []struct {
+				ID       int64  `json:"id"`
+				FullName string `json:"full_name"`
+			} `json:"repositories"`
+		}
+		if g.call(ctx, http.MethodGet, "/installation/repositories?per_page=2", minted.Token, nil, &scope) != nil || scope.Total != 1 || len(scope.Repositories) != 1 || scope.Repositories[0].ID != remoteID || scope.Repositories[0].FullName != p.FullName {
+			return credential{}, errDenied
+		}
 	}
 	for k, v := range permissions {
 		if minted.Permissions[k] != v {
