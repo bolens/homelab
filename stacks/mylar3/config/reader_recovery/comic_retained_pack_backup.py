@@ -28,20 +28,35 @@ def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
 def encode(v):return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 
 
-def snapshot(roots):
-    files={};nodes={};spaces={};total=0
+def snapshot(roots, *, source_links=False, source_nodes=None):
+    roots=tuple(roots)
+    need(type(source_links) is bool,'backup-link-policy')
+    limit=MAX_NODES
+    if source_nodes is not None:
+        need(type(source_nodes) is int and 0<source_nodes<=MAX_NODES
+             and source_links is False and len(roots)==2,'backup-copy-source-count')
+        limit=2*source_nodes+len(roots)
+    files={};nodes={};spaces={};links={};total=0
     def walk(p):
         nonlocal total
         z=os.lstat(p);stamp=nine(z);kind=z.st_mode&0o170000
         need(kind in (0o040000,0o100000,0o120000),'backup-tree-type')
-        need(str(p) not in files or files[str(p)]==stamp,'backup-original-conflict');files[str(p)]=stamp
+        first=str(p) not in files
+        need(first or files[str(p)]==stamp,'backup-original-conflict');files[str(p)]=stamp
         if kind==0o100000:
-            need(z.st_nlink==1,'backup-selected-alias');total+=z.st_size;need(total<=MAX_BYTES,'backup-byte-bound')
+            if source_links:
+                key=(z.st_dev,z.st_ino)
+                original,names=links.setdefault(key,(stamp,set()))
+                need(stamp==original and z.st_nlink>=1,'backup-source-link-group')
+                names.add(str(p))
+            else:need(z.st_nlink==1,'backup-selected-alias')
+            if first:total+=z.st_size
+            need(total<=MAX_BYTES,'backup-byte-bound')
         elif kind==0o040000:
             nodes[str(p)]=five(z);names=tuple(sorted(os.listdir(p)));spaces[str(p)]=names
             for name in names:walk(p/name)
         else:need(z.st_nlink==1,'backup-selected-symlink-alias')
-        need(len(files)<=MAX_NODES,'backup-node-bound')
+        need(len(files)<=limit,'backup-node-bound')
     # Known roots and ancestors precede first enumeration.
     for root in roots:
         for p in (root,*root.parents):
@@ -49,6 +64,8 @@ def snapshot(roots):
             need(str(p) not in nodes or nodes[str(p)]==value,'backup-ancestor-conflict');nodes[str(p)]=value
         files[str(root)]=nine(os.lstat(root))
     for root in roots:walk(root)
+    for stamp,names in links.values():need(len(names)==stamp[8],'backup-source-link-group')
+    if source_nodes is not None:need(len(files)==limit,'backup-copy-node-count')
     frame=(tuple(sorted(files.items())),tuple(sorted(nodes.items())),tuple(sorted(spaces.items())))
     raw(frame);return frame,total
 
@@ -242,7 +259,8 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha):
     out_parent=five(os.lstat(out.parent));need(out_parent[2]&0o7777==0o700 and out_parent[3]==os.geteuid(),'backup-private-parent')
     deadline=time.monotonic()+BACKUP_SECONDS
     primitive=Path(primitives_path);primitive_frame=(((str(primitive),nine(os.lstat(primitive))),),tuple((str(q),five(os.lstat(q))) for q in primitive.parents),())
-    original,total=snapshot(roots)  # Complete source frame BEFORE module/hash/database callbacks.
+    original,total=snapshot(roots,source_links=True)  # Complete source frame BEFORE module/hash/database callbacks.
+    need(2*total<=MAX_BYTES,'backup-two-copy-byte-bound')
     raw(primitive_frame)
     m,code=source_module(primitives_path,primitives_sha,primitive_frame);primitive_original=_primitive_original(m);logical={}
     for s,p in zip(scopes,roots):
@@ -266,7 +284,7 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha):
     for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
     need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
     need(five(os.lstat(out))==out_node,'backup-created-output-identity')
-    copied,_=snapshot([out/'backup',out/'restore'])
+    copied,_=snapshot([out/'backup',out/'restore'],source_nodes=len(original[0]))
     copied=(copied[0],copied[1],copied[2]+((str(out),('backup','restore')),))
     digest=hashlib.sha256(encode(dict(scopes=scopes,logical=logical,databases=databases,source=original,copies=copied))).hexdigest()
     value=object.__new__(BackupObservation);_OBS[value]=dict(scopes=scopes,out=out,source=original,copies=copied,source_code=code,module=m,logical=logical,databases=databases,required=required,source_scopes=initial_scopes,pid=os.getpid(),thread=threading.get_ident(),deadline=deadline,bytes=total,digest=digest)

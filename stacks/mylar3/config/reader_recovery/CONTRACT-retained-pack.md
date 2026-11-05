@@ -160,3 +160,12 @@ Worker CAS and Root terminal verification, and refuses changed reader state.
 Its namespace/principal adapters are explicit fixtures. Separate non-identity
 mount tests cover host/container journal mapping; neither test establishes the
 actual configured Docker lifecycle or selected-image acceptance.
+
+State backup source hardlinks are accepted only when every link in each original
+full9 group is enumerated inside the declared scopes. Outside-scope aliases and
+inconsistent groups refuse before output. Backup and isolated restore remain
+independent, single-link copies: preservation covers bytes, paths, attributes and
+database contents, while source inode sharing remains unchanged. Authority files
+and copied trees retain their single-link rules. The copied node ceiling derives
+from two captured source trees plus their two container roots; the doubled byte
+ceiling is checked before output, including configured preflight.

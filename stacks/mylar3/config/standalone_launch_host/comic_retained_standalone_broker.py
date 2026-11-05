@@ -624,7 +624,8 @@ def _pack_preflight(installation,runtime,boot,nonce):
     capture=parent.mapped_host(worker['Mounts'],local['capture_source'])
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
-    helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes])
+    helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes],source_links=True)
+    if 2*bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-two-copy-byte-bound')
     parent9=nine(os.lstat(BACKUP_PARENT))
     if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
     free=os.statvfs(BACKUP_PARENT);required=2*bytes_needed+(bytes_needed+19)//20+1024**2

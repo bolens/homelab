@@ -351,7 +351,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "5f9a98404600a02e9644b49eb049416b7812454022a871be1ba5920f532a2547",
+    "sha256": "7a8707c3686c37d33ea5bfb48a7dfa6e79457c15a19eb0f8ad76c69715bc69d2",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
