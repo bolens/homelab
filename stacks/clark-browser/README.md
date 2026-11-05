@@ -27,7 +27,7 @@ the patched Chromium binary at build time (~750 MB image).
 First build takes a few minutes (Chromium download). Subsequent rebuilds are fast
 (binary cached in the clark-cache named volume).
 
-The build uses digest-pinned Node 24 LTS and Python 3.14. Keep the Node
+The build uses digest-pinned Node 26 LTS and Python 3.14. Keep the Node
 release on a supported LTS line when updating its image; a successful build
 does not establish browser/CDP compatibility. Verify Chromium startup and a
 Playwright CDP connection against the built image before deployment.
