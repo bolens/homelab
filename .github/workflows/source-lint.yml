@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   lint:
+    if: vars.WOODPECKER_LINUX_CI != 'true'
     uses: bolens/.github/.github/workflows/reusable-source-lint.yml@7603518f305fb76f7bb1b9979f2692521f633b82
     with:
       tooling-ref: 7603518f305fb76f7bb1b9979f2692521f633b82

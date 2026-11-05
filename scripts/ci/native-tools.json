@@ -1,0 +1,60 @@
+{
+  "platform": "linux/amd64",
+  "tools": {
+    "node": {
+      "url": "https://nodejs.org/dist/v26.7.0/node-v26.7.0-linux-x64.tar.xz",
+      "sha256": "982aa24dd8be4c889c6a8ab337ddff3b0896645b20f4239356e80552c16277ee",
+      "version": "26.7.0",
+      "output": "bin/node",
+      "format": "tar",
+      "member": "node-v26.7.0-linux-x64/bin/node"
+    },
+    "docker": {
+      "version": "29.9.2",
+      "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.9.2.tgz",
+      "sha256": "9ac225999fd5e863f7694c728ef23d480616b1e5639328fa309befd4243d69eb",
+      "bytes": 86374273,
+      "output": "bin/docker",
+      "format": "tar",
+      "member": "docker/docker"
+    },
+    "compose": {
+      "version": "5.6.1",
+      "url": "https://github.com/docker/compose/releases/download/v5.6.1/docker-compose-linux-x86_64",
+      "sha256": "47737f4236e6d3ccea7291995203f8f018058783b4c3a9469119811a0b5db8c0",
+      "output": "docker-config/cli-plugins/docker-compose",
+      "format": "binary"
+    },
+    "hadolint": {
+      "version": "2.14.0",
+      "url": "https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64",
+      "sha256": "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47",
+      "format": "binary",
+      "output": "bin/hadolint"
+    },
+    "actionlint": {
+      "version": "1.7.12",
+      "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+      "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+      "format": "tar",
+      "output": "bin/actionlint",
+      "member": "actionlint"
+    },
+    "lychee": {
+      "version": "0.24.2",
+      "url": "https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a",
+      "format": "tar",
+      "output": "bin/lychee",
+      "member": "lychee-x86_64-unknown-linux-gnu/lychee"
+    },
+    "chrome": {
+      "version": "157.0.8103.38",
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/linux64/chrome-linux64.zip",
+      "sha256": "8cdeb344e9b2cefe59f4aea8d1d93d5d93054c03cde217665c16fc1f62e72a66",
+      "bytes": 203502190,
+      "primary": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json",
+      "format": "zip"
+    }
+  }
+}

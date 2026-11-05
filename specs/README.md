@@ -54,3 +54,8 @@ Installation validation alone does not establish feature completion.
 - [035-woodpecker-publisher-broker](035-woodpecker-publisher-broker/spec.md): in-progress
   [implementation plan](035-woodpecker-publisher-broker/plan.md) and
   [verification tasks](035-woodpecker-publisher-broker/tasks.md); live acceptance pending.
+
+- [Portable homelab validation](036-homelab-native-validation/spec.md):
+  [plan](036-homelab-native-validation/plan.md),
+  [tasks](036-homelab-native-validation/tasks.md). Native image and cutover proof
+  remain separate from source implementation.

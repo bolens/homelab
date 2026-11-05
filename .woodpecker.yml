@@ -1,9 +1,11 @@
-# Woodpecker CI — runs on your Gitea-connected Woodpecker instance when this repo is enabled.
-# Docs: https://woodpecker-ci.org/docs/usage/workflows
-#
-# Requires: agent with Docker; clone must include git history for gitleaks (default detect).
+# Credential-free portable validation on either forge; hosted retirement is opt-in.
+# Keep actual Docker image lifecycle/publishing and GitHub security/Pages exceptions.
 when:
-  - event: [push, pull_request, manual]
+  - event: [push, pull_request, manual, cron]
+
+labels:
+  platform: linux/amd64
+  backend: docker
 
 clone:
   git:
@@ -14,17 +16,45 @@ clone:
 
 steps:
   - name: gitleaks
-    image: docker.io/zricethezav/gitleaks:v8.30.1
+    image: docker.io/zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
     commands:
+      - test "$(git rev-parse --is-shallow-repository)" = false
       - gitleaks detect --source . --redact --verbose
 
   - name: repository-validation
-    image: docker.io/library/alpine:3.24.1
+    image: node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617
     commands:
-      - apk add --no-cache bash docker-cli-compose git make nodejs npm yamllint python3 py3-yaml shellcheck
-      - test "$(git rev-parse --is-shallow-repository)" = false
-      - npm ci --ignore-scripts --no-audit --no-fund
-      - make validate-strict
+      - apt-get update && apt-get install -y --no-install-recommends git make python3 python3-venv python3-pip shellcheck yamllint ca-certificates
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh repository
+
+  - name: source-and-workflow-policy
+    image: node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git make python3 python3-venv python3-pip shellcheck ca-certificates
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh policy
+
+  - name: komga-source-controls
+    image: eclipse-temurin:21-jdk-noble@sha256:114cabb73033ca4ce7ceec3deb62396bc1b716282bae051ed3c1d82e38fcab2d
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git make python3 python3-venv python3-pip ca-certificates
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh komga
+
+  - name: kavita-dotnet-controls
+    image: mcr.microsoft.com/dotnet/sdk:10.0.403-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git python3 python3-venv python3-pip ca-certificates libatomic1
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh dotnet
+
+  - name: site-quality
+    image: node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git python3 ca-certificates
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh site
 
   - name: publisher-broker-tests
     image: docker.io/library/golang:1.27.3-bookworm@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9
@@ -32,3 +62,12 @@ steps:
       - cd stacks/woodpecker-ci/publisher-broker
       - go test -race -tags repositoryfixtures ./...
       - go vet ./...
+
+  - name: weekly-documentation-links
+    image: node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617
+    when:
+      event: [cron, manual]
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git python3 python3-venv python3-pip ca-certificates
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh links
