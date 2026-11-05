@@ -8,7 +8,7 @@ services:
   plaso:
     labels:
       logging: "true"
-    image: log2timeline/plaso:latest@sha256:a8d42e64dcd3af2dffed8ddb25d34f34def69b672eec97ea9af62885c9332950
+    image: log2timeline/plaso:latest@sha256:3de91dfa0dd6885bf76f8a0c14ba4ce48e174e2acab97157aa0bbabe5a2d108e
     container_name: plaso
     restart: "no"
     env_file:
