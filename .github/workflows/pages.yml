@@ -94,8 +94,9 @@ jobs:
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
+          # Identify the probe: Cloudflare can reject generic curl client signatures.
           for _ in {1..12}; do
-            if curl --fail --silent --show-error "$PAGE_URL" > /dev/null; then
+            if curl --fail --silent --show-error --user-agent 'homelab-pages-visual-evidence/1.0' "$PAGE_URL" > /dev/null; then
               exit 0
             fi
             sleep 5
