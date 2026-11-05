@@ -156,6 +156,36 @@ class ArchiveBoundaryTests(unittest.TestCase):
             TOOLS.fetch(spec, self.root / 'valid')
         self.assertEqual((self.root / 'valid').read_bytes(), b'executable')
 
+    def test_download_completion_depends_on_payload_not_elapsed_clock(self):
+        class Response(io.BytesIO):
+            def geturl(self):
+                return 'https://storage.googleapis.com/tool'
+
+            def read1(self, _count):
+                return self.read(2)
+
+        payload = b'complete checksum-bound tool'
+        spec = {'url': 'https://storage.googleapis.com/tool',
+                'sha256': hashlib.sha256(payload).hexdigest()}
+        with patch.object(TOOLS.urllib.request, 'urlopen', return_value=Response(payload)) as request, \
+                patch('time.monotonic', side_effect=[0, 0, 181, 362, 543]):
+            TOOLS.fetch(spec, self.root / 'progressing')
+        self.assertEqual((self.root / 'progressing').read_bytes(), payload)
+        self.assertEqual(request.call_args.kwargs['timeout'], 15)
+
+    def test_stalled_download_still_propagates_socket_timeout(self):
+        class Response(io.BytesIO):
+            def geturl(self):
+                return 'https://storage.googleapis.com/tool'
+
+            def read1(self, _count):
+                raise TimeoutError('socket made no progress')
+
+        spec = {'url': 'https://storage.googleapis.com/tool', 'sha256': 'a' * 64}
+        with patch.object(TOOLS.urllib.request, 'urlopen', return_value=Response(b'')), \
+                self.assertRaisesRegex(TimeoutError, 'socket made no progress'):
+            TOOLS.fetch(spec, self.root / 'stalled')
+
     def test_cli_refuses_existing_or_indirect_destinations_before_download(self):
         with patch.object(TOOLS.platform, 'system', return_value='Linux'), \
                 patch.object(TOOLS.platform, 'machine', return_value='x86_64'), \
