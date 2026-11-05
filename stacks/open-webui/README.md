@@ -178,6 +178,11 @@ For more information, visit: https://docs.openwebui.com
 
 ## Portainer
 
+Preserve the full private Compose selection, including storage/cache overrides,
+in `stack.env` before preparation refreshes `.env`. Retain `open_webui_data` for
+database-backed connections and defaults. See
+[AI settings persistence](../../documents/AI-SETTINGS-PERSISTENCE.md).
+
 1. Run `./prepare-stack.sh` on the Docker host before deployment.
 2. In Portainer, use **Stacks** -> **Add stack** -> **Repository** and set compose path to `stacks/open-webui/docker-compose.yml` (preferred).
 3. If you deploy by pasting compose, mirror values from `stack.env` in Portainer environment variables.
