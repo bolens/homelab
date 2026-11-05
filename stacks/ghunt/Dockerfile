@@ -1,4 +1,4 @@
-FROM python:3.14-slim-bookworm@sha256:48b13b003dda20b16f9442b8475aa05fe21bf6579a8c881db92ffb4d8fd20f83
+FROM python:3.15-slim-bookworm@sha256:4e03260adeeebafccd084f3584e6b84823aba5651cfb53ef8a078ed441ddf9cd
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN python -I -B /tmp/build-compat-wheels.py /tmp/upstream /tmp/wheels
 COPY requirements.txt /tmp/requirements.txt
 COPY audit-dependencies.py /tmp/audit-dependencies.py
 COPY test-runtime-compatibility.py /tmp/test-runtime-compatibility.py
-RUN pip install --no-cache-dir --no-deps --require-hashes --find-links=/tmp/wheels -r /tmp/requirements.txt \
+RUN pip install --no-cache-dir --no-deps --only-binary=:all: --require-hashes --find-links=/tmp/wheels -r /tmp/requirements.txt \
     && python -I -B /tmp/audit-dependencies.py \
     && python -I -B /tmp/test-runtime-compatibility.py \
     && ghunt --help > /dev/null \

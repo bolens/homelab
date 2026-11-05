@@ -9,7 +9,7 @@ services:
   kasm:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/kasm:latest@sha256:4d054d3897645bb8b6e822f51238bed4fe7b23bd5bf7e06cac668dd04e58b330
+    image: lscr.io/linuxserver/kasm:latest@sha256:39d8187ac99a2d361b485d289c49a8556487710776a69bddae76395f8a0e32c2
     container_name: kasm
     privileged: true
     env_file:

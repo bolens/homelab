@@ -145,6 +145,14 @@ updates:
     # Internal gateway/shield releases are not intended for self-hosted Stoat.
     # Continue monitoring later releases; review their self-hosting guidance.
     ignore:
+      # Database major upgrades need a verified restore/migration and matching
+      # volume contract. Keep current-major security and digest updates eligible.
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "postgis/postgis"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "mongo"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "ghcr.io/stoatchat/*"
         versions: ["0.15.6", "0.15.7"]
     directories:

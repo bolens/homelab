@@ -59,7 +59,7 @@ docker push harbor.yourdomain.com/homelab/ghunt:latest
 
 The build uses GHunt 2.3.4 and alive-progress 3.3.0 with local compatibility
 versions `2.3.4+homelab.3` and `3.3.0+homelab.1`. Upstream still caps HTTPX and
-jsonpickle below these versions and pins the older graphemeu. The image tests
+jsonpickle below these versions and pins the older graphemeu. The Python 3.15 image tests
 HTTPX 0.28.1, jsonpickle 4.1.4, graphemeu 0.11.0 and Pillow 13.0.0 offline.
 The metadata also binds packaging 26.3 and protobuf 7.36.2. Actual generated
 protobuf messages are imported and round-tripped offline. Pillow retains its
@@ -79,8 +79,9 @@ To regenerate the lock, first download the two exact upstream wheels listed in
 
 ```sh
 python3 build-compat-wheels.py upstream wheels
-uv pip compile --python-version 3.14 --python-platform x86_64-manylinux_2_28 \
-  --find-links wheels --override requirements.override --generate-hashes --no-build \
+uv pip compile --python-version 3.15 --python-platform x86_64-manylinux_2_28 \
+  --find-links wheels --override requirements.override --constraint requirements.txt \
+  --generate-hashes --no-build \
   --output-file requirements.txt requirements.lock
 ```
 
