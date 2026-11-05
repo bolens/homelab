@@ -104,6 +104,12 @@ Audio Copy logs, is supported in either byte order. Local UTF-16 playlists recei
 the same completeness checks as UTF-8 playlists; retained playlists keep their
 BOM and byte order when references change. Explicit `.m3u` and `.m3u8` playlists
 also support Windows-1252 and preserve that encoding when references change.
+A final repeated filename fragment in an explicit M3U playlist is removed only
+when all preceding entries resolve to distinct same-folder FLACs forming one
+complete tagged album/disc. The fragment must repeat the final scene filename
+and its eight-digit hexadecimal suffix. Missing tracks, unresolved entries,
+mixed albums/discs and cue-referenced playlists retain their existing protection.
+Retained playlists preserve their encoding, comments and line endings.
 Malformed UTF-16, binary
 control characters and cue-referenced files remain protected.
 Explicit `.txt` sidecars also support Windows-1252 text with full-file validation.
