@@ -79,7 +79,17 @@ case "$mode" in
         test -n "${JAVA_HOME:-}"
         export JAVA_HOME_21="$JAVA_HOME"
         "$JAVA_HOME_21/bin/java" -version
-        make komga-source-check
+        if (( EUID == 0 )); then
+            # The owning compiler gate refuses root; only these new dirs change owner.
+            unprivileged=$(mktemp -d "$scratch/komga-user.XXXXXXXX")
+            mkdir "$unprivileged/tmp" "$unprivileged/cache"
+            chown 1000:1000 "$unprivileged" "$unprivileged/tmp" "$unprivileged/cache"
+            env HOME="$unprivileged" TMPDIR="$unprivileged/tmp" XDG_CACHE_HOME="$unprivileged/cache" \
+                PIP_CACHE_DIR="$unprivileged/cache/pip" npm_config_cache="$unprivileged/cache/npm" \
+                setpriv --reuid=1000 --regid=1000 --clear-groups make komga-source-check
+        else
+            make komga-source-check
+        fi
         ;;
     dotnet)
         bootstrap node
