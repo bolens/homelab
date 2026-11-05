@@ -6,7 +6,7 @@ RUN tar -xzf /tmp/source.tar.gz --strip-components=1
 COPY patch-source.py import-title.ts /patch/
 RUN python /patch/patch-source.py /source/next-ui
 
-FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS webui
+FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS webui
 WORKDIR /build
 COPY --from=source /source/next-ui/ ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
