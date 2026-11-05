@@ -12,6 +12,10 @@ make hooks-install
 make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
 ```
 
+Local CI also installs the locked OpenAI OAuth runtime in a temporary directory
+and checks response limits, chat and streaming with synthetic responses. Run
+`make openai-oauth-source-check` for that focused gate.
+
 Prepare Nodepad’s pinned patched source with `bash stacks/nodepad/clone-repo.sh`,
 then run `npm ci` inside `stacks/nodepad/repo`. `make ci-local` runs its proxy,
 client and TypeScript controls in a fresh tree made from the pinned Git base and

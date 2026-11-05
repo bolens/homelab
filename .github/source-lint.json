@@ -5,6 +5,7 @@
   "javascript": [
     "scripts/*.js",
     "scripts/*.mjs",
+    "stacks/openai-oauth/*.mjs",
     "site/*.js",
     "tests/*.js",
     "playwright.config.js"

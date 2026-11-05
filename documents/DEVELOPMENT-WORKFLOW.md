@@ -244,6 +244,11 @@ updates. Docker ignore conditions use numeric Bundler requirements such as
 `0.15.6`, rather than image tags such as `v0.15.6`; local validation checks this
 syntax. Treat runtime migrations as reviewed application changes.
 
+Database major upgrades require a verified restore/migration and matching volume
+contracts. PostgreSQL, PostGIS and MongoDB major proposals are held for that work;
+current-major security and digest updates remain enabled. Inspect the published
+engine version for floating database tags before accepting a digest refresh.
+
 Security-reporting workflows grant
 `security-events: write` only to jobs that upload results; other workflows and
 jobs retain read-only or empty default permissions.

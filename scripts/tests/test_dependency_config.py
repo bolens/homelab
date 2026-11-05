@@ -118,6 +118,18 @@ class SelectedRuntimePolicyTests(unittest.TestCase):
         CONFIG.validate_docker_coverage(self.config)
 
 
+class DatabaseMigrationPolicyTests(unittest.TestCase):
+    def test_database_major_versions_require_a_separate_migration(self):
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text())
+        compose = next(item for item in config["updates"]
+                       if item["package-ecosystem"] == "docker-compose")
+        for name in ("postgres", "postgis/postgis", "mongo"):
+            rules = [rule for rule in compose["ignore"]
+                     if rule["dependency-name"] == name]
+            self.assertEqual(rules, [{"dependency-name": name,
+                                     "update-types": ["version-update:semver-major"]}])
+
+
 class SelectedPipPolicyTests(unittest.TestCase):
     def setUp(self):
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text())
