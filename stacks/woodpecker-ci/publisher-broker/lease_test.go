@@ -201,6 +201,11 @@ func TestRevokedIssuerAndRequestLimit(t *testing.T) {
 	if w.Code != 503 || strings.Contains(w.Body.String(), "synthetic") {
 		t.Fatal("issuer revocation leaked/accepted")
 	}
+	i.fail = false
+	i.policyDenied = true
+	if got := serve(h, redemption(lease, r, 3)); got != http.StatusForbidden {
+		t.Fatalf("explicit policy revocation status %d", got)
+	}
 	if got := serve(h, redemption(lease, r, 1)); got != 409 {
 		t.Fatal("failed attempt request replay accepted")
 	}

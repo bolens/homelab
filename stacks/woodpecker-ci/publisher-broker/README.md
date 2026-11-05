@@ -24,6 +24,16 @@ read-only private files; neither enters a pipeline or image build context.
 2. Repository forge ID, immutable GitHub repository ID, exact full name, source
    SHA and event/ref must match the private allowlist. PRs, forks, feature
    branches, manual runs, cron jobs and any transferred `netrc` are denied.
+   Authenticated policy-negative requests return HTTP 204 with no secrets:
+   Woodpecker fetches secrets before applying workflow `when` filters, so ordinary
+   validation still compiles. Invalid signatures/replays remain 401, malformed
+   JSON remains 400, and authorization outages remain 503. Unexpected publisher
+   steps still fail without their required secrets; local fallback names must
+   remain absent.
+   A disabled or absent `WOODPECKER_PUBLISHING` variable also contributes no
+   secrets. Only 404 from that exact variable endpoint means disabled; other
+   API errors, malformed metadata, token/scope failures and outages remain 503.
+   Redemption of an existing lease after explicit policy revocation returns 403.
 3. A short-lived, single-repository read-only inspection token verifies GitHub
    repository identity, `WOODPECKER_PUBLISHING=true`, and protected `main`.
    Pushes must match its current SHA. Releases require an annotated, verified

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -220,6 +221,10 @@ func (b *broker) redeem(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 	defer cancel()
 	cred, err := b.issuer.Authorize(ctx, record.Request, p)
+	if errors.Is(err, errPolicyDenied) {
+		http.Error(w, "request denied", http.StatusForbidden)
+		return
+	}
 	if err != nil || cred.Token == "" {
 		http.Error(w, "authorization unavailable", http.StatusServiceUnavailable)
 		return

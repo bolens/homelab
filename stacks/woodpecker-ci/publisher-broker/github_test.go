@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -154,6 +155,25 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := "/repos/owner/appicon"
+	if r.URL.Path == base {
+		switch f.bad {
+		case "repo-not-found":
+			http.Error(w, "unavailable repository", 404)
+			return
+		case "missing-flag-and-outage":
+			http.Error(w, "unavailable metadata", 503)
+			return
+		case "missing-flag-malformed-repo":
+			send(map[string]any{})
+			return
+		case "oversized-metadata":
+			_, _ = w.Write([]byte(strings.Repeat("x", maxBody+1)))
+			return
+		case "malformed-metadata":
+			_, _ = w.Write([]byte(`{"id":"wrong type"}`))
+			return
+		}
+	}
 	switch r.URL.Path {
 	case base:
 		id := 1
@@ -170,6 +190,14 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		send(map[string]any{"id": id, "full_name": name, "default_branch": branch, "archived": f.bad == "archived", "disabled": f.bad == "disabled"})
 	case base + "/actions/variables/WOODPECKER_PUBLISHING":
+		if strings.HasPrefix(f.bad, "missing-flag") {
+			http.Error(w, "missing", 404)
+			return
+		}
+		if f.bad == "flag-forbidden" {
+			http.Error(w, "forbidden", 403)
+			return
+		}
 		value := "true"
 		if f.bad == "disabled-publishing" {
 			value = "false"
@@ -207,6 +235,45 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 		send(map[string]any{"merge_base_commit": map[string]string{"sha": sha}})
 	default:
 		http.Error(w, fmt.Sprintf("unexpected fixture route %s", r.URL.Path), 404)
+	}
+}
+
+func TestGitHubPolicyDenialHTTPBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		bad    string
+		status int
+	}{
+		{"disabled-publishing", 204}, {"missing-flag", 204}, {"unprotected", 204},
+		{"remote-id", 204}, {"full-name", 204}, {"default-branch", 204},
+		{"archived", 204}, {"disabled", 204}, {"source-sha", 204},
+		{"repo-not-found", 503}, {"flag-forbidden", 503}, {"unavailable", 503},
+		{"missing-flag-and-outage", 503}, {"missing-flag-malformed-repo", 503},
+		{"oversized-metadata", 503}, {"malformed-metadata", 503},
+		{"broad-permissions", 503}, {"broad-repositories", 503},
+	} {
+		t.Run(tc.bad, func(t *testing.T) {
+			issuer, f := mockAPI(t, tc.bad, false)
+			cfg, req, pub, priv := fixture(t)
+			handler, err := newBroker(cfg, pub, issuer)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, _ := json.Marshal(req)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, signed(t, body, priv, 0))
+			if w.Code != tc.status || (tc.status == 204 && w.Body.Len() != 0) {
+				t.Fatalf("status %d, expected %d", w.Code, tc.status)
+			}
+			if f.revokes.Load() != 1 {
+				t.Fatal("unused inspection token was not revoked")
+			}
+			for _, dir := range []string{cfg.LeaseDir, cfg.BudgetDir} {
+				entries, err := os.ReadDir(dir)
+				if err != nil || len(entries) != 0 {
+					t.Fatal("denied/unavailable metadata created publication state")
+				}
+			}
+		})
 	}
 }
 func TestGitHubImmutableMetadata(t *testing.T) {

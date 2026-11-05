@@ -64,6 +64,14 @@ func (g *githubIssuer) jwt() (string, error) {
 	}
 	return data + "." + enc(sig), nil
 }
+
+type githubHTTPError struct {
+	Status int
+	Path   string
+}
+
+func (e *githubHTTPError) Error() string { return fmt.Sprintf("github returned status %d", e.Status) }
+
 func (g *githubIssuer) call(ctx context.Context, method, path, token string, body, out any) error {
 	var data io.Reader
 	if body != nil {
@@ -90,7 +98,7 @@ func (g *githubIssuer) call(ctx context.Context, method, path, token string, bod
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("github returned status %d", resp.StatusCode)
+		return &githubHTTPError{Status: resp.StatusCode, Path: path}
 	}
 	if out == nil {
 		_, err = io.Copy(io.Discard, io.LimitReader(resp.Body, maxBody))
@@ -194,8 +202,8 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 		ID            int64  `json:"id"`
 		FullName      string `json:"full_name"`
 		DefaultBranch string `json:"default_branch"`
-		Archived      bool   `json:"archived"`
-		Disabled      bool   `json:"disabled"`
+		Archived      *bool  `json:"archived"`
+		Disabled      *bool  `json:"disabled"`
 	}
 	var flag struct {
 		Name  string `json:"name"`
@@ -203,7 +211,7 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 	}
 	var branch struct {
 		Name      string `json:"name"`
-		Protected bool   `json:"protected"`
+		Protected *bool  `json:"protected"`
 		Commit    struct {
 			SHA string `json:"sha"`
 		} `json:"commit"`
@@ -218,22 +226,33 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 		wg.Add(1)
 		go func(path string, out any) {
 			defer wg.Done()
-			errs <- g.call(ctx, http.MethodGet, path, minted.Token, nil, out)
+			err := g.call(ctx, http.MethodGet, path, minted.Token, nil, out)
+			var status *githubHTTPError
+			if path == prefix+"/actions/variables/WOODPECKER_PUBLISHING" && errors.As(err, &status) && status.Path == path && status.Status == http.StatusNotFound {
+				err = errPolicyDenied
+			}
+			errs <- err
 		}(task.path, task.out)
 	}
 	wg.Wait()
 	close(errs)
+	missingFlag := false
 	for e := range errs {
-		if e != nil {
+		if errors.Is(e, errPolicyDenied) {
+			missingFlag = true
+		} else if e != nil {
 			return credential{}, e
 		}
 	}
-	if repo.ID != remoteID || repo.FullName != p.FullName || repo.DefaultBranch != "main" || repo.Archived || repo.Disabled || flag.Name != "WOODPECKER_PUBLISHING" || flag.Value != "true" || branch.Name != "main" || !branch.Protected || !shaPattern.MatchString(branch.Commit.SHA) {
+	if repo.ID <= 0 || !repoPattern.MatchString(repo.FullName) || repo.DefaultBranch == "" || repo.Archived == nil || repo.Disabled == nil || branch.Name == "" || branch.Protected == nil || !shaPattern.MatchString(branch.Commit.SHA) || (!missingFlag && flag.Name != "WOODPECKER_PUBLISHING") {
 		return credential{}, errDenied
+	}
+	if missingFlag || repo.ID != remoteID || repo.FullName != p.FullName || repo.DefaultBranch != "main" || *repo.Archived || *repo.Disabled || flag.Value != "true" || branch.Name != "main" || !*branch.Protected {
+		return credential{}, errPolicyDenied
 	}
 	if req.Pipeline.Event == "push" {
 		if branch.Commit.SHA != req.Pipeline.Commit {
-			return credential{}, errDenied
+			return credential{}, errPolicyDenied
 		}
 	} else {
 		tag := strings.TrimPrefix(req.Pipeline.Ref, "refs/tags/")
@@ -242,13 +261,16 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 		if err = g.call(ctx, http.MethodGet, path, minted.Token, nil, &ref); err != nil {
 			return credential{}, err
 		}
-		if ref.Ref != req.Pipeline.Ref || !shaPattern.MatchString(ref.Object.SHA) {
+		if ref.Ref == "" || !shaPattern.MatchString(ref.Object.SHA) {
 			return credential{}, errDenied
+		}
+		if ref.Ref != req.Pipeline.Ref {
+			return credential{}, errPolicyDenied
 		}
 		commit := ref.Object.SHA
 		switch ref.Object.Type {
 		case "commit":
-			return credential{}, errDenied
+			return credential{}, errPolicyDenied
 		case "tag":
 			var annotated struct {
 				Tag    string `json:"tag"`
@@ -258,21 +280,24 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 					Type string `json:"type"`
 				} `json:"object"`
 				Verification struct {
-					Verified bool `json:"verified"`
+					Verified *bool `json:"verified"`
 				} `json:"verification"`
 			}
 			if err = g.call(ctx, http.MethodGet, prefix+"/git/tags/"+ref.Object.SHA, minted.Token, nil, &annotated); err != nil {
 				return credential{}, err
 			}
-			if annotated.Tag != tag || annotated.SHA != ref.Object.SHA || annotated.Object.Type != "commit" || !annotated.Verification.Verified {
+			if annotated.Tag == "" || !shaPattern.MatchString(annotated.SHA) || !shaPattern.MatchString(annotated.Object.SHA) || annotated.Object.Type == "" || annotated.Verification.Verified == nil {
 				return credential{}, errDenied
+			}
+			if annotated.Tag != tag || annotated.SHA != ref.Object.SHA || annotated.Object.Type != "commit" || !*annotated.Verification.Verified {
+				return credential{}, errPolicyDenied
 			}
 			commit = annotated.Object.SHA
 		default:
 			return credential{}, errDenied
 		}
 		if commit != req.Pipeline.Commit {
-			return credential{}, errDenied
+			return credential{}, errPolicyDenied
 		}
 		var comparison struct {
 			MergeBase struct {
@@ -282,15 +307,21 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 		if err = g.call(ctx, http.MethodGet, prefix+"/compare/"+commit+"..."+branch.Commit.SHA, minted.Token, nil, &comparison); err != nil {
 			return credential{}, err
 		}
-		if comparison.MergeBase.SHA != commit {
+		if !shaPattern.MatchString(comparison.MergeBase.SHA) {
 			return credential{}, errDenied
+		}
+		if comparison.MergeBase.SHA != commit {
+			return credential{}, errPolicyDenied
 		}
 		var final githubRef
 		if err = g.call(ctx, http.MethodGet, path, minted.Token, nil, &final); err != nil {
 			return credential{}, err
 		}
-		if final != ref {
+		if final.Ref == "" || !shaPattern.MatchString(final.Object.SHA) || final.Object.Type == "" {
 			return credential{}, errDenied
+		}
+		if final != ref {
+			return credential{}, errPolicyDenied
 		}
 	}
 	accepted = !inspect

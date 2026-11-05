@@ -32,6 +32,7 @@ var shaPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
 var tagPattern = regexp.MustCompile(`^refs/tags/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*)?(\+[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*)?$`)
 var repoPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
 var errDenied = errors.New("request denied")
+var errPolicyDenied = errors.New("authorization policy denied")
 
 type policy struct {
 	FullName       string            `json:"full_name"`
@@ -286,12 +287,19 @@ func (b *broker) secrets(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := b.policyFor(req)
 	if err != nil {
-		http.Error(w, "request denied", http.StatusForbidden)
+		// Woodpecker fetches extension secrets before workflow when-filters.
+		// A validly authenticated, ineligible context therefore contributes no
+		// secrets without breaking ordinary validation pipeline compilation.
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 	defer cancel()
 	err = b.issuer.Inspect(ctx, req, p)
+	if errors.Is(err, errPolicyDenied) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if err != nil {
 		http.Error(w, "authorization unavailable", http.StatusServiceUnavailable)
 		return

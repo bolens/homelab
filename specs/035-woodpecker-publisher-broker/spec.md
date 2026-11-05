@@ -18,6 +18,13 @@ This contract records the approved design and remaining proof during development
 - Authenticate genuine Woodpecker 3.20.1 signed extension requests using the
   pinned instance Ed25519 PEM key and official signature helper; validate body
   digest, target, freshness and persistent replay protection. Transfer no netrc.
+- Authenticated policy-negative contexts return HTTP 204 with no secrets or
+  publication state, so Woodpecker's pre-filter secret fetch does not break
+  ordinary validation. Invalid signatures/replays remain 401, malformed JSON
+  remains 400, and authorization outages remain 503 without local fallbacks.
+  Explicit policy denial includes the disabled flag or 404 from only its exact
+  variable endpoint; malformed or unavailable metadata stays an error. Lease
+  redemption after explicit policy revocation remains forbidden.
 - Bind an explicit four-repository native GitHub allowlist by forge ID, remote
   repository ID, full name, event/ref and exact commit. GitHub metadata must
   establish `WOODPECKER_PUBLISHING=true`, repository identity and protected main.

@@ -22,15 +22,19 @@ import (
 )
 
 type fakeIssuer struct {
-	mu    sync.Mutex
-	calls int
-	fail  bool
+	mu           sync.Mutex
+	calls        int
+	fail         bool
+	policyDenied bool
 }
 
 func (f *fakeIssuer) Inspect(context.Context, request, policy) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls++
+	if f.policyDenied {
+		return errPolicyDenied
+	}
 	if f.fail {
 		return errDenied
 	}
@@ -40,6 +44,9 @@ func (f *fakeIssuer) Authorize(context.Context, request, policy) (credential, er
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls++
+	if f.policyDenied {
+		return credential{}, errPolicyDenied
+	}
 	if f.fail {
 		return credential{}, errDenied
 	}
@@ -145,11 +152,19 @@ func TestSignedBoundary(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := serve(h, signed(t, body, priv, 0)); got != 403 {
-				t.Fatalf("status %d", got)
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, signed(t, body, priv, 0))
+			if w.Code != http.StatusNoContent || w.Body.Len() != 0 {
+				t.Fatalf("policy-negative context: status %d, body bytes %d", w.Code, w.Body.Len())
 			}
 			if i.calls != 0 {
 				t.Fatal("issuer called for denied request")
+			}
+			for _, dir := range []string{cfg.LeaseDir, cfg.BudgetDir} {
+				entries, err := os.ReadDir(dir)
+				if err != nil || len(entries) != 0 {
+					t.Fatal("policy-negative request created publication state")
+				}
 			}
 		})
 	}
@@ -273,7 +288,11 @@ func TestRequestShapeLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, body := range [][]byte{[]byte(`{} {}`), []byte(`not json`), bytes.Repeat([]byte("x"), maxBody+1)} {
-		if got := serve(h, signed(t, body, priv, 0)); got == 200 {
+		got := serve(h, signed(t, body, priv, 0))
+		if len(body) <= maxBody && got != http.StatusBadRequest {
+			t.Fatalf("malformed JSON status %d", got)
+		}
+		if got == 200 || got == http.StatusNoContent {
 			t.Fatal("invalid request accepted")
 		}
 	}
