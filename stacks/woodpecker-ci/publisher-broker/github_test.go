@@ -254,10 +254,10 @@ func TestGitHubPolicyDenialHTTPBoundary(t *testing.T) {
 		bad    string
 		status int
 	}{
-		{"disabled-publishing", 204}, {"missing-flag", 204}, {"unprotected", 204},
-		{"empty-flag-value", 204}, {"missing-flag-value", 503}, {"null-flag-value", 503},
-		{"remote-id", 204}, {"full-name", 204}, {"default-branch", 204},
-		{"archived", 204}, {"disabled", 204}, {"source-sha", 204},
+		{"disabled-publishing", 200}, {"missing-flag", 200}, {"unprotected", 200},
+		{"empty-flag-value", 200}, {"missing-flag-value", 503}, {"null-flag-value", 503},
+		{"remote-id", 200}, {"full-name", 200}, {"default-branch", 200},
+		{"archived", 200}, {"disabled", 200}, {"source-sha", 200},
 		{"repo-not-found", 503}, {"flag-forbidden", 503}, {"unavailable", 503},
 		{"missing-flag-and-outage", 503}, {"missing-flag-malformed-repo", 503},
 		{"oversized-metadata", 503}, {"malformed-metadata", 503},
@@ -273,7 +273,7 @@ func TestGitHubPolicyDenialHTTPBoundary(t *testing.T) {
 			body, _ := json.Marshal(req)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, signed(t, body, priv, 0))
-			if w.Code != tc.status || (tc.status == 204 && w.Body.Len() != 0) {
+			if w.Code != tc.status || (tc.status == 200 && strings.TrimSpace(w.Body.String()) != `{"secrets":[]}`) {
 				t.Fatalf("status %d, expected %d", w.Code, tc.status)
 			}
 			if f.revokes.Load() != 1 {

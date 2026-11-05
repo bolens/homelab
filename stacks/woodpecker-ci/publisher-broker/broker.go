@@ -290,14 +290,14 @@ func (b *broker) secrets(w http.ResponseWriter, r *http.Request) {
 		// Woodpecker fetches extension secrets before workflow when-filters.
 		// A validly authenticated, ineligible context therefore contributes no
 		// secrets without breaking ordinary validation pipeline compilation.
-		w.WriteHeader(http.StatusNoContent)
+		noSecrets(w)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 	defer cancel()
 	err = b.issuer.Inspect(ctx, req, p)
 	if errors.Is(err, errPolicyDenied) {
-		w.WriteHeader(http.StatusNoContent)
+		noSecrets(w)
 		return
 	}
 	if err != nil {
@@ -322,6 +322,14 @@ func (b *broker) secrets(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(struct {
 		Secrets []secret `json:"secrets"`
 	}{out})
+}
+func noSecrets(w http.ResponseWriter) {
+	// Woodpecker 3.18 retries an empty 204 while decoding its response as JSON.
+	// An explicit empty envelope works with both old and current providers.
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		Secrets []secret `json:"secrets"`
+	}{Secrets: []secret{}})
 }
 func readPrivateFile(path string) ([]byte, error) {
 	st, err := os.Lstat(path)

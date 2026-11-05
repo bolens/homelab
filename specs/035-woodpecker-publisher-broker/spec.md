@@ -18,7 +18,7 @@ This contract records the approved design and remaining proof during development
 - Authenticate genuine Woodpecker 3.20.1 signed extension requests using the
   pinned instance Ed25519 PEM key and official signature helper; validate body
   digest, target, freshness and persistent replay protection. Transfer no netrc.
-- Authenticated policy-negative contexts return HTTP 204 with no secrets or
+- Authenticated policy-negative contexts return HTTP 200 with `{"secrets":[]}` and no
   publication state, so Woodpecker's pre-filter secret fetch does not break
   ordinary validation. Invalid signatures/replays remain 401, malformed JSON
   remains 400, and authorization outages remain 503 without local fallbacks.

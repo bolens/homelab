@@ -154,7 +154,7 @@ func TestSignedBoundary(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, signed(t, body, priv, 0))
-			if w.Code != http.StatusNoContent || w.Body.Len() != 0 {
+			if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" || w.Header().Get("Cache-Control") != "no-store" || strings.TrimSpace(w.Body.String()) != `{"secrets":[]}` {
 				t.Fatalf("policy-negative context: status %d, body bytes %d", w.Code, w.Body.Len())
 			}
 			if i.calls != 0 {
