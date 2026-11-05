@@ -1,7 +1,7 @@
 # clark-browser container: pinned PyPI client, patched Chromium and CDP adapter.
 # Upstream: https://github.com/clark-labs-inc/clark-browser
 
-FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS node
+FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS node
 FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 
 # Chromium system deps + digest-pinned Node (for agent-browser integration)
