@@ -21,9 +21,9 @@ packaging==26.3 \
 pipenv==2026.9.1 \
     --hash=sha256:5a41ace299f442d1388c21f502022ce23540f29740512e1b5d1d93262462ef4d \
     --hash=sha256:d6a71b04b62b0000e6d87ee63aae47ea55cb43d9d08b2c04663e2740840a947c
-platformdirs==4.11.0 \
-    --hash=sha256:0555d18370482847566ffabcaa53ad7c6c1c29f195989ae1ed634a05f76ea1e0 \
-    --hash=sha256:360ccded2b7fce0af0ff80cc8f5942a1c5d99b0e856033acb030bfc634709e74
+platformdirs==4.14.0 \
+    --hash=sha256:1dadfc59a8a5d7565b3d9270ae8fa71c065595352c4277b41c11ee6c222c4b91 \
+    --hash=sha256:83f009c1e8c5fc36869b5171755b291887bd2cade7965233cdfabd23d754720b
     # via virtualenv
 python-discovery==1.6.1 \
     --hash=sha256:d43fcdef879fe795352bd13ccf8d185ba5a9f86f36cfcd00529f596e737442b3 \
