@@ -190,6 +190,14 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		send(map[string]any{"id": id, "full_name": name, "default_branch": branch, "archived": f.bad == "archived", "disabled": f.bad == "disabled"})
 	case base + "/actions/variables/WOODPECKER_PUBLISHING":
+		if f.bad == "missing-flag-value" {
+			send(map[string]any{"name": "WOODPECKER_PUBLISHING"})
+			return
+		}
+		if f.bad == "null-flag-value" {
+			send(map[string]any{"name": "WOODPECKER_PUBLISHING", "value": nil})
+			return
+		}
 		if strings.HasPrefix(f.bad, "missing-flag") {
 			http.Error(w, "missing", 404)
 			return
@@ -199,6 +207,9 @@ func (f *apiFixture) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		value := "true"
+		if f.bad == "empty-flag-value" {
+			value = ""
+		}
 		if f.bad == "disabled-publishing" {
 			value = "false"
 		}
@@ -244,6 +255,7 @@ func TestGitHubPolicyDenialHTTPBoundary(t *testing.T) {
 		status int
 	}{
 		{"disabled-publishing", 204}, {"missing-flag", 204}, {"unprotected", 204},
+		{"empty-flag-value", 204}, {"missing-flag-value", 503}, {"null-flag-value", 503},
 		{"remote-id", 204}, {"full-name", 204}, {"default-branch", 204},
 		{"archived", 204}, {"disabled", 204}, {"source-sha", 204},
 		{"repo-not-found", 503}, {"flag-forbidden", 503}, {"unavailable", 503},

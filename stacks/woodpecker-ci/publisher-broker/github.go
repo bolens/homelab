@@ -206,8 +206,8 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 		Disabled      *bool  `json:"disabled"`
 	}
 	var flag struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
+		Name  string  `json:"name"`
+		Value *string `json:"value"`
 	}
 	var branch struct {
 		Name      string `json:"name"`
@@ -244,10 +244,10 @@ func (g *githubIssuer) authorize(ctx context.Context, req request, p policy, ins
 			return credential{}, e
 		}
 	}
-	if repo.ID <= 0 || !repoPattern.MatchString(repo.FullName) || repo.DefaultBranch == "" || repo.Archived == nil || repo.Disabled == nil || branch.Name == "" || branch.Protected == nil || !shaPattern.MatchString(branch.Commit.SHA) || (!missingFlag && flag.Name != "WOODPECKER_PUBLISHING") {
+	if repo.ID <= 0 || !repoPattern.MatchString(repo.FullName) || repo.DefaultBranch == "" || repo.Archived == nil || repo.Disabled == nil || branch.Name == "" || branch.Protected == nil || !shaPattern.MatchString(branch.Commit.SHA) || (!missingFlag && (flag.Name != "WOODPECKER_PUBLISHING" || flag.Value == nil)) {
 		return credential{}, errDenied
 	}
-	if missingFlag || repo.ID != remoteID || repo.FullName != p.FullName || repo.DefaultBranch != "main" || *repo.Archived || *repo.Disabled || flag.Value != "true" || branch.Name != "main" || !*branch.Protected {
+	if missingFlag || repo.ID != remoteID || repo.FullName != p.FullName || repo.DefaultBranch != "main" || *repo.Archived || *repo.Disabled || *flag.Value != "true" || branch.Name != "main" || !*branch.Protected {
 		return credential{}, errPolicyDenied
 	}
 	if req.Pipeline.Event == "push" {
