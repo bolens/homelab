@@ -122,6 +122,12 @@ Until a registry (for example Harbor) is reachable, **this path is the simplest*
 
 ## Updating
 
+Preserve the complete ordered `COMPOSE_FILE` selection in private `stack.env`,
+including provider and maintenance overrides, then re-run preparation to refresh
+`.env`. Keep the existing `NEXT_PUBLIC_*` build arguments when rebuilding so
+first-visit defaults survive. Browser-owned settings and notes require the same
+site origin. See [AI settings persistence](../../documents/AI-SETTINGS-PERSISTENCE.md).
+
 **Local:**
 
 ```bash
