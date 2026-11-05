@@ -220,6 +220,11 @@ The pipeline runs:
 - internal documentation links on cron/manual runs, with external URLs remaining
   a report-only check under the existing weekly workflow's exact arguments.
 
+Tool downloads retain a 15-second socket inactivity timeout, a 256 MiB byte bound
+and the pinned SHA-256 check. EOF and verified content determine completion; a
+progressing download is not cut off by a second total bootstrap timer. The
+existing pipeline timeout still bounds the whole CI job.
+
 The general repository suite can still report optional compiler probes skipped
 in its Node image. The dedicated .NET lane closes the ordinary hosted compiler
 coverage; optional installed-assembly/source probes still require their explicit
