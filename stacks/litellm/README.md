@@ -47,6 +47,13 @@ includes this setting. Preparation preserves existing configurations, so add the
 setting explicitly after a verified configuration and database backup, then
 restart the same proxy image and check structured output plus streaming.
 
+For partial changes to database-backed models, use
+`PATCH /model/{model_id}/update`. In LiteLLM 1.103.2, the legacy
+`POST /model/update` endpoint can discard omitted extra parameters, including
+provider-required `extra_headers`. Back up and verify an isolated restore before
+editing models, then verify the complete provider configuration and a synthetic
+request after restarting the same proxy image.
+
 ## Portainer
 
 - Repository compose path: `stacks/litellm/docker-compose.yml`.
