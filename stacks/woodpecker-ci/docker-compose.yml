@@ -71,6 +71,7 @@ services:
     # Explicit policy overrides stale/unbounded values in an existing stack.env.
     environment:
       WOODPECKER_BACKEND: docker
+      WOODPECKER_AGENT_CONFIG_FILE: /etc/woodpecker/agent.conf
       WOODPECKER_MAX_WORKFLOWS: "1"
       WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_QUOTA: "200000"
       WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_SHARES: "128"
@@ -82,6 +83,7 @@ services:
       server:
         condition: service_started
     volumes:
+      - woodpecker_agent_data:/etc/woodpecker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - default
@@ -93,3 +95,4 @@ networks:
 
 volumes:
   woodpecker_pg18_data:
+  woodpecker_agent_data:

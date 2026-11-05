@@ -39,7 +39,7 @@
    docker compose up -d --force-recreate server
    ```
 
-   Also ensure the password inside `WOODPECKER_DATABASE_DATASOURCE` matches. Alternatively, wipe the `woodpecker_pg_data` volume and redeploy (destroys Woodpecker DB data).
+   Also ensure the password inside `WOODPECKER_DATABASE_DATASOURCE` matches. Follow the verified backup and rollback workflow in [agent guidance](../../AGENTS.md#live-configuration-and-updates); do not delete persistent volumes as routine recovery.
 
 5. **Access**
    - Woodpecker server listens on port `8000` (HTTP API/UI) and `9000` (gRPC) inside the container by default.
@@ -52,8 +52,8 @@
 | ----------- | ------------------------------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `woodpecker-server:8000`)                                |
 | **Network** | `ingress-admin` for Caddy + default internal network for Postgres and agent          |
-| **Images**  | `woodpeckerci/woodpecker-server:v3`, `woodpeckerci/woodpecker-agent:v3`, `postgres:16-alpine` (`:latest` was removed upstream; pin `v3.x.y` if you want a fixed patch) |
-| **Storage** | `woodpecker_pg_data` (DB)                                                            |
+| **Images**  | `woodpeckerci/woodpecker-server:v3`, `woodpeckerci/woodpecker-agent:v3`, `postgres:18-alpine` (`:latest` was removed upstream; pin `v3.x.y` if you want a fixed patch) |
+| **Storage** | `woodpecker_pg18_data` (DB), `woodpecker_agent_data` (agent identity)                     |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `woodpecker-ci.yourdomain.com` or `ci.yourdomain.com` → `woodpecker-server:8000` |
 
 ## Gitea integration
@@ -65,6 +65,28 @@
   - Access the UI at `https://ci.yourdomain.com`, sign in via Gitea, and enable repositories for builds.
 
 The `woodpecker-agent` runs builds on the same Docker host, using the Docker socket (`/var/run/docker.sock`) to launch build containers.
+
+## Agent identity and backups
+
+The named `woodpecker_agent_data` volume persists `/etc/woodpecker`, with
+`WOODPECKER_AGENT_CONFIG_FILE=/etc/woodpecker/agent.conf` fixed in Compose. The
+agent stores its server-assigned ID there and reuses it after container recreation.
+Losing this state can register a replacement agent and leave an offline record.
+Keep a separate state volume for each agent; never share or clone agent identities.
+
+Preparation leaves this Docker-managed volume to Compose and does not create a
+host directory or register an agent. Back up the agent state with the server
+database and configuration before an update. Verify the restored file is readable
+and retains the expected `agent_id`, then confirm that the same agent ID reconnects
+and executes a build after recreation. Container health alone is insufficient.
+
+For an existing installation without a persistent mount, preserve and verify its
+current `/etc/woodpecker/agent.conf` before recreating the agent, and seed its own
+state volume before the new mount hides the container's existing file. Follow the
+[backup and restore workflow](../../AGENTS.md#live-configuration-and-updates).
+If an existing override already mounts agent state at `/etc/woodpecker`, retain
+that volume: Compose merges volume entries by their container target. Do not
+replace it with an empty volume or copy a different agent's file.
 
 ## Shared-host resource policy
 
@@ -98,3 +120,15 @@ Verify the next build container's Docker `HostConfig` resource fields. An
 agent health check alone does not prove the build limits are applied. See the
 [agent configuration](https://woodpecker-ci.org/docs/administration/configuration/agent)
 and [Docker backend configuration](https://woodpecker-ci.org/docs/administration/configuration/backends/docker).
+
+## Optional trusted publisher broker
+
+The [publisher broker contract](publisher-broker/README.md) defines a separately
+selected `docker-compose.publisher-broker.yml` override for native GitHub
+publication. It authenticates exact Woodpecker 3.20.1 extension signatures and
+returns short-lived, source-bound publication leases for the four configured
+repositories. Publisher helpers redeem them immediately before use through the
+existing HTTPS ingress; queueing does not consume the GitHub token lifetime.
+No App key enters a build, no host port/socket is added, and the default stack
+continues without the broker. Keep netrc transfer and local fallback publisher
+secrets disabled. Preparation requires explicit opt-in and never deploys it.

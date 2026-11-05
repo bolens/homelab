@@ -1,0 +1,86 @@
+{
+  "github_forge_id": 0,
+  "github_app_id": "REPLACE_WITH_APP_ID",
+  "woodpecker_public_key_file": "/run/private/woodpecker-public.pem",
+  "github_app_key_file": "/run/private/github-app.pem",
+  "ghcr_token_file": "/run/private/ghcr-token",
+  "ghcr_username": "REPLACE_WITH_GHCR_USERNAME",
+  "replay_directory": "/state/replay",
+  "lease_directory": "/state/leases",
+  "public_origin": "https://ci.example.com",
+  "trusted_proxy_cidrs": [
+    "REPLACE_WITH_CADDY_IP/32"
+  ],
+  "max_redemptions": 8,
+  "repositories": [
+    {
+      "full_name": "example-owner/appicon",
+      "remote_id": "REPLACE_WITH_REPOSITORY_ID",
+      "installation_id": 0,
+      "main_push": true,
+      "tags": true,
+      "ghcr": false,
+      "ghcr_events": [],
+      "permissions": {
+        "contents": "write",
+        "pull_requests": "write",
+        "actions": "write",
+        "actions_variables": "read",
+        "checks": "read",
+        "statuses": "read"
+      }
+    },
+    {
+      "full_name": "example-owner/aur-response-toolkit",
+      "remote_id": "REPLACE_WITH_REPOSITORY_ID",
+      "installation_id": 0,
+      "main_push": true,
+      "tags": true,
+      "ghcr": false,
+      "ghcr_events": [],
+      "permissions": {
+        "contents": "write",
+        "pull_requests": "write",
+        "actions": "write",
+        "actions_variables": "read",
+        "checks": "read",
+        "statuses": "read"
+      }
+    },
+    {
+      "full_name": "example-owner/uddns",
+      "remote_id": "REPLACE_WITH_REPOSITORY_ID",
+      "installation_id": 0,
+      "main_push": true,
+      "tags": true,
+      "ghcr": true,
+      "ghcr_events": [
+        "tag"
+      ],
+      "permissions": {
+        "contents": "write",
+        "actions": "write",
+        "actions_variables": "read",
+        "checks": "read",
+        "statuses": "read"
+      }
+    },
+    {
+      "full_name": "example-owner/audio-utils",
+      "remote_id": "REPLACE_WITH_REPOSITORY_ID",
+      "installation_id": 0,
+      "main_push": true,
+      "tags": false,
+      "ghcr": true,
+      "ghcr_events": [
+        "push"
+      ],
+      "permissions": {
+        "contents": "read",
+        "actions": "write",
+        "actions_variables": "read"
+      }
+    }
+  ],
+  "budget_directory": "/state/budgets"
+}

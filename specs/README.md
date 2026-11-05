@@ -50,3 +50,7 @@ Installation validation alone does not establish feature completion.
 - [Immich user storage](033-immich-user-storage/spec.md): [plan](033-immich-user-storage/plan.md), [tasks](033-immich-user-storage/tasks.md).
 
 - [Paperless user collections](034-paperless-user-collections/spec.md): [plan](034-paperless-user-collections/plan.md), [tasks](034-paperless-user-collections/tasks.md).
+
+- [035-woodpecker-publisher-broker](035-woodpecker-publisher-broker/spec.md): in-progress
+  [implementation plan](035-woodpecker-publisher-broker/plan.md) and
+  [verification tasks](035-woodpecker-publisher-broker/tasks.md); live acceptance pending.

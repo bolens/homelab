@@ -59,3 +59,8 @@ ci.example.com {
 		}
 	}
 }
+
+# Optional publisher broker: do not add its route by default. After preparing and
+# reviewing the broker, import publisher-broker/caddy_routes.conf.example and use
+# its publisher-credentials snippet in the one configured HTTPS site instead of
+# that site's bare reverse_proxy. See publisher-broker/README.md.

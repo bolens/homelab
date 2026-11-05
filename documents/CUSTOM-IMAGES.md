@@ -38,7 +38,10 @@ The matrix excludes images whose required source is unavailable in CI:
 - The SearxNG 4get images require operator-verified source directories.
 
 Those images remain local builds until their source preparation is made
-reproducible in CI. Paperclip’s optional `codex-git.Dockerfile` is also excluded:
+reproducible in CI. The optional Woodpecker publisher credential broker is also
+an explicit local-only build; it is excluded from automatic registry publication.
+Its allowlisted context contains source and notices, never runtime credentials.
+See its [owning contract](../stacks/woodpecker-ci/publisher-broker/README.md). Paperclip’s optional `codex-git.Dockerfile` is also excluded:
 it is an explicitly selected operator-local workaround for one upstream release,
 not the default stack image. Its base-image updates remain monitored.
 
