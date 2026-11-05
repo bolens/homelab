@@ -63,7 +63,7 @@ services:
     mem_limit: 4g
     cpus: 2
   dawarich-db:
-    image: postgis/postgis:17-3.6-alpine@sha256:cd2ae468934722d6f61691198ab29d4d2fd94f3a8684bc3ee6f79459e374c1b0
+    image: postgis/postgis:17-3.5-alpine@sha256:894f570c0cf0664ed5576a8fd5d5bfb8fb1b19d592885b686c3a88c8bd90c41f
     container_name: dawarich-db
     restart: unless-stopped
     environment:
