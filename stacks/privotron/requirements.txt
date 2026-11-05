@@ -813,9 +813,9 @@ urllib3==2.8.0 \
     # via
     #   dulwich
     #   requests
-python-discovery==1.6.1 \
-    --hash=sha256:d43fcdef879fe795352bd13ccf8d185ba5a9f86f36cfcd00529f596e737442b3 \
-    --hash=sha256:cf87d3627dfb4412437fdd5b13eae402607722998d21567993aedbc59b23c15e
+python-discovery==1.6.7 \
+    --hash=sha256:5422f67e5f533bb02d7b73de1c422ed74037536fd869e05156c07565926ec68e \
+    --hash=sha256:7f7c28568c8ec3d988d8bddbdbec8e65f08e8767e52f734e18b8b498549b9b70
     # via virtualenv
 virtualenv==21.14.13 \
     --hash=sha256:5fbb04138a4861580b78ba9110d529a26bc48fcc93c8ec36bc0202eeed96a788 \
