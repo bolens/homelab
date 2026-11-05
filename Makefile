@@ -52,6 +52,7 @@ validate-changed:
 ci-local:
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
 	$(MAKE) nodepad-source-check
+	$(MAKE) openai-oauth-source-check
 	$(MAKE) source-lint
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-worker-check
@@ -61,6 +62,16 @@ ci-local:
 
 source-lint:
 	python3 scripts/source-lint-local.py "$(SOURCE_LINT_TOOLING)"
+
+.PHONY: openai-oauth-source-check
+openai-oauth-source-check:
+	@set -eu; task_dir=$$(mktemp -d -t homelab-oauth-source.XXXXXXXX); \
+	trap 'rm -rf -- "$$task_dir"' EXIT; \
+	cp stacks/openai-oauth/package.json stacks/openai-oauth/package-lock.json stacks/openai-oauth/test-runtime.mjs "$$task_dir/"; \
+	cd "$$task_dir"; \
+	npm ci --omit=dev --ignore-scripts --no-audit --no-fund; \
+	node --test test-runtime.mjs; \
+	./node_modules/.bin/openai-oauth --help > /dev/null
 
 mylar-source-check:
 	@test -f "$(ARCHIVING_UTILS_ROOT)/lib/archive_backend.py" || { echo "The complete publication gate requires ARCHIVING_UTILS_ROOT pointing to the checked archive SDK." >&2; exit 1; }

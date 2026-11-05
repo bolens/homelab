@@ -2,6 +2,13 @@
 
 Community ChatGPT account proxy, built from the pinned [openai-oauth 2.0.0 package](https://github.com/EvanZhouDev/openai-oauth/tree/v2.0.0/packages/openai-oauth). This is a third-party project, not the official OpenAI API. Node and npm dependencies are pinned by digest and lockfile.
 
+The lock overrides `@ai-sdk/provider-utils` to 4.0.33 for the response-size fix in
+[GHSA-866g-f22w-33x8](https://github.com/advisories/GHSA-866g-f22w-33x8).
+Upstream 2.0.0 still pins the vulnerable version. Remove this override after
+upstream adopts a fixed version. The Node 26 image and `make ci-local` test all
+three affected response handlers plus chat and streaming compatibility with
+synthetic responses, without credentials or provider requests.
+
 ## Setup and authentication
 
 1. Run `./prepare-stack.sh`, then `docker compose build --pull=false`.
