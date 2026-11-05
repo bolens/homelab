@@ -7,6 +7,9 @@
 		reverse_proxy publisher-broker:8080 {
 			header_up X-Forwarded-Proto https
 			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 	handle {

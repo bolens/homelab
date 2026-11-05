@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime"
 	"net"
@@ -28,11 +29,11 @@ type credential struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 type leaseRecord struct {
-	Request    request   `json:"request"`
-	CreatedAt  time.Time `json:"created_at"`
-	ExpiresAt  time.Time `json:"expires_at"`
-	RequestIDs []string  `json:"request_ids"`
-	Purpose    string    `json:"purpose"`
+	Request   request   `json:"request"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	BudgetID  string    `json:"budget_id"`
+	Purpose   string    `json:"purpose"`
 }
 
 func (b *broker) createLease(req request) (string, error) {
@@ -57,13 +58,18 @@ func (b *broker) createLease(req request) (string, error) {
 	if remaining >= 10000 {
 		return "", errDenied
 	}
+	budgetID := pipelineBudgetID(req)
+	budget, err := b.openBudget(req, budgetID)
+	if err != nil {
+		return "", err
+	}
 	random := make([]byte, 32)
 	if _, err = rand.Read(random); err != nil {
 		return "", err
 	}
 	lease := hex.EncodeToString(random)
 	digest := sha256.Sum256([]byte(lease))
-	record := leaseRecord{Request: req, CreatedAt: time.Now().UTC(), ExpiresAt: time.Now().UTC().Add(leaseTTL), Purpose: "github"}
+	record := leaseRecord{Request: req, CreatedAt: time.Now().UTC(), ExpiresAt: budget.ExpiresAt, Purpose: "github", BudgetID: budgetID}
 	data, err := json.Marshal(record)
 	if err != nil {
 		return "", err
@@ -170,28 +176,41 @@ func (b *broker) redeem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "request denied", http.StatusForbidden)
 		return
 	}
-	for _, id := range record.RequestIDs {
-		if id == input.RequestID {
-			b.replayMu.Unlock()
-			http.Error(w, "request replayed", http.StatusConflict)
-			return
-		}
-	}
-	if len(record.RequestIDs) >= b.cfg.MaxRedemptions {
-		b.replayMu.Unlock()
-		http.Error(w, "redemption limit", http.StatusTooManyRequests)
-		return
-	}
 	p, policyErr := b.policyFor(record.Request)
 	if policyErr != nil || input.Repository != record.Request.Repo.FullName || input.Commit != record.Request.Pipeline.Commit || input.Purpose != "github" {
 		b.replayMu.Unlock()
 		http.Error(w, "request denied", http.StatusForbidden)
 		return
 	}
-	record.RequestIDs = append(record.RequestIDs, input.RequestID)
-	data, err := json.Marshal(record)
+	budgetPath := filepath.Join(b.cfg.BudgetDir, record.BudgetID+".json")
+	if record.BudgetID != pipelineBudgetID(record.Request) {
+		b.replayMu.Unlock()
+		http.Error(w, "request denied", http.StatusForbidden)
+		return
+	}
+	raw, err = readPrivateFile(budgetPath)
+	var budget pipelineBudget
+	if err != nil || json.Unmarshal(raw, &budget) != nil || budget.SourceDigest != sourceDigest(record.Request) || budget.ExpiresAt != record.ExpiresAt || time.Now().After(budget.ExpiresAt) {
+		b.replayMu.Unlock()
+		http.Error(w, "request denied", http.StatusForbidden)
+		return
+	}
+	for _, id := range budget.RequestIDs {
+		if id == input.RequestID {
+			b.replayMu.Unlock()
+			http.Error(w, "request replayed", http.StatusConflict)
+			return
+		}
+	}
+	if len(budget.RequestIDs) >= b.cfg.MaxRedemptions {
+		b.replayMu.Unlock()
+		http.Error(w, "redemption limit", http.StatusTooManyRequests)
+		return
+	}
+	budget.RequestIDs = append(budget.RequestIDs, input.RequestID)
+	data, err := json.Marshal(budget)
 	if err == nil {
-		err = replacePrivateFile(path, data)
+		err = replacePrivateFile(budgetPath, data)
 	}
 	b.replayMu.Unlock()
 	if err != nil {
@@ -247,4 +266,66 @@ func (b *broker) allowRedeem() bool {
 	}
 	b.rateTokens--
 	return true
+}
+
+// Budget tombstones are retained: deleting one would reopen credits for an old ID.
+type pipelineBudget struct {
+	SourceDigest string    `json:"source_digest"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	RequestIDs   []string  `json:"request_ids"`
+}
+
+func pipelineBudgetID(req request) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%d/%s/%d/github", req.Repo.ForgeID, req.Repo.RemoteID, req.Pipeline.ID)))
+	return hex.EncodeToString(sum[:])
+}
+func sourceDigest(req request) string {
+	data, _ := json.Marshal(req)
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+// Caller holds replayMu across lease creation and redemption reservations.
+func (b *broker) openBudget(req request, id string) (pipelineBudget, error) {
+	path := filepath.Join(b.cfg.BudgetDir, id+".json")
+	raw, err := readPrivateFile(path)
+	if err == nil {
+		var record pipelineBudget
+		if json.Unmarshal(raw, &record) != nil || record.SourceDigest != sourceDigest(req) || time.Now().After(record.ExpiresAt) {
+			return pipelineBudget{}, errDenied
+		}
+		return record, nil
+	}
+	// Distinguish absence from an unreadable/corrupt record; never reset its credits.
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
+		return pipelineBudget{}, errDenied
+	}
+	entries, err := os.ReadDir(b.cfg.BudgetDir)
+	if err != nil || len(entries) >= 10000 {
+		return pipelineBudget{}, errDenied
+	}
+	record := pipelineBudget{SourceDigest: sourceDigest(req), ExpiresAt: time.Now().UTC().Add(leaseTTL)}
+	data, err := json.Marshal(record)
+	if err != nil {
+		return pipelineBudget{}, err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return pipelineBudget{}, err
+	}
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Sync()
+	}
+	closeErr := f.Close()
+	if err != nil {
+		return pipelineBudget{}, err
+	}
+	if closeErr != nil {
+		return pipelineBudget{}, closeErr
+	}
+	if err = syncDir(b.cfg.BudgetDir); err != nil {
+		return pipelineBudget{}, err
+	}
+	return record, nil
 }

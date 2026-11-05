@@ -55,11 +55,15 @@ example does not activate this route. Caddy rewrites this exact path to `/redeem
 
 The response contains `token` and RFC 3339 `expires_at`. Do not print, persist,
 cache on shared disk, or pass the token to unrelated subprocesses. Strip inherited
-GitHub/debug/trace variables from authenticated child environments. Each lease
-allows eight redemption attempts by default (configurable downwards), including
+GitHub/debug/trace variables from authenticated child environments. All leases for one immutable pipeline share
+eight redemption attempts by default (configurable downwards), including
 failed or ambiguous attempts. Reusing a request ID returns 409 without minting.
 This covers independent publisher phases and bounded refresh/retries without a
-shared token file. Rate limits allow 32 requests in a burst, refill at two per
+shared token file. Recompilation and extension retries cannot reset the shared
+pipeline budget or its first-issued 12-hour deadline. Expired pipeline-budget
+tombstones are retained, not automatically pruned; the 10,000-record capacity
+fails closed and needs operator review rather than silently reopening old IDs.
+A deliberate Woodpecker restart creates a new pipeline ID with a new budget. Rate limits allow 32 requests in a burst, refill at two per
 second, and permit at most eight simultaneous redemptions. A saturated, expired,
 replayed or unavailable authorization path fails closed.
 
@@ -108,7 +112,10 @@ Under `publisher-broker/runtime/private`, supply:
   for Audio/uDDNS. Keep it out of `stack.env` and pipeline command environments.
 
 All mounts are explicit and refuse missing host paths. The state directory
-contains `replay/` and `leases/`, also mode 0700, writable only by the broker UID.
+contains `replay/`, `leases/`, and `budgets/`, also mode 0700, writable only by the broker UID.
+Preserve current replay/budget state across rollback when compatible. Restoring
+older state must invalidate outstanding lease records before admitting requests;
+wait out the 30-second signature freshness window and rerun affected pipelines.
 Run one broker instance against this directory; its lock serializes state writes
 within that process. Do not share this filesystem between replicas.
 

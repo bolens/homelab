@@ -80,5 +80,6 @@
         "actions_variables": "read"
       }
     }
-  ]
+  ],
+  "budget_directory": "/state/budgets"
 }

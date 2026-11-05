@@ -27,7 +27,7 @@ This contract records the approved design and remaining proof during development
   permit main Pages and signed release tags.
 - Return a 256-bit opaque `github_publish_lease` with 12-hour validity. Persist
   only its hash and bound metadata. Authenticate TLS redemption by capability;
-  match repository, SHA, purpose and fresh 128-bit request ID. Limit attempts to
+  match repository, SHA, purpose and fresh 128-bit request ID. Share the pipeline budget across all its leases, limit attempts to
   eight or fewer, reject repeated request IDs and revalidate source policy at
   every use. Installation credentials remain in helper memory and expire in one
   hour; refresh near expiry rather than caching them on shared disk.

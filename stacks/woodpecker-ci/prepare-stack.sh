@@ -11,7 +11,7 @@ prepare_stack_ensure_docker_network "ingress-admin"
 if [[ "${WOODPECKER_PREPARE_PUBLISHER_BROKER:-0}" == 1 ]]; then
   for dir in publisher-broker/runtime publisher-broker/runtime/private \
     publisher-broker/runtime/state publisher-broker/runtime/state/replay \
-    publisher-broker/runtime/state/leases; do
+    publisher-broker/runtime/state/leases publisher-broker/runtime/state/budgets; do
     if [[ -L "$dir" || ( -e "$dir" && ! -d "$dir" ) ]]; then
       prepare_stack_msg "refusing unsafe publisher broker directory"
       exit 1

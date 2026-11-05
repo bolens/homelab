@@ -69,7 +69,7 @@ func TestPreparationIsExplicitPreservingAndOffline(t *testing.T) {
 	if string(b) != "preserve-operator-fixture" {
 		t.Fatal("existing operator file overwritten")
 	}
-	for _, suffix := range []string{"private", "state", "state/replay", "state/leases"} {
+	for _, suffix := range []string{"private", "state", "state/replay", "state/leases", "state/budgets"} {
 		s, e := os.Stat(filepath.Join(runtime, suffix))
 		if e != nil || s.Mode().Perm() != 0700 {
 			t.Fatal("unsafe state directory permissions")

@@ -16,16 +16,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
 type fakeIssuer struct {
+	mu    sync.Mutex
 	calls int
 	fail  bool
 }
 
 func (f *fakeIssuer) Inspect(context.Context, request, policy) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.calls++
 	if f.fail {
 		return errDenied
@@ -33,6 +37,8 @@ func (f *fakeIssuer) Inspect(context.Context, request, policy) error {
 	return nil
 }
 func (f *fakeIssuer) Authorize(context.Context, request, policy) (credential, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.calls++
 	if f.fail {
 		return credential{}, errDenied
@@ -53,7 +59,11 @@ func fixture(t *testing.T) (config, request, ed25519.PublicKey, ed25519.PrivateK
 	if err = os.Chmod(leaseDir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	cfg := config{ForgeID: 2, ReplayDir: dir, LeaseDir: leaseDir, PublicOrigin: "https://ci.example.com"}
+	budgetDir := t.TempDir()
+	if err = os.Chmod(budgetDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config{BudgetDir: budgetDir, ForgeID: 2, ReplayDir: dir, LeaseDir: leaseDir, PublicOrigin: "https://ci.example.com"}
 	for i, n := range []string{"owner/appicon", "owner/aur-response-toolkit", "owner/uddns", "owner/audio-utils"} {
 		cfg.Repositories = append(cfg.Repositories, policy{FullName: n, RemoteID: string(rune('1' + i)), InstallationID: 1, MainPush: true, Tags: n != "owner/audio-utils", Permissions: publisherPermissions(strings.Split(n, "/")[1])})
 	}

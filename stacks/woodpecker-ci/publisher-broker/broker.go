@@ -44,6 +44,7 @@ type policy struct {
 	GHCREvents     []string          `json:"ghcr_events"`
 }
 type config struct {
+	BudgetDir         string   `json:"budget_directory"`
 	ForgeID           int64    `json:"github_forge_id"`
 	AppID             string   `json:"github_app_id"`
 	PublicKeyFile     string   `json:"woodpecker_public_key_file"`
@@ -106,7 +107,7 @@ func newBroker(cfg config, key ed25519.PublicKey, issuer issuer) (http.Handler, 
 	if cfg.MaxRedemptions < 1 || cfg.MaxRedemptions > 8 {
 		return nil, errDenied
 	}
-	if cfg.ForgeID <= 0 || len(key) != ed25519.PublicKeySize || issuer == nil || !filepath.IsAbs(cfg.ReplayDir) || len(cfg.Repositories) != 4 || !filepath.IsAbs(cfg.LeaseDir) || filepath.Clean(cfg.LeaseDir) == filepath.Clean(cfg.ReplayDir) {
+	if cfg.ForgeID <= 0 || len(key) != ed25519.PublicKeySize || issuer == nil || !filepath.IsAbs(cfg.ReplayDir) || len(cfg.Repositories) != 4 || !filepath.IsAbs(cfg.BudgetDir) || !filepath.IsAbs(cfg.LeaseDir) || filepath.Clean(cfg.LeaseDir) == filepath.Clean(cfg.ReplayDir) {
 		return nil, errDenied
 	}
 	origin, err := url.Parse(cfg.PublicOrigin)
@@ -175,6 +176,12 @@ func newBroker(cfg config, key ed25519.PublicKey, issuer issuer) (http.Handler, 
 		return nil, errDenied
 	}
 	if st, err := os.Lstat(cfg.LeaseDir); err != nil || !st.IsDir() || st.Mode().Perm()&0077 != 0 {
+		return nil, errDenied
+	}
+	if filepath.Clean(cfg.BudgetDir) == filepath.Clean(cfg.ReplayDir) || filepath.Clean(cfg.BudgetDir) == filepath.Clean(cfg.LeaseDir) {
+		return nil, errDenied
+	}
+	if st, err := os.Lstat(cfg.BudgetDir); err != nil || !st.IsDir() || st.Mode().Perm()&0077 != 0 {
 		return nil, errDenied
 	}
 	verifier, err := httpsign.NewEd25519Verifier(key, httpsign.NewVerifyConfig().SetAllowedAlgs([]string{"ed25519"}).SetNotOlderThan(30*time.Second).SetNotNewerThan(3*time.Second), httpsign.Headers("@request-target", "content-digest"))

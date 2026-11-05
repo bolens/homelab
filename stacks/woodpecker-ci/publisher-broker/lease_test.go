@@ -11,15 +11,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
-func compileLease(t *testing.T, h http.Handler, req request, priv ed25519.PrivateKey) string {
+func compileLease(t *testing.T, h http.Handler, req request, priv ed25519.PrivateKey, created ...int64) string {
 	t.Helper()
 	body, _ := json.Marshal(req)
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, signed(t, body, priv, 0))
+	stamp := int64(0)
+	if len(created) > 0 {
+		stamp = created[0]
+	}
+	h.ServeHTTP(w, signed(t, body, priv, stamp))
 	if w.Code != 200 {
 		t.Fatalf("compile status%d", w.Code)
 	}
@@ -223,6 +228,15 @@ func TestTrustedProxyAndQueuedLease(t *testing.T) {
 	_ = json.Unmarshal(raw, &record)
 	record.CreatedAt = time.Now().Add(-2 * time.Hour)
 	record.ExpiresAt = record.CreatedAt.Add(leaseTTL)
+	budgetPath := filepath.Join(cfg.BudgetDir, record.BudgetID+".json")
+	budgetRaw, _ := os.ReadFile(budgetPath)
+	var budget pipelineBudget
+	_ = json.Unmarshal(budgetRaw, &budget)
+	budget.ExpiresAt = record.ExpiresAt
+	budgetBytes, _ := json.Marshal(budget)
+	if err = os.WriteFile(budgetPath, budgetBytes, 0600); err != nil {
+		t.Fatal(err)
+	}
 	data, _ := json.Marshal(record)
 	if err = os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
@@ -254,5 +268,108 @@ func TestTrustedProxyAndQueuedLease(t *testing.T) {
 		if got := serve(h, post); got != 403 {
 			t.Fatal("invalid trusted-proxy claim accepted")
 		}
+	}
+}
+
+func TestPipelineBudgetSharedAcrossLeasesAndRestart(t *testing.T) {
+	cfg, r, pub, priv := fixture(t)
+	i := &fakeIssuer{}
+	h, err := newBroker(cfg, pub, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	one := compileLease(t, h, r, priv)
+	two := compileLease(t, h, r, priv, time.Now().Add(time.Second).Unix())
+	if one == two {
+		t.Fatal("capabilities must remain opaque and unique")
+	}
+	if got := serve(h, redemption(one, r, 1)); got != 200 {
+		t.Fatal("first redemption failed")
+	}
+	if got := serve(h, redemption(two, r, 1)); got != 409 {
+		t.Fatal("request replay crossed lease boundary")
+	}
+	for n := 2; n <= 8; n++ {
+		lease := one
+		if n%2 == 0 {
+			lease = two
+		}
+		if got := serve(h, redemption(lease, r, n)); got != 200 {
+			t.Fatalf("shared budget attempt%d status%d", n, got)
+		}
+	}
+	h, err = newBroker(cfg, pub, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := serve(h, redemption(two, r, 9)); got != 429 {
+		t.Fatal("new lease/restart reset pipeline budget")
+	}
+	if i.calls != 10 {
+		t.Fatalf("unexpected inspections/mints%d", i.calls)
+	}
+	entries, _ := os.ReadDir(cfg.BudgetDir)
+	if len(entries) != 1 {
+		t.Fatal("duplicate budget records for one pipeline")
+	}
+}
+func TestConcurrentPipelineBudgetAcrossLeases(t *testing.T) {
+	cfg, r, pub, priv := fixture(t)
+	i := &fakeIssuer{}
+	h, err := newBroker(cfg, pub, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leases := []string{compileLease(t, h, r, priv), compileLease(t, h, r, priv, time.Now().Add(time.Second).Unix())}
+	results := make(chan int, 16)
+	var wg sync.WaitGroup
+	for n := 1; n <= 16; n++ {
+		wg.Add(1)
+		go func(n int) { defer wg.Done(); results <- serve(h, redemption(leases[n%2], r, n)) }(n)
+	}
+	wg.Wait()
+	close(results)
+	success := 0
+	for code := range results {
+		if code == 200 {
+			success++
+		} else if code != 429 {
+			t.Fatalf("unexpected concurrency status%d", code)
+		}
+	}
+	if success != 8 || i.calls != 10 {
+		t.Fatalf("pipeline budget bypass: successes%d issuer%d", success, i.calls)
+	}
+}
+func TestPipelineBudgetCannotRebindOrRenew(t *testing.T) {
+	cfg, r, pub, priv := fixture(t)
+	h, err := newBroker(cfg, pub, &fakeIssuer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = compileLease(t, h, r, priv)
+	changed := r
+	changed.Pipeline.Commit = strings.Repeat("b", 40)
+	body, _ := json.Marshal(changed)
+	if got := serve(h, signed(t, body, priv, 0)); got != 503 {
+		t.Fatal("pipeline identity rebound to different source")
+	}
+	entries, _ := os.ReadDir(cfg.BudgetDir)
+	path := filepath.Join(cfg.BudgetDir, entries[0].Name())
+	raw, _ := os.ReadFile(path)
+	var budget pipelineBudget
+	_ = json.Unmarshal(raw, &budget)
+	budget.ExpiresAt = time.Now().Add(-time.Hour)
+	data, _ := json.Marshal(budget)
+	if err = os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	body, _ = json.Marshal(r)
+	if got := serve(h, signed(t, body, priv, time.Now().Add(time.Second).Unix())); got != 503 {
+		t.Fatal("expired pipeline budget renewed")
+	}
+	entries, _ = os.ReadDir(cfg.BudgetDir)
+	if len(entries) != 1 {
+		t.Fatal("budget tombstone removed")
 	}
 }
