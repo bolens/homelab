@@ -108,8 +108,8 @@ case "$mode" in
         ;;
     site)
         npm_tools
-        # Playwright1.64.1 owns the OS dependency list; it does not install a browser here.
-        node_modules/.bin/playwright install-deps chrome
+        # Chrome uses Chromium-family OS libraries; install-deps downloads no browser.
+        node_modules/.bin/playwright install-deps chromium
         bootstrap chrome
         export HOMELAB_CHROME_EXECUTABLE_PATH="$scratch/tools/chrome/chrome-linux64/chrome"
         version=$("$HOMELAB_CHROME_EXECUTABLE_PATH" --version)
