@@ -46,6 +46,12 @@ squash-merge. Verify GitHub `main` and the intended Gitea mirror point to the
 reviewed content and Pages completes when documentation changes. Repository
 validation must remain read-only.
 
+Pages screenshot evidence uses the deployment URL and routes its hostname directly
+to the repository owner's GitHub Pages origin, with TLS verification enabled.
+This checks the published site while allowing a custom domain to retain bot
+protection that challenges hosted CI runners. Check custom-domain edge access
+separately when changing DNS or security rules.
+
 ## Recover
 
 Fix repository defects through a corrective PR. Any live deployment needs a
