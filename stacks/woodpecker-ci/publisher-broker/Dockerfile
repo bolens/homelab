@@ -2,7 +2,7 @@ FROM docker.io/library/golang:1.27.3-bookworm@sha256:d9b6a1beb9474adc2a1ce842573
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
-COPY *.go ./
+COPY *.go THIRD_PARTY_NOTICES.md ./
 RUN go test ./... && go vet ./... \
     && CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w" -o /publisher-broker .
 
