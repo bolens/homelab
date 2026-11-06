@@ -91,7 +91,7 @@ replace it with an empty volume or copy a different agent's file.
 ## Shared-host resource policy
 
 Compose enforces one workflow at a time on this agent. Each build container,
-including service containers, is limited to 2 CPUs, 4 GiB RAM, no swap, CPU
+including service containers, is limited to 2 CPUs, 6 GiB RAM, no swap, CPU
 shares 128, and 64 MiB shared memory. The agent itself has a separate 1-CPU,
 512-MiB RAM, no-swap, 256-process budget. Its limits do not contain the build
 containers, which are siblings created through the host Docker socket.
@@ -102,19 +102,29 @@ new repositories to a 30-minute pipeline timeout and allows at most 60 minutes
 in repository settings. Check existing repositories' timeout settings separately.
 
 Keep steps sequential on this shared host and limit service containers: the
-4-GiB budget applies per container, not per workflow. Additional agents multiply
+6-GiB budget applies per container, not per workflow. Additional agents multiply
 concurrency. Privileged jobs or jobs given the host Docker socket can launch
 other workloads outside these limits and should use a separate build host.
+Browser and large shell-analysis workloads can exhaust a 4-GiB ceiling without
+an OOM kill. Size the host for the aggregate workload; compare cgroup memory
+usage and limit events when commands stop responding. Local reproduction must
+match both Docker limits: `--memory=6g --memory-swap=6g` keeps swap disabled.
+Omitting the swap limit can let a local run pass using memory unavailable in CI.
+
 CPU and memory limits do not bound disk usage or disk I/O. Monitor free space,
 image/build-cache growth, and host I/O pressure. Do not automatically prune
 shared images or volumes used by other stacks.
 
-Before applying the policy, let running workflows finish. Then recreate only
-the CI server and agent using the locally installed images:
+Before changing an agent's build limits, disable scheduling on that agent and
+wait until its active workflows reach zero. Recreate only the agent using the
+locally installed image, then confirm its original identity reconnects before
+reenabling scheduling. Other agents can continue processing the queue.
 
 ```bash
-docker compose up -d --no-deps --pull never server agent
+docker compose up -d --no-deps --pull never agent
 ```
+
+A server timeout-policy change separately requires recreating the server.
 
 Verify the next build container's Docker `HostConfig` resource fields. An
 agent health check alone does not prove the build limits are applied. See the
