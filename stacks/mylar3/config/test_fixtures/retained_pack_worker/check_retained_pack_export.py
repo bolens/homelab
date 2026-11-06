@@ -19,7 +19,7 @@ def verify(doc):
   lambda x:x['transition']['pack_after_row'].__setitem__(3,999),
   lambda x:x.__setitem__('cleanup_grant',1),
   lambda x:x['transition']['request'].__setitem__('member_id','foreign'),
-  lambda x:x['transition']['workflow_before']['rows'].__setitem__('foreign',[]),
+  lambda x:x['transition'].__setitem__('workflow_before_sha256','0'*64),
  ):
   bad=copy.deepcopy(answer);mutate(bad)
   try:h._transition(c,bad)
@@ -33,10 +33,11 @@ def verify(doc):
  old=t['pack_before_row'];pack=json.loads(old[2]);pack['id']=foreign_id
  old[1]=foreign_id;old[2]=h.native_compact(pack).decode()
  foreign_c['workflow']['rows']['records'].append(h.native_compact(old).decode())
- foreign_c['workflow']['rows']['records'].sort();t['workflow_before']=copy.deepcopy(foreign_c['workflow'])
+ foreign_c['workflow']['rows']['records'].sort();t['workflow_before_sha256']=h.hashlib.sha256(h.native_compact(foreign_c['workflow'])).hexdigest()
  fresh=json.loads(t['pack_after_row'][2]);fresh['id']=foreign_id
  t['pack_after_row'][1]=foreign_id;t['pack_after_row'][2]=h.native_compact(fresh).decode()
- record=json.loads(t['record_bytes']);record['pack_before']=pack;record['pack_after']=fresh
+ record=json.loads(t['record_bytes']);record['pack_before']=pack;record['pack_after']=fresh;record['pack_before_row']=old
+ record['workflow_before_sha256']=t['workflow_before_sha256']
  t['record_bytes']=h.native_compact(record).decode()
  bad['record_sha256']=h.hashlib.sha256(t['record_bytes'].encode()).hexdigest()
  try:h._transition(foreign_c,bad)

@@ -54,6 +54,23 @@ class BrokerTests(unittest.TestCase):
     def test_pack_resource_admission_refuses_replaced_qualified_parent(self):
         with self.assertRaisesRegex(self.m.Held,'clone-parent'):self.resource_fixture(True,foreign=True)
 
+    def test_pack_terminal_rejects_wrong_catalog_commitment_before_later_facts(self):
+        # Only the catalog join is isolated here; genuine complete SQL and
+        # artifact decoding have separate composed/owning controls.
+        model=dict(schema=[],rows={});events=[]
+        parent=SimpleNamespace(decode_terminal_artifact=lambda *args:({'reply_text':json.dumps({'data':{'transition':{},'token':'a'*64}}),'catalog_before_sha256':'f'*64},{}),
+            retained_sql_model=lambda *args:model,verify_retained_sql=lambda *args,**kwargs:events.append('verified-SQL'),
+            _retained_sql_digest=lambda value:self.m.sha(self.m.canonical(value)))
+        installation=SimpleNamespace(close=lambda:{})
+        state=dict(installation=installation,preflight=dict(native_data='/native',native_config='/native'),boot=dict(request={}),deadline=10**12)
+        launch=SimpleNamespace(close=lambda:state)
+        original=dict(out='/backup',databases={'native_config:workflow.sqlite':{},'native_config:mylar.db':{}})
+        media=SimpleNamespace(close=lambda:events.append('later-media'))
+        with patch.object(self.m,'owning_parent',return_value=parent),patch.object(self.m,'_pack_current_scopes',return_value=(original,{})):
+            with self.assertRaisesRegex(self.m.Held,'original-catalog-observation'):
+                self.m._pack_terminal(launch,object(),media,{},b'{}',{})
+        self.assertEqual(events,['verified-SQL'])
+
     def test_pack_target_witness_needs_no_ordinary_destination_history(self):
         request={'target_sha256':'a'*64}
         review={'existing_target':{'path':'/library/current.cbz','sha256':'a'*64}}

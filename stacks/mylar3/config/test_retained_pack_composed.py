@@ -23,7 +23,7 @@ class Composed(unittest.TestCase):
   self.c=self.base.c.c;self.case=self.base.c.case;self.pack=self.base.c.store.get('pack',self.case.body['pack_id'])
   self.c.root.joinpath('config.ini').write_text('[General]\napi_key='+'x'*32+'\n')
   self.c.root.joinpath('config.ini').chmod(0o600)
-  outer=self;self.requests=[]
+  outer=self;self.requests=[];self.responses=[]
   class HTTP(BaseHTTPRequestHandler):
    def do_POST(self):
     form=parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode(),strict_parsing=True)
@@ -31,6 +31,15 @@ class Composed(unittest.TestCase):
     outer.requests.append(form['cmd'][0]);h=outer.base.handler;h.cmd=form['cmd'][0];h.apikey=form['apikey'][0];h.kwargs={'request':form['request'][0]};h.data='OK'
     outer.base.http.request.method=self.command
     raw=h.fetchData().encode()
+    fault=getattr(outer,'reply_fault',None)
+    if fault:
+     value=json.loads(raw)
+     if value.get('success'):
+      transition=value['data']['transition']
+      if fault=='commitment':transition['workflow_before_sha256']='0'*64
+      elif fault=='version':transition['version']=1
+      raw=json.dumps(value).encode()
+    outer.responses.append(raw)
     if ((getattr(outer,'lose_reply',False) and h.cmd=='retainedDeliveryFinalize') or (getattr(outer,'lose_status',False) and h.cmd=='retainedDeliveryStatus')):self.connection.shutdown(socket.SHUT_RDWR);self.connection.close();return
     self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
    def log_message(self,*args):pass
@@ -57,6 +66,39 @@ class Composed(unittest.TestCase):
  def test_genuine_factories_native_two_rows_and_worker_receipt_CAS_over_HTTP(self):
   answer=self.execute();self.assertTrue(answer['receipt_changed']);self.assertEqual(answer['member_phase'],'retained-accepted')
   self.assertFalse(answer['answer']['cleanup_grant']);self.assertEqual((answer['intent_count'],answer['done_count']),(1,1))
+ def test_large_workflow_and_catalog_use_genuine_HTTP_worker_and_Root_verification(self):
+  import comic_retained_pack_parent as parent
+  import comic_reader_backup_primitives as primitives
+  import time
+  self.base.c.store.set('foreign','large-history',{'payload':'x'*(5*1024**2)})
+  with closing(sqlite3.connect(self.c.native_database))as db:
+   db.execute('CREATE TABLE unrelated_history(k TEXT,v TEXT)')
+   db.execute('INSERT INTO unrelated_history VALUES (?,?)',('é','漢字'*(1024**2)));db.commit()
+  before=parent.retained_sql_model(self.c.database,time.monotonic()+30)
+  catalog=parent.retained_sql_model(self.c.native_database,time.monotonic()+30)
+  self.assertGreater(len(parent.encode(before)),4*1024**2)
+  self.assertGreater(len(parent.encode(catalog)),4*1024**2)
+  fingerprints=[primitives.database(path)for path in(self.c.database,self.c.native_database)]
+  result=self.execute();self.assertEqual(result['member_phase'],'retained-accepted')
+  reply=json.loads(self.responses[0]);transition=reply['data']['transition']
+  self.assertEqual(transition['version'],2);self.assertNotIn('workflow_before',transition)
+  self.assertLess(len(self.responses[0]),1024**2)
+  check=parent.verify_retained_sql(before,catalog,backup_workflow=fingerprints[0],backup_catalog=fingerprints[1],
+      request=transition['request'],reply=reply,
+      current=parent.retained_sql_model(self.c.database,time.monotonic()+30),
+      current_catalog=parent.retained_sql_model(self.c.native_database,time.monotonic()+30))
+  self.assertFalse(check['mutation_authority'])
+  done=next(self.c.root.glob('worker-state/maintenance/retained-pack-handoffs/*.done.json'))
+  artifact=json.loads(done.read_bytes());self.assertEqual(artifact['version'],3)
+  self.assertNotIn('catalog_before',artifact)
+  self.assertEqual(artifact['catalog_before_sha256'],parent._retained_sql_digest(catalog))
+  self.assertLess(done.stat().st_size,1024**2)
+ def test_wrong_workflow_commitment_refuses_worker_receipt_CAS(self):
+  self.reply_fault='commitment';result=self.execute(expect_hold=True)
+  self.assertTrue(result['held']);self.assertFalse(result['receipt_changed']);self.assertEqual(result['done_count'],0)
+ def test_old_transition_version_refuses_worker_receipt_CAS(self):
+  self.reply_fault='version';result=self.execute(expect_hold=True)
+  self.assertTrue(result['held']);self.assertFalse(result['receipt_changed']);self.assertEqual(result['done_count'],0)
  def test_producer_receipt_mode_and_private_journals_survive_CAS(self):
   answer=self.execute()
   self.assertEqual((answer['original_receipt_mode'],answer['receipt_mode']),(0o644,0o644))
@@ -221,8 +263,19 @@ class Composed(unittest.TestCase):
   self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed']);self.assertEqual(answer['done_count'],0)
   with closing(sqlite3.connect(self.c.database)) as db:self.assertEqual(len(db.execute("SELECT * FROM records WHERE kind='retained_delivery_final'").fetchall()),1)
  def test_capacity_refuses_before_native_workflow_commit(self):
-  with sqlite3.connect(self.c.database) as db:db.execute("INSERT INTO records VALUES ('capacity','unrelated',?,0.0)",('\x7f'*800000,))
-  answer=self.base.call();self.assertFalse(answer['success'])
+  # Unrelated complete-model history is now represented by a commitment.
+  # The selected pack remains genuine wire data and must still obey its cap.
+  selected=self.base.c.store.get('pack',self.pack['id']);selected['wire_padding']='\x7f'*800000
+  self.base.c.store.set('pack',self.pack['id'],selected)
+  seen=[];guard=fixture.fixture.f.o.check.__code__;prior=sys.getprofile()
+  def observe(frame,event,arg):
+   if event=='call' and frame.f_code is guard and frame.f_locals.get('reason')=='retained-worker-export-precommit-bound':
+    seen.append(frame.f_locals['value'])
+  try:
+   sys.setprofile(observe);answer=self.base.call()
+  finally:sys.setprofile(prior)
+  self.assertEqual(seen,[False]);self.assertFalse(answer['success'])
+  self.assertEqual(self.base.c.store.get('pack',self.pack['id']),selected)
   with closing(sqlite3.connect(self.c.database)) as db:self.assertEqual(len(db.execute("SELECT * FROM records WHERE kind='retained_delivery_final'").fetchall()),0)
  def test_original_serializer_replacement_after_source_capture_refuses(self):
   f=fixture.fixture.f;original=f.response_sources;old=self.base.api.Api._successResponse

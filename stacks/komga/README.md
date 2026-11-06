@@ -230,6 +230,12 @@ releases the lock before calling its guarded rescan API. Failed notifications re
 retryable without reconverting the archive. Notifications wait while any asynchronous
 conversion still requires recovery.
 
+The retained Root route requires Native transition v2, Worker artifact v3 and
+matching Root consumers. Complete SQL models stay local; wire commitments bind
+them to the independent backup and current-state checks. The existing transport
+and artifact limits remain unchanged. See the
+[retained contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
+
 Use matching Mylar and worker images for this protocol extension. Earlier workers
 neither honor the tagger marker nor defer their rescan callback. Drain and verify
 recovery before rollback; never switch an older writer onto pending v2 publication

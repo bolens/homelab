@@ -289,12 +289,13 @@ def verify_retained_sql(before, catalog, *, backup_workflow, backup_catalog, req
          'retained-terminal-request-token')
     need(type(token) is str and len(token) == 64 and all(c in '0123456789abcdef' for c in token)
          and type(transition) is dict and set(transition) == {'version', 'kind', 'request',
-             'native_data_root', 'record_bytes', 'pack_before_row', 'pack_after_row', 'workflow_before',
+             'native_data_root', 'record_bytes', 'pack_before_row', 'pack_after_row', 'workflow_before_sha256',
              'original_vectors', 'committed_vectors', 'committed_hashes', 'native_source_root', 'native_sources'}
          and transition.get('kind') == 'retained-pack-two-row-transition'
-         and type(transition.get('version')) is int and transition['version'] == 1
+         and type(transition.get('version')) is int and transition['version'] == 2
          and encode(transition['request']) == encode(request)
-         and encode(transition['workflow_before']) == encode(before), 'retained-terminal-transition')
+         and type(transition['workflow_before_sha256']) is str
+         and transition['workflow_before_sha256'] == _retained_sql_digest(before), 'retained-terminal-transition')
     old, new = transition['pack_before_row'], transition['pack_after_row']
     need(type(old) is list and len(old) == 4 and type(new) is list and len(new) == 4
          and old[:2] == ['pack', request['pack_id']]
@@ -386,8 +387,8 @@ def decode_terminal_artifact(data, reference, header, request):
     rights=('historical_import_ack','ordinary_import_grant','cleanup_grant',
             'reader_index_acceptance','automatic_replay','reader_resume_grant')
     need(type(body) is dict and set(body)=={'version','kind','token','request','reply_text',
-         'reply_sha256','catalog_before','frame',*rights} and type(body['version']) is int
-         and body['version']==2 and body['kind']=='retained-pack-terminal-artifact'
+         'reply_sha256','catalog_before_sha256','frame',*rights} and type(body['version']) is int
+         and body['version']==3 and body['kind']=='retained-pack-terminal-artifact'
          and all(body[k] is False for k in rights) and compact(body)==data,
          'retained-artifact-schema')
     need(type(request) is dict and compact(body['request'])==compact(request)
@@ -395,6 +396,8 @@ def decode_terminal_artifact(data, reference, header, request):
     token=hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode()).hexdigest()
     need(body['token']==token and Path(path).name==token+'.done.json',
          'retained-artifact-token')
+    need(type(body['catalog_before_sha256']) is str and re.fullmatch('[0-9a-f]{64}',body['catalog_before_sha256']),
+         'retained-artifact-catalog-commitment')
     need(type(body['reply_text']) is str and hashlib.sha256(body['reply_text'].encode()).hexdigest()
          ==body['reply_sha256'],'retained-artifact-native-reply')
     frame=body['frame']

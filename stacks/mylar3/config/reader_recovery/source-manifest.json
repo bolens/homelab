@@ -16,7 +16,7 @@
       "sha256": "f22fc49b32df8b01a1173e839e6e403a261d2306f525f4233237e583b6044464"
     },
     "CONTRACT-retained-pack.md": {
-      "sha256": "dd5e9ff402ef79906306598df87f0e849c6f2faf2978034c1d3d1c517c026a9d"
+      "sha256": "0819ac8941f2cc87a109b97f9f1400a6affeed1932e2f3373af61faaffa55e42"
     },
     "CONTRACT-stopped-nfs-handoff.md": {
       "sha256": "b0bdda9a77f36255a6a6fc7e811a8cc4ece0f480170b5ccbef5f8775451f48cc"
@@ -490,7 +490,7 @@
       "sha256": "1528fcb79ec62922a9a6afd343b9945e72e700bbd22fc46814284a492122a980"
     },
     "comic_retained_pack_parent.py": {
-      "sha256": "bb0c2223eb0152e4f75731747007b42274ee02d1af7feb07bee0035edd5396f1"
+      "sha256": "6723df6f87934cebb8f6a0ff2d8c1d5cd60f0f38e0f5840aaff55047ef30d679"
     },
     "comic_terminal_observation_producer.py": {
       "sha256": "e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da"
@@ -499,7 +499,7 @@
       "sha256": "9e016fa2dacd07b4e17eb4cb3bb020946369cecd0a07c1d57d2655c9cd84a793"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "fcfc335c28b3d91b2eaaf6a654dc593284bf42dcb13148e0f6e8bcd87922fe3e"
+      "sha256": "d4d9cbdc8e15d72896407133fb04ddc8a5a4348d6a6300a6f2d339bfab0e584d"
     },
     "genuine_active_inputs.py": {
       "sha256": "070b3224444100c353cda6b4219f692916a1c0df986136edff356fce02e8bc30"
@@ -544,7 +544,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "49b0fd061b751f05989c2976714cd031c70091111b82e04938a7778f737ad749"
+      "sha256": "0b44a53adb93d3d6db46d9f215c7ae182763c75cd87e21fec3d937cce187835d"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -823,7 +823,7 @@
       "sha256": "90e5198251891de031290055fb86d42f309b93fb9b1e0bd1a682f535bd6de419"
     },
     "test_retained_pack_terminal_sql.py": {
-      "sha256": "dd23a023bda5cef3ead1d18356f46bce0a8edeb6e9cc687539112ffbe6c712fb"
+      "sha256": "3546887bfbb47ae7c5e259d4c67a5c60fb69380b55f82be1915d95144211f9d4"
     },
     "test_terminal_observation_producer.py": {
       "sha256": "cb79c47fe39fa7f01ead3b1dc06053558788890ba946ed06716ff9a3a72c273e"

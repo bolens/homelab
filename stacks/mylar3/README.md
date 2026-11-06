@@ -1572,6 +1572,12 @@ original state without reconstructing a mutation capability.
 `archive_repair_rollback=1` advertises code availability; it does not confirm
 reader indexing, ordinary import or live repair acceptance.
 
+The retained Root route uses transition v2 and terminal artifact v3. Matching
+Native, Worker and Root consumers are required. Complete SQL preimages and
+successors remain independently checked; canonical commitments remove duplicate
+models from bounded wire payloads. See the
+[retained contract](config/reader_recovery/CONTRACT-retained-pack.md).
+
 `publication_retained_delivery.py` is installed but disabled. It can create a fresh, bounded acceptance of a preserved existing target after an actual catalog event; it never creates a historical ordinary import acknowledgement. Current evidence is bound to the producing process. The source adds disabled primary-key POST `retainedDeliveryFinalize` and `retainedDeliveryStatus` hooks, with strict ordinary-purpose admission and typed response closure after serialization and writer release. Restart provenance, worker receipt consumption and matching installed semantic acceptance remain unfinished. It grants no placement, cleanup, Wanted-state or reader-index rights.
 
 Selected pack reports derive the member's complete current catalog owner,
