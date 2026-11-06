@@ -12,6 +12,15 @@ import test_retained_pack_composed as base
 import comic_retained_pack_parent as parent
 import comic_retained_pack_backup as backup
 
+class PauseStreamDouble:
+    """Explicit event-transport double; real pipe framing has separate tests."""
+    def __init__(self,runtime):self.events=();self.closed=False;self.origin=object()
+    def expect(self,action,window,deadline,original=None):self.events+=((action,window[0],b'fixture'),)
+    def paused(self,original=None):
+        if self.events!=((self.events[0] if self.events else None),) or self.events[0][0]!='pause':raise ValueError('native-event-foreign-transition')
+    def finish(self,original=None):self.closed=True
+
+
 class Preproof(base.Composed):
  # Do not inherit the predecessor test counts; these tests extend its endpoint fixture only.
  def run_barrier(self,lose=False,foreign=False):
@@ -54,7 +63,7 @@ class Preproof(base.Composed):
   path=out/'conversation.json';path.write_bytes(backup.encode(body));path.chmod(0o600)
   pref=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=list(backup.nine(os.lstat(path))))
   own=Path(parent.__file__).absolute();sref=dict(path=str(own),sha256=hashlib.sha256(own.read_bytes()).hexdigest(),signature9=list(backup.nine(os.lstat(own))))
-  with patch.object(parent.ConfiguredRuntime,'command',engine),patch.multiple(parent,ENABLED=True,PRIMITIVES_SOURCE_SHA=pin):
+  with patch.object(parent.ConfiguredRuntime,'command',engine),patch.object(parent,'_NativePauseEvents',PauseStreamDouble),patch.multiple(parent,ENABLED=True,PRIMITIVES_SOURCE_SHA=pin):
    runtime=parent.ConfiguredRuntime.observe(ids);runtime.quiesce()
    # Source-fixture selected process identity; this is not a protected mount/image proof.
    states[selected]=dict(Running=True,Paused=False,Pid=proc.pid,StartedAt='actual-fixture-child',Status='running')

@@ -39,6 +39,93 @@ class Custody(unittest.TestCase):
     def copy(self):
         return backup.copy_and_verify(self.scopes, self.root / 'copies', self.primitives, self.pin)
 
+    def test_verified_copies_close_without_reopening_payloads_or_SQL(self):
+        original=backup.os.open;calls=[]
+        def observed(*args,**kwargs):
+            calls.append(args[0]);return original(*args,**kwargs)
+        with patch.object(backup.os,'open',side_effect=observed):
+            held=self.copy();before=len(calls)
+            for _ in range(3):held.close();held.close_copies()
+            self.assertEqual(len(calls),before)
+        target=self.root/'copies/restore/native_config/payload'
+        target.write_bytes(b'changed payload')
+        with self.assertRaises(ValueError):held.close_copies()
+
+    def test_discovered_SQLite_count_comes_from_the_closed_file_census(self):
+        archive=Path(self.scopes[1]['root'])/'retained-history';archive.mkdir()
+        for index in range(17):
+            with closing(sqlite3.connect(archive/(str(index)+'.sqlite'))) as db:
+                db.execute('CREATE TABLE preserved(value TEXT)');db.commit()
+        held=self.copy();row=backup._OBS[held]
+        self.assertEqual(len(row['databases']),20)
+        self.assertEqual(len(row['required']),3)
+        self.assertEqual(row['databases']['worker_state:retained-history/16.sqlite']['tables']['preserved']['rows'],0)
+        held.close();held.close_copies()
+
+    def test_current_census_reuses_only_unchanged_original_hashes(self):
+        held=self.copy();opening=os.open;reads=[]
+        def observed(path,*args,**kwargs):
+            reads.append(str(path));return opening(path,*args,**kwargs)
+        payload=Path(self.scopes[1]['root'])/'payload'
+        with patch.object(os,'open',side_effect=observed):
+            original,measured=held.current_scopes()
+            self.assertNotIn(str(payload),reads)
+            self.assertEqual(next(r for r in measured['worker_state']if r['path']=='payload')['sha256'],hashlib.sha256(b'original').hexdigest())
+            payload.write_bytes(b'changed');reads.clear()
+            _,current=held.current_scopes()
+            self.assertIn(str(payload),reads)
+            self.assertEqual(next(r for r in current['worker_state']if r['path']=='payload')['sha256'],hashlib.sha256(b'changed').hexdigest())
+        self.assertEqual(next(r for r in original['source_scopes'][1]['records']if r['path']=='payload')['sha256'],hashlib.sha256(b'original').hexdigest())
+        held.close_copies()
+        with self.assertRaises(ValueError):held.close()
+
+    def test_current_hash_reuse_cannot_adopt_transient_registry_rebase(self):
+        held=self.copy();row=backup._OBS[held]['source_scopes'][1]['records']
+        payload=next(value for value in row if value['path']=='payload');original_hash=payload['sha256']
+        snapshot=backup.snapshot;project=backup._projection;fired=[]
+        def changed(*args,**kwargs):
+            result=snapshot(*args,**kwargs);payload['sha256']='f'*64;fired.append(True);return result
+        def restored(value):
+            if type(value)is tuple and len(value)==2 and type(value[1])is dict and 'worker_state'in value[1]:payload['sha256']=original_hash
+            return project(value)
+        try:
+            with patch.object(backup,'snapshot',changed),patch.object(backup,'_projection',restored):
+                _,current=held.current_scopes()
+            self.assertTrue(fired)
+            self.assertEqual(next(value for value in current['worker_state']if value['path']=='payload')['sha256'],original_hash)
+        finally:payload['sha256']=original_hash
+
+    def test_current_census_detects_new_file_without_replacing_baseline(self):
+        held=self.copy();new=Path(self.scopes[1]['root'])/'new';new.write_bytes(b'new')
+        original,current=held.current_scopes()
+        self.assertEqual(next(r for r in current['worker_state']if r['path']=='new')['sha256'],hashlib.sha256(b'new').hexdigest())
+        self.assertNotIn('new',{r['path']for r in original['source_scopes'][1]['records']})
+        held.close_copies()
+
+    def test_current_census_cannot_outlive_caller_phase_or_original_copy(self):
+        held=self.copy()
+        with self.assertRaisesRegex(ValueError,'current-original-deadline'):held.current_scopes(deadline=0)
+        target=self.root/'copies/restore/native_config/payload';target.write_bytes(b'foreign')
+        with self.assertRaises(ValueError):held.current_scopes()
+
+    def test_original_caller_deadline_refuses_before_output(self):
+        with self.assertRaisesRegex(ValueError,'original-deadline'):
+            backup.copy_and_verify(self.scopes,self.root/'copies',self.primitives,self.pin,deadline=0)
+        self.assertFalse((self.root/'copies').exists())
+
+    def test_restore_clone_space_keeps_logical_and_scratch_budgets(self):
+        frame,total=backup.snapshot([Path(row['root']) for row in self.scopes],source_links=True)
+        ordinary=backup.required_space(total,frame)
+        cloned=backup.required_space(total,frame,reflink_restore=True)
+        self.assertEqual(ordinary-cloned,total)
+        largest=max(z[2] for _,z in frame[0] if z[5]&0o170000==0o100000)
+        self.assertGreaterEqual(cloned,total+4*largest+2*1024**2)
+
+    def test_copy_attribute_change_still_refuses_without_content_rehash(self):
+        held=self.copy();target=self.root/'copies/restore/native_config/payload'
+        target.chmod(0o600 if stat.S_IMODE(target.stat().st_mode)!=0o600 else 0o400)
+        with self.assertRaises(ValueError):held.close_copies()
+
     def test_config_symlink_preserved_without_following_external_target(self):
         outside=self.root/'outside';outside.write_bytes(b'preserve outside scope')
         alias=Path(self.scopes[0]['root'])/'font-alias';alias.symlink_to(outside)
@@ -230,6 +317,66 @@ class Custody(unittest.TestCase):
         self.assertTrue(fired)
 
 
+
+
+class OriginalDeadline(unittest.TestCase):
+    def setUp(self):
+        import comic_reader_backup_primitives as primitive
+        self.p=primitive
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.root.chmod(0o700)
+
+    def test_attribute_batch_refuses_reader_rebinding_before_next_leaf(self):
+        path=self.root/'one';path.write_bytes(b'original')
+        original=self.p.attrs;listing=os.listxattr;fired=[]
+        def changed(*args,**kwargs):
+            if not fired:self.p.attrs=lambda path: {};fired.append(True)
+            return listing(*args,**kwargs)
+        try:
+            with patch.object(os,'listxattr',changed),self.assertRaisesRegex(self.p.Held,'attributes-original-reader'):
+                self.p.attributes_many((path,path))
+        finally:self.p.attrs=original
+        self.assertTrue(fired)
+
+    def test_expired_hash_refuses_before_open(self):
+        path=self.root/'source';path.write_bytes(b'preserve')
+        with patch.object(self.p.os,'open') as opening:
+            with self.assertRaisesRegex(self.p.Held,'original-deadline'):self.p.hash_file(path,deadline=0)
+        opening.assert_not_called()
+
+    def test_copy_stream_checks_original_deadline_between_chunks(self):
+        import io
+        source=io.BytesIO(b'a'*(2*1024**2));target=io.BytesIO()
+        with patch.object(self.p.time,'monotonic',side_effect=[1,1,3]):
+            with self.assertRaisesRegex(self.p.Held,'original-deadline'):self.p.copy_stream(source,target,2)
+        self.assertEqual(len(target.getvalue()),1024**2)
+
+    def test_expired_database_refuses_before_scratch_or_hash(self):
+        path=self.root/'database.sqlite';path.write_bytes(b'preserve')
+        with patch.object(self.p.tempfile,'TemporaryDirectory') as scratch:
+            with self.assertRaisesRegex(self.p.Held,'original-deadline'):self.p.database(path,deadline=0)
+        scratch.assert_not_called();self.assertEqual(path.read_bytes(),b'preserve')
+
+    def test_nonfinite_deadline_is_not_execution_authority(self):
+        for deadline in (float('nan'),float('inf'),True):
+            with self.subTest(deadline=deadline),self.assertRaisesRegex(self.p.Held,'original-deadline'):
+                self.p.check_deadline(deadline)
+
+    def test_restore_clone_failure_never_streams_fallback(self):
+        import errno
+        source=self.root/'source';source.write_bytes(b'original')
+        rows,_=self.p.inventory(source,'file')
+        with patch.object(self.p.fcntl,'ioctl',side_effect=OSError(errno.EOPNOTSUPP,'unsupported')):
+            with self.assertRaises(OSError):self.p.copy_scope(source,self.root/'target',rows,reflink=True)
+        self.assertEqual((self.root/'target').read_bytes(),b'')
+        self.assertEqual(source.read_bytes(),b'original')
+
+    def test_clone_probe_refuses_foreign_creation_error(self):
+        import errno
+        before=tuple(self.root.iterdir())
+        with patch.object(self.p.fcntl,'ioctl',side_effect=OSError(errno.EIO,'failure')):
+            with self.assertRaises(OSError):self.p.qualify_reflink_restore(self.root)
+        self.assertEqual(tuple(self.root.iterdir()),before)
 
 
 class NfsAclTransport(unittest.TestCase):

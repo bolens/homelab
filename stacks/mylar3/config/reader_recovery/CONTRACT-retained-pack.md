@@ -30,6 +30,36 @@ transport predicate. Original physical full9 witnesses still detect any later AC
 presence or byte changes. Restoration to the source filesystem must reproduce the
 original attribute map, including absence of this server-derived ACL.
 
+Both detached copies receive complete content and SQLite verification before
+an in-process observation is published. Later checks reuse that proof only
+while its original file identities, metadata, attributes, namespaces, source
+code, owner, registry and deadline remain exact. Saved JSON cannot restore this
+proof. Post-transaction application and SQL observations remain fresh.
+
+The configured Root path may stream the live scopes into an independent
+backup, then reflink that immutable backup into the restore tree on the same
+destination filesystem. It first qualifies the actual private destination's
+creation policy before quiescence. A failed clone holds without a streaming
+fallback after reduced-space admission. Both copies have separate single-link
+inodes and COW isolation; they share a storage failure domain. Capacity includes
+one materialized copy only when qualified, the unchanged reserve and bounded
+SQLite scratch. The logical two-copy byte ceiling remains unchanged.
+
+Current terminal inventories still measure every name, original file identity
+and attribute. They reuse a source hash only from that same sealed backup when
+its full9 and attributes remain identical. New and changed files are hashed
+again, and SQL models remain fresh. The authenticated post-backup phase keeps
+its existing 180-second deadline, bounded by the original total lifetime.
+
+Native pause cleanup retains a live, bounded lifecycle event stream from before
+pause through its own unpause. Its original pause event must be observed before
+Reader stop; a late Docker history count cannot replace it. EOF, unexpected
+transitions, incomplete records and original process/FD drift hold. Only the
+confirmed own Native pause may be released under a separate bounded cleanup
+attempt after execution expiry. This does not renew execution authority or
+resume the Reader. The directly captured observer is reaped independently of
+runtime-custody refusal; unknown command acknowledgements are never replayed.
+
 ## Root runtime input
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:
@@ -65,9 +95,9 @@ Phases are initialized → backup-verified → released → terminal-result → 
 
 ## Exact bounds
 
-Total parent/control lifecycle3600s; waiting and backup1800s; frame65536 bytes; one selected member; three exact state roles; <=16 required/discovered SQLite pairs; <=100000 tree nodes; <=512GiB aggregate snapshot bytes. The copied backup+restore aggregate uses the same 512GiB bound, so large source scopes may refuse at the stricter two-copy capacity. Control refs/config/map <=1MiB, installed worker source file <=8MiB, map <=128 modules, mount count<=32, configured networks<=4, subprocess result<=4MiB, native observation<=1MiB/45s. Blocking ordinary file I/O is cooperatively checked at phase boundaries; these deadlines are not a filesystem cancellation claim. Existing action90s is unchanged and begins only at actual select after backup.
+Total parent/control lifecycle3600s; waiting and backup1800s; frame65536 bytes; one selected member; three exact state roles; <=16 explicitly required SQLite pairs; every discovered SQLite file is bounded by the exact captured file census; <=100000 tree nodes; <=512GiB aggregate snapshot bytes. The copied backup+restore aggregate uses the same 512GiB bound, so large source scopes may refuse at the stricter two-copy capacity. Control refs/config/map <=1MiB, installed worker source file <=8MiB, map <=128 modules, mount count<=32, configured networks<=4, subprocess result<=4MiB, native observation<=1MiB/45s. Enumeration, file chunks, hashing and SQLite work check the original minimum deadline; blocking kernel I/O is not forcibly cancelled by these cooperative checks. Existing action90s is unchanged and begins only at actual select after backup.
 
-These are refusal ceilings tested on actual disposable state, not measured live baseline capacity. Before activation, root must independently establish original real state byte/node/database totals and free space for two full state copies. The known large media-library size is not a reason to copy/hash it in this state backup.
+These are refusal ceilings tested on actual disposable state, not measured live baseline capacity. Before activation, root must independently establish original real state byte/node/database totals and free space for both verified state copies, including their actual storage policy and SQLite scratch. The known large media-library size is not a reason to copy/hash it in this state backup.
 
 ## Activation graph and remaining gates
 

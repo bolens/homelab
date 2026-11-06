@@ -559,7 +559,7 @@
       "already_installed": false,
       "filename": "publication_reader_admission.py",
       "owned_predecessor_sha256": "43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071",
-      "sha256": "2f2e0fdf341e898946f3902bbe8d0a31c5e99a8b9801f1face016fb04aaed6a0"
+      "sha256": "253f254bb6242bfed99a091bd123052f40bd04ac82eba7937f035081fca641c5"
     },
     "publication_reader_disk": {
       "already_installed": false,

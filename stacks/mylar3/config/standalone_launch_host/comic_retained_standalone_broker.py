@@ -9,6 +9,7 @@ import select
 import sys
 import subprocess
 import threading
+import tempfile
 import time
 import weakref
 
@@ -552,6 +553,20 @@ def _pack_existing_target(review,request,member):
     return text
 
 
+def _pack_backup_resources(primitive,helper,current,bytes_needed,nonce):
+    parent9=nine(os.lstat(BACKUP_PARENT))
+    if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
+    clone=primitive.qualify_reflink_restore(BACKUP_PARENT)
+    if tuple(clone['parent5'])!=five(os.lstat(BACKUP_PARENT)):raise Held('fixed-pack-clone-parent')
+    # Probe creation changes the parent's timestamps; bind its final original.
+    parent9=nine(os.lstat(BACKUP_PARENT))
+    free=os.statvfs(BACKUP_PARENT);required=helper.required_space(bytes_needed,current,reflink_restore=clone['reflink_restore'])
+    scratch=os.statvfs(tempfile.gettempdir())
+    if scratch.f_bavail*scratch.f_frsize<helper.scratch_space(current):raise Held('fixed-pack-SQL-scratch-capacity')
+    if free.f_bavail*free.f_frsize<required:raise Held('fixed-pack-backup-capacity')
+    return dict(backup_parent9=parent9,required=required,reflink_restore=clone['reflink_restore'])
+
+
 def _pack_preflight(installation,runtime,boot,nonce):
     """Bind actual configured scopes and existing receipts before any launch."""
     row=installation.close();parent=owning_parent(row);worker=runtime.baseline['worker']
@@ -626,15 +641,12 @@ def _pack_preflight(installation,runtime,boot,nonce):
     if target not in streams:raise Held('fixed-pack-covered-current-target')
     helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes],source_links=True)
     if 2*bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-two-copy-byte-bound')
-    parent9=nine(os.lstat(BACKUP_PARENT))
-    if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
-    free=os.statvfs(BACKUP_PARENT);required=2*bytes_needed+(bytes_needed+19)//20+1024**2
-    if free.f_bavail*free.f_frsize<required:raise Held('fixed-pack-backup-capacity')
+    resources=_pack_backup_resources(row['modules']['comic_reader_backup_primitives.py'],helper,current,bytes_needed,nonce)
     parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
     return dict(scopes=scopes,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
                 worker_state=str(state),state_child=state_child,native_data=str(data),native_config=str(native_root),
                 config_dir=config_dir,source=source,target=target,capture_source=capture,roots=roots,streams=sorted(set(streams)),
-                mapping=mapping,review=review,backup_parent9=parent9,required=required)
+                mapping=mapping,review=review,**resources)
 
 
 def launch_original(installation, input_ref, input_child):
@@ -1159,21 +1171,14 @@ def _send_stage(launch, sequence, kind, payload, *, exit_permission=False):
         parent._TERMINALS[runtime]=terminal;_EXITS[launch]=terminal
     else:_send_original(launch,packet)
     state['previous']=hashlib.sha256(state['previous']+data+signature).digest();state['sequence']=sequence
-    if sequence==2 and purpose=='retained-standalone':state['deadline']=min(state['total_deadline'],time.monotonic()+180)
+    if sequence==2:state['deadline']=min(state['total_deadline'],time.monotonic()+180)
     _PHASES[launch]=phase_original(state)
     launch.close()
 
 
-def _pack_current_scopes(backup):
-    """Measure actual current trees through the original verified primitive."""
-    module=backup.__class__.__module__
-    helper=sys.modules[module]
-    c,seal=helper._original(backup);original=json.loads(seal[6]);measured={}
-    for scope in original['source_scopes']:
-        rows,_=helper._primitive_call(c['module'],seal[8],'inventory',Path(scope['path']),'tree')
-        measured[scope['name']]=rows
-    backup.close_copies();helper._original(backup)
-    return original,measured
+def _pack_current_scopes(backup,*,deadline=None):
+    """Current metadata plus hashes bound to the same verified factory original."""
+    return backup.current_scopes(deadline=deadline)
 
 
 def _pack_scope_successor(before,after,*,changed,new_files,new_directories):
@@ -1288,7 +1293,7 @@ def _pack_terminal(launch,backup,media,header,artifact,reference):
     state=launch.close();parent=owning_parent(state['installation'].close());plan=state['preflight'];request=state['boot']['request']
     body,frame=parent.decode_terminal_artifact(artifact,reference,header,request)
     reply=document(body['reply_text'].encode());transition=reply['data']['transition'];token=reply['data']['token']
-    original,measured=_pack_current_scopes(backup)
+    original,measured=_pack_current_scopes(backup,deadline=state['deadline'])
     data=Path(plan['native_data']);native_root=Path(plan['native_config'])
     workflow_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'workflow.sqlite',state['deadline'])
     catalog_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'mylar.db',state['deadline'])
@@ -1340,7 +1345,7 @@ def _pack_terminal(launch,backup,media,header,artifact,reference):
     reader_old=next(s['records'] for s in original['source_scopes'] if s['name']=='reader_config')
     _pack_scope_successor(reader_old,measured['reader_config'],changed={},new_files=set(),new_directories=set())
     # Final complete source/name closure follows SQL, decoding and semantic work.
-    fresh_original,fresh=_pack_current_scopes(backup)
+    fresh_original,fresh=_pack_current_scopes(backup,deadline=state['deadline'])
     if canonical(fresh_original)!=canonical(original) or canonical(fresh)!=canonical(measured):raise Held('fixed-pack-terminal-physical-drift')
     media.close();state['native_image'].close();state['worker_image'].close();launch.close()
     return dict(workflow_sha256=sha(canonical(workflow)),catalog_sha256=sha(canonical(catalog)),record_sha256=reply['data']['record_sha256'],token=token)
@@ -1368,16 +1373,22 @@ def _run_pack_original(launch):
     if any(canonical(media.data()[key])!=canonical(metadata[key]) for key in ('files','nodes','names')):raise Held('fixed-pack-original-media-census')
     if media.data()['hashes'].get(plan['target'])!=request['target_sha256']:raise Held('fixed-pack-current-target-content')
     first.close();media.close();launch.close()
-    state['runtime'].quiesce()
     helper=state['installation'].close()['modules']['comic_retained_pack_backup.py']
     primitive=PACKAGE/'comic_reader_backup_primitives.py'
+    primary=None;observer=None
     try:
-        backup=helper.copy_and_verify(plan['scopes'],Path(plan['output']),primitive,state['installation'].close()['document']['host_sources'][primitive.name])
+        if nine(os.lstat(BACKUP_PARENT))!=tuple(plan['backup_parent9']):raise Held('fixed-pack-original-backup-parent')
+        observer=state['runtime'].quiesce()
+        backup=helper.copy_and_verify(plan['scopes'],Path(plan['output']),primitive,state['installation'].close()['document']['host_sources'][primitive.name],
+            deadline=state['deadline'],reflink_restore=plan['reflink_restore'])
         summary=backup.close();media.close()
+    except BaseException as error:
+        primary=error
+        raise
     finally:
-        # Only this already-owned pause may be released. Reader resumption still
-        # requires the complete terminal proof, including after backup failure.
-        state['runtime'].open_native()
+        # This narrow cleanup can release only our confirmed Native pause. It
+        # cannot renew execution authority or resume the Reader after failure.
+        parent.finish_owned_pause(state['runtime'],observer,primary)
     launch.close()
     _send_stage(launch,2,'backup-ready',dict(kind='verified-retained-backup-v1',backup_digest=summary['digest'],
         initialized_sha256=sha(canonical(initial['payload'])),pack_id=request['pack_id'],member_id=request['member_id']))
@@ -1453,7 +1464,7 @@ def run_original(launch):
     vector=parent.verify_initialized(initialized,boot,mounts)
     if parent.mapped_host(mounts,vector['source'])!=state['preflight']['source'] or parent.mapped_host(mounts,vector['target'])!=state['preflight']['target']:raise Held('fixed-original-preflight-owner-path')
     helper=state['installation'].close()['modules']['comic_retained_standalone_backup.py']
-    backup=helper.copy_and_verify(state['preflight']['scopes'],Path(state['preflight']['output']))
+    backup=helper.copy_and_verify(state['preflight']['scopes'],Path(state['preflight']['output']),deadline=state['deadline'])
     proof=backup.close();refs=[boot['config_ref'],boot['source_map_ref']]
     for key in ('source','target'):
         path=vector[key];reference=dict(path=path,sha256=vector['hashes'][path],signature9=vector['files'][path])

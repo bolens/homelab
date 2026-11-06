@@ -6,10 +6,12 @@ Usage: helper backup --scope-file PRIVATE_JSON
 No source/output paths, rows, configuration or exceptions are printed.
 """
 import argparse
-from contextlib import closing
+from contextlib import closing, ExitStack
 import fcntl
 import hashlib
 import json
+import errno
+import math
 import os
 from pathlib import Path
 import re
@@ -76,10 +78,12 @@ def digest(value):
                                     ensure_ascii=False, allow_nan=False).encode()).hexdigest()
 
 
-def stamp(path):
-    s = path.lstat()
+def stat_signature(s):
     return [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode,s.st_uid,s.st_gid,s.st_nlink]
 
+
+def stamp(path):
+    return stat_signature(path.lstat())
 
 def ancestor_identity(path):
     info = path.lstat()
@@ -126,18 +130,61 @@ def attrs(path):
     return dict(mode=stat.S_IMODE(s.st_mode),uid=s.st_uid,gid=s.st_gid,mtime_ns=s.st_mtime_ns,xattrs=values)
 
 
-def hash_file(path):
+def check_deadline(deadline):
+    if deadline is not None and (type(deadline) not in (int, float)
+            or not math.isfinite(deadline) or time.monotonic() >= deadline):
+        raise Held('original-deadline')
+
+
+def copy_stream(incoming, outgoing, deadline=None):
+    while True:
+        check_deadline(deadline)
+        block = incoming.read(1024**2)
+        check_deadline(deadline)
+        if not block:break
+        if outgoing.write(block) != len(block):raise Held('copy-short-write')
+    outgoing.flush()
+    check_deadline(deadline)
+
+
+def attributes_many(paths, *, deadline=None):
+    """Use one captured metadata reader; do not revalidate unrelated functions per leaf."""
+    check_deadline(deadline)
+    reader=attrs;code=reader.__code__;defaults=reader.__defaults__;keywords=reader.__kwdefaults__
+    result=[]
+    for path in paths:
+        check_deadline(deadline)
+        if (attrs is not reader or reader.__code__ is not code or reader.__defaults__ is not defaults
+                or reader.__kwdefaults__ is not keywords):raise Held('attributes-original-reader')
+        value=reader(Path(path))
+        if (attrs is not reader or reader.__code__ is not code or reader.__defaults__ is not defaults
+                or reader.__kwdefaults__ is not keywords):raise Held('attributes-original-reader')
+        result.append((str(path),value))
+    check_deadline(deadline)
+    return tuple(result)
+
+
+def hash_file(path, *, deadline=None):
+    check_deadline(deadline)
     before = stamp(path)
     fd = os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     with os.fdopen(fd,'rb') as stream:
-        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):raise Held('special-file')
+        opened=os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode) or stat_signature(opened)!=before:raise Held('hash-original-FD')
         result = hashlib.sha256()
-        for block in iter(lambda:stream.read(1024**2),b''):result.update(block)
+        while True:
+            check_deadline(deadline)
+            block = stream.read(1024**2)
+            check_deadline(deadline)
+            if not block:break
+            result.update(block)
+        if stat_signature(os.fstat(stream.fileno()))!=before:raise Held('hash-original-FD')
     if stamp(path) != before:raise Held('source-changed')
     return result.hexdigest()
 
 
-def inventory(root, kind, *, detached=False):
+def inventory(root, kind, *, detached=False, deadline=None):
+    check_deadline(deadline)
     if kind not in ('tree','file'):raise Held('kind')
     before = stamp(root)
     if not (stat.S_ISDIR(before[5]) if kind == 'tree' else stat.S_ISREG(before[5])):
@@ -146,18 +193,20 @@ def inventory(root, kind, *, detached=False):
     if kind == 'tree':
         def failed(_):raise Held('walk')
         for directory, folders, files in os.walk(root,followlinks=False,onerror=failed):
+            check_deadline(deadline)
             for name in list(folders):
                 if (Path(directory)/name).is_symlink():folders.remove(name);files.append(name)
             nodes.extend(Path(directory)/name for name in folders+files)
             if len(nodes) > MAX_FILES:raise Held('bounds')
     rows = [];total = 0
     for node in sorted(nodes):
+        check_deadline(deadline)
         initial = stamp(node);mode = initial[5]
         if stat.S_ISREG(mode):
             if initial[8] < 1 or (detached and initial[8] != 1):raise Held('physical-alias')
             total += initial[2]
             if total > MAX_BYTES:raise Held('bounds')
-            form, sha, link = 'file',hash_file(node),None
+            form, sha, link = 'file',hash_file(node, deadline=deadline),None
         elif stat.S_ISDIR(mode):form,sha,link = 'directory',None,None
         elif stat.S_ISLNK(mode):form,sha,link = 'symlink',None,os.readlink(node)
         else:raise Held('special-file')
@@ -236,25 +285,84 @@ def apply_attrs(path, value):
     if not copied_attributes_match(attrs(path), value, kind):raise Held('copy-attributes')
 
 
-def sync(path):
+def sync(path, *, deadline=None):
+    check_deadline(deadline)
     fd = os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
     try:os.fsync(fd)
     finally:os.close(fd)
+    check_deadline(deadline)
 
 
-def copy_scope(source, target, rows):
+def qualify_reflink_restore(parent):
+    """Qualify the creation policy used by both private destination trees.
+
+    This is a resource observation, never backup or execution authority. Live
+    sources are streamed independently; only the immutable backup is cloned.
+    """
+    parent = private(parent, directory=True)
+    guard = capture_ownership([parent])
+    original = ancestor_identity(parent)
+    supported = False
+    with tempfile.TemporaryDirectory(prefix='.restore-clone-probe-', dir=parent) as work:
+        source = Path(work)/'backup';target = Path(work)/'restore'
+        payload = os.urandom(64*1024)
+        source.write_bytes(payload);source.chmod(0o600)
+        before = stamp(source)
+        incoming = os.open(source, os.O_RDONLY|os.O_NOFOLLOW)
+        try:
+            outgoing = os.open(target, os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW, 0o600)
+            try:
+                try:fcntl.ioctl(outgoing, 0x40049409, incoming)  # Linux FICLONE
+                except OSError as error:
+                    if error.errno not in (errno.EOPNOTSUPP, errno.EXDEV, errno.EINVAL, errno.ENOTTY):raise
+                else:
+                    actual = os.fstat(outgoing)
+                    if (not stat.S_ISREG(actual.st_mode) or actual.st_nlink != 1
+                            or (actual.st_dev, actual.st_ino) == tuple(before[:2])):
+                        raise Held('restore-clone-detached')
+                    os.fsync(outgoing);supported = True
+            finally:os.close(outgoing)
+        finally:os.close(incoming)
+        if supported:
+            if target.read_bytes() != payload:raise Held('restore-clone-content')
+            with target.open('r+b') as stream:stream.write(b'changed')
+            if source.read_bytes() != payload:raise Held('restore-clone-not-isolated')
+        if stamp(source) != before:raise Held('restore-clone-source-drift')
+    check_ownership(guard)
+    if ancestor_identity(parent) != original:raise Held('restore-clone-parent-drift')
+    return dict(reflink_restore=supported, parent=str(parent), parent5=original)
+
+
+def copy_scope(source, target, rows, *, deadline=None, reflink=False):
+    if type(reflink) is not bool:raise Held('copy-mode')
     for row in sorted(rows,key=lambda value:(len(Path(value['path']).parts),value['path'])):
+        check_deadline(deadline)
         node = source if row['path'] == '.' else source/row['path']
         dest = target if row['path'] == '.' else target/row['path']
         if row['kind'] == 'directory':dest.mkdir(mode=0o700)
         elif row['kind'] == 'symlink':os.symlink(row['link'],dest)
         else:
-            fd = os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-            incoming = os.open(node,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
-            with os.fdopen(fd,'wb') as out, os.fdopen(incoming,'rb') as stream:
-                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):raise Held('special-file')
-                shutil.copyfileobj(stream,out,1024**2);out.flush()
+            with ExitStack() as resources:
+                out = resources.enter_context(os.fdopen(os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb'))
+                stream = resources.enter_context(os.fdopen(os.open(node,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK),'rb'))
+                original = stamp(node)
+                actual = os.fstat(stream.fileno())
+                if (not stat.S_ISREG(actual.st_mode) or
+                        [actual.st_dev,actual.st_ino,actual.st_size,actual.st_mtime_ns,actual.st_ctime_ns,
+                         actual.st_mode,actual.st_uid,actual.st_gid,actual.st_nlink] != original):
+                    raise Held('copy-source-FD')
+                if reflink:
+                    # The destination is exclusive and empty. Failure is a hold;
+                    # reduced-space admission never falls back to streaming.
+                    fcntl.ioctl(out.fileno(), 0x40049409, stream.fileno())
+                    copied = os.fstat(out.fileno())
+                    if copied.st_size!=original[2] or copied.st_nlink != 1 or (copied.st_dev,copied.st_ino) == tuple(original[:2]):
+                        raise Held('copy-clone-detached')
+                else:copy_stream(stream, out, deadline)
+                check_deadline(deadline)
+                if stamp(node) != original or stat_signature(os.fstat(stream.fileno()))!=original:raise Held('copy-source-drift')
     for row in sorted(rows,key=lambda value:len(Path(value['path']).parts),reverse=True):
+        check_deadline(deadline)
         dest = target if row['path'] == '.' else target/row['path']
         apply_attrs(dest,row['attributes'])
     # Complete data and metadata before the final durability pass. Each file's
@@ -262,16 +370,17 @@ def copy_scope(source, target, rows):
     # Children precede directories, and the containing parent is durable last.
     for row in sorted(rows,key=lambda value:len(Path(value['path']).parts),reverse=True):
         dest = target if row['path'] == '.' else target/row['path']
-        if row['kind'] != 'symlink':sync(dest)
-    sync(target.parent)
+        if row['kind'] != 'symlink':sync(dest, deadline=deadline)
+    sync(target.parent, deadline=deadline)
 
 
-def wal_header(path, database_path):
+def wal_header(path, database_path, *, deadline=None):
     """Validate the committed readable WAL prefix; retain stale reset frames.
 
     SQLite fileformat2.html §§4.1–4.4 specify salts/checksums and stale tails.
     Matching-salt corruption, partial frames or unknown format remains held.
     """
+    check_deadline(deadline)
     size = path.stat().st_size
     if size == 0:return dict(valid_frames=0,committed_frames=0,stale_frames=0)
     with path.open('rb') as stream:
@@ -298,6 +407,7 @@ def wal_header(path, database_path):
         frames = (size-32)//(24+pagesize)
         if frames > 1000000:raise Held('database-bounds')
         for index in range(frames):
+            check_deadline(deadline)
             frame = stream.read(24);page = stream.read(pagesize)
             page_number,commit,s1,s2,a,b = struct.unpack('>6I',frame)
             if (s1,s2) != (salt1,salt2):
@@ -309,8 +419,11 @@ def wal_header(path, database_path):
         return dict(valid_frames=valid,committed_frames=committed,stale_frames=stale)
 
 
-def database(path):
+def database(path, *, deadline=None):
     """Only a detached temporary SQLite pair may perform WAL-index recovery."""
+    local_deadline = time.monotonic()+DEADLINE
+    deadline = local_deadline if deadline is None else min(deadline, local_deadline)
+    check_deadline(deadline)
     path = absolute(str(path))
     if os.path.lexists(str(path)+'-journal'):raise Held('rollback-journal-retained')
     companions = [Path(str(path)+suffix) for suffix in ('-wal','-shm')
@@ -322,18 +435,17 @@ def database(path):
     for source in sources:
         absolute(str(source));before=stamp(source)
         if not stat.S_ISREG(before[5]) or before[8] < 1:raise Held('database-companion')
-        states[source] = dict(stamp=before,sha256=hash_file(source))
+        states[source] = dict(stamp=before,sha256=hash_file(source, deadline=deadline))
     wal = next((item for item in companions if item.name.endswith('-wal')),None)
-    wal_proof = None if wal is None else wal_header(wal,path)
-    deadline = time.monotonic()+DEADLINE
+    wal_proof = None if wal is None else wal_header(wal,path,deadline=deadline)
     with tempfile.TemporaryDirectory(prefix='owned-publication-db-') as work:
         root = Path(work);root.chmod(0o700);isolated=root/path.name
         for source in sources:
             fd = os.open(source,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
             with os.fdopen(fd,'rb') as incoming,(root/source.name).open('xb') as target:
-                shutil.copyfileobj(incoming,target,1024**2)
+                copy_stream(incoming,target,deadline)
             (root/source.name).chmod(0o600)
-            if hash_file(root/source.name) != states[source]['sha256']:raise Held('database-copy-drift')
+            if hash_file(root/source.name,deadline=deadline) != states[source]['sha256']:raise Held('database-copy-drift')
         with closing(sqlite3.connect(isolated.as_uri()+'?mode=ro',uri=True)) as db:
             db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
             db.execute('PRAGMA query_only=ON')
@@ -344,6 +456,7 @@ def database(path):
                 quoted = '"'+name.replace('"','""')+'"'
                 hashes = []
                 for row in db.execute('SELECT * FROM '+quoted):
+                    check_deadline(deadline)
                     hashes.append(digest([dict(blob=item.hex()) if isinstance(item,bytes) else item for item in row]))
                     if len(hashes) > 1000000:raise Held('database-bounds')
                 tables[name] = dict(rows=len(hashes),digest=digest(sorted(hashes)))
@@ -351,28 +464,35 @@ def database(path):
     present = {str(Path(str(path)+suffix)) for suffix in ('-wal','-shm') if os.path.lexists(str(path)+suffix)}
     if present != expected or os.path.lexists(str(path)+'-journal'):raise Held('database-companion-drift')
     for source,before in states.items():
-        if stamp(source) != before['stamp'] or hash_file(source) != before['sha256']:raise Held('database-source-drift')
+        if stamp(source) != before['stamp'] or hash_file(source,deadline=deadline) != before['sha256']:raise Held('database-source-drift')
     return dict(schema=digest(schema),tables=tables,
                 companions={item.name[len(path.name):]:states[item]['sha256'] for item in companions},wal=wal_proof)
 
 
-def database_rows(scopes, required):
+def database_rows(scopes, required, *, deadline=None):
     result = {}
     for scope in scopes:
         source = Path(scope['path'])
+        declared = {row['path'] for row in scope['records'] if row['kind']=='file'}
         for row in scope['records']:
+            check_deadline(deadline)
             if row['kind'] != 'file':continue
             path = source if row['path'] == '.' else source/row['path']
-            with path.open('rb') as stream:is_db = stream.read(16) == b'SQLite format 3\0'
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+            try:
+                before=stat_signature(os.fstat(fd))
+                if not stat.S_ISREG(before[5]) or before!=row['stamp']:raise Held('database-header-original-FD')
+                is_db=os.read(fd,16)==b'SQLite format 3\0'
+                if stat_signature(os.fstat(fd))!=before or stamp(path)!=before:raise Held('database-header-original-FD')
+            finally:os.close(fd)
             key = scope['name']+':'+row['path']
             if is_db or key in required:
-                declared = {row['path'] for row in scope['records'] if row['kind']=='file'}
                 for suffix in ('-wal','-shm','-journal'):
                     sibling=Path(str(path)+suffix)
                     if os.path.lexists(sibling):
                         if scope['kind'] != 'tree' or str(sibling.relative_to(source)) not in declared:
                             raise Held('missing-database-companion-scope')
-                result[key] = database(path)
+                result[key] = database(path,deadline=deadline)
     if not set(required).issubset(result):raise Held('missing-database')
     return result
 

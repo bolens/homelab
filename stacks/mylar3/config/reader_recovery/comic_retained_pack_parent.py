@@ -30,9 +30,156 @@ _TERMINAL_ABSENT=object()
 _RUNTIME_ANCHORS=weakref.WeakKeyDictionary()
 _READER_RESUMES=weakref.WeakKeyDictionary()
 _QUIESCENCE_ATTEMPTS=weakref.WeakKeyDictionary()
+_NATIVE_PAUSES=weakref.WeakKeyDictionary()
+_NATIVE_RELEASES=weakref.WeakKeyDictionary()
+_NATIVE_EVENT_QUARANTINE=[]
 ANCHOR_NAMES=('installation-v1.json','inventory-v1.json','public-ed25519.der')
 ANCHOR_PREFIX=Path('/opt/mylar-publication-launch')
 ANCHOR_HOST=Path('/etc/mylar-publication-launch/child')
+
+
+class _NativePauseEvents:
+    """One finite pause interval on a live, lifecycle-filtered Docker stream.
+
+    The pause record acknowledges subscription before Reader stop. This is not
+    general Docker event gap detection: any unexpected transition, EOF, partial
+    checkpoint record or output overflow holds this one finite interval.
+    """
+    def __init__(self,runtime):
+        import subprocess
+        self.owner=(os.getpid(),threading.get_ident());self.cid=runtime.ids['native']
+        self.since=time.time_ns();self.events=();self.pending=b'';self.total=0;self.closed=False
+        filters=['--filter','container='+self.cid]
+        for action in ('pause','unpause','stop','kill','die','start','restart','destroy'):
+            filters.extend(('--filter','event='+action))
+        process=subprocess.Popen(['docker','events','--since',str(self.since/10**9),*filters,
+            '--format','{{json .}}'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,close_fds=True)
+        stream=process.stdout
+        self.process=process;self.stream=stream;self.origin=None
+        try:
+            fd=stream.fileno();identity=five(os.fstat(fd))
+            # Capture actual objects and descriptor before setup callbacks.
+            self.fd=fd;self.origin=(process,process.pid,stream,fd,identity,self.owner)
+            os.set_blocking(fd,False)
+        except BaseException as primary:
+            if self.origin is None:
+                # No initial FD witness: retain the stream without closing a
+                # possibly reused number, but reap only our captured process.
+                _NATIVE_EVENT_QUARANTINE.append(stream)
+                try:self._stop(process)
+                except BaseException as cleanup:raise primary from cleanup
+            else:
+                try:self.finish(self.origin)
+                except BaseException as cleanup:raise primary from cleanup
+            raise
+
+    @staticmethod
+    def _stop(process):
+        if process.poll() is None:process.terminate()
+        try:process.wait(timeout=2)
+        except __import__('subprocess').TimeoutExpired:process.kill();process.wait(timeout=2)
+
+    def check(self,original=None):
+        original=self.origin if original is None else original
+        need(type(original) is tuple and len(original)==6 and self.origin is original,
+             'native-event-original-custody')
+        process,pid,stream,fd,identity,owner=original
+        need((os.getpid(),threading.get_ident())==owner and not self.closed
+             and self.owner==owner and self.process is process and self.stream is stream
+             and process.stdout is stream and self.fd==fd and stream.fileno()==fd
+             and process.pid==pid and five(os.fstat(fd))==identity
+             and os.get_blocking(fd) is False and process.poll() is None,
+             'native-event-original-stream')
+
+    def drain(self,original=None):
+        self.check(original)
+        while True:
+            try:block=os.read(self.fd,65536)
+            except BlockingIOError:break
+            need(bool(block),'native-event-stream-EOF')
+            self.total+=len(block);need(self.total<=65536,'native-event-output-bound')
+            self.pending+=block
+            while b'\n' in self.pending:
+                line,self.pending=self.pending.split(b'\n',1)
+                event=json.loads(line);stamp=event.get('timeNano')
+                need(event.get('Type')=='container' and event.get('Actor',{}).get('ID')==self.cid
+                     and type(stamp) is int and stamp>=self.since,'native-event-original-record')
+                action=event.get('Action',event.get('status'))
+                expected='pause' if not self.events else 'unpause' if len(self.events)==1 else None
+                need(action==expected,'native-event-foreign-transition')
+                self.events+=((action,stamp,line),)
+        self.check(original)
+
+    def expect(self,action,window,deadline,original=None):
+        import select
+        count=1 if action=='pause' else 2
+        while True:
+            self.drain(original)
+            if len(self.events)>=count:
+                need(len(self.events)==count and not self.pending and self.events[-1][0]==action
+                     and window[0]<=self.events[-1][1]<=window[1],'native-event-command-window')
+                return self.events[-1]
+            left=deadline-time.monotonic();need(left>0,'native-event-original-deadline')
+            select.select([self.fd],[],[],min(left,1))
+
+    def paused(self,original=None):
+        self.drain(original)
+        need(len(self.events)==1 and self.events[0][0]=='pause' and not self.pending,
+             'native-event-original-paused-interval')
+
+    def finish(self,original=None):
+        original=self.origin if original is None else original
+        need(type(original) is tuple and len(original)==6,'native-event-cleanup-original')
+        process,pid,stream,fd,identity,owner=original
+        need((os.getpid(),threading.get_ident())==owner and process.pid==pid,
+             'native-event-cleanup-owner')
+        drift=(self.origin is not original or self.process is not process or self.stream is not stream or self.fd!=fd)
+        if self.closed:
+            need(not drift,'native-event-cleanup-field-drift');return
+        self.closed=True
+        primary=None
+        try:self._stop(process)
+        except BaseException as error:primary=error
+        try:
+            try:owned=stream.fileno()==fd and five(os.fstat(fd))==identity
+            except (OSError,ValueError):owned=False
+            if not owned:
+                _NATIVE_EVENT_QUARANTINE.append(stream)
+                raise ValueError('native-event-cleanup-FD-reused')
+            stream.close()
+            need(not drift,'native-event-cleanup-field-drift')
+        except BaseException as cleanup:
+            if primary is not None:raise primary from cleanup
+            raise
+        if primary is not None:raise primary
+
+
+def _runtime_binding(value):
+    """Original owner/registry custody, without granting execution after expiry."""
+    original=_RUNTIME_ANCHORS.get(value)
+    need(original is not None and original[0] is _RUNTIMES
+         and original[1] is _RUNTIMES.get(value) and original[2] is value.installed_anchors
+         and original[3] is _RUNTIME_ANCHORS and original[4] is _NATIVE_PAUSES
+         and original[5] is _NATIVE_RELEASES,'original-runtime-registry')
+    need((os.getpid(),threading.get_ident())==(value.pid,value.thread),'original-runtime-owner')
+    need(original[1]==encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,
+         thread=value.thread,deadline=value.deadline,started=value.started,
+         installed_anchors=value.installed_anchors)),'original-runtime-seal')
+    return original
+
+
+def finish_owned_pause(runtime,observer,primary=None):
+    """Independent cleanup of the directly captured observer, even on refusal."""
+    cleanup=None
+    try:runtime.release_owned_native_pause()
+    except BaseException as error:cleanup=error
+    try:
+        if observer is not None:observer[0].finish(observer[1])
+    except BaseException as error:
+        if cleanup is None:cleanup=error
+    if cleanup is not None:
+        if primary is not None:raise primary from cleanup
+        raise cleanup
 
 
 def _retained_sql_digest(value):
@@ -400,7 +547,7 @@ def initialized(value):
 
 def backup(value):
     c=_core(value);need(c['phase']=='initialized','parent-backup-once');raw(c['init_frame'])
-    plan=c['plan'];observation=copy_and_verify(plan['backup_scopes'],plan['backup_output'],plan['primitives']['path'],PRIMITIVES_SOURCE_SHA)
+    plan=c['plan'];observation=copy_and_verify(plan['backup_scopes'],plan['backup_output'],plan['primitives']['path'],PRIMITIVES_SOURCE_SHA,deadline=min(c['deadline'],c['pipe'].deadline))
     need(type(observation) is BackupObservation,'actual-neutral-backup-observation');summary=observation.close();c['backup']=observation
     _core(value);raw(c['init_frame']);c['summary']=summary;c['phase']='backup-verified';return summary
 
@@ -570,7 +717,7 @@ class ConfiguredRuntime:
         worker=value.baseline['worker']['State'];need(worker['Running'] is False and worker['Status'] in ('created','exited'),'normal-worker-must-already-be-stopped')
         value.selected=None;value.quiescent=False;value.native_open=False;value.process=None;value.installed_anchors=installed_anchors
         _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,deadline=value.deadline,started=value.started,installed_anchors=installed_anchors))
-        _RUNTIME_ANCHORS[value]=(_RUNTIMES,_RUNTIMES[value],installed_anchors,_RUNTIME_ANCHORS)
+        _RUNTIME_ANCHORS[value]=(_RUNTIMES,_RUNTIMES[value],installed_anchors,_RUNTIME_ANCHORS,_NATIVE_PAUSES,_NATIVE_RELEASES)
         return value
     def command(self,args):
         import subprocess
@@ -599,28 +746,49 @@ class ConfiguredRuntime:
     def quiesce(self):
         self.close();need(not self.quiescent and self not in _QUIESCENCE_ATTEMPTS,'runtime-quiesce-once')
         attempt=object();_QUIESCENCE_ATTEMPTS[self]=attempt
-        need(self.command(['pause',self.ids['native']])==(self.ids['native']+'\n').encode(),'native-exact-pause-ACK')
-        need(self.command(['stop','--timeout','30',self.ids['reader']])==(self.ids['reader']+'\n').encode(),'reader-exact-stop-ACK')
-        self.stopped_reader_row=self.inspect(self.ids['reader'])
-        self.stopped_reader=self.stopped_reader_row['State'];self.paused_native=self.inspect(self.ids['native'])['State']
-        need(_QUIESCENCE_ATTEMPTS.get(self) is attempt,'quiescence-original-transition')
-        self.quiescent=True;self.close()
+        anchor=_runtime_binding(self)
+        watcher=_NativePauseEvents(self);observer_original=watcher.origin
+        intent=(attempt,anchor,'intent',None,watcher,observer_original)
+        _NATIVE_PAUSES[self]=intent
+        try:
+            window=time.time_ns()
+            ack=self.command(['pause',self.ids['native']]);ended=time.time_ns()
+            need(ack==(self.ids['native']+'\n').encode(),'native-exact-pause-ACK')
+            need(_NATIVE_PAUSES.get(self) is intent and _QUIESCENCE_ATTEMPTS.get(self) is attempt,
+                 'quiescence-original-pause-intent')
+            # Confirmation precedes the Reader stop: partial quiescence must
+            # retain the right to release only this already-owned Native pause.
+            _NATIVE_PAUSES[self]=(attempt,anchor,'confirmed',ack,watcher,observer_original)
+            watcher.expect('pause',(window,ended),min(self.deadline,time.monotonic()+60),observer_original)
+            need(self.command(['stop','--timeout','30',self.ids['reader']])==(self.ids['reader']+'\n').encode(),'reader-exact-stop-ACK')
+            self.stopped_reader_row=self.inspect(self.ids['reader'])
+            self.stopped_reader=self.stopped_reader_row['State'];self.paused_native=self.inspect(self.ids['native'])['State']
+            need(_QUIESCENCE_ATTEMPTS.get(self) is attempt,'quiescence-original-transition')
+            self.quiescent=True;self.close()
+            return watcher,observer_original
+        except BaseException as primary:
+            cleanup=None
+            try:self.release_owned_native_pause()
+            except BaseException as error:cleanup=error
+            try:watcher.finish(observer_original)
+            except BaseException as error:
+                if cleanup is None:cleanup=error
+            if cleanup is not None:raise primary from cleanup
+            raise
     @staticmethod
     def reader_static(row):
         return {key:row[key] for key in ('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')}
     def close_local(self):
-        original=_RUNTIME_ANCHORS.get(self)
-        need(original is not None and original[0] is _RUNTIMES and original[1] is _RUNTIMES.get(self)
-             and original[2] is self.installed_anchors and original[3] is _RUNTIME_ANCHORS,
-             'original-runtime-registry')
-        need((os.getpid(),threading.get_ident())==(self.pid,self.thread) and time.monotonic()<self.deadline,
-             'original-runtime-lifetime')
-        need(_RUNTIMES[self]==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,thread=self.thread,deadline=self.deadline,started=self.started,installed_anchors=self.installed_anchors)),
-             'original-runtime-seal')
+        original=_runtime_binding(self)
+        need(time.monotonic()<self.deadline,'original-runtime-lifetime')
         need(_RUNTIME_ANCHORS.get(self) is original and original[0] is _RUNTIMES
              and original[1] is _RUNTIMES.get(self),'final-runtime-registry')
     def close(self,terminal_original=_TERMINAL_ABSENT):
         self.close_local()
+        if self.native_open:
+            release=_NATIVE_RELEASES.get(self)
+            need(release is not None and release[0]=='done' and release[1] is _NATIVE_PAUSES.get(self)
+                 and release[3]==(self.ids['native']+'\n').encode(),'native-original-release-ACK')
         if terminal_original is not _TERMINAL_ABSENT:
             need(self in _TERMINALS and _TERMINALS[self] is terminal_original,'runtime-own-terminal-original')
         for key,cid in self.ids.items():
@@ -668,13 +836,89 @@ class ConfiguredRuntime:
             if terminal is None:need(row['State']['Running'] is True and row['State']['Pid']==self.selected_pid,'selected-original-worker')
             else:need(terminal==(self.selected,self.selected_started,self.selected_static,self.process) and self.process.poll()==0 and row['State']['Running'] is False and row['State']['Status']=='exited' and row['State']['Pid']==0 and row['State']['ExitCode']==0 and row['State'].get('Paused') is False and not any(row['State'].get(k) for k in ('Restarting','Dead','OOMKilled')),'selected-original-terminal-exit')
     def open_native(self):
-        self.close();need(not self.native_open,'native-open-once');self.native_open=True
+        self.close();need(not self.native_open,'native-open-once')
+        pause=_NATIVE_PAUSES.get(self)
+        need(pause is not None and pause[1] is _runtime_binding(self) and pause[2]=='confirmed'
+             and self not in _NATIVE_RELEASES,'native-original-pause-required')
+        watcher=pause[4];observer_original=pause[5];attempt=object();pending=('normal',pause,attempt,None)
+        _NATIVE_RELEASES[self]=pending
+        primary=None
         try:
-            ack=self.command(['unpause',self.ids['native']])
-            need(ack==(self.ids['native']+'\n').encode(),'native-exact-unpause-ACK');self.close()
-        except Exception:
-            # Unknown ACK keeps custody uncertain, never replay unpause or restart.
-            raise
+            watcher.paused(observer_original);self.native_open=True;window=time.time_ns()
+            ack=self.command(['unpause',self.ids['native']]);ended=time.time_ns()
+            need(ack==(self.ids['native']+'\n').encode(),'native-exact-unpause-ACK')
+            watcher.expect('unpause',(window,ended),min(self.deadline,time.monotonic()+60),observer_original)
+            need(_NATIVE_RELEASES.get(self) is pending,'native-original-release-attempt')
+            _NATIVE_RELEASES[self]=('done',pause,attempt,ack)
+        except BaseException as error:
+            primary=error;raise
+        finally:
+            try:watcher.finish(observer_original)
+            except BaseException as cleanup:
+                if primary is not None:raise primary from cleanup
+                raise
+        self.close()
+
+    def _cleanup_command(self,args,original):
+        """Only Native inspection/events/unpause under one cleanup attempt."""
+        import subprocess
+        _runtime_binding(self)
+        need(_NATIVE_RELEASES.get(self) is original and original[0]=='cleanup'
+             and original[1] is _NATIVE_PAUSES.get(self),'native-cleanup-original-attempt')
+        cid=self.ids['native']
+        allowed=args in (['inspect',cid],['unpause',cid])
+        need(allowed,'native-cleanup-command-only')
+        left=original[3]-time.monotonic();need(left>0,'native-cleanup-command-budget')
+        try:result=subprocess.run(['docker',*args],capture_output=True,timeout=min(60,left),check=True)
+        except (subprocess.SubprocessError,OSError):raise ValueError('native-cleanup-command-failed') from None
+        need(len(result.stdout)<=4*1024**2,'native-cleanup-output-bound')
+        return result.stdout
+
+    def release_owned_native_pause(self):
+        """Release a confirmed own pause; never renew a grant or start Reader.
+
+        This separate, bounded cleanup path remains usable after execution
+        expiry and partial Reader-stop failure. Unknown ACKs are never replayed.
+        """
+        anchor=_runtime_binding(self);pause=_NATIVE_PAUSES.get(self)
+        if pause is None or pause[2]!='confirmed':return False
+        need(pause[1] is anchor and pause[0] is _QUIESCENCE_ATTEMPTS.get(self)
+             and pause[3]==(self.ids['native']+'\n').encode(),'native-cleanup-original-pause')
+        existing=_NATIVE_RELEASES.get(self)
+        if existing is not None:
+            need(existing[1] is pause,'native-cleanup-release-conflict')
+            return existing[0]=='done'
+        need(self.native_open is False,'native-cleanup-original-phase')
+        attempt=object();pending=('cleanup',pause,attempt,time.monotonic()+60)
+        _NATIVE_RELEASES[self]=pending
+        cid=self.ids['native'];baseline=self.baseline['native']
+        def inspect(paused):
+            rows=json.loads(self._cleanup_command(['inspect',cid],pending))
+            need(type(rows) is list and len(rows)==1 and rows[0].get('Id')==cid,'native-cleanup-exact-inspect')
+            row=rows[0];state=row['State'];before=baseline['State']
+            need(self.static(row)==self.static(baseline) and state['Pid']==before['Pid']
+                 and state['StartedAt']==before['StartedAt'] and state['Running'] is True
+                 and state['Paused'] is paused and not any(state.get(k) for k in ('Restarting','Dead','OOMKilled')),
+                 'native-cleanup-original-process-profile')
+            _runtime_binding(self)
+        watcher=pause[4];observer_original=pause[5];primary=None
+        try:
+            inspect(True);watcher.paused(observer_original);inspect(True);watcher.paused(observer_original)
+            self.native_open=True;window=time.time_ns()
+            ack=self._cleanup_command(['unpause',cid],pending);ended=time.time_ns()
+            need(ack==(cid+'\n').encode(),'native-exact-unpause-ACK')
+            watcher.expect('unpause',(window,ended),pending[3],observer_original);inspect(False)
+            need(_NATIVE_RELEASES.get(self) is pending and _NATIVE_PAUSES.get(self) is pause,
+                 'native-cleanup-final-custody')
+            _NATIVE_RELEASES[self]=('done',pause,attempt,ack)
+            return True
+        except BaseException as error:
+            primary=error;raise
+        finally:
+            try:watcher.finish(observer_original)
+            except BaseException as cleanup:
+                if primary is not None:raise primary from cleanup
+                raise
     def resume_reader(self):
         """One lifecycle mechanism; the owning broker must first close terminal data."""
         self.close()
@@ -948,14 +1192,21 @@ def run_operation(plan_ref,source_ref):
     lock_ref,_=_ref(state_host/'worker.lock');child_body['worker_lock_signature9']=lock_ref['signature9']
     input_ref=_exclusive(worker_input,encode(child_body),1000,1000)
     # Initialization/control inputs precede the verified backup lifetime.
-    runtime.quiesce();raw(source_frame)
-    process=runtime.launch(worker_input,worker_input_child,input_ref['sha256'])
-    runtime.bind_running()
-    conversation_body=dict(version=1,kind='retained-pack-preproof-conversation-v1',nonce=nonce,pack_id=plan['pack_id'],member_id=plan['member_id'],journal_host=str(state_host/'maintenance/retained-pack-handoffs'),worker_pid=1,backup_scopes=scopes,backup_output=str(output/nonce),primitives=plan['primitives'],challenge=ch)
-    conversation_path=output/('conversation-'+nonce+'.json');conversation_ref=_exclusive(conversation_path,encode(conversation_body),0,0)
-    parent=from_original_pipe(conversation_ref,source_ref,process.stdout.fileno(),process.stdin.fileno(),runtime)
-    initialized(parent);backup(parent);raw(source_frame)
-    runtime.open_native()
+    primary=None;observer=None
+    try:
+        observer=runtime.quiesce();raw(source_frame)
+        process=runtime.launch(worker_input,worker_input_child,input_ref['sha256'])
+        runtime.bind_running()
+        conversation_body=dict(version=1,kind='retained-pack-preproof-conversation-v1',nonce=nonce,pack_id=plan['pack_id'],member_id=plan['member_id'],journal_host=str(state_host/'maintenance/retained-pack-handoffs'),worker_pid=1,backup_scopes=scopes,backup_output=str(output/nonce),primitives=plan['primitives'],challenge=ch)
+        conversation_path=output/('conversation-'+nonce+'.json');conversation_ref=_exclusive(conversation_path,encode(conversation_body),0,0)
+        parent=from_original_pipe(conversation_ref,source_ref,process.stdout.fileno(),process.stdin.fileno(),runtime)
+        initialized(parent);backup(parent);raw(source_frame)
+    except BaseException as error:
+        primary=error
+        raise
+    finally:
+        finish_owned_pause(runtime,observer,primary)
+
     repeated=runtime.native_observation(plan['native_probe'],plan['scope_source'],plan['native_module_pins'],plan['nonce'],plan['native_config_ref'])
     need(repeated==observation,'native-original-process-config-publication-after-pause')
     release_backup(parent)

@@ -153,13 +153,14 @@ class Fixtures(unittest.TestCase):
             if alter:alter(assertion)
             raw=c._canonical(assertion);signature=self._sign(raw);worker.stdin.write(c._canonical({'assertion':assertion,'signature':signature.hex()})+b'\n');worker.stdin.flush()
             transcript=__import__('hashlib').sha256(challenge+raw+signature).digest();admission=c._hash(raw+signature)
-            if not alter and (not fault or fault=='delayed'):
+            if not alter and (not fault or fault in('delayed','late-backup','terminal-expiry')):
                 for sequence,kind in ((1,'initialized'),(3,'observed'),(5,'observed-final-ACK')):
                     rawchild=worker.stdout.readline().rstrip(b'\n');child=c._parse(rawchild);self.assertEqual(child['sequence'],sequence)
                     normal=c._canonical({'sequence':sequence,'kind':'final-ACK' if sequence==5 else kind,'payload':child});transcript=__import__('hashlib').sha256(transcript+normal).digest()
                     wire={'version':3,'protocol':protocol[4],'kind':{2:'backup-ready',4:'observed-release',6:'observed-exit'}[sequence+1],'nonce':boot['nonce'],'sequence':sequence+1,'challenge':boot['challenge'],'payload':{'fixture':'NO BACKUP AUTHORITY'}}
                     stage={'domain':protocol[3],'session':'7'*64,'admission':admission,'challenge':packet['challenge'],'sequence':sequence+1,'kind':wire['kind'],'previous':transcript.hex(),'payload':wire,'payload_digest':c._hash(c._canonical(wire))}
                     rawstage=c._canonical(stage);sig=self._sign(rawstage);worker.stdin.write(c._canonical({'assertion':stage,'signature':sig.hex()})+b'\n');worker.stdin.flush();transcript=__import__('hashlib').sha256(transcript+rawstage+sig).digest()
+                    if fault=='terminal-expiry' and sequence==1:break
             out,err=worker.communicate(timeout=10)
             return worker.returncode,out,err
         finally:
@@ -169,6 +170,12 @@ class Fixtures(unittest.TestCase):
         code,out,err=self._worker();self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
     def test_pack_purpose_real_signed_six_round_transcript(self):
         code,out,err=self._worker(purpose='retained-pack');self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
+
+    def test_pack_late_valid_backup_ready_preserves_original_terminal_phase(self):
+        code,out,err=self._worker(fault='late-backup',purpose='retained-pack');self.assertEqual(code,0,err.decode());self.assertEqual(out,b'')
+
+    def test_pack_original_terminal_phase_expiry_refuses(self):
+        code,out,err=self._worker(fault='terminal-expiry',purpose='retained-pack');self.assertNotEqual(code,0);self.assertEqual(out,b'');self.assertIn(b'original-context',err)
 
     def test_pack_rejects_signed_standalone_admission(self):
         code,out,err=self._worker(lambda claim:claim.update(purpose='retained-standalone'),purpose='retained-pack')

@@ -9,8 +9,8 @@ import stat
 import tempfile
 import time
 import types
-PINS={'comic_negative_reader_action.py':'f46fc2e9878570847544f0ed49f579616748091061f599fa2d2d07f635a16d6f','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'7d6ce2e1df987ee35c1ef60301b155b3e27d1f7da05b47979ae608bb19160ce9','comic_reader_backup_primitives.py':'9fc2a05a370bbd0a0a1fa20c1b7d941d30bca7ee99d08248b06b57b007bf4e00','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
-BACKUP_SHA='ae0a1df276c1fc3a3499f24ef540c86b546478b09396169e622777d80f8c2da2'
+PINS={'comic_negative_reader_action.py':'6309f7aabe042cca5d0ea799cfe0282bb2d54b6084bb31ffdf74b4ab4d8488a3','comic_negative_terminal_observer.py':'ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04','comic_reader_rows.py':'d75d5ac9907993d9a5a74d99e86167e870280620898d8777355a3408285a3ed0','comic_reader_backup_primitives.py':'052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_reader_softdelete.py':'560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5'}
+BACKUP_SHA='46e77983f7c2eed88fab9bf9895c268a1d98fa9c96445ac74ce54580ba9d27d5'
 ROLES={'stopped_runtime','backup_ack','backup_manifest','backup_acceptance','rows','schema','reviewed_plan','timestamp_evidence','custody'}
 class Held(ValueError):pass
 def need(v,r):
@@ -59,10 +59,10 @@ def backup_controls(request,*,watch):
   ref=action.write(out/name,value);generated[Path(ref['path'])]=list(ref['signature9']);return ref
  # Re-observe every original/copy/restore member and all database integrity proofs.
  for current in (config,Path(manifest_ref['path']).parent/'backup'/'config',root):
-  records,_=primitive.inventory(current,'tree',detached=current!=config)
+  records,_=primitive.inventory(current,'tree',detached=current!=config,deadline=request['deadline_monotonic'])
   need((primitive.logical(records)==primitive.logical(scopes[0]['records']) if current==config else primitive.copied_records_match(records,scopes[0]['records'])),'producer-complete-copy-logical')
   if current==config:need(records==scopes[0]['records'],'producer-original-incarnations')
-  proof=primitive.database_rows([dict(name='config',path=str(current),kind='tree',records=records)],['config:database.sqlite','config:tasks.sqlite']);need(proof==manifest['databases'],'producer-independent-database-proof')
+  proof=primitive.database_rows([dict(name='config',path=str(current),kind='tree',records=records)],['config:database.sqlite','config:tasks.sqlite'],deadline=request['deadline_monotonic']);need(proof==manifest['databases'],'producer-independent-database-proof')
   for record in records:
    path=current if record['path']=='.' else current/record['path'];before_files[path]=list(record['stamp'])
    for p in path.parents:before_nodes[p]=action.five(os.lstat(p))
