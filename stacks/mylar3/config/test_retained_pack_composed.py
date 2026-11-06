@@ -263,8 +263,19 @@ class Composed(unittest.TestCase):
   self.assertTrue(answer['held']);self.assertFalse(answer['receipt_changed']);self.assertEqual(answer['done_count'],0)
   with closing(sqlite3.connect(self.c.database)) as db:self.assertEqual(len(db.execute("SELECT * FROM records WHERE kind='retained_delivery_final'").fetchall()),1)
  def test_capacity_refuses_before_native_workflow_commit(self):
-  with sqlite3.connect(self.c.database) as db:db.execute("INSERT INTO records VALUES ('capacity','unrelated',?,0.0)",('\x7f'*800000,))
-  answer=self.base.call();self.assertFalse(answer['success'])
+  # Unrelated complete-model history is now represented by a commitment.
+  # The selected pack remains genuine wire data and must still obey its cap.
+  selected=self.base.c.store.get('pack',self.pack['id']);selected['wire_padding']='\x7f'*800000
+  self.base.c.store.set('pack',self.pack['id'],selected)
+  seen=[];guard=fixture.fixture.f.o.check.__code__;prior=sys.getprofile()
+  def observe(frame,event,arg):
+   if event=='call' and frame.f_code is guard and frame.f_locals.get('reason')=='retained-worker-export-precommit-bound':
+    seen.append(frame.f_locals['value'])
+  try:
+   sys.setprofile(observe);answer=self.base.call()
+  finally:sys.setprofile(prior)
+  self.assertEqual(seen,[False]);self.assertFalse(answer['success'])
+  self.assertEqual(self.base.c.store.get('pack',self.pack['id']),selected)
   with closing(sqlite3.connect(self.c.database)) as db:self.assertEqual(len(db.execute("SELECT * FROM records WHERE kind='retained_delivery_final'").fetchall()),0)
  def test_original_serializer_replacement_after_source_capture_refuses(self):
   f=fixture.fixture.f;original=f.response_sources;old=self.base.api.Api._successResponse

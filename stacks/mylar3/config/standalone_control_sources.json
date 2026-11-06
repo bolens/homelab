@@ -1846,7 +1846,7 @@
   },
   {
     "path": "test_retained_pack_composed.py",
-    "sha256": "2f6f2e987aacbe59f5606d5561c696208915a4b33a5ef80e4ad6500eccc54cf2",
+    "sha256": "967f20b15d48c25123b4e8831c5ba17ff5a77ec92e77ff622fa61752d8044bb3",
     "target": "test_retained_pack_composed.py"
   },
   {
