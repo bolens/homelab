@@ -1762,6 +1762,15 @@ establish authenticated launch or actual namespace/runtime fitness. No
 historical ordinary-import acknowledgement, cleanup, resume or index grant is
 created. An accepted activation and protected runtime proof are still required.
 
+Retained helper launch checks derive the primary network from the original
+configuration and preserve network identity/configuration and unique environment
+key/value pairs. They bind
+the exact CREATE observation once, admit only the measured Docker startup and
+natural-exit allocations, and keep same-container checks strict. Failed witness
+acquisition holds the consumed attempt. The reader and installed-host copies use
+identical shared checks and close profile, process and source originals after
+callbacks. These controls do not replace configured repair or resume acceptance.
+
 The image carries three read-only public authentication modules in
 `/opt/mylar-publication-launch/auth/`. Their separate installer and 17 source
 controls check exact bytes, file ownership and the five allowed fixture paths.

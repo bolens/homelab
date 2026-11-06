@@ -10,7 +10,7 @@ import time
 import types
 
 PRIMITIVES=Path(__file__).with_name('comic_reader_backup_primitives.py')
-PRIMITIVES_SHA='052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc'
+PRIMITIVES_SHA='952184dc8cc754941299ee0bbaa455fccfd176e878d4f58ca9fa00420fea04d1'
 MAX_JSON=64*1024**2
 class Held(ValueError):pass
 

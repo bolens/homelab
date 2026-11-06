@@ -1,6 +1,7 @@
 """Default-disabled standalone original-channel parent; no reconstructed grants."""
 from contextlib import closing
 import hashlib
+import comic_reader_backup_primitives as helper_profiles
 import json
 import os
 from pathlib import Path
@@ -143,7 +144,11 @@ def selected_profile(native, selected):
          not host.get('PortBindings') and not host.get('Devices') and
          host.get('NetworkMode') == 'none' and
          'no-new-privileges' in host.get('SecurityOpt', []) and
-         not selected['NetworkSettings']['Networks'], 'standalone-selected-isolation')
+         set(selected['NetworkSettings']['Networks'])=={'none'} and
+         not any(selected['NetworkSettings']['Networks']['none'].get(k) for k in
+                 ('Gateway','IPAddress','IPPrefixLen','MacAddress','IPv6Gateway','GlobalIPv6Address',
+                  'GlobalIPv6PrefixLen','IPAMConfig','Aliases','Links','DriverOpts','DNSNames')),
+         'standalone-selected-isolation')
     original = sorted((m['Type'], m['Source'], m['Destination'], m['RW'],m.get('Name') if m['Type']=='volume' else None) for m in native['Mounts'])
     current = sorted((m['Type'], m['Source'], m['Destination'], m['RW'],m.get('Name') if m['Type']=='volume' else None) for m in selected['Mounts'])
     need(current == original and len(current) <= 32, 'standalone-no-new-mount')
@@ -460,6 +465,52 @@ def verify_terminal(initialized, observed, *, mounts, data_root, backup_sha256, 
 
 BOOTSTRAP_SOURCE_SHA256 = None
 _RUNTIMES = weakref.WeakKeyDictionary()
+
+def _make_helper_records():
+    module=helper_profiles;registry=_RUNTIMES
+    records=module.HelperBirths(registry);table=records.records
+    implementation=module.helper_profile_implementation()
+    def original():
+        need(helper_profiles is module and _RUNTIMES is registry and records.registry is registry
+             and records.records is table,'helper-original-record-owner')
+        implementation()
+        return records
+    return original
+
+
+_helper_records=_make_helper_records()
+
+
+def _helper_guard():
+    factory=_helper_guard
+    factory_code,factory_defaults,factory_kwdefaults=factory.__code__,factory.__defaults__,factory.__kwdefaults__
+    getter=_helper_records
+    code,defaults,kwdefaults=getter.__code__,getter.__defaults__,getter.__kwdefaults__
+    implementation=helper_profiles.helper_profile_implementation()
+    def close():
+        if (_helper_guard is not factory or factory.__code__ is not factory_code
+                or factory.__defaults__ is not factory_defaults or factory.__kwdefaults__ is not factory_kwdefaults
+                or _helper_records is not getter or getter.__code__ is not code
+                or getter.__defaults__ is not defaults or getter.__kwdefaults__ is not kwdefaults):
+            raise ValueError('helper-original-checker')
+        implementation()
+        return getter()
+    close()
+    return close
+
+
+def _observe_helper_networks(runtime,names):
+    need(type(names) is tuple and len(names)<=4 and len(set(names))==len(names),'helper-network-count')
+    original=_helper_records;original();result=[];decoder=json
+    for name in sorted(names):
+        need(type(name) is str and name and '\0'not in name,'helper-network-name')
+        raw=runtime.command(['network','inspect','--',name]);need(_helper_records is original and json is decoder,'helper-network-source')
+        original();rows=decoder.loads(raw)
+        need(type(rows) is list and len(rows)==1 and rows[0]['Name']==name,'helper-original-network')
+        config=helper_profiles.helper_network_configuration(rows[0])
+        result.append((name,decoder.dumps(config,sort_keys=True,separators=(',',':'),allow_nan=False)))
+    original();return tuple(result)
+
 _TERMINALS = weakref.WeakKeyDictionary()
 
 
@@ -481,10 +532,19 @@ class ConfiguredRuntime:
              reader['Running'] is True and reader['Paused'] is False and
              worker['Running'] is False and worker['Status'] in ('created','exited'),
              'standalone-initial-runtime-profile')
+        value.network_origins=_observe_helper_networks(value,('none',))
         value.quiescent=False;value.selected=None;value.process=None
         _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,
-                                    deadline=value.deadline,started=value.started))
+                                    deadline=value.deadline,started=value.started,network_origins=value.network_origins))
         return value
+
+    def close_local(self):
+        registry=_RUNTIMES.get(self)
+        need(type(registry) is bytes and registry==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,
+             thread=self.thread,deadline=self.deadline,started=self.started,network_origins=self.network_origins)),
+             'helper-original-runtime-registry')
+        need((os.getpid(),threading.get_ident())==(self.pid,self.thread) and time.monotonic()<self.deadline,
+             'helper-original-runtime-lifetime')
 
     def command(self, arguments):
         import subprocess
@@ -518,7 +578,7 @@ class ConfiguredRuntime:
     def close(self, terminal_original=_ABSENT):
         registry=_RUNTIMES.get(self)
         need(type(registry) is bytes and registry==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,
-             thread=self.thread,deadline=self.deadline,started=self.started)) and self.quiescent,
+             thread=self.thread,deadline=self.deadline,started=self.started,network_origins=self.network_origins)) and self.quiescent,
              'standalone-runtime-original-registry')
         table=_RUNTIMES;terminal_table=_TERMINALS
         admitted=json.loads(registry)
@@ -554,6 +614,7 @@ class ConfiguredRuntime:
             key=(actor,action);counts[key]=counts.get(key,0)+1;need(counts[key]<=1,'standalone-repeated-lifecycle-event')
         if self.selected is not None:
             selected=self.inspect(self.selected);selected_profile(self.baseline['native'],selected)
+            getter=_helper_records;records=getter();records.check(self,selected,None if terminal_original is _ABSENT else terminal_original);need(_helper_records is getter,'helper-record-source-drift');getter()
             need(self.static(selected)==self.selected_static and selected['State']['StartedAt']==self.selected_started,
                  'standalone-selected-original-incarnation')
             state=selected['State']
@@ -577,6 +638,44 @@ class ConfiguredRuntime:
             if self in _TERMINALS:raise ValueError('standalone-final-original-terminal-absence')
         elif self not in _TERMINALS or _TERMINALS[self] is not terminal_original:
             raise ValueError('standalone-final-original-terminal-identity')
+        self.close_local()
+
+    def selected_networks(self):
+        close=_helper_guard();self.close_local();close();original=self.network_origins
+        current=_observe_helper_networks(self,tuple(name for name,_ in original));close()
+        need(current==original and self.network_origins is original,'helper-network-originals-drift')
+        self.close_local();close()
+        return {name:json.loads(raw) for name,raw in original}
+
+    def remember_selected_created(self,row,snapshot=None):
+        close=_helper_guard();records=close()
+        original=helper_profiles.helper_snapshot(row) if snapshot is None else snapshot
+        self.close_local();close()
+        need(self.selected is None and self.process is None,'helper-original-create-phase')
+        static=self.static(row);close()
+        networks=self.selected_networks();close()
+        need(original==helper_profiles.helper_snapshot(row)
+             and self.selected is None and self.process is None,'helper-created-callback-drift')
+        record=records.remember(self,row,networks);close();self.close_local();close()
+        need(records.records.get(self) is record and original==helper_profiles.helper_snapshot(row),'helper-created-record-drift')
+        self.selected=row['Id'];self.selected_static=static
+
+    def bind_running(self):
+        close=_helper_guard();records=close();self.close_local();close()
+        need(self.selected is not None and self.process is not None,'helper-created-attach-required')
+        cid=self.selected;process=self.process;pending=records.begin(self,process);close()
+        self.selected_networks();close()
+        row=self.inspect(cid);close();snapshot=helper_profiles.helper_snapshot(row)
+        selected_profile(self.baseline['native'],row);close()
+        static=self.static(row);close()
+        self.selected_networks();close();self.close_local();close()
+        need(self.selected==cid and self.process is process
+             and snapshot==helper_profiles.helper_snapshot(row),'helper-bind-callback-drift')
+        committed=records.commit(self,pending,row,static);close()
+        need(records.records.get(self) is committed and snapshot==helper_profiles.helper_snapshot(row),
+             'helper-running-record-drift')
+        self.selected_static=committed[3];self.selected_started=committed[4];self.selected_pid=committed[5]
+        return row
 
     def launch(self, bootstrap_ref, input_ref, input_child):
         import subprocess
@@ -598,22 +697,21 @@ class ConfiguredRuntime:
         command=['-I','-B','-c',bootstrap.decode(),'--input',input_child,'--input-sha256',input_ref['sha256']]
         args += [native['Image'],*command]
         self.close();raw(bootstrap_frame);raw(input_frame)
+        close=_helper_guard()
         cid=self.command(args).decode().strip();need(sha(cid),'standalone-created-child-ID')
         try:
-            row=self.inspect(cid);selected_profile(native,row)
+            close()
+            row=self.inspect(cid);close();snapshot=helper_profiles.helper_snapshot(row)
+            selected_profile(native,row);close()
             need(row['Config']['Entrypoint']==['python3'] and row['Config']['Cmd']==command and
                  not row['HostConfig'].get('Init'),'standalone-direct-PID1-command')
-            selected_static=self.static(row)
+            self.remember_selected_created(row,snapshot)
         except BaseException as error:
             # Factual CREATE acknowledgement only; no ownership or cleanup grant.
             raise ValueError('standalone-create-ack-held:'+cid) from error
-        self.selected=cid;self.selected_static=selected_static
         self.process=subprocess.Popen(['docker','start','--attach','--interactive',cid],stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        running=self.inspect(cid);selected_profile(native,running)
-        need(self.static(running)==self.selected_static and running['State']['Running'] is True and
-             running['State']['Pid']>0,'standalone-selected-original-start')
-        self.selected_started=running['State']['StartedAt'];self.selected_pid=running['State']['Pid']
+        self.bind_running()
         self.close();raw(bootstrap_frame);raw(input_frame)
         return self.process
 

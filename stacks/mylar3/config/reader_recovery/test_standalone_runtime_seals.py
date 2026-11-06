@@ -12,7 +12,7 @@ class RuntimeSealTests(unittest.TestCase):
     def fixture(self):
         value=object.__new__(p.ConfiguredRuntime)
         value.pid=p.os.getpid();value.thread=p.threading.get_ident();value.deadline=p.time.monotonic()+30
-        value.started=p.time.time();value.ids=dict(native='a'*64,reader='b'*64,worker='c'*64)
+        value.network_origins=();value.started=p.time.time();value.ids=dict(native='a'*64,reader='b'*64,worker='c'*64)
         def row(cid,state):
             return dict(Id=cid,Image='d'*64,Config={},HostConfig={},Mounts=[],NetworkSettings={'Networks':{}},State=state)
         native=dict(Running=True,Paused=False,Pid=123,StartedAt='original',Restarting=False,Dead=False)
@@ -21,7 +21,7 @@ class RuntimeSealTests(unittest.TestCase):
         value.baseline={role:row(cid,copy.deepcopy(state)) for role,cid,state in (
             ('native',value.ids['native'],native),('reader',value.ids['reader'],reader),('worker',value.ids['worker'],worker))}
         p._RUNTIMES[value]=p.encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,
-                                       deadline=value.deadline,started=value.started))
+                                       deadline=value.deadline,started=value.started,network_origins=value.network_origins))
         value.quiescent=True;value.selected=None;value.process=None
         value.reader_state=dict(Running=False,Paused=False,Pid=0,Status='exited',StartedAt='reader',ExitCode=0)
         current=copy.deepcopy(value.baseline);current['native']['State']['Paused']=True

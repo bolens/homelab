@@ -1291,7 +1291,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '253f254bb6242bfed99a091bd123052f40bd04ac82eba7937f035081fca641c5'
+BASE_ADMISSION_SHA = 'fb7bdbe61db1f4fb954d32511f485d050349ea8218d3e9c49efa971469e2decc'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -2554,8 +2554,8 @@ class LifecycleParent:
                    'comic_archive_proof_producer.py':getattr(self.producer,'PRODUCER_SHA',None),
                    'comic_native_process_probe.py':getattr(self.producer,'PROBE_SHA',None),
                    'publication_native_configured_scope.py':getattr(self.producer,'SCOPE_SHA',None),
-                   'comic_reader_backup.py':'46e77983f7c2eed88fab9bf9895c268a1d98fa9c96445ac74ce54580ba9d27d5',
-                   'comic_reader_backup_primitives.py':'052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc',
+                   'comic_reader_backup.py':'a269a8f28bb9c954d8ce76729bfa40bf27133f64e337565f6b1585f76bc16f4e',
+                   'comic_reader_backup_primitives.py':'952184dc8cc754941299ee0bbaa455fccfd176e878d4f58ca9fa00420fea04d1',
                    'comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7'}
             root=Path(self.source_ref['path']).parent
             need(all(digest(value) for value in names.values())

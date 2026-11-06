@@ -13,7 +13,7 @@ import weakref
 
 PROBE_SHA = '41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861'
 SCOPE_SHA = '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770'
-PRODUCER_SHA = '077796b842a8cfb1c7cdb1daa2157847df6eec8ac2a6e815d896fad13319fc15'
+PRODUCER_SHA = '721d735e28cb620e64ee69181b374fe808f4adf1a569d8b41a26179c9685b9f1'
 TERMINAL_PRODUCER_SHA = 'e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da'
 MAX = 1024*1024
 _CUSTODY_LIFETIMES = weakref.WeakKeyDictionary()
@@ -286,9 +286,9 @@ def phase_custody(request, *, watch):
     need(acceptance['kind']=='stopped-reader-full-backup-acceptance' and acceptance['backup_verified'] is False
          and acceptance['final_ack_required'] is True and acceptance['container_id']==runtime['Id']
          and acceptance['image']==runtime['Image'],'custody-backup-pending')
-    need(manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']=='46e77983f7c2eed88fab9bf9895c268a1d98fa9c96445ac74ce54580ba9d27d5'
-         and manifest['primitives_sha256']=='052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc'
-         and rows['kind']=='reader-restored-eleven-row-observation' and rows['source_sha256']=='d75d5ac9907993d9a5a74d99e86167e870280620898d8777355a3408285a3ed0'
+    need(manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']=='a269a8f28bb9c954d8ce76729bfa40bf27133f64e337565f6b1585f76bc16f4e'
+         and manifest['primitives_sha256']=='952184dc8cc754941299ee0bbaa455fccfd176e878d4f58ca9fa00420fea04d1'
+         and rows['kind']=='reader-restored-eleven-row-observation' and rows['source_sha256']=='a1bc43413031dabcacb1d98c92f9cb0848f55c72e6649fad67f505dc4e721b64'
          and rows['backup_manifest_sha256']==ctx['controls']['backup_manifest']['sha256']
          and rows['schema_sha256']==ctx['controls']['schema']['sha256'],'custody-source-joins')
     need(controls['reviewed_plan']['timestamp_encoding_evidence_sha256']==ctx['controls']['timestamp_evidence']['sha256'],'custody-reviewed-timestamp')

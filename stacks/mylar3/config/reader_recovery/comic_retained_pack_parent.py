@@ -1,5 +1,6 @@
 """Default-off retained parent conversation; distinct from archive parent authority."""
 import hashlib
+import comic_reader_backup_primitives as helper_profiles
 import json
 import os
 import re
@@ -25,6 +26,52 @@ MAX_NETWORKS=4
 IMAGE_PREFIXES=('/app','/usr','/lib','/lib64','/etc','/bin','/sbin','/opt/archiving-utils')
 _ACTIVE=weakref.WeakKeyDictionary()
 _RUNTIMES=weakref.WeakKeyDictionary()
+
+def _make_helper_records():
+    module=helper_profiles;registry=_RUNTIMES
+    records=module.HelperBirths(registry);table=records.records
+    implementation=module.helper_profile_implementation()
+    def original():
+        need(helper_profiles is module and _RUNTIMES is registry and records.registry is registry
+             and records.records is table,'helper-original-record-owner')
+        implementation()
+        return records
+    return original
+
+
+_helper_records=_make_helper_records()
+
+
+def _helper_guard():
+    factory=_helper_guard
+    factory_code,factory_defaults,factory_kwdefaults=factory.__code__,factory.__defaults__,factory.__kwdefaults__
+    getter=_helper_records
+    code,defaults,kwdefaults=getter.__code__,getter.__defaults__,getter.__kwdefaults__
+    implementation=helper_profiles.helper_profile_implementation()
+    def close():
+        if (_helper_guard is not factory or factory.__code__ is not factory_code
+                or factory.__defaults__ is not factory_defaults or factory.__kwdefaults__ is not factory_kwdefaults
+                or _helper_records is not getter or getter.__code__ is not code
+                or getter.__defaults__ is not defaults or getter.__kwdefaults__ is not kwdefaults):
+            raise ValueError('helper-original-checker')
+        implementation()
+        return getter()
+    close()
+    return close
+
+
+def _observe_helper_networks(runtime,names):
+    need(type(names) is tuple and len(names)<=4 and len(set(names))==len(names),'helper-network-count')
+    original=_helper_records;original();result=[];decoder=json
+    for name in sorted(names):
+        need(type(name) is str and name and '\0'not in name,'helper-network-name')
+        raw=runtime.command(['network','inspect','--',name]);need(_helper_records is original and json is decoder,'helper-network-source')
+        original();rows=decoder.loads(raw)
+        need(type(rows) is list and len(rows)==1 and rows[0]['Name']==name,'helper-original-network')
+        config=helper_profiles.helper_network_configuration(rows[0])
+        result.append((name,decoder.dumps(config,sort_keys=True,separators=(',',':'),allow_nan=False)))
+    original();return tuple(result)
+
 _TERMINALS=weakref.WeakKeyDictionary()
 _TERMINAL_ABSENT=object()
 _RUNTIME_ANCHORS=weakref.WeakKeyDictionary()
@@ -164,7 +211,7 @@ def _runtime_binding(value):
     need((os.getpid(),threading.get_ident())==(value.pid,value.thread),'original-runtime-owner')
     need(original[1]==encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,
          thread=value.thread,deadline=value.deadline,started=value.started,
-         installed_anchors=value.installed_anchors)),'original-runtime-seal')
+         installed_anchors=value.installed_anchors,network_origins=value.network_origins)),'original-runtime-seal')
     return original
 
 
@@ -676,7 +723,7 @@ def environment(values):
     return result
 
 
-def selected_profile(original,row,*,installed_anchors=False):
+def selected_profile(original,row,*,installed_anchors=False,network_ids=None):
     """Finite selected-worker profile; neither profile mode grants activation."""
     need(type(installed_anchors) is bool,'selected-anchor-mode')
     need(row['Image']==original['Image'],'selected-configured-image')
@@ -708,7 +755,12 @@ def selected_profile(original,row,*,installed_anchors=False):
     need(sorted(ordinary)==sorted(mount_key(m) for m in original['Mounts']),
          'selected-no-new-mount')
     networks=lambda value:{name:entry['NetworkID'] for name,entry in value['NetworkSettings']['Networks'].items()}
-    need(networks(row)==networks(original) and 1<=len(networks(row))<=MAX_NETWORKS,
+    expected=networks(original) if network_ids is None else network_ids
+    observed=networks(row)
+    need(type(expected) is dict and set(expected)==set(networks(original))==set(observed)
+         and 1<=len(expected)<=MAX_NETWORKS,'selected-existing-network')
+    created=row.get('State',{}).get('Status')=='created'
+    need(all(value==expected[name] or (created and value=='') for name,value in observed.items()),
          'selected-existing-network')
     host=row['HostConfig'];need(not host.get('Privileged') and not host.get('CapAdd')
          and not host.get('PortBindings') and host.get('NetworkMode')!='host','selected-no-expanded-privilege')
@@ -732,8 +784,9 @@ class ConfiguredRuntime:
         need(value.baseline['reader']['State']['Running'] is True and value.baseline['reader']['State']['Paused'] is False,'reader-original-running')
         native=value.baseline['native']['State'];need(native['Running'] is True and native['Paused'] is False and native['Pid']>0,'native-original-running')
         worker=value.baseline['worker']['State'];need(worker['Running'] is False and worker['Status'] in ('created','exited'),'normal-worker-must-already-be-stopped')
+        value.network_origins=_observe_helper_networks(value,tuple(value.baseline['worker']['NetworkSettings']['Networks']))
         value.selected=None;value.quiescent=False;value.native_open=False;value.process=None;value.installed_anchors=installed_anchors
-        _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,deadline=value.deadline,started=value.started,installed_anchors=installed_anchors))
+        _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,deadline=value.deadline,started=value.started,installed_anchors=installed_anchors,network_origins=value.network_origins))
         _RUNTIME_ANCHORS[value]=(_RUNTIMES,_RUNTIMES[value],installed_anchors,_RUNTIME_ANCHORS,_NATIVE_PAUSES,_NATIVE_RELEASES)
         return value
     def command(self,args):
@@ -849,6 +902,7 @@ class ConfiguredRuntime:
             if actor==self.ids['native'] and action=='unpause':need(self.native_open,'native-unpause-before-owned-transition')
         if self.selected is not None:
             row=self.inspect(self.selected);terminal=_TERMINALS.get(self)
+            getter=_helper_records;records=getter();records.check(self,row,terminal);need(_helper_records is getter,'helper-record-source-drift');getter()
             need(self.static(row)==self.selected_static and row['State']['StartedAt']==self.selected_started,'selected-original-worker')
             if terminal is None:need(row['State']['Running'] is True and row['State']['Pid']==self.selected_pid,'selected-original-worker')
             else:need(terminal==(self.selected,self.selected_started,self.selected_static,self.process) and self.process.poll()==0 and row['State']['Running'] is False and row['State']['Status']=='exited' and row['State']['Pid']==0 and row['State']['ExitCode']==0 and row['State'].get('Paused') is False and not any(row['State'].get(k) for k in ('Restarting','Dead','OOMKilled')),'selected-original-terminal-exit')
@@ -961,7 +1015,8 @@ class ConfiguredRuntime:
                     started_at=row['State']['StartedAt'],ordinary_import_grant=False)
     def selected_profile(self,row):
         self.close_local()
-        return selected_profile(self.baseline['worker'],row,installed_anchors=self.installed_anchors)
+        return selected_profile(self.baseline['worker'],row,installed_anchors=self.installed_anchors,
+             network_ids={name:json.loads(raw)['Id'] for name,raw in self.network_origins})
 
 # The concrete root-owned launch prefix below remains default-disabled.
 # Independent current terminal/restart proof is deliberately not inferred
@@ -1005,7 +1060,7 @@ class ConfiguredRuntime:
     def launch(self,input_host,input_child,input_sha):
         import subprocess
         self.close();need(self.selected is None and not self.native_open,'selected-launch-once')
-        original=self.baseline['worker'];environment(original['Config'].get('Env'));networks=tuple(original['NetworkSettings']['Networks'])
+        original=self.baseline['worker'];environment(original['Config'].get('Env'));networks=helper_profiles.helper_network_order(original,self.selected_networks())
         need(1<=len(networks)<=MAX_NETWORKS and original['Config']['User']=='1000:1000','bounded-configured-network-required')
         need(Path(input_host).is_absolute() and Path(input_child).is_absolute(),'selected-input-absolute')
         need(_mapped_host(original,str(input_child))==Path(input_host),'selected-input-original-mapping')
@@ -1018,23 +1073,60 @@ class ConfiguredRuntime:
         # Existing configured environment is retained privately, never printed.
         for item in (original['Config']['Env'] or []):args+=['--env',item]
         args+=[original['Image'],'-I','-B','/app/retained_pack_control.py','--input',str(input_child),'--input-sha256',input_sha]
-        self.close();cid=self.command(args).decode().strip();need(len(cid)==64 and all(c in '0123456789abcdef' for c in cid),'selected-created-ID')
+        close=_helper_guard();self.close();close();cid=self.command(args).decode().strip();need(len(cid)==64 and all(c in '0123456789abcdef' for c in cid),'selected-created-ID')
         try:
-            for network in networks[1:]:self.command(['network','connect',network,cid])
-            created=self.inspect(cid);self.selected_profile(created)
+            close()
+            for network in networks[1:]:
+                self.command(['network','connect',network,cid]);close()
+            created=self.inspect(cid);close();snapshot=helper_profiles.helper_snapshot(created)
+            self.selected_profile(created);close()
             need(created['Config']['Entrypoint']==['python3'] and created['Config']['Cmd']==args[-7:],'selected-exact-command')
-            selected_static=self.static(created)
+            self.remember_selected_created(created,snapshot)
         except BaseException as error:
             # Factual CREATE acknowledgement only; no ownership or cleanup grant.
             raise ValueError('selected-create-ack-held:'+cid) from error
-        self.selected=cid;self.selected_static=selected_static
         self.process=subprocess.Popen(['docker','start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         # No background replayer/restart. Initialized frame is the first worker ACK.
         return self.process
+    def selected_networks(self):
+        close=_helper_guard();self.close_local();close();original=self.network_origins
+        current=_observe_helper_networks(self,tuple(name for name,_ in original));close()
+        need(current==original and self.network_origins is original,'helper-network-originals-drift')
+        self.close_local();close()
+        return {name:json.loads(raw) for name,raw in original}
+
+    def remember_selected_created(self,row,snapshot=None):
+        close=_helper_guard();records=close()
+        original=helper_profiles.helper_snapshot(row) if snapshot is None else snapshot
+        self.close_local();close()
+        need(self.selected is None and self.process is None,'helper-original-create-phase')
+        static=self.static(row);close()
+        networks=self.selected_networks();close()
+        need(original==helper_profiles.helper_snapshot(row)
+             and self.selected is None and self.process is None,'helper-created-callback-drift')
+        record=records.remember(self,row,networks);close();self.close_local();close()
+        need(records.records.get(self) is record and original==helper_profiles.helper_snapshot(row),'helper-created-record-drift')
+        self.selected=row['Id'];self.selected_static=static
+
     def bind_running(self):
-        need(self.selected is not None,'owning-selected-child-required');row=self.inspect(self.selected);self.selected_profile(row)
-        need(self.static(row)==self.selected_static and row['State']['Running'] is True and row['State']['Pid']>0,'selected-original-running-profile')
-        self.selected_started=row['State']['StartedAt'];self.selected_pid=row['State']['Pid'];self.close()
+        close=_helper_guard();records=close();self.close_local();close()
+        need(self.selected is not None and self.process is not None,'helper-created-attach-required')
+        cid=self.selected;process=self.process;pending=records.begin(self,process);close()
+        self.selected_networks();close()
+        row=self.inspect(cid);close();snapshot=helper_profiles.helper_snapshot(row)
+        self.selected_profile(row);close()
+        static=self.static(row);close()
+        self.selected_networks();close();self.close_local();close()
+        need(self.selected==cid and self.process is process
+             and snapshot==helper_profiles.helper_snapshot(row),'helper-bind-callback-drift')
+        committed=records.commit(self,pending,row,static);close()
+        need(records.records.get(self) is committed and snapshot==helper_profiles.helper_snapshot(row),
+             'helper-running-record-drift')
+        self.selected_static=committed[3];self.selected_started=committed[4];self.selected_pid=committed[5]
+        return row
+
+
+
 
 
 def _mapped_host(row,child):

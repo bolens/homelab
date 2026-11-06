@@ -40,6 +40,9 @@ STANDALONE_FIXTURES = frozenset((
     'reader_recovery/test_standalone_parent.py',
     'reader_recovery/test_standalone_publication.py',
     'reader_recovery/test_standalone_runtime_seals.py',
+    'reader_recovery/helper_profile_vectors.json',
+    'reader_recovery/test_helper_profiles.py',
+    'reader_recovery/test_helper_birth_callers.py',
 ))
 ORDINARY_PIPELINE_FIXTURES = frozenset((
     'ordinary_pipeline/README.md', 'ordinary_pipeline/cases.py',

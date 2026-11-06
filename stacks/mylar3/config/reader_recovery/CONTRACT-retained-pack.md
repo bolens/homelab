@@ -10,6 +10,25 @@ The worker uses actual Normalizer, Maintenance, OperationsV2 session, Writer, so
 
 `ConfiguredRuntime.observe` takes only the exact three configured container IDs and uses actual Docker CLI observations. Normal worker must already be stopped or Created; this helper refuses a running normal worker. The root operation pauses the same native process and stops the same reader, preserving their original identity/static profile. It launches a separate selected child from the original configured worker image with only its existing binds, configured networks and environment, readonly root, UID/GID1000, all capabilities dropped and no-new-privileges. It does not claim network egress isolation. Runtime source/interpreter/tool overlays, new mounts/networks/ports/socket/privilege and repeated lifecycle events refuse.
 
+Helper admission retains the exact CREATE observation before profile, volume
+or static checks. Configured network identity and configuration come from the
+original observation, with the primary network selected by NetworkMode rather
+than dictionary order. Only Docker's endpoint membership and runtime IPAM usage
+counters are excluded from network-configuration comparison. Environment entries
+compare by unique key/value pairs across construction, while same-container
+checks retain their original exact profile.
+
+A selected helper has one Created-to-Running binding and one natural zero-exit
+terminal transition. The shared reader and installed-host implementations permit
+only the measured endpoint, sandbox, DNS and OOM-default allocations and their
+finite teardown. They retain image, mounts, environment, privileges and network
+identity. Pipe-witness failure consumes the birth before callbacks and cannot be
+retried. Source, record, inspected profile and process-state checks close after
+callbacks, before another delegated check or publication. A refused post-CREATE
+attempt retains its exact acknowledged CID for scoped diagnosis and cleanup,
+without granting START or removal authority. Synthetic regression vectors contain
+public identities and do not establish configured operational acceptance.
+
 The native observation executes only the exact pinned existing readonly daemon probe buffer. The pure configured-scope parser derives DATA from that actual observed process argv; actual host config bytes join the fixed original config ref and inspected mount. Ready publication state is mandatory; healthy-container state is insufficient. A fresh matching observation is required after the one unpause. Existing background/native activity admissibility remains an operational prerequisite, not a guarantee inferred from a ready label.
 
 The existing pack producer uses `normalize.save`, so receipt modes follow its

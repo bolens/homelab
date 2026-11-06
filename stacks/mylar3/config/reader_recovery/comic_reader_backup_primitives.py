@@ -5,6 +5,9 @@ Usage: helper backup --scope-file PRIVATE_JSON
        helper verify --operation-root PRIVATE_DIRECTORY [--check-source]
 No source/output paths, rows, configuration or exceptions are printed.
 """
+import copy
+import ipaddress
+import weakref
 import argparse
 from contextlib import closing, ExitStack
 import fcntl
@@ -31,6 +34,284 @@ DEADLINE = 180
 
 class Held(Exception):
     pass
+
+
+class HelperBirths:
+    """Ephemeral factual custody, tied to an existing genuine runtime registry."""
+    __slots__=('registry','records')
+
+    def __init__(self,registry):
+        self.registry=registry
+        self.records=weakref.WeakKeyDictionary()
+
+    def remember(self,runtime,created,networks):
+        if runtime not in self.registry or runtime in self.records:
+            raise ValueError('helper-created-once')
+        original=self.registry[runtime]
+        state=created['State']
+        if (state['Status']!='created' or state['Running'] is not False or type(state['Pid']) is not int or state['Pid']!=0
+                or state['Paused'] is not False or not state['StartedAt'].startswith('0001-')):
+            raise ValueError('helper-original-created-state')
+        profile=json.dumps(helper_profile(created),sort_keys=True,separators=(',',':'),allow_nan=False)
+        configuration=json.dumps(networks,sort_keys=True,separators=(',',':'),allow_nan=False)
+        record=('created',original,profile,configuration)
+        if self.registry.get(runtime) is not original:raise ValueError('helper-original-runtime')
+        self.records[runtime]=record
+        return record
+
+    def begin(self,runtime,process):
+        close=helper_profile_implementation()
+        record=self.records.get(runtime)
+        if record is None or record[0]!='created' or self.registry.get(runtime) is not record[1]:
+            raise ValueError('helper-bind-once')
+        # START has already been requested. Even witness acquisition failure
+        # consumes this birth and cannot authorize a second binding attempt.
+        acquiring=('acquiring',record,process)
+        self.records[runtime]=acquiring
+        streams=(process.stdin,process.stdout,process.stderr)
+        pipes=[]
+        for stream in streams:
+            fd=stream.fileno();close()
+            stamp=os.fstat(fd);close()
+            pipes.append((stream,fd,self._pipe(stamp)))
+        result=process.poll();close()
+        if result is not None:raise ValueError('helper-attach-exited')
+        pipes=tuple(pipes)
+        pending=('binding',record,process,process.pid,pipes)
+        if self.records.get(runtime) is not acquiring or self.registry.get(runtime) is not record[1]:
+            raise ValueError('helper-created-record-replaced')
+        self.records[runtime]=pending
+        return pending
+
+    @staticmethod
+    def _pipe(z):
+        if not stat.S_ISFIFO(z.st_mode):raise ValueError('helper-original-pipe-type')
+        return(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+
+    def close_pending(self,runtime,pending):
+        close=helper_profile_implementation()
+        if (self.records.get(runtime) is not pending or pending[0]!='binding'
+                or self.registry.get(runtime) is not pending[1][1]):
+            raise ValueError('helper-original-pending')
+        process=pending[2]
+        result=process.poll();close()
+        if process.pid!=pending[3] or result is not None:
+            raise ValueError('helper-original-attach')
+        if tuple(row[0]for row in pending[4])!=(process.stdin,process.stdout,process.stderr):
+            raise ValueError('helper-original-streams')
+        for stream,fd,stamp in pending[4]:
+            actual_fd=stream.fileno();close()
+            actual=os.fstat(fd);close()
+            if actual_fd!=fd or self._pipe(actual)!=stamp:
+                raise ValueError('helper-original-pipe')
+
+    def commit(self,runtime,pending,running,static):
+        close=helper_profile_implementation()
+        snapshot=helper_snapshot(running)
+        self.close_pending(runtime,pending);close()
+        created=json.loads(pending[1][2]);networks=json.loads(pending[1][3]);cid=created['Id']
+        state=running['State']
+        if (not helper_started_profile(created,running,cid,networks)
+                or state['Status']!='running' or state['Running'] is not True
+                or type(state['Pid']) is not int or state['Pid']<=0 or state['Paused'] is not False
+                or any(state.get(k)for k in('Restarting','Dead','OOMKilled'))
+                or not state['StartedAt'] or state['StartedAt'].startswith('0001-')):
+            raise ValueError('helper-created-to-running')
+        profile=json.dumps(helper_profile(running),sort_keys=True,separators=(',',':'),allow_nan=False)
+        started,pid=state['StartedAt'],state['Pid']
+        self.close_pending(runtime,pending);close()
+        if helper_snapshot(running)!=snapshot:raise ValueError('helper-running-snapshot-drift')
+        record=('running',pending,profile,static,started,pid)
+        self.records[runtime]=record
+        return record
+
+    def check(self,runtime,row,terminal=None):
+        close=helper_profile_implementation()
+        snapshot=helper_snapshot(row)
+        record=self.records.get(runtime)
+        if record is None or record[0] not in('running','exited'):
+            raise ValueError('helper-original-running-record')
+        started=record if record[0]=='running'else record[1]
+        pending=started[1];process=pending[2]
+        if self.registry.get(runtime) is not pending[1][1]:raise ValueError('helper-original-runtime')
+        if (process.pid!=pending[3] or runtime.selected!=json.loads(started[2])['Id'] or runtime.process is not process
+                or runtime.selected_static!=started[3] or runtime.selected_started!=started[4]
+                or runtime.selected_pid!=started[5]):raise ValueError('helper-original-running-fields')
+        profile=helper_profile(row)
+        if terminal is None:
+            if record[0]!='running' or not _helper_equal(profile,json.loads(started[2])):raise ValueError('helper-running-profile-drift')
+        else:
+            state=row['State']
+            result=process.poll();close()
+            if (result!=0 or state['Status']!='exited' or state['Running'] is not False
+                    or type(state['Pid']) is not int or state['Pid']!=0 or type(state['ExitCode']) is not int or state['ExitCode']!=0 or state['Paused'] is not False
+                    or state['StartedAt']!=started[4] or any(state.get(k)for k in('Restarting','Dead','OOMKilled'))):
+                raise ValueError('helper-original-natural-exit')
+            if record[0]=='running':
+                if not helper_exited_profile(json.loads(started[2]),profile,runtime.selected):raise ValueError('helper-running-to-exited')
+                encoded=json.dumps(profile,sort_keys=True,separators=(',',':'),allow_nan=False)
+                if self.records.get(runtime) is not record:raise ValueError('helper-running-record-replaced')
+                record=('exited',started,terminal,encoded);self.records[runtime]=record
+            elif record[2] is not terminal or not _helper_equal(profile,json.loads(record[3])):raise ValueError('helper-exited-profile-drift')
+        close()
+        if helper_snapshot(row)!=snapshot:raise ValueError('helper-observation-snapshot-drift')
+        if self.records.get(runtime) is not record or self.registry.get(runtime) is not pending[1][1]:
+            raise ValueError('helper-final-original-record')
+        return started
+
+
+def helper_profile_implementation():
+    """Capture original comparison/record methods before a caller's callbacks."""
+    namespace=globals()
+    names=('HelperBirths','helper_network_configuration','helper_network_order','helper_profile','_helper_address',
+           'helper_started_profile','helper_exited_profile','_helper_equal','helper_snapshot','helper_profile_implementation')
+    objects=tuple((name,namespace[name])for name in names)
+    functions=tuple((value,value.__code__,value.__defaults__,value.__kwdefaults__,value.__globals__)
+                    for _,value in objects if hasattr(value,'__code__'))
+    methods=tuple((name,value.__func__ if isinstance(value,staticmethod)else value)
+                  for name,value in vars(HelperBirths).items()
+                  if callable(value)or isinstance(value,staticmethod))
+    codes=tuple((value,value.__code__,value.__defaults__,value.__kwdefaults__,value.__globals__)for _,value in methods)
+    externals=((json,'loads',json.loads),(json,'dumps',json.dumps),(copy,'deepcopy',copy.deepcopy),
+               (ipaddress,'ip_address',ipaddress.ip_address),(ipaddress,'ip_network',ipaddress.ip_network),
+               (re,'fullmatch',re.fullmatch))
+    def close():
+        if any(namespace.get(name)is not value for name,value in objects):raise ValueError('helper-source-function-replaced')
+        if any((vars(HelperBirths).get(name).__func__ if isinstance(vars(HelperBirths).get(name),staticmethod)else vars(HelperBirths).get(name))is not value for name,value in methods):raise ValueError('helper-source-method-replaced')
+        for value,code,defaults,kwdefaults,scope in (*functions,*codes):
+            if value.__code__ is not code or value.__defaults__ is not defaults or value.__kwdefaults__ is not kwdefaults or value.__globals__ is not scope:
+                raise ValueError('helper-source-code-drift')
+        if any(getattr(module,name)is not value for module,name,value in externals):raise ValueError('helper-source-library-drift')
+    close()
+    return close
+
+
+def helper_snapshot(row):
+    """Freeze the inspected profile and process state before any callbacks."""
+    return json.dumps(row,sort_keys=True,separators=(',',':'),allow_nan=False)
+
+
+def _helper_equal(a,b):
+    return json.dumps(a,sort_keys=True,separators=(',',':'),allow_nan=False)==json.dumps(b,sort_keys=True,separators=(',',':'),allow_nan=False)
+
+
+def helper_network_configuration(row):
+    """Retain network identity/configuration, excluding endpoint/runtime counters."""
+    if type(row) is not dict or type(row.get('Name')) is not str or not row['Name']:
+        raise ValueError('helper-network-name')
+    if type(row.get('Id')) is not str or re.fullmatch('[0-9a-f]{64}',row['Id']) is None:
+        raise ValueError('helper-network-id')
+    if row.get('Scope')!='local' or row.get('Driver') not in ('bridge','null'):
+        raise ValueError('helper-network-local-driver')
+    return json.loads(json.dumps({k:v for k,v in row.items() if k not in ('Containers','Status')},allow_nan=False))
+
+
+def helper_network_order(original,networks):
+    names=set(original['NetworkSettings']['Networks'])
+    if not 1<=len(names)<=4 or names!=set(networks):raise ValueError('helper-original-network-count')
+    mode=original['HostConfig']['NetworkMode']
+    primary=[name for name in names if mode in(name,networks[name]['Id'])]
+    if len(primary)!=1:raise ValueError('helper-original-primary-network')
+    for name,config in networks.items():
+        if config['Name']!=name or original['NetworkSettings']['Networks'][name]['NetworkID'] not in('',config['Id']):
+            raise ValueError('helper-original-network-id')
+    return(primary[0],*sorted(names-{primary[0]}))
+
+
+def helper_profile(row):
+    """Full immutable comparison surface; process state is checked by the owner."""
+    keys=('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')
+    value={k:row[k] for k in keys}
+    if (type(value['Id']) is not str or re.fullmatch('[0-9a-f]{64}',value['Id']) is None
+            or any(type(value[k]) is not dict for k in ('Config','HostConfig','NetworkSettings'))
+            or type(value['Mounts']) is not list):
+        raise ValueError('helper-profile-shape')
+    return json.loads(json.dumps(value,allow_nan=False))
+
+
+def _helper_address(entry,config,version):
+    address,prefix,gateway=(('IPAddress','IPPrefixLen','Gateway') if version==4
+                            else ('GlobalIPv6Address','GlobalIPv6PrefixLen','IPv6Gateway'))
+    value=entry[address]
+    if type(value) is not str or type(entry[prefix]) is not int or type(entry[gateway]) is not str:return False
+    subnets=[]
+    for row in config.get('IPAM',{}).get('Config',[]) or []:
+        subnet=ipaddress.ip_network(row['Subnet'],strict=True)
+        if subnet.version==version:subnets.append((subnet,row.get('Gateway','')))
+    if not value:
+        return entry[prefix]==0 and entry[gateway]=='' and not subnets
+    ip=ipaddress.ip_address(value)
+    return (ip.version==version and type(entry[prefix]) is int
+            and any(ip in subnet and entry[prefix]==subnet.prefixlen
+                    and entry[gateway] in ('',gw) for subnet,gw in subnets))
+
+
+def helper_started_profile(created,running,cid,networks):
+    """One finite CREATE→START allocation; never a general static normalizer."""
+    try:
+        old=helper_profile(created);new=helper_profile(running)
+        if old['Id']!=cid or new['Id']!=cid or type(networks) is not dict or not networks:return False
+        expected=copy.deepcopy(old)
+        if old['Config'].get('Hostname')=='' and new['Config'].get('Hostname')==cid[:12]:
+            expected['Config']['Hostname']=cid[:12]
+        if old['HostConfig'].get('OomKillDisable') is False and new['HostConfig'].get('OomKillDisable') is None:
+            if 'OomKillDisable' not in new['HostConfig']:return False
+            expected['HostConfig']['OomKillDisable']=None
+        before=old['NetworkSettings'];after=new['NetworkSettings']
+        if set(before['Networks'])!=set(networks) or set(after['Networks'])!=set(networks):return False
+        if before['SandboxID']!='' or before['SandboxKey']!='':return False
+        sandbox=after['SandboxID']
+        if type(sandbox) is not str or re.fullmatch('[0-9a-f]{64}',sandbox) is None:return False
+        if after['SandboxKey']!='/var/run/docker/netns/'+sandbox[:12]:return False
+        expected['NetworkSettings']['SandboxID']=sandbox
+        expected['NetworkSettings']['SandboxKey']=after['SandboxKey']
+        exposed={k:None for k in old['Config'].get('ExposedPorts',{}) or {}}
+        if before.get('Ports')=={} and after.get('Ports')==exposed:
+            expected['NetworkSettings']['Ports']=exposed
+        endpoints=[]
+        for name,config in networks.items():
+            if not _helper_equal(helper_network_configuration(config),config) or config['Name']!=name:return False
+            a=before['Networks'][name];b=after['Networks'][name]
+            if a['NetworkID'] not in ('',config['Id']) or b['NetworkID']!=config['Id']:return False
+            endpoint=b['EndpointID']
+            if type(endpoint) is not str or re.fullmatch('[0-9a-f]{64}',endpoint) is None:return False
+            if a['EndpointID'] not in ('',endpoint):return False
+            endpoints.append(endpoint)
+            for key in ('IPAMConfig','Links','Aliases','DriverOpts'):
+                if a.get(key) or b.get(key):return False
+            if config['Driver']=='null':
+                if name!='none' or len(networks)!=1:return False
+                if any(type(b[k]) is not str or b[k]!='' for k in ('Gateway','IPAddress','MacAddress','IPv6Gateway','GlobalIPv6Address')):return False
+                if any(type(b[k]) is not int or b[k]!=0 for k in ('IPPrefixLen','GlobalIPv6PrefixLen')) or b.get('DNSNames'):return False
+            else:
+                if not _helper_address(b,config,4) or not _helper_address(b,config,6):return False
+                mac=b['MacAddress']
+                if type(mac) is not str or re.fullmatch('[0-9a-f]{2}(?::[0-9a-f]{2}){5}',mac) is None or int(mac[:2],16)&1:return False
+            target=expected['NetworkSettings']['Networks'][name]
+            for key in ('NetworkID','EndpointID','Gateway','IPAddress','IPPrefixLen','MacAddress','IPv6Gateway','GlobalIPv6Address','GlobalIPv6PrefixLen'):
+                target[key]=b[key]
+            if a.get('DNSNames') is None and b.get('DNSNames') is not None:
+                dns=b['DNSNames']
+                if (type(dns) is not list or len(dns)!=2 or set(dns)!={old['Name'].removeprefix('/'),cid[:12]}):return False
+                target['DNSNames']=list(dns)
+        return len(set(endpoints))==len(endpoints) and _helper_equal(expected,new)
+    except (KeyError,TypeError,ValueError,OverflowError):return False
+
+
+def helper_exited_profile(running,exited,cid):
+    """Only endpoint/sandbox teardown after the owner's witnessed natural exit."""
+    try:
+        old=helper_profile(running);new=helper_profile(exited)
+        if old['Id']!=cid or new['Id']!=cid:return False
+        expected=copy.deepcopy(old);network=expected['NetworkSettings']
+        if not network['SandboxID'] or not network['SandboxKey']:return False
+        network['SandboxID']='';network['SandboxKey']=''
+        for entry in network['Networks'].values():
+            for key in ('EndpointID','Gateway','IPAddress','MacAddress','IPv6Gateway','GlobalIPv6Address'):entry[key]=''
+            for key in ('IPPrefixLen','GlobalIPv6PrefixLen'):entry[key]=0
+        if new['NetworkSettings'].get('Ports')=={}:network['Ports']={}
+        return _helper_equal(expected,new)
+    except (KeyError,TypeError,ValueError,OverflowError):return False
 
 
 def exact(value, fields):
