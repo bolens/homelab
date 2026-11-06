@@ -561,6 +561,21 @@ class ReaderNetworkHelper(unittest.TestCase):
         self.records.append((name,value));self.events.append(('record',name.rsplit('-',1)[-1]))
         target=self.record_root/name;raw=p.encode(value);target.write_bytes(raw);target.chmod(0o600);return reference(target)
     def run_get(self):return self.engine.library_get(self.image,self.reader,'/api/v2/users/me',self.body,10,self.guard,self.record,getattr(self,'remaining',lambda:10))
+    def test_image_environment_reordering_is_supported(self):
+        self.image_config['Env'] = ['PATH=/usr/bin:/bin', 'LANG=C', 'PUBLIC=one=two']
+        self.change = lambda row: row['Config'].update(Env=list(reversed(self.image_config['Env'])))
+        self.assertEqual(self.run_get(), b'{"id":"fixture"}')
+        self.assertTrue(self.removed)
+
+    def test_changed_or_duplicated_environment_refuses_before_start(self):
+        for values in (['PATH=/other'], ['PATH=/usr/bin:/bin', 'PATH=/usr/bin:/bin'], ['PATH']):
+            with self.subTest(values=values):
+                self.started = False
+                self.change = lambda row: row['Config'].update(Env=values)
+                with self.assertRaises(p.Held):
+                    self.run_get()
+                self.assertFalse(self.started)
+
     def test_each_helper_command_uses_current_original_budget(self):
         self.remaining=lambda:0.125
         self.run_get()

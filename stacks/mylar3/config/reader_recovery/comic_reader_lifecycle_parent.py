@@ -164,6 +164,20 @@ def need(value, reason):
         raise Held(reason)
 
 
+def environment(values):
+    """Docker may reorder Env; preserve exact values and reject ambiguous keys."""
+    if values is None:
+        values = []
+    need(type(values) is list, 'environment-list')
+    result = {}
+    for entry in values:
+        need(type(entry) is str and '\0' not in entry, 'environment-entry')
+        key, separator, value = entry.partition('=')
+        need(separator == '=' and key and key not in result, 'environment-key')
+        result[key] = value
+    return result
+
+
 def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'),
                       ensure_ascii=False, allow_nan=False).encode()
@@ -2039,7 +2053,7 @@ class ScopedDocker:
   metadata=command(['image','inspect',image]);need(metadata.returncode==0,'library-helper-image-held');images=decode(metadata.stdout)
   need(type(images)is list and len(images)==1 and images[0]['Id']==image and images[0]['Os']=='linux'
        and images[0]['Architecture']=='amd64' and not images[0]['Config'].get('Volumes'),'library-helper-image-original')
-  image_config=images[0]['Config'];labels=image_config.get('Labels')or{}
+  image_config=images[0]['Config'];environment(image_config.get('Env'));labels=image_config.get('Labels')or{}
   need(type(labels)is dict and 'com.homelab.reader.library-query'not in labels,'library-helper-label-collision')
   labels=dict(labels);labels['com.homelab.reader.library-query']=token
   cmd=['-I','-B','-S','-c',program];mode='container:'+reader['Id']
@@ -2058,7 +2072,7 @@ class ScopedDocker:
    need(row['Id']==cid and row['Name']=='/'+name and row['Image']==image and c['Image']==image
         and c['User']=='1000:1000'and c['Entrypoint']==['python3']and c['Cmd']==cmd
         and c['WorkingDir']=='/'and c['OpenStdin']is True and c['Tty']is False
-        and c.get('Env')==image_config.get('Env')and c.get('Labels')==labels
+        and environment(c.get('Env'))==environment(image_config.get('Env'))and c.get('Labels')==labels
         and c.get('Healthcheck')=={'Test':['NONE']},'library-helper-command-profile')
    need(h['ReadonlyRootfs']is True and h['Privileged']is False and h['NetworkMode']==mode
         and h['IpcMode']=='private'and h['PidMode']==''and h['CapDrop']==['ALL']and not h.get('CapAdd')

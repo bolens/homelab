@@ -19,6 +19,63 @@ class PauseStreamDouble:
     def finish(self,original=None):self.closed=True
 
 
+class LaunchProfile(unittest.TestCase):
+    """Real constructor with transport faults; no Docker or process startup."""
+    def setUp(self):
+        import tempfile
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name); self.input = self.root/'input.json'
+        self.input.write_bytes(b'{}'); self.input.chmod(0o600)
+        self.cid = '4'*64; self.calls = []; self.failure = 'inspect'
+        self.original = dict(Image='sha256:'+'5'*64, Config=dict(User='1000:1000',Env=['A=one']),
+            Mounts=[dict(Type='bind',Source=str(self.root),Destination='/state',RW=True)],
+            NetworkSettings=dict(Networks={'first':dict(NetworkID='6'*64)}))
+        def command(args):
+            self.calls.append(args)
+            if args[0]=='create':return self.cid.encode()
+            if args[0]=='network' and self.failure=='network':raise ValueError('fixture-network')
+            return b''
+        def inspect(cid):
+            self.assertEqual(cid,self.cid)
+            if self.failure=='inspect':raise ValueError('fixture-inspect')
+            cmd=self.calls[0][-7:]
+            return dict(Config=dict(Entrypoint=['python3'],Cmd=cmd if self.failure!='command'else []))
+        def profile(row):
+            if self.failure=='profile':raise ValueError('fixture-profile')
+        def static(row):
+            if self.failure=='static':raise ValueError('fixture-static')
+            return b'profile'
+        self.runtime=SimpleNamespace(close=lambda:None,selected=None,native_open=False,
+            baseline={'worker':self.original},command=command,inspect=inspect,selected_profile=profile,static=static)
+
+    def launch(self):
+        return parent.ConfiguredRuntime.launch(self.runtime,str(self.input),'/state/input.json',parent.hashlib.sha256(b'{}').hexdigest())
+
+    def test_malformed_original_environment_never_creates(self):
+        for values in (['A'],['A=one','A=one'],['A=one','A=two'],'A=one'):
+            with self.subTest(values=values),self.assertRaisesRegex(ValueError,'environment'):
+                self.original['Config']['Env']=values;self.launch()
+            self.assertEqual(self.calls,[])
+
+    def test_every_post_ack_failure_retains_exact_cid_without_start_or_selection(self):
+        self.original['NetworkSettings']['Networks']['second']=dict(NetworkID='7'*64)
+        for failure in ('network','inspect','profile','command','static'):
+            with self.subTest(failure=failure):
+                self.calls=[];self.failure=failure
+                with patch('subprocess.Popen',side_effect=AssertionError('START attempted')):
+                    with self.assertRaisesRegex(ValueError,'selected-create-ack-held:'+self.cid)as held:self.launch()
+                self.assertIsInstance(held.exception.__cause__,ValueError)
+                self.assertIsNone(self.runtime.selected)
+                self.assertEqual(sum(args[0]=='create'for args in self.calls),1)
+                self.assertFalse(any(args[0]=='start'for args in self.calls))
+
+    def test_empty_docker_environment_reaches_create(self):
+        self.original['Config']['Env']=None
+        with self.assertRaisesRegex(ValueError,'selected-create-ack-held:'+self.cid):self.launch()
+        self.assertEqual(self.calls[0][0],'create')
+        self.assertNotIn('--env',self.calls[0])
+
+
 class Epoch(unittest.TestCase):
     def setUp(self):
         observer=patch.object(parent,'_NativePauseEvents',PauseStreamDouble)

@@ -18,7 +18,7 @@ SUITES=SUITES+(('test_nfs_scope_lifetime.py',37),('test_readonly_root_mounts.py'
 SUITES=SUITES+(('test_deferred_lease.py',11),('test_local_lease_window.py',14),('test_nfs_remote_guard.py',20),('test_expired_lease_paths.py',33))
 SUITES=SUITES+(('test_probe_stdin_gate.py',7),('test_gated_host_probe.py',9),('test_phased_child_interface.py',12),('test_probe_lease_order.py',17),('test_prelease_staging.py',3),('test_probe_birth_registry.py',5))
 SUITES=SUITES+(('test_probe_cleanup_transition.py',32),)
-SUITES=SUITES+(('test_configured_worker_library_query.py', 89), ('test_effective_review_projection.py', 36), ('test_nfs_mount_namespace.py', 46), ('test_nfs_stopped_handoff.py', 94))
+SUITES=SUITES+(('test_configured_worker_library_query.py', 91), ('test_effective_review_projection.py', 36), ('test_nfs_mount_namespace.py', 46), ('test_nfs_stopped_handoff.py', 94))
 SUITES=SUITES+(('test_archive_common_root.py',102),('test_archive_plan13.py',24),('test_genuine_archive_fixture.py',6))
 SUITES=SUITES+(('test_genuine_application_bootstrap.py',41),)
 SUITES=SUITES+(('test_genuine_native_catalog.py',41),)
@@ -32,9 +32,9 @@ SUITES=SUITES+(('test_genuine_source_cohort.py',38),)
 SUITES=SUITES+(('test_genuine_active_inputs.py',29),)
 SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py',9))
 SUITES=SUITES+(('test_configured_archive_geometry.py', 34),('test_configured_plan13_producer.py', 21),)
-SUITES=SUITES+(('test_retained_pack_terminal_sql.py',58),)
+SUITES=SUITES+(('test_retained_pack_terminal_sql.py',61),)
 SUITES=SUITES+(('test_retained_pack_backup_custody.py',42),('test_retained_pack_observation.py',22))
-SUITES=SUITES+(('test_retained_pack_runtime.py',23),('test_retained_native_control.py',10))
+SUITES=SUITES+(('test_retained_pack_runtime.py',26),('test_retained_native_control.py',10))
 # Resource ceiling shared with the complete owning source union. This is not
 # the current manifest census: membership comes from the checked source maps.
 SUITE_TIMEOUT=120

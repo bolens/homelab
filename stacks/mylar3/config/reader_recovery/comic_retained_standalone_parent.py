@@ -118,9 +118,25 @@ def mapped_host(mounts, child):
     return str(Path(row['Source']) / Path(child).relative_to(row['Destination']))
 
 
+def environment(values):
+    """Docker may reorder Env; preserve exact values and reject ambiguous keys."""
+    if values is None:
+        values = []
+    need(type(values) is list, 'environment-list')
+    result = {}
+    for entry in values:
+        need(type(entry) is str and '\0' not in entry, 'environment-entry')
+        key, separator, value = entry.partition('=')
+        need(separator == '=' and key and key not in result, 'environment-key')
+        result[key] = value
+    return result
+
+
 def selected_profile(native, selected):
     need(selected['Image'] == native['Image'] and selected['Config']['User'] == '1000:1000',
          'standalone-selected-image-user')
+    need(environment(selected['Config'].get('Env')) == environment(native['Config'].get('Env')),
+         'standalone-selected-environment')
     host = selected['HostConfig']
     need(host.get('ReadonlyRootfs') is True and not host.get('Privileged') and
          not host.get('CapAdd') and host.get('CapDrop') == ['ALL'] and
@@ -571,21 +587,27 @@ class ConfiguredRuntime:
         need(mapped_host(self.baseline['native']['Mounts'],input_child)==input_ref['path'],'standalone-original-input-bind')
         raw(bootstrap_frame);raw(input_frame)
         native=self.baseline['native']
+        environment(native['Config'].get('Env'))
         args=['create','--pull','never','--interactive','--read-only','--network','none','--user','1000:1000',
               '--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','python3']
         for mount in native['Mounts']:
             need(mount['Type']=='bind' and not any(c in mount['Source']+mount['Destination'] for c in ',\n\r'),
                  'standalone-only-original-bind-mounts')
             args+=['--mount','type=bind,src='+mount['Source']+',dst='+mount['Destination']+('' if mount['RW'] else ',readonly')]
-        for value in native['Config']['Env']:args+=['--env',value]
+        for value in (native['Config']['Env'] or []):args+=['--env',value]
         command=['-I','-B','-c',bootstrap.decode(),'--input',input_child,'--input-sha256',input_ref['sha256']]
         args += [native['Image'],*command]
         self.close();raw(bootstrap_frame);raw(input_frame)
         cid=self.command(args).decode().strip();need(sha(cid),'standalone-created-child-ID')
-        row=self.inspect(cid);selected_profile(native,row)
-        need(row['Config']['Entrypoint']==['python3'] and row['Config']['Cmd']==command and
-             not row['HostConfig'].get('Init'),'standalone-direct-PID1-command')
-        self.selected=cid;self.selected_static=self.static(row)
+        try:
+            row=self.inspect(cid);selected_profile(native,row)
+            need(row['Config']['Entrypoint']==['python3'] and row['Config']['Cmd']==command and
+                 not row['HostConfig'].get('Init'),'standalone-direct-PID1-command')
+            selected_static=self.static(row)
+        except BaseException as error:
+            # Factual CREATE acknowledgement only; no ownership or cleanup grant.
+            raise ValueError('standalone-create-ack-held:'+cid) from error
+        self.selected=cid;self.selected_static=selected_static
         self.process=subprocess.Popen(['docker','start','--attach','--interactive',cid],stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         running=self.inspect(cid);selected_profile(native,running)

@@ -1572,6 +1572,11 @@ original state without reconstructing a mutation capability.
 `archive_repair_rollback=1` advertises code availability; it does not confirm
 reader indexing, ordinary import or live repair acceptance.
 
+Helper creation compares environment keys and values independently of Docker’s
+returned list order. Duplicate keys and malformed entries are refused before
+creation; changed, missing or additional values are refused before startup.
+Subsequent custody checks retain the exact observed container profile.
+
 The retained Root route uses transition v2 and terminal artifact v3. Matching
 Native, Worker and Root consumers are required. Complete SQL preimages and
 successors remain independently checked; canonical commitments remove duplicate

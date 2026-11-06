@@ -351,12 +351,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "1f65e000cb59f991bc711efc6e2eeb3f5e4e46531667e9521b3b0d8421f85b11",
+    "sha256": "d61c27697e1b66b02e32fe564b2a3d60ad82b8df84e9900fcddc12c9ddfe463c",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "def818b27972f2837d51b7bae868aa89ab2bcf3d24b442ecfc9ec18fea148655",
+    "sha256": "d941c39ae4986b18aa4369bb0eca6d423450d474ea0e747b4d20fad14c3ca303",
     "target": "source/comic_retained_standalone_parent.py"
   },
   {

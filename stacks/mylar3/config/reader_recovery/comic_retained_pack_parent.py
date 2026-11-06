@@ -662,6 +662,20 @@ def operational_entry(*args,**kwargs):
 # Host lifecycle mechanism. It intentionally has no engine/inspect callback argument.
 # The privileged caller invokes only this source-pinned helper; this code never
 # escalates privileges or starts a daemon by itself.
+def environment(values):
+    """Docker may reorder Env; preserve exact values and reject ambiguous keys."""
+    if values is None:
+        values = []
+    need(type(values) is list, 'environment-list')
+    result = {}
+    for entry in values:
+        need(type(entry) is str and '\0' not in entry, 'environment-entry')
+        key, separator, value = entry.partition('=')
+        need(separator == '=' and key and key not in result, 'environment-key')
+        result[key] = value
+    return result
+
+
 def selected_profile(original,row,*,installed_anchors=False):
     """Finite selected-worker profile; neither profile mode grants activation."""
     need(type(installed_anchors) is bool,'selected-anchor-mode')
@@ -699,7 +713,7 @@ def selected_profile(original,row,*,installed_anchors=False):
     host=row['HostConfig'];need(not host.get('Privileged') and not host.get('CapAdd')
          and not host.get('PortBindings') and host.get('NetworkMode')!='host','selected-no-expanded-privilege')
     need(row['Config']['User']==original['Config']['User']=='1000:1000'
-         and row['Config']['Env']==original['Config']['Env'],'selected-existing-user-environment')
+         and environment(row['Config']['Env'])==environment(original['Config']['Env']),'selected-existing-user-environment')
     need(not any(m['Destination']=='/var/run/docker.sock' for m in row['Mounts']),'selected-no-socket')
     need(host.get('ReadonlyRootfs') is True and host.get('CapDrop')==['ALL']
          and host.get('SecurityOpt')==['no-new-privileges'],'selected-exact-hardened-profile')
@@ -991,7 +1005,7 @@ class ConfiguredRuntime:
     def launch(self,input_host,input_child,input_sha):
         import subprocess
         self.close();need(self.selected is None and not self.native_open,'selected-launch-once')
-        original=self.baseline['worker'];networks=tuple(original['NetworkSettings']['Networks'])
+        original=self.baseline['worker'];environment(original['Config'].get('Env'));networks=tuple(original['NetworkSettings']['Networks'])
         need(1<=len(networks)<=MAX_NETWORKS and original['Config']['User']=='1000:1000','bounded-configured-network-required')
         need(Path(input_host).is_absolute() and Path(input_child).is_absolute(),'selected-input-absolute')
         need(_mapped_host(original,str(input_child))==Path(input_host),'selected-input-original-mapping')
@@ -1002,13 +1016,18 @@ class ConfiguredRuntime:
             need(mount['Type']=='bind' and not any(c in mount['Source']+mount['Destination'] for c in ',\n\r'),'selected-exact-bind-only')
             args+=['--mount','type=bind,src='+mount['Source']+',dst='+mount['Destination']+('' if mount['RW'] else ',readonly')]
         # Existing configured environment is retained privately, never printed.
-        for item in original['Config']['Env']:args+=['--env',item]
+        for item in (original['Config']['Env'] or []):args+=['--env',item]
         args+=[original['Image'],'-I','-B','/app/retained_pack_control.py','--input',str(input_child),'--input-sha256',input_sha]
         self.close();cid=self.command(args).decode().strip();need(len(cid)==64 and all(c in '0123456789abcdef' for c in cid),'selected-created-ID')
-        for network in networks[1:]:self.command(['network','connect',network,cid])
-        created=self.inspect(cid);self.selected_profile(created)
-        need(created['Config']['Entrypoint']==['python3'] and created['Config']['Cmd']==args[-7:],'selected-exact-command')
-        self.selected=cid;self.selected_static=self.static(created)
+        try:
+            for network in networks[1:]:self.command(['network','connect',network,cid])
+            created=self.inspect(cid);self.selected_profile(created)
+            need(created['Config']['Entrypoint']==['python3'] and created['Config']['Cmd']==args[-7:],'selected-exact-command')
+            selected_static=self.static(created)
+        except BaseException as error:
+            # Factual CREATE acknowledgement only; no ownership or cleanup grant.
+            raise ValueError('selected-create-ack-held:'+cid) from error
+        self.selected=cid;self.selected_static=selected_static
         self.process=subprocess.Popen(['docker','start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         # No background replayer/restart. Initialized frame is the first worker ACK.
         return self.process
