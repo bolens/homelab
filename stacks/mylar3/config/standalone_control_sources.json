@@ -666,7 +666,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "fb7bdbe61db1f4fb954d32511f485d050349ea8218d3e9c49efa971469e2decc",
+    "sha256": "8affc2931fe8dc624bad587b282b3000b64d2bf670e9927d0392344366713816",
     "target": "publication_reader_admission.py"
   },
   {
@@ -776,7 +776,7 @@
   },
   {
     "path": "reader_recovery/comic_reader_backup_primitives.py",
-    "sha256": "952184dc8cc754941299ee0bbaa455fccfd176e878d4f58ca9fa00420fea04d1",
+    "sha256": "5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396",
     "target": "reader_recovery/comic_reader_backup_primitives.py"
   },
   {
@@ -786,7 +786,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "2966fd3d35add55f78d648a25d86ca824d4ddf07adaa0aadeb7ba94f00ba9256",
+    "sha256": "6b8cb7901428f4a1d248cf6704397f8faaf318110808b735a7ffb8d291b838e6",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -801,12 +801,12 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "0d1b719d550dbccef9e5f61fe00ba5c6aa717b60840edbc9405b0eba6adb12b6",
+    "sha256": "3e3144910685d8061ae34523fb1de99eddb5951b6ef7ae5c072fa20a833e4547",
     "target": "reader_recovery/comic_retained_standalone_backup.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "b9e0e604c841370b4800ed2e37a2f326ca62e881a2c42cc23040761523c4bbd5",
+    "sha256": "f465fdbd86f5d159ddfeded049eb3151446c86faa19af7a162862895ede0d39d",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "fb5c896c025f808943b0dd2b6ea5e9fbb2ae977eeb1b7e48100bb3b77e9d13a4",
+    "sha256": "827e3b85c481d76b8a36a7d59ae96e335f489e77760aa3f7050047b53ce3f7a5",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1491,7 +1491,7 @@
   },
   {
     "path": "test_preproof_composed.py",
-    "sha256": "d8042ee2322b1a4025c6a67886ffc5c69d2d2613f3765ec74f8cf5eeb1782a69",
+    "sha256": "e5402703702ca2b1d47933a0ad7e12fb38e1a79ac821061ccdc54787445c5467",
     "target": "test_preproof_composed.py"
   },
   {
@@ -2071,12 +2071,12 @@
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "952184dc8cc754941299ee0bbaa455fccfd176e878d4f58ca9fa00420fea04d1",
+    "sha256": "5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396",
     "target": "standalone_launch_host/comic_reader_backup_primitives.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "0d1b719d550dbccef9e5f61fe00ba5c6aa717b60840edbc9405b0eba6adb12b6",
+    "sha256": "3e3144910685d8061ae34523fb1de99eddb5951b6ef7ae5c072fa20a833e4547",
     "target": "standalone_launch_host/comic_retained_standalone_backup.py"
   },
   {
@@ -2086,7 +2086,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "ec6ad24713b50eecf4c6ccba6ae1ffb11adc298f248de3d8b7756678903027ce",
+    "sha256": "00bf03388a24d9021ec513c78617ccfb8f7e993a61037b540317613e55df40b6",
     "target": "standalone_launch_host/comic_retained_standalone_parent.py"
   },
   {
@@ -2192,7 +2192,7 @@
   {
     "path": "reader_recovery/test_helper_birth_callers.py",
     "target": "reader_recovery/test_helper_birth_callers.py",
-    "sha256": "566a14eaee3f994dad584d2686afbe17718df724d7429bf91dfa13c20d8c182b"
+    "sha256": "a2aabbc365bc0a550280483a18689ab607ee62b4ab99d1167bbcb8a8b9b1912c"
   },
   {
     "path": "reader_recovery/test_helper_profiles.py",

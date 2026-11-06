@@ -277,5 +277,82 @@ class Callers(unittest.TestCase):
                     self.assertEqual(foreign,[])
                     self.assertFalse(hasattr(runtime,'selected_started'))
 
+    def test_callback_cannot_dispatch_foreign_record_slots(self):
+        for module,kind in ((pack,'configured'),(standalone,'none'),(self.host,'none')):
+            for slot in ('records','registry'):
+                for callback in ('poll','fileno'):
+                    with self.subTest(module=module.__name__,slot=slot,callback=callback):
+                        engine,runtime=self.unbound(module,kind);manager=module._helper_records();table=manager.records;registry=manager.registry;calls=[]
+                        class Foreign:
+                            def get(self,*args):calls.append('get');return None
+                            def __setitem__(self,*args):calls.append('write')
+                        target=runtime.process if callback=='poll'else runtime.process.stdin;original=getattr(target,callback)
+                        def swap():setattr(manager,slot,Foreign());return original()
+                        try:
+                            with patch.object(target,callback,side_effect=swap),self.assertRaisesRegex(ValueError,'original-record-owner'):
+                                runtime.bind_running()
+                        finally:manager.records=table;manager.registry=registry
+                        self.assertEqual(calls,[])
+                        self.assertEqual(table[runtime][0],'acquiring')
+                        with self.assertRaisesRegex(ValueError,'bind-once'):runtime.bind_running()
+
+    def test_terminal_poll_cannot_replace_record_owner(self):
+        engine,runtime=self.direct(pack,'configured');engine.finish();manager=pack._helper_records();table=manager.records;registry=manager.registry
+        terminal=(runtime.selected,runtime.selected_started,runtime.selected_static,runtime.process);row=engine.helper('exited');record=table[runtime]
+        for slot in ('records','registry'):
+            calls=[]
+            class Foreign:
+                def get(self,*args):calls.append('get');return None
+                def __setitem__(self,*args):calls.append('write')
+            original=runtime.process.poll
+            def poll():setattr(manager,slot,Foreign());return original()
+            try:
+                with patch.object(runtime.process,'poll',side_effect=poll),self.assertRaisesRegex(ValueError,'original-record-owner'):
+                    manager.check(runtime,row,terminal)
+            finally:manager.records=table;manager.registry=registry
+            self.assertEqual(calls,[]);self.assertIs(table[runtime],record)
+
+    def test_callback_cannot_dispatch_replaced_class_attributes(self):
+        for module,kind in ((pack,'configured'),(standalone,'none'),(self.host,'none')):
+            for callback in ('poll','fileno'):
+                for attack in ('property','getattribute','class'):
+                    with self.subTest(module=module.__name__,callback=callback,attack=attack):
+                        engine,runtime=self.unbound(module,kind);manager=module._helper_records();owner=type(manager);table=manager.records;calls=[];descriptor=vars(owner)['records']
+                        class Foreign(owner):
+                            __slots__=()
+                            def __getattribute__(self,name):calls.append('foreign');return object.__getattribute__(self,name)
+                        target=runtime.process if callback=='poll'else runtime.process.stdin;original=getattr(target,callback)
+                        def replace():
+                            if attack=='property':owner.records=property(lambda obj:calls.append('foreign'))
+                            elif attack=='getattribute':owner.__getattribute__=lambda obj,name:(calls.append('foreign'),object.__getattribute__(obj,name))[1]
+                            else:object.__setattr__(manager,'__class__',Foreign)
+                            return original()
+                        try:
+                            with patch.object(target,callback,side_effect=replace),self.assertRaisesRegex(ValueError,'helper-source-class-drift|helper-original-record-owner'):
+                                runtime.bind_running()
+                        finally:
+                            owner.records=descriptor
+                            if '__getattribute__'in vars(owner):delattr(owner,'__getattribute__')
+                            object.__setattr__(manager,'__class__',owner)
+                        self.assertEqual(calls,[]);self.assertEqual(table[runtime][0],'acquiring')
+
+    def test_factory_rejects_class_drift_before_instance_reads(self):
+        for module,kind in ((pack,'configured'),(standalone,'none'),(self.host,'none')):
+            engine,runtime=self.setup_runtime(module,kind);manager=module._helper_records();owner=type(manager);descriptor=vars(owner)['records'];calls=[]
+            try:
+                owner.records=property(lambda obj:calls.append('foreign'))
+                with self.assertRaisesRegex(ValueError,'helper-source-class-drift'):module._helper_records()
+            finally:owner.records=descriptor
+            self.assertEqual(calls,[])
+
+    def test_factory_owner_check_has_no_replaceable_assertion_callback(self):
+        for module,kind in ((pack,'configured'),(standalone,'none'),(self.host,'none')):
+            engine,runtime=self.setup_runtime(module,kind);manager=module._helper_records();calls=[];original=module.need
+            def callback(ok,reason):
+                if reason=='helper-original-record-owner':calls.append('foreign')
+                return original(ok,reason)
+            with patch.object(module,'need',side_effect=callback):self.assertIs(module._helper_records(),manager)
+            self.assertEqual(calls,[])
+
 
 if __name__=='__main__':unittest.main()

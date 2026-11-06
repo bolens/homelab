@@ -35,7 +35,7 @@ SUITES=SUITES+(('test_configured_archive_geometry.py', 34),('test_configured_pla
 SUITES=SUITES+(('test_retained_pack_terminal_sql.py',61),)
 SUITES=SUITES+(('test_retained_pack_backup_custody.py',42),('test_retained_pack_observation.py',22))
 SUITES=SUITES+(('test_retained_pack_runtime.py',26),('test_retained_native_control.py',10))
-SUITES=SUITES+(('test_helper_profiles.py',12),('test_helper_birth_callers.py',13))
+SUITES=SUITES+(('test_helper_profiles.py',12),('test_helper_birth_callers.py',18))
 # Resource ceiling shared with the complete owning source union. This is not
 # the current manifest census: membership comes from the checked source maps.
 SUITE_TIMEOUT=120

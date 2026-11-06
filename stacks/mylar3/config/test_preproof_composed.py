@@ -46,12 +46,24 @@ class Preproof(base.Composed):
   self.addCleanup(reap)
   for stream in (proc.stdin,proc.stdout,proc.stderr):self.addCleanup(stream.close)
   ids=dict(reader='1'*64,native='2'*64,worker='3'*64);selected='4'*64
-  states={ids['reader']:dict(Running=True,Paused=False,Pid=111,StartedAt='reader-original',Status='running'),ids['native']:dict(Running=True,Paused=False,Pid=222,StartedAt='native-original',Status='running'),ids['worker']:dict(Running=False,Paused=False,Pid=0,StartedAt='',Status='created')}
+  case=json.loads((Path(__file__).parent/'reader_recovery/helper_profile_vectors.json').read_bytes())['cases']['configured']
+  selected_phase='created';states={}
+  for role,cid in ids.items():
+   state=copy.deepcopy(case['created'if role=='worker'else'running']['State'])
+   state.update(Running=role!='worker',Paused=False,Pid=0 if role=='worker'else (111 if role=='reader'else 222),StartedAt=''if role=='worker'else role+'-original',Status='created'if role=='worker'else'running')
+   states[cid]=state
   def row(cid):
-   if cid==selected and proc.poll() is not None:states[cid].update(Running=False,Pid=0,Status='exited',ExitCode=proc.returncode)
-   return dict(Id=cid,Name='/fixture-'+cid,Path='/init',Args=[],Image='sha256:'+'5'*64,Config=dict(User='1000:1000'),HostConfig=dict(),Mounts=[],NetworkSettings=dict(Networks={}),State=copy.deepcopy(states[cid]))
+   phase=selected_phase if cid==selected else ('created'if cid==ids['worker']else'running')
+   if cid==selected and phase=='running'and proc.poll()is not None:
+    phase='exited';states[cid].update(Running=False,Pid=0,Status='exited',ExitCode=proc.returncode)
+   value=copy.deepcopy(case[phase]);value.update(Id=cid,Name='/fixture-'+cid)
+   value['Config']['Hostname']=cid[:12]
+   for entry in value['NetworkSettings']['Networks'].values():
+    if entry.get('DNSNames')is not None:entry['DNSNames']=[value['Name'][1:],cid[:12]]
+   value['State']=copy.deepcopy(states[cid]);return value
   def engine(owner,args):
    if args[0]=='inspect':return json.dumps([row(args[1])]).encode()
+   if args[:2]==['network','inspect']:return json.dumps([case['networks'][args[-1]]]).encode()
    if args[0]=='pause':states[args[1]]['Paused']=True;return (args[1]+'\n').encode()
    if args[0]=='stop':states[args[-1]].update(Running=False,Pid=0,Status='exited');return (args[-1]+'\n').encode()
    if args[0]=='unpause':states[args[1]]['Paused']=False;return (args[1]+'\n').encode()
@@ -65,9 +77,14 @@ class Preproof(base.Composed):
   own=Path(parent.__file__).absolute();sref=dict(path=str(own),sha256=hashlib.sha256(own.read_bytes()).hexdigest(),signature9=list(backup.nine(os.lstat(own))))
   with patch.object(parent.ConfiguredRuntime,'command',engine),patch.object(parent,'_NativePauseEvents',PauseStreamDouble),patch.multiple(parent,ENABLED=True,PRIMITIVES_SOURCE_SHA=pin):
    runtime=parent.ConfiguredRuntime.observe(ids);runtime.quiesce()
-   # Source-fixture selected process identity; this is not a protected mount/image proof.
-   states[selected]=dict(Running=True,Paused=False,Pid=proc.pid,StartedAt='actual-fixture-child',Status='running')
-   runtime.process=proc;runtime.selected=selected;runtime.selected_static=runtime.static(row(selected));runtime.selected_started=states[selected]['StartedAt'];runtime.selected_pid=states[selected]['Pid']
+   # Qualified synthetic Docker profiles, with the actual same child and pipes.
+   # This is lifecycle composition, not installed-image or mount authority.
+   states[selected]=copy.deepcopy(case['created']['State'])
+   runtime.remember_selected_created(row(selected))
+   runtime.process=proc;selected_phase='running'
+   states[selected]=copy.deepcopy(case['running']['State'])
+   states[selected].update(Pid=proc.pid,StartedAt='actual-fixture-child')
+   runtime.bind_running()
    cap=parent.from_original_pipe(pref,sref,proc.stdout.fileno(),proc.stdin.fileno(),runtime)
    parent.initialized(cap);summary=parent.backup(cap);self.assertFalse(summary['mutation_authority'])
    if foreign:

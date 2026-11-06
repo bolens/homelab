@@ -6,7 +6,7 @@ import math
 import re
 import struct
 
-SOURCE = 'a1bc43413031dabcacb1d98c92f9cb0848f55c72e6649fad67f505dc4e721b64'
+SOURCE = 'ec5ab0a830fb901465349e17a51773ab57e22fad31f9b25d10a6a9fad3596b23'
 SCHEMAS = {"database.sqlite": "f17a186b24d6b4b35473d9dc23bbecffae260adeee5e04fe31dcc786bed322ad", "tasks.sqlite": "98905e11edcba01c7c83caf89f36f6036261035318039576651e2c447c58df22"}
 MAX = 64 * 1024**2
 class Held(ValueError):

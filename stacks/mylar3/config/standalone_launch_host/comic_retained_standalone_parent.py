@@ -481,12 +481,14 @@ _RUNTIMES = weakref.WeakKeyDictionary()
 
 def _make_helper_records():
     module=helper_profiles;registry=_RUNTIMES
-    records=module.HelperBirths(registry);table=records.records
+    original_class=module.HelperBirths
+    records=original_class(registry);table=records.records
     implementation=module.helper_profile_implementation()
     def original():
-        need(helper_profiles is module and _RUNTIMES is registry and records.registry is registry
-             and records.records is table,'helper-original-record-owner')
         implementation()
+        if not (type(records) is original_class and helper_profiles is module and _RUNTIMES is registry
+                and records.registry is registry and records.records is table):
+            raise ValueError('helper-original-record-owner')
         return records
     return original
 

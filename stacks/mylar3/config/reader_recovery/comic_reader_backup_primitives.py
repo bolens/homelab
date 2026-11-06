@@ -44,30 +44,43 @@ class HelperBirths:
         self.registry=registry
         self.records=weakref.WeakKeyDictionary()
 
+    def _originals(self):
+        implementation=helper_profile_implementation();owner=HelperBirths
+        if type(self) is not owner:raise ValueError('helper-original-record-owner')
+        registry=self.registry;records=self.records
+        def close():
+            implementation()
+            if type(self) is not owner or self.registry is not registry or self.records is not records:
+                raise ValueError('helper-original-record-owner')
+        close()
+        return registry,records,close
+
     def remember(self,runtime,created,networks):
-        if runtime not in self.registry or runtime in self.records:
+        registry,records,close=self._originals()
+        if runtime not in registry or runtime in records:
             raise ValueError('helper-created-once')
-        original=self.registry[runtime]
+        original=registry[runtime]
         state=created['State']
         if (state['Status']!='created' or state['Running'] is not False or type(state['Pid']) is not int or state['Pid']!=0
                 or state['Paused'] is not False or not state['StartedAt'].startswith('0001-')):
             raise ValueError('helper-original-created-state')
         profile=json.dumps(helper_profile(created),sort_keys=True,separators=(',',':'),allow_nan=False)
         configuration=json.dumps(networks,sort_keys=True,separators=(',',':'),allow_nan=False)
+        close()
         record=('created',original,profile,configuration)
-        if self.registry.get(runtime) is not original:raise ValueError('helper-original-runtime')
-        self.records[runtime]=record
+        if registry.get(runtime) is not original:raise ValueError('helper-original-runtime')
+        records[runtime]=record
         return record
 
     def begin(self,runtime,process):
-        close=helper_profile_implementation()
-        record=self.records.get(runtime)
-        if record is None or record[0]!='created' or self.registry.get(runtime) is not record[1]:
+        registry,records,close=self._originals()
+        record=records.get(runtime)
+        if record is None or record[0]!='created' or registry.get(runtime) is not record[1]:
             raise ValueError('helper-bind-once')
         # START has already been requested. Even witness acquisition failure
         # consumes this birth and cannot authorize a second binding attempt.
         acquiring=('acquiring',record,process)
-        self.records[runtime]=acquiring
+        records[runtime]=acquiring
         streams=(process.stdin,process.stdout,process.stderr)
         pipes=[]
         for stream in streams:
@@ -78,9 +91,9 @@ class HelperBirths:
         if result is not None:raise ValueError('helper-attach-exited')
         pipes=tuple(pipes)
         pending=('binding',record,process,process.pid,pipes)
-        if self.records.get(runtime) is not acquiring or self.registry.get(runtime) is not record[1]:
+        if records.get(runtime) is not acquiring or registry.get(runtime) is not record[1]:
             raise ValueError('helper-created-record-replaced')
-        self.records[runtime]=pending
+        records[runtime]=pending
         return pending
 
     @staticmethod
@@ -89,9 +102,9 @@ class HelperBirths:
         return(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
 
     def close_pending(self,runtime,pending):
-        close=helper_profile_implementation()
-        if (self.records.get(runtime) is not pending or pending[0]!='binding'
-                or self.registry.get(runtime) is not pending[1][1]):
+        registry,records,close=self._originals()
+        if (records.get(runtime) is not pending or pending[0]!='binding'
+                or registry.get(runtime) is not pending[1][1]):
             raise ValueError('helper-original-pending')
         process=pending[2]
         result=process.poll();close()
@@ -106,7 +119,7 @@ class HelperBirths:
                 raise ValueError('helper-original-pipe')
 
     def commit(self,runtime,pending,running,static):
-        close=helper_profile_implementation()
+        registry,records,close=self._originals()
         snapshot=helper_snapshot(running)
         self.close_pending(runtime,pending);close()
         created=json.loads(pending[1][2]);networks=json.loads(pending[1][3]);cid=created['Id']
@@ -122,18 +135,18 @@ class HelperBirths:
         self.close_pending(runtime,pending);close()
         if helper_snapshot(running)!=snapshot:raise ValueError('helper-running-snapshot-drift')
         record=('running',pending,profile,static,started,pid)
-        self.records[runtime]=record
+        records[runtime]=record
         return record
 
     def check(self,runtime,row,terminal=None):
-        close=helper_profile_implementation()
+        registry,records,close=self._originals()
         snapshot=helper_snapshot(row)
-        record=self.records.get(runtime)
+        record=records.get(runtime)
         if record is None or record[0] not in('running','exited'):
             raise ValueError('helper-original-running-record')
         started=record if record[0]=='running'else record[1]
         pending=started[1];process=pending[2]
-        if self.registry.get(runtime) is not pending[1][1]:raise ValueError('helper-original-runtime')
+        if registry.get(runtime) is not pending[1][1]:raise ValueError('helper-original-runtime')
         if (process.pid!=pending[3] or runtime.selected!=json.loads(started[2])['Id'] or runtime.process is not process
                 or runtime.selected_static!=started[3] or runtime.selected_started!=started[4]
                 or runtime.selected_pid!=started[5]):raise ValueError('helper-original-running-fields')
@@ -150,12 +163,12 @@ class HelperBirths:
             if record[0]=='running':
                 if not helper_exited_profile(json.loads(started[2]),profile,runtime.selected):raise ValueError('helper-running-to-exited')
                 encoded=json.dumps(profile,sort_keys=True,separators=(',',':'),allow_nan=False)
-                if self.records.get(runtime) is not record:raise ValueError('helper-running-record-replaced')
-                record=('exited',started,terminal,encoded);self.records[runtime]=record
+                if records.get(runtime) is not record:raise ValueError('helper-running-record-replaced')
+                record=('exited',started,terminal,encoded);records[runtime]=record
             elif record[2] is not terminal or not _helper_equal(profile,json.loads(record[3])):raise ValueError('helper-exited-profile-drift')
         close()
         if helper_snapshot(row)!=snapshot:raise ValueError('helper-observation-snapshot-drift')
-        if self.records.get(runtime) is not record or self.registry.get(runtime) is not pending[1][1]:
+        if records.get(runtime) is not record or registry.get(runtime) is not pending[1][1]:
             raise ValueError('helper-final-original-record')
         return started
 
@@ -166,6 +179,7 @@ def helper_profile_implementation():
     names=('HelperBirths','helper_network_configuration','helper_network_order','helper_profile','_helper_address',
            'helper_started_profile','helper_exited_profile','_helper_equal','helper_snapshot','helper_profile_implementation')
     objects=tuple((name,namespace[name])for name in names)
+    owner=HelperBirths;class_namespace=tuple(vars(owner).items())
     functions=tuple((value,value.__code__,value.__defaults__,value.__kwdefaults__,value.__globals__)
                     for _,value in objects if hasattr(value,'__code__'))
     methods=tuple((name,value.__func__ if isinstance(value,staticmethod)else value)
@@ -177,6 +191,9 @@ def helper_profile_implementation():
                (re,'fullmatch',re.fullmatch))
     def close():
         if any(namespace.get(name)is not value for name,value in objects):raise ValueError('helper-source-function-replaced')
+        current=vars(owner)
+        if set(current)!={name for name,_ in class_namespace} or any(current.get(name)is not value for name,value in class_namespace):
+            raise ValueError('helper-source-class-drift')
         if any((vars(HelperBirths).get(name).__func__ if isinstance(vars(HelperBirths).get(name),staticmethod)else vars(HelperBirths).get(name))is not value for name,value in methods):raise ValueError('helper-source-method-replaced')
         for value,code,defaults,kwdefaults,scope in (*functions,*codes):
             if value.__code__ is not code or value.__defaults__ is not defaults or value.__kwdefaults__ is not kwdefaults or value.__globals__ is not scope:
