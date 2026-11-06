@@ -1734,6 +1734,12 @@ backup/NFS/terminal acceptance remain unfinished.
 The image build preserves the pinned upstream config/main source bytes and closes
 their group-write permission bits (config 0644, entry point 0755). The installed
 cohort verifier checks both boundaries before accepting configured native scope.
+The five Native files consumed by Root retained launch are normalized to 0644
+after patching. The checked stage and final image both require regular,
+single-link, Root-owned files without group or world write access. This includes
+`api.py`, whose upstream permissions survive an in-place patch unless explicitly
+closed. General required-SDK verification still checks bytes and preserves
+unrelated upstream permissions. Neither image gate grants a live repair.
 Standalone recovery loads Mylar’s fixed bundled-library directory alongside the
 canonical package; the selected image remains the dependency provenance boundary.
 

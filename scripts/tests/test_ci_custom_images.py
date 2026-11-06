@@ -359,5 +359,25 @@ assert sys.argv[1]=='mylar-ci-installed'
         self.assertEqual([call[0][0] for call in calls], ['pull', 'build'])
 
 
+class ProtectedImageContract(unittest.TestCase):
+    def test_native_verifier_matches_every_worker_requested_source(self):
+        native = ast.parse((Path(__file__).resolve().parents[2] / 'stacks/mylar3/config/protected_image_sources.py').read_text())
+        worker = ast.parse((Path(__file__).resolve().parents[2] / 'stacks/komga/normalizer/retained_pack_handoff.py').read_text())
+        names = next(ast.literal_eval(n.value) for n in native.body
+                     if isinstance(n, ast.Assign) and getattr(n.targets[0], 'id', None) == 'PROTECTED_FILES')
+        pins = next(ast.literal_eval(n.value) for n in worker.body
+                    if isinstance(n, ast.Assign) and getattr(n.targets[0], 'id', None) == 'NATIVE_SOURCE_PINS')
+        self.assertEqual(set(names), set(pins) | {'api.py'})
+
+    def test_build_normalizes_before_checks_and_final_image_is_verified(self):
+        source = (Path(__file__).resolve().parents[2] / 'stacks/mylar3/Dockerfile').read_text()
+        normalization = 'protected_image_sources.py --normalize /app/mylar3/mylar'
+        self.assertEqual(source.count(normalization), 1)
+        self.assertLess(source.index('apply_patches.py /app/mylar3/mylar'), source.index(normalization))
+        self.assertLess(source.index(normalization), source.index("'/opt/mylar3-fixes/verify_image.py','--phase','remaining'"))
+        self.assertIn('source=/opt/mylar3-fixes/protected_image_sources.py,target=/run/verify-protected-sources.py,readonly', source)
+        self.assertLess(source.index('COPY --from=checked /app/mylar3/mylar/'), source.index('python3 -I -B /run/verify-protected-sources.py'))
+
+
 if __name__ == "__main__":
     unittest.main()

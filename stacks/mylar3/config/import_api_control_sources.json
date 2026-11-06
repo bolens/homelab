@@ -721,7 +721,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "08c90ccf0b812a3cfebf4d531a82d2345e1b1aaf719b9fac5383cfbfffa42962"
+    "sha256": "2403e1c29adec651006ceb9e9d6b95b6e81cf2082c0d1fd999fad0034ea5552e"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -1361,7 +1361,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "bb4ddcebdd0b3355121d992acf587d24efe2ed28abd22b2e5c750d7200afd49e"
+    "sha256": "6196330ba1cb1dff79151d47101c38390f6798538ed36ea1597c5844d2c3de55"
   },
   {
     "path": "test_publication_conversion.py",
@@ -1729,7 +1729,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "ec03dac795ba556d82dc0b879f34570fae30f06a411f38df3866e227161c27c1"
+    "sha256": "c98da32d64052189560b17bb45c9de9ce9d108a1065d37949798d0b14dd2b982"
   },
   {
     "path": "verify_tagging_stage.py",
@@ -1758,5 +1758,9 @@
   {
     "path": "workflow_web.py",
     "sha256": "f5eaad1acfad03a201e29eb62a1f1f3d0c26cbab589f18c92f85bf09eb12615b"
+  },
+  {
+    "path": "protected_image_sources.py",
+    "sha256": "8d8f0e737d2e70759015bc49fe9970229d96345044cd96e781843c61ffad68ae"
   }
 ]

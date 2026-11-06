@@ -1591,7 +1591,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "bb4ddcebdd0b3355121d992acf587d24efe2ed28abd22b2e5c750d7200afd49e",
+    "sha256": "6196330ba1cb1dff79151d47101c38390f6798538ed36ea1597c5844d2c3de55",
     "target": "test_publication_cohort_imports.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "ec03dac795ba556d82dc0b879f34570fae30f06a411f38df3866e227161c27c1",
+    "sha256": "c98da32d64052189560b17bb45c9de9ce9d108a1065d37949798d0b14dd2b982",
     "target": "verify_publication_reader_cohort.py"
   },
   {
@@ -2178,5 +2178,10 @@
     "path": "test_fixtures/ordinary_import/PostProcessor.py",
     "sha256": "365bdc75327f8a82e75655e3017fbd70ff84858e515d0be5fee598b215da70cc",
     "target": "test_fixtures/ordinary_import/PostProcessor.py"
+  },
+  {
+    "path": "protected_image_sources.py",
+    "sha256": "8d8f0e737d2e70759015bc49fe9970229d96345044cd96e781843c61ffad68ae",
+    "target": "protected_image_sources.py"
   }
 ]
