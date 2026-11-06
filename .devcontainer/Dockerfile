@@ -48,6 +48,8 @@ COPY --from=ruff /ruff /usr/local/bin/ruff
 COPY --from=actionlint /usr/local/bin/actionlint /usr/local/bin/actionlint
 COPY --from=hadolint /bin/hadolint /usr/local/bin/hadolint
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN curl --fail --silent --show-error --location \
         https://registry.npmjs.org/corepack/-/corepack-0.36.0.tgz \
         --output /tmp/corepack-0.36.0.tgz \

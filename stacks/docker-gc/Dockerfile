@@ -12,7 +12,7 @@ ADD --checksum=sha256:55cc6862dcba27feddbd5d1f57f446d1d22cb3e92840ae02281e174e9d
     https://raw.githubusercontent.com/spotify/docker-gc/${DOCKER_GC_COMMIT}/docker-gc /docker-gc
 COPY docker-gc.patch /docker-gc.patch
 RUN chmod +x /docker-gc && \
-    cd / && patch -p0 -d / < /docker-gc.patch && rm /docker-gc.patch
+    patch -p0 -d / < /docker-gc.patch && rm /docker-gc.patch
 
 COPY entrypoint.sh /entrypoint.sh
 COPY builder-cache-guard.sh /builder-cache-guard.sh
