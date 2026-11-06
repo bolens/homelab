@@ -3,8 +3,34 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+import hashlib
+import tempfile
+from verify_publication_reader_cohort import verify_required_sdk
 ROOT=Path(__file__).resolve().parent
 class Controls(unittest.TestCase):
+ def sdk_fixture(self,root):
+  names=['pack_intake.py','media_writer.py'];pins={}
+  for name in names:
+   raw=(ROOT/name).read_bytes();(root/name).write_bytes(raw);pins[name]=hashlib.sha256(raw).hexdigest()
+  return dict(required_sdk_names=names,base_installed_sources=pins)
+ def test_required_sdk_checks_actual_bytes_and_rejects_stale_pin(self):
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);base=self.sdk_fixture(root)
+   self.assertEqual(verify_required_sdk(root,base),2)
+   base['base_installed_sources']['pack_intake.py']='8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89'
+   with self.assertRaises(AssertionError):verify_required_sdk(root,base)
+ def test_required_sdk_refuses_symlink_even_when_bytes_match(self):
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);base=self.sdk_fixture(root);path=root/'pack_intake.py'
+   path.unlink();path.symlink_to(ROOT/'pack_intake.py')
+   with self.assertRaises(AssertionError):verify_required_sdk(root,base)
+ def test_required_sdk_refuses_empty_duplicate_or_escaping_membership(self):
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);base=self.sdk_fixture(root)
+   for names in ([],['pack_intake.py','pack_intake.py'],['../pack_intake.py']):
+    bad=dict(base,required_sdk_names=names)
+    bad['base_installed_sources']=dict(base['base_installed_sources'],**{name:'0'*64 for name in names if name not in base['base_installed_sources']})
+    with self.subTest(names=names),self.assertRaises(AssertionError):verify_required_sdk(root,bad)
  def test_successor_canonical_package_identity(self):
   code="""import types,sys,importlib
 from pathlib import Path

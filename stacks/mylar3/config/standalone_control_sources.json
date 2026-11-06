@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "7a6086dc52a01e697423bdf369441d6cd34c130c39b36e49e3969aad6d540e65",
+    "sha256": "6721fcab149bfe9f0ec045abf0a193eefc86c560997a0711c9e5eb7ba8cff0e8",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1591,7 +1591,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "8bf51f1fed750e04f708d2bf9892688bdba47f4258f3e5f83bf7ac13d76c500b",
+    "sha256": "8f9224dfd216dc96518cdc293e1b991b251fc103cf59d4d26cffa0b6f3ef32d0",
     "target": "test_publication_cohort_imports.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "f073536d6aaf09037a461e95328e6df53e33b377695e7f0929a434643a7c466d",
+    "sha256": "b99b652281e30c4f5913334c9a3920eee552fe4b9a4347c91433e2e4229222cc",
     "target": "verify_publication_reader_cohort.py"
   },
   {

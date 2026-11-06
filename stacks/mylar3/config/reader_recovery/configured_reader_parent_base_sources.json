@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "6372eee432c59a00e57f2c3290beb4e7dfafb5b06e7acf8087031c830b86d0e3",
+  "base_cohort_sha256": "fcb1bc615d1883f3d4d07f51e4e9bcdb27332de602c4b268044d45430577cd96",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -174,7 +174,7 @@
     "ordinary_import_observation.py": "c2e8da946e2677b1ebf940342077ea6bbf64b0210bbbddca77e92f9dce55bea3",
     "pack_bindings.py": "1bb49d868ab3ce3dd2e4789aa4fb32833780cc63ba7a0ec29bf2109ce7369ed1",
     "pack_catalog.py": "00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f",
-    "pack_intake.py": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89",
+    "pack_intake.py": "6d03eb6585b487de4eb29911f41ae5185c1a403307cc06978babcf32b9bdcd47",
     "parseit.py": "ef0682002829fb601041280c47e737c9e3907732bc01132a8fea70d4f97f0918",
     "pp_monitor.py": "b5ef9cc52feb93b4cea8b4a1025b6e9bc467455fd3e0eee5f871da86f8152ae8",
     "process.py": "68fc9811b7f12eed5ddf5910c40bcdd2300a18d01901759ade560516f955b57d",
@@ -421,7 +421,7 @@
         "owning_adapters": [
           "patch_pack_intake.py"
         ],
-        "tracked_source_sha256": "8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89"
+        "tracked_source_sha256": "6d03eb6585b487de4eb29911f41ae5185c1a403307cc06978babcf32b9bdcd47"
       },
       "pp_monitor": {
         "owning_adapters": [

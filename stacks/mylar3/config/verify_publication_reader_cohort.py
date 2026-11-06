@@ -2,9 +2,38 @@
 import hashlib
 import importlib
 import json
+import os
 from pathlib import Path
 import stat
 import sys
+
+
+def verify_required_sdk(root, base):
+    """Check actual installed bytes against every required SDK pin."""
+    names=base['required_sdk_names'];known=base['base_installed_sources']
+    assert type(names)is list and names and len(names)==len(set(names))
+    assert type(known)is dict and set(names)<=set(known)
+    assert root.is_absolute() and root.resolve()==root
+    def signature(value):
+        return (value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns,value.st_ctime_ns,
+                value.st_mode,value.st_uid,value.st_gid,value.st_nlink)
+    for name in names:
+        assert type(name)is str and Path(name).name==name and name.endswith('.py'),name
+        path=root/name;assert path.resolve()==path,name
+        fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+        try:
+            before=os.fstat(fd);frame=signature(before)
+            assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and stat.S_IMODE(before.st_mode)in(0o600,0o644),name
+            assert signature(path.lstat())==frame,name
+            digest=hashlib.sha256();size=0
+            while True:
+                block=os.read(fd,65536)
+                if not block:break
+                size+=len(block);assert size<=before.st_size,name;digest.update(block)
+            assert size==before.st_size and digest.hexdigest()==known[name],name
+            assert signature(os.fstat(fd))==frame==signature(path.lstat()),name
+        finally:os.close(fd)
+    return len(names)
 
 
 def verify_retained_routes(writers, retained_api):
@@ -18,6 +47,8 @@ def main():
     assert sys.dont_write_bytecode, 'Requires -B'
     fixes = Path(__file__).parent
     manifest = json.loads((fixes / 'publication_reader_cohort.json').read_text())
+    base = json.loads((fixes / 'reader_recovery/configured_reader_parent_base_sources.json').read_bytes())
+    verify_required_sdk(Path('/app/mylar3/mylar'), base)
     sys.path[:0] = ['/app/mylar3', '/app/mylar3/lib']
     modules = {}
     for name, row in manifest['modules'].items():
