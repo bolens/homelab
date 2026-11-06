@@ -9,7 +9,6 @@ import re
 import shutil
 import stat
 import tarfile
-import time
 import urllib.parse
 import urllib.request
 import zipfile
@@ -42,7 +41,7 @@ def fetch(spec, target):
             or not re.fullmatch('[0-9a-f]{64}', spec['sha256'])):
         raise ValueError('invalid immutable tool source')
     request = urllib.request.Request(spec['url'], headers={'User-Agent': 'homelab-native-ci/1'})
-    deadline = time.monotonic() + 180
+    # Bound stalled network I/O; EOF, size and checksum determine completion.
     with urllib.request.urlopen(request, timeout=15) as response, target.open('xb') as output:
         final = urllib.parse.urlsplit(response.geturl())
         allowed = {url.hostname}
@@ -52,8 +51,6 @@ def fetch(spec, target):
             raise ValueError('tool redirect left the approved HTTPS origin')
         count = 0
         while True:
-            if time.monotonic() >= deadline:
-                raise TimeoutError('tool download exceeded its time bound')
             data = response.read1(1024 * 1024)
             if not data:
                 break

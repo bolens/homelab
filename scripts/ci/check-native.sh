@@ -26,7 +26,7 @@ git -C "$scratch/source" checkout --quiet --detach "$source_revision"
 cd -- "$scratch/source"
 test "$(git rev-parse HEAD)" = "$source_revision"
 bootstrap() {
-    timeout 240s python3 scripts/ci/bootstrap-native-tools.py --destination "$scratch/tools" "$@"
+    python3 scripts/ci/bootstrap-native-tools.py --destination "$scratch/tools" "$@"
     export PATH="$scratch/tools/bin:$PATH"
 }
 python_tools() {
