@@ -157,8 +157,8 @@ class Controls(fixture.Controls):
                 source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');events=[];attrs=h.apply_attrs;sync=h.sync
                 def apply(path,value):
                     events.append(('attrs',Path(path)));return attrs(path,value)
-                def durable(path):
-                    events.append(('sync',Path(path)));return sync(path)
+                def durable(path,*,deadline=None):
+                    events.append(('sync',Path(path)));return sync(path,deadline=deadline)
                 with patch.object(h,'apply_attrs',apply),patch.object(h,'sync',durable):h.copy_scope(source,target,rows)
                 copied,_=h.inventory(target,'tree');self.assertEqual(h.logical(rows),h.logical(copied))
                 self.assertEqual((target/'one').read_bytes(),b'payload\0bytes');self.assertEqual(os.readlink(target/'link'),'one')
@@ -168,16 +168,16 @@ class Controls(fixture.Controls):
     def test_backup_copy_no_early_file_fsync(self):
         for index,h in self.primitive_variants():
             source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');seen=[]
-            with patch.object(h,'sync',lambda path:seen.append(Path(path))),patch.object(h.os,'fsync',side_effect=AssertionError('early durability barrier')):h.copy_scope(source,target,rows)
+            with patch.object(h,'sync',lambda path,**kwargs:seen.append(Path(path))),patch.object(h.os,'fsync',side_effect=AssertionError('early durability barrier')):h.copy_scope(source,target,rows)
             self.assertTrue(seen);self.assertEqual(seen[-1],target.parent)
     def durability_failure(self,kind):
         for index,h in self.primitive_variants():
             source,target=self.durability_source(index);rows,_=h.inventory(source,'tree');events=[];real=h.sync;error=OSError('durability-'+kind)
-            def fail(path):
+            def fail(path,*,deadline=None):
                 path=Path(path);events.append(path)
                 chosen=(kind=='file'and path.is_file())or(kind=='directory'and path==target/'nested')or(kind=='parent'and path==target.parent)
                 if chosen:raise error
-                return real(path)
+                return real(path,deadline=deadline)
             with patch.object(h,'sync',fail),self.assertRaises(OSError)as caught:h.copy_scope(source,target,rows)
             self.assertIs(caught.exception,error)
             if kind!='parent':self.assertNotIn(target.parent,events)

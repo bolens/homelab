@@ -10,7 +10,7 @@ import time
 import types
 
 PRIMITIVES=Path(__file__).with_name('comic_reader_backup_primitives.py')
-PRIMITIVES_SHA='cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
+PRIMITIVES_SHA='052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc'
 MAX_JSON=64*1024**2
 class Held(ValueError):pass
 
@@ -81,7 +81,7 @@ def run(args):
  def bound():check(time.monotonic()<=deadline,'deadline')
  count=total=0;identities=set()
  for s in scopes:
-  bound();rows,size=m.inventory(Path(s['path']),s['kind']);rows_safe(Path(s['path']),rows)
+  bound();rows,size=m.inventory(Path(s['path']),s['kind'],deadline=deadline);rows_safe(Path(s['path']),rows)
   for r in rows:
    if r['kind']=='file':
     identity=tuple(r['stamp'][:2]);check(identity not in identities,'physical-alias');identities.add(identity)
@@ -98,32 +98,32 @@ def run(args):
  protected_dirs={tuple(v[:2]) for v in forbidden_dirs.values()}
  protected_dirs.update(tuple(r['stamp'][:2]) for s in scopes for r in s['records'] if r['kind']=='directory')
  check(not any(tuple(stamp(p)[:2]) in protected_dirs for p in out.parents),'physical-output-overlap')
- required=['config:database.sqlite','config:tasks.sqlite'];databases=m.database_rows(scopes,required);bound()
+ required=['config:database.sqlite','config:tasks.sqlite'];databases=m.database_rows(scopes,required,deadline=deadline);bound()
  check(ancestry(paths)==admission,'source-ancestor')
  out.mkdir(mode=0o700);(out/'backup').mkdir(mode=0o700);(out/'restore').mkdir(mode=0o700)
  for s in scopes:
-  bound();m.copy_scope(Path(s['path']),out/'backup'/s['name'],s['records']);bound();m.copy_scope(out/'backup'/s['name'],out/'restore'/s['name'],s['records'])
+  bound();m.copy_scope(Path(s['path']),out/'backup'/s['name'],s['records'],deadline=deadline);bound();m.copy_scope(out/'backup'/s['name'],out/'restore'/s['name'],s['records'],deadline=deadline)
  detached={};copy_nodes={}
  for base in ('backup','restore'):
   measured=[]
   for s in scopes:
-   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.logical(rows)==m.logical(s['records']),'restore-mismatch')
+   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True,deadline=deadline);check(m.copied_records_match(rows,s['records']),'restore-mismatch')
    measured.append(dict(s,path=str(root),records=rows));copy_nodes.update({node(root,r):r['stamp'] for r in rows})
-  proof=m.database_rows(measured,required);bound();check(proof==databases,'database-restore-mismatch');detached[base]=proof
+  proof=m.database_rows(measured,required,deadline=deadline);bound();check(proof==databases,'database-restore-mismatch');detached[base]=proof
  source_nodes={}
  for s in scopes:
-  root=Path(s['path']);bound();rows,_=m.inventory(root,s['kind']);check(rows==s['records'],'source-drift');source_nodes.update({node(root,r):r['stamp'] for r in rows})
- check(m.database_rows(scopes,required)==databases,'source-database-drift');bound()
+  root=Path(s['path']);bound();rows,_=m.inventory(root,s['kind'],deadline=deadline);check(rows==s['records'],'source-drift');source_nodes.update({node(root,r):r['stamp'] for r in rows})
+ check(m.database_rows(scopes,required,deadline=deadline)==databases,'source-database-drift');bound()
  report=dict(version=1,kind='verified-reader-backup-copies',backup_verified=False,final_ack_required=True,application_quiescence_verified=False,mutation_authority=False,publication_acceptance=False,source_sha256=sha(ownraw),primitives_sha256=PRIMITIVES_SHA,input_sha256=args.input_sha256,scopes=scopes,databases=databases,detached_database_proofs=detached,files=count,bytes=total)
  payload=encode(report);check(len(payload)<=MAX_JSON,'report-bound');receipt=out/'manifest.json';write(receipt,payload);generated_dirs={p:stamp(p) for p in (out,out/'backup',out/'restore')};_,receiptfact=read(receipt,sha(payload))
  for p,(digest,fact) in controls.items():check(read(p,digest)[1]==fact,'control-drift')
  # Reinventory after last write, including complete namespaces/hash/attrs.
  for s in scopes:
-  root=Path(s['path']);bound();rows,_=m.inventory(root,s['kind']);check(rows==s['records'],'final-source-drift')
+  root=Path(s['path']);bound();rows,_=m.inventory(root,s['kind'],deadline=deadline);check(rows==s['records'],'final-source-drift')
  for base in ('backup','restore'):
   check(set(os.listdir(out/base))=={s['name'] for s in scopes},'copy-root-census')
   for s in scopes:
-   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.logical(rows)==m.logical(s['records']),'final-copy-drift');check(all(r['stamp']==copy_nodes[node(root,r)] for r in rows),'copy-incarnation')
+   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True,deadline=deadline);check(m.copied_records_match(rows,s['records']),'final-copy-drift');check(all(r['stamp']==copy_nodes[node(root,r)] for r in rows),'copy-incarnation')
  check(set(os.listdir(out))=={'backup','restore','manifest.json'},'output-census')
  final_ancestors=ancestry(paths+[out/'backup',out/'restore',receipt]);check(all(final_ancestors[p]==v for p,v in admission.items()),'final-ancestor');bound()
  # No file hashing, code/SQL/API/copy/namespace callbacks follow the final vector.

@@ -341,17 +341,17 @@
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b",
+    "sha256": "052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc",
     "target": "fixtures/host/comic_reader_backup_primitives.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "bebd384239c0c05222cc563bf9f1f35c9a13400f31f7860a74549fdd435bdb8b",
+    "sha256": "b3ab8b9a9eab604d4a71be474c2ed468806f744657fc83822a346e58eae9714c",
     "target": "fixtures/host/comic_retained_standalone_backup.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "7a8707c3686c37d33ea5bfb48a7dfa6e79457c15a19eb0f8ad76c69715bc69d2",
+    "sha256": "5ee6778b35736fe929a0185367212771e995013cfc807ac071f9e6236bd929d6",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
@@ -456,12 +456,12 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/fixtures/auth/fixture_worker.py",
-    "sha256": "3d9127d5226052e9915599288b3efab9e979caa77a17f246377890e80659517d",
+    "sha256": "ee78074d699dc2cb2c569625e4450701b38c5c38b08b9060dc48caf4f16ed495",
     "target": "fixtures/auth/fixture_worker.py"
   },
   {
     "path": "test_fixtures/authenticated_standalone/fixtures/auth/test_install_auth.py",
-    "sha256": "3c1961263f3363af7d173e1217740d01356c0845115a179191366fcf519ee707",
+    "sha256": "a281d75c102d3c3baddf99938d8f69be39ab476ef34d55d50b904bcfa5009ef6",
     "target": "fixtures/auth/test_install_auth.py"
   },
   {
@@ -501,7 +501,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "2bd5cf9606557d56c03a5f504e02963007c392270b2155a74e16a8d2d7a326c5",
+    "sha256": "a7eb6189c5929b740776c908364b005eb1720fc8f459dc0778f21e79c6626842",
     "target": "tests/test_fixed_broker.py"
   },
   {

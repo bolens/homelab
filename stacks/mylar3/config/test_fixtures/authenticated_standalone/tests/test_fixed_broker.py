@@ -22,6 +22,38 @@ def load(path,name):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 class BrokerTests(unittest.TestCase):
+    def resource_fixture(self,supported,*,scratch_free=10**9,foreign=False):
+        folder=self.root/'private-backups';folder.mkdir(mode=0o700)
+        original=self.m.os.lstat
+        def owned(path,*args,**kwargs):
+            z=original(path,*args,**kwargs)
+            if Path(path)!=folder:return z
+            values={name:getattr(z,name) for name in ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')}
+            values.update(st_uid=0,st_gid=0);return SimpleNamespace(**values)
+        identity=list(self.m.five(owned(folder)))
+        if foreign:identity[1]+=1
+        primitive=SimpleNamespace(qualify_reflink_restore=lambda path:dict(parent5=identity,reflink_restore=supported))
+        helper=SimpleNamespace(scratch_space=lambda frame:1024**2+40,required_space=lambda total,frame,*,reflink_restore:total*(1 if reflink_restore else 2)+2048)
+        def free(path):return SimpleNamespace(f_bavail=150*1024**2 if Path(path)==folder else scratch_free,f_frsize=1)
+        with patch.object(self.m,'BACKUP_PARENT',folder),patch.object(self.m.os,'lstat',owned),patch.object(self.m.os,'statvfs',free):
+            result=self.m._pack_backup_resources(primitive,helper,((('/source',(1,2,10,0,0,0o100600,0,0,1)),),(),()),100*1024**2,'a'*64)
+        self.assertEqual(list(folder.iterdir()),[])
+        return result
+
+    def test_pack_resource_admission_uses_qualified_restore_clone_only(self):
+        result=self.resource_fixture(True)
+        self.assertIs(result['reflink_restore'],True)
+        self.assertEqual(result['required'],100*1024**2+2048)
+        # A different private parent avoids adopting the prior fixture.
+        (self.root/'private-backups').rmdir()
+        with self.assertRaisesRegex(self.m.Held,'backup-capacity'):self.resource_fixture(False)
+
+    def test_pack_resource_admission_checks_SQL_scratch_before_quiescence(self):
+        with self.assertRaisesRegex(self.m.Held,'SQL-scratch-capacity'):self.resource_fixture(True,scratch_free=1)
+
+    def test_pack_resource_admission_refuses_replaced_qualified_parent(self):
+        with self.assertRaisesRegex(self.m.Held,'clone-parent'):self.resource_fixture(True,foreign=True)
+
     def test_pack_target_witness_needs_no_ordinary_destination_history(self):
         request={'target_sha256':'a'*64}
         review={'existing_target':{'path':'/library/current.cbz','sha256':'a'*64}}
@@ -287,6 +319,33 @@ class WriteOrderingTests(unittest.TestCase):
             return result
         self.writer=patch.object(self.m.os,'write',changed)
         self.writer.start();self.addCleanup(self.writer.stop)
+    def pack_clock(self,total,waiting,now):
+        self.writer.stop();self.written=False
+        self.state.update(sequence=1,purpose='retained-pack',writer_interval=False,deadline=waiting,total_deadline=total)
+        self.state['installation']=SimpleNamespace(close=lambda:dict(document=dict(kind='pack-root-deployment-v1')))
+        owner=self
+        class Launch:
+            def close(inner):
+                if owner.m.time.monotonic()>=owner.state['deadline']:raise owner.m.Held('original-waiting-expired')
+                return owner.state
+        launch=Launch()
+        with patch.object(self.m.time,'monotonic',return_value=now),patch.object(self.m,'_signed',return_value=(b'fixture',b'assertion',b'signature')):
+            self.m._send_stage(launch,2,'backup-ready',{})
+        return self.state['deadline']
+
+    def test_pack_backup_ready_transitions_from_waiting_to_existing_terminal180(self):
+        self.assertEqual(self.pack_clock(5000,1001,1000),1180)
+        self.assertIs(self.state['writer_interval'],True)
+        self.assertEqual(self.state['sequence'],2)
+
+    def test_pack_backup_ready_never_exceeds_original_total(self):
+        self.assertEqual(self.pack_clock(1100,1001,1000),1100)
+
+    def test_expired_pack_waiting_cannot_refresh_deadline(self):
+        with self.assertRaisesRegex(self.m.Held,'original-waiting-expired'):self.pack_clock(5000,999,1000)
+        self.assertEqual(self.state['deadline'],999)
+        self.assertIs(self.state['writer_interval'],False)
+
     def test_original_frame_closes_before_delimiter(self):
         with self.assertRaisesRegex(self.m.Held,'synthetic original drift'):
             self.m._send_original(self.launch,b'original')

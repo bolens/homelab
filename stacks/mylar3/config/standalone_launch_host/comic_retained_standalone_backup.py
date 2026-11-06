@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import threading
@@ -13,7 +14,7 @@ MAX_ENTRIES = 100000
 MAX_ARCHIVE_BYTES = 256 * 1024 ** 2
 BACKUP_SECONDS = 1800
 ROLES = ('native_state', 'reader_state', 'retained_source', 'existing_target')
-PRIMITIVES_SHA256 = 'cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
+PRIMITIVES_SHA256 = '052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc'
 _OBSERVATIONS = weakref.WeakKeyDictionary()
 _BACKUP_SEALS = weakref.WeakKeyDictionary()
 _PRIMITIVES = weakref.WeakKeyDictionary()
@@ -62,6 +63,15 @@ def attributes(path):
     names = tuple(sorted(os.listxattr(path, follow_symlinks=False)))
     need(len(names) <= 64, 'backup-xattr-count')
     result = tuple((name, os.getxattr(path, name, follow_symlinks=False)) for name in names)
+    need(sum(len(value) for _, value in result) <= 1024 ** 2, 'backup-xattr-size')
+    return result
+
+
+
+def descriptor_attributes(fd):
+    names = tuple(sorted(os.listxattr(fd)))
+    need(len(names) <= 64, 'backup-xattr-count')
+    result = tuple((name, os.getxattr(fd, name)) for name in names)
     need(sum(len(value) for _, value in result) <= 1024 ** 2, 'backup-xattr-size')
     return result
 
@@ -244,22 +254,13 @@ class BackupObservation:
         database_original = tuple((path, json.loads(encode(logical))) for path, logical in state['databases'])
         frames = (state['copies'], state['code']) + ((state['source'],) if sources else ())
         source_content = tuple(state['source_content']); content = tuple(state['content'])
-        source_databases = tuple((path, encode(logical)) for path, logical in state['source_databases'])
-        databases = tuple((path, encode(logical)) for path, logical in state['databases'])
         module = state['module']; database_function = module.database;primitive=persistent[4]
         need(time.monotonic() < state['deadline'], 'backup-deadline')
         for path, original_hash, original_attrs in content:
-            stamp = dict(state['copies'][0])[path]
-            need(read_hash(path, stamp, state['deadline']) == original_hash and
-                 attributes(path) == original_attrs, 'backup-copy-content')
-        for path, logical in databases:
-            need(encode(_primitive_call(module,primitive,'database',Path(path))) == logical, 'backup-copy-database')
+            need(attributes(path) == original_attrs, 'backup-copy-content')
         if sources:
             for path, digest, attrs in source_content:
-                need(read_hash(path, dict(state['source'][0])[path], state['deadline']) == digest and
-                     attributes(path) == attrs, 'backup-source-content')
-            for path, logical in source_databases:
-                need(encode(_primitive_call(module,primitive,'database',Path(path))) == logical, 'backup-source-database')
+                need(attributes(path) == attrs, 'backup-source-content')
         result = dict(kind='standalone-private-backup-v1', roles=list(ROLES),
                       bytes=state['bytes'], entries=len(state['source'][0]),
                       digest=state['digest'], ordinary_import=False, cleanup=False,
@@ -340,7 +341,7 @@ class BackupObservation:
         return self.close(sources=False)
 
 
-def copy_and_verify(scopes, out):
+def copy_and_verify(scopes, out, *, deadline=None):
     """Neutral preservation only; a live parent must separately own quiescence."""
     # Syntactic access only precedes the complete explicit-root original capture.
     if (type(scopes) is not list or len(scopes) != 4 or
@@ -406,7 +407,11 @@ def copy_and_verify(scopes, out):
          all(not out.is_relative_to(root) and not root.is_relative_to(out) for root in roots), 'backup-output-overlap')
     need(parent_original[2] & 0o170000 == 0o040000 and parent_original[2] & 0o7777 == 0o700 and
          parent_original[3] == os.geteuid(), 'backup-output-private-parent')
-    deadline = time.monotonic() + BACKUP_SECONDS
+    local_deadline = time.monotonic() + BACKUP_SECONDS
+    if deadline is not None:
+        need(type(deadline) in (int,float) and math.isfinite(deadline), 'backup-deadline-type')
+    deadline = local_deadline if deadline is None else min(deadline, local_deadline)
+    need(time.monotonic() < deadline, 'backup-original-deadline')
     source, _ = capture(roots, early_originals)
     parent_names = tuple(sorted(os.listdir(out.parent)))
     need(nine(os.lstat(out.parent)) == parent_original9, 'backup-output-parent-initial')
@@ -427,7 +432,7 @@ def copy_and_verify(scopes, out):
         for relative in row['databases']:
             path = root / relative
             need(str(path) in original_files, 'backup-database-original')
-            source_databases.append((str(path), _primitive_call(module,primitive,'database',path)))
+            source_databases.append((str(path), _primitive_call(module,primitive,'database',path,deadline=deadline)))
     raw(source); raw(code_original)
     need(nine(os.lstat(out.parent)) == parent_original9 and
          tuple(sorted(os.listdir(out.parent))) == parent_names and not os.path.lexists(out), 'backup-output-parent-drift')
@@ -529,6 +534,13 @@ def copy_and_verify(scopes, out):
                  initial[6] == os.geteuid() and initial[8] == 1 and initial[2] == 0,
                  'backup-created-file-security')
             need(nine(os.fstat(incoming)) == original, 'backup-copy-source-FD')
+            initial_attrs = dict(descriptor_attributes(outgoing))
+            acl = initial_attrs.get('system.nfs4_acl')
+            private_acl = _primitive_call(module, primitive, 'mode_nfs4_acl', 0o600, 'file')
+            need(dict(attrs).get('system.nfs4_acl') in (None, private_acl),
+                 'backup-private-source-nfs4-acl')
+            need(acl in (None, private_acl), 'backup-created-file-ACL')
+            need(nine(os.fstat(outgoing)) == initial, 'backup-created-file-initial-FD')
             observed = hashlib.sha256(); count = 0
             while chunk := os.read(incoming, 1024 ** 2):
                 need(time.monotonic() < deadline, 'backup-deadline')
@@ -537,7 +549,17 @@ def copy_and_verify(scopes, out):
                 while offset < len(chunk):
                     written = os.write(outgoing, chunk[offset:]); need(written > 0, 'backup-copy-write'); offset += written
             for name, value in attrs:
+                if name == 'system.nfs4_acl' and initial_attrs.get(name) == value:
+                    continue
                 os.setxattr(outgoing, name, value)
+            copied_attrs = descriptor_attributes(outgoing)
+            # Copies intentionally retain the private creation mode/owner, not
+            # source permissions. Only the checked server ACL transport differs.
+            expected_attrs = dict(mode=0o600, uid=initial[6], gid=initial[7],
+                                  xattrs={name:value.hex() for name,value in attrs})
+            actual_attrs = dict(expected_attrs, xattrs={name:value.hex() for name,value in copied_attrs})
+            need(_primitive_call(module, primitive, 'copied_attributes_match', actual_attrs, expected_attrs, 'file'),
+                 'backup-created-file-attributes')
             os.fsync(outgoing)
             final = nine(os.fstat(outgoing))
             need((final[0], final[1], final[5], final[6], final[7], final[8]) ==
@@ -546,7 +568,7 @@ def copy_and_verify(scopes, out):
                  nine(os.lstat(destination)) == final and nine(os.fstat(incoming)) == original,
                  'backup-created-file-drift')
             created_files[str(destination)] = final
-            content.append((str(destination), digest, attrs))
+            content.append((str(destination), digest, copied_attrs))
             finished = True
         finally:
             try:
@@ -587,11 +609,20 @@ def copy_and_verify(scopes, out):
             for relative in row['databases']:
                 destination = phase_root / row['role'] / relative
                 logical = dict(source_databases)[str(root / relative)]
-                need(_primitive_call(module,primitive,'database',destination) == logical, 'backup-detached-readback')
+                need(_primitive_call(module,primitive,'database',destination,deadline=deadline) == logical, 'backup-detached-readback')
                 databases.append((str(destination), logical))
         check_created(); raw(source); raw(code_original)
     # No refreshed leaf or directory incarnation is used to establish copies.
     copied = (tuple(sorted((*created_files.items(), *created_directories.items()))), tuple(sorted(created_nodes.items())), tuple(sorted(created_spaces.items())))
+    # Publish only after actual independent copy readback. Later closure checks
+    # reuse this in-memory proof against the exact original frames and attrs;
+    # they never rebase a copy or hydrate verification from a saved receipt.
+    copied_files=dict(copied[0])
+    for path,expected_hash,expected_attrs in content:
+        need(read_hash(path,copied_files[path],deadline)==expected_hash
+             and attributes(path)==expected_attrs,'backup-copy-content')
+    raw(copied);raw(source);raw(code_original)
+    _primitive_original(module,primitive)
     digest = hashlib.sha256(encode(dict(source=source, copies=copied, content=[(p, h) for p, h, _ in content], databases=databases))).hexdigest()
     observation = object.__new__(BackupObservation)
     _OBSERVATIONS[observation] = dict(pid=os.getpid(), thread=threading.get_ident(), deadline=deadline,

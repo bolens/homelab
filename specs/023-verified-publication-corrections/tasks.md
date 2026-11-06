@@ -110,6 +110,14 @@ These tasks preserve earlier implementation and rollout history and retain their
 - [x] T025 [US3] Implement aggregate terminal verification and exact pending-marker clearance only under its existing held Writer; require all five retired originals, committed reader state, preserved proper owners, complete current census/catalog and durable matching phase receipts. Create a durable root-owned terminal successor hold before removing the aggregate marker; prove ordinary/startup refusal through crashes and lost acknowledgements until exact terminal completion.
 - [ ] T028 [US3] Finish configured retained-delivery acceptance through `stacks/mylar3/config/standalone_launch_host/comic_retained_standalone_broker.py`, worker `retained_pack_handoff.py` and native `ordinary_import_history.py`: bind one exact retained capture/member and preserved current catalog target, activate only the reviewed configured retained route, and verify its fresh retained catalog-event/ACK provenance and authenticated finalization plus independent terminal/reader acceptance. This proves factual retained acceptance, with no ordinary-import or cleanup grant; T033 owns ordinary import ACK acceptance. Preserve Wanted intent, rejected owners, original sources and all failed histories. Require the replacement, overlapping-generation, annual, crash/lost-response and no-ordinary-ACK/no-cleanup controls plus matching installed images; source review precedes T026, while selected live acceptance remains separate.
 
+  The remaining Root backup correction must be qualified at the current complete
+  state geometry before another live attempt. Keep the existing grant deadlines,
+  independently verify both detached copies before publication, and retain their
+  original in-process witnesses on later checks. Qualify destination reflinks and
+  SQLite scratch before reader stop. Native cleanup must retain its original
+  live pause-event stream and independently reap its observer on failure. Source
+  checks alone do not complete this operational acceptance.
+
   The fixed Root broker's launch composition, configuration-volume mapping,
   independent SQL/target/reader observation and guarded resume have source
   implementation and review in merged #606/#608. Their tests and an unused

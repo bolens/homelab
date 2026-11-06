@@ -1,4 +1,4 @@
-from contextlib import closing
+from contextlib import closing, contextmanager
 import hashlib
 import importlib.util
 import os
@@ -66,6 +66,55 @@ class BackupTests(unittest.TestCase):
                             os.lstat(self.out/'restore/native_state/source.cbz').st_ino)
         for phase in ('backup', 'restore'):
             self.assertEqual(os.lstat(self.out/phase/'retained_source').st_mode & 0o777, 0o600)
+
+    @contextmanager
+    def nfs_attributes(self, *, source_acl=False, foreign=False):
+        spec=importlib.util.spec_from_file_location('mode_acl',Path(b.__file__).with_name('comic_reader_backup_primitives.py'))
+        primitive=importlib.util.module_from_spec(spec);spec.loader.exec_module(primitive)
+        acl=primitive.mode_nfs4_acl(0o600,'file');state={'acl':b'foreign' if foreign else acl,'writes':0,'sets':0}
+        listing,getting,setting,writing=os.listxattr,os.getxattr,os.setxattr,os.write
+        def path(value):return Path(os.readlink('/proc/self/fd/'+str(value))) if isinstance(value,int) else Path(value)
+        def applies(value):
+            q=path(value)
+            return q.is_file() and (q.is_relative_to(self.out) or source_acl and q.is_relative_to(self.root))
+        def names(value,*args,**kwargs):return list(listing(value,*args,**kwargs))+(['system.nfs4_acl'] if applies(value) else [])
+        def get(value,name,*args,**kwargs):
+            if name=='system.nfs4_acl' and applies(value):return state['acl'] if path(value).is_relative_to(self.out) else (source_acl if isinstance(source_acl,bytes) else acl)
+            return getting(value,name,*args,**kwargs)
+        def put(value,name,data,*args,**kwargs):
+            if name=='system.nfs4_acl':state['sets']+=1;state['acl']=data;return
+            return setting(value,name,data,*args,**kwargs)
+        def write(fd,data):
+            if path(fd).is_relative_to(self.out):state['writes']+=1
+            return writing(fd,data)
+        with patch.object(os,'listxattr',names),patch.object(os,'getxattr',get),patch.object(os,'setxattr',put),patch.object(os,'write',write):yield state
+
+    def test_nfs_trivial_extra_acl_retains_private_copy_and_exact_originals(self):
+        with self.nfs_attributes():
+            observation=self.run_backup();observation.close();observation.close_copies()
+            self.assertEqual((self.out/'restore/existing_target').stat().st_mode&0o777,0o600)
+
+    def test_nfs_foreign_acl_refuses_before_first_payload_write(self):
+        with self.nfs_attributes(foreign=True) as state:
+            with self.assertRaisesRegex(ValueError,'backup-created-file-ACL'):self.run_backup()
+            self.assertEqual(state['writes'],0);self.assertEqual(state['sets'],0)
+
+    def test_nfs_exact_source_acl_skips_redundant_set(self):
+        for q in self.root.rglob('*'):
+            if q.is_file():q.chmod(0o600)
+        with self.nfs_attributes(source_acl=True) as state:
+            observation=self.run_backup();observation.close()
+            self.assertEqual(state['sets'],0)
+
+    def test_nfs_source_acl_cannot_grant_more_than_private_mode(self):
+        with self.nfs_attributes(source_acl=b'foreign-source-grant') as state:
+            with self.assertRaisesRegex(ValueError,'backup-private-source-nfs4-acl'):self.run_backup()
+            self.assertEqual(state['writes'],0);self.assertEqual(state['sets'],0)
+
+    def test_nfs_late_acl_drift_cannot_replace_frozen_copy_attributes(self):
+        with self.nfs_attributes() as state:
+            observation=self.run_backup();state['acl']=b'changed'
+            with self.assertRaisesRegex(ValueError,'backup-copy-content'):observation.close_copies()
 
     def rebase_copies(self, observation):
         state=b._OBSERVATIONS[observation];changed={}

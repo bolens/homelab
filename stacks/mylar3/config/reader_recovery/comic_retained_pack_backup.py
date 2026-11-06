@@ -2,9 +2,11 @@
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import threading
+import tempfile
 import time
 import weakref
 
@@ -28,7 +30,7 @@ def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
 def encode(v):return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 
 
-def snapshot(roots, *, source_links=False, source_nodes=None):
+def snapshot(roots, *, source_links=False, source_nodes=None, deadline=None):
     roots=tuple(roots)
     need(type(source_links) is bool,'backup-link-policy')
     limit=MAX_NODES
@@ -39,6 +41,7 @@ def snapshot(roots, *, source_links=False, source_nodes=None):
     files={};nodes={};spaces={};links={};total=0
     def walk(p):
         nonlocal total
+        need(deadline is None or time.monotonic()<deadline,'backup-original-deadline')
         z=os.lstat(p);stamp=nine(z);kind=z.st_mode&0o170000
         need(kind in (0o040000,0o100000,0o120000),'backup-tree-type')
         first=str(p) not in files
@@ -68,6 +71,22 @@ def snapshot(roots, *, source_links=False, source_nodes=None):
     if source_nodes is not None:need(len(files)==limit,'backup-copy-node-count')
     frame=(tuple(sorted(files.items())),tuple(sorted(nodes.items())),tuple(sorted(spaces.items())))
     raw(frame);return frame,total
+
+
+def scratch_space(frame):
+    largest=max((stamp[2] for _,stamp in frame[0] if stamp[5]&0o170000==0o100000),default=0)
+    return 4*largest+1024**2
+
+
+def required_space(total, frame, *, reflink_restore=False):
+    """One materialized copy only for an independently qualified restore clone.
+
+    A SQLite scratch group contains at most a main file, WAL and SHM. Reserve
+    four times the largest scoped file plus an index allowance, conservatively
+    covering all three inputs and a rebuilt WAL index without guessing DB names.
+    """
+    need(type(total) is int and total>=0 and type(reflink_restore) is bool,'backup-space-input')
+    return (total if reflink_restore else 2*total)+(total+19)//20+1024**2+scratch_space(frame)
 
 
 def raw(frame):
@@ -217,30 +236,79 @@ class BackupObservation:
     __slots__=('__weakref__',)
     def __init__(self,*a,**k):raise ValueError('Original backup observation required')
     def close_copies(self):
-        c,seal=_original(self);m=c['module']
-        # Decode only factory-sealed bytes, never a refreshed current witness.
-        original=json.loads(seal[6]);frames=(seal[7][1],seal[7][2])
-        for key in ('backup','restore'):
-            measured=[]
-            for scope in original['scopes']:
-                root=Path(original['out'])/key/scope['role'];rows,_=_primitive_call(m,seal[8],'inventory',root,'tree',detached=True)
-                need(_primitive_call(m,seal[8],'logical',rows)==original['logical'][scope['role']],'backup-copy-content')
-                measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
-            need(_primitive_call(m,seal[8],'database_rows',measured,original['required'])==original['databases'],'backup-detached-database')
-        result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(original['scopes']),
-            files=len(original['source'][0]),bytes=original['bytes'],digest=original['digest'],mutation_authority=False)
+        c,seal=_original(self);frames=(seal[7][1],seal[7][2])
+        # The factory verifies bytes and SQL before publishing this object.
+        # Reuse only that exact proof, while every original copy incarnation,
+        # namespace, companion and code witness remains unchanged. Disk JSON
+        # cannot construct an observation or refresh any witness.
+        result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
+            files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
+        need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
         _finish(self,c,seal,frames)
         return result
+    def current_scopes(self, *, deadline=None):
+        """Fresh current census; unchanged bytes reuse only this factory's proof.
+
+        There is no baseline/cache argument and no receipt hydration. A cached
+        hash belongs to the same sealed observation, and survives only exact
+        original full9 and attribute equality. Changed/new files are read anew.
+        """
+        c,seal=_original(self)
+        if deadline is not None:
+            need(type(deadline) in (int,float) and math.isfinite(deadline),'backup-current-deadline-type')
+        deadline=c['deadline'] if deadline is None else min(c['deadline'],deadline)
+        need(time.monotonic()<deadline,'backup-current-original-deadline')
+        # Retain detached expected values before the first filesystem/helper
+        # callback; a transient rebase of the mutable registry cannot seed reuse.
+        projection=_projection;code=projection.__code__
+        original={key:_json_value(c[key]) for key in ('source_scopes','databases','required')};original['out']=str(c['out'])
+        original_expected=projection(original)
+        scopes=original['source_scopes'];roots=[Path(scope['path']) for scope in scopes]
+        current,_=snapshot(roots,source_links=True,deadline=deadline)
+        measured={}
+        attributes=dict(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in current[0]),deadline=deadline))
+        for scope,root in zip(scopes,roots):
+            baseline={row['path']:row for row in scope['records']};rows=[]
+            for text,signature in current[0]:
+                path=Path(text)
+                if not path.is_relative_to(root):continue
+                need(time.monotonic()<deadline,'backup-current-original-deadline')
+                relative='.' if path==root else str(path.relative_to(root));kind=signature[5]&0o170000
+                attrs=attributes[text]
+                old=baseline.get(relative);link=None;digest=None
+                if kind==0o100000:
+                    form='file'
+                    if (old is not None and old['kind']=='file' and tuple(old['stamp'])==signature
+                            and old['attributes']==attrs):digest=old['sha256']
+                    else:digest=_primitive_call(c['module'],seal[8],'hash_file',path,deadline=deadline)
+                elif kind==0o040000:form='directory'
+                else:form='symlink';link=os.readlink(path)
+                rows.append(dict(path=relative,kind=form,sha256=digest,link=link,attributes=attrs,stamp=list(signature)))
+            measured[scope['name']]=rows
+        need(projection is _projection and projection.__code__ is code
+             and projection(original)==original_expected,'backup-current-baseline-custody')
+        expected=projection((original,measured))
+        # Close the copy attributes and all original copy/code frames in the
+        # same final tail as the fresh census. A nested close_copies() would
+        # repeat that complete closure before this identical final check.
+        need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
+        _finish(self,c,seal,(current,*seal[7][1:]))
+        need(projection is _projection and projection.__code__ is code
+             and projection((original,measured))==expected,'backup-current-result-custody')
+        need(time.monotonic()<deadline,'backup-current-original-deadline')
+        return original,measured
+
     def close(self):
-        c,seal=_original(self);m=c['module'];original=json.loads(seal[6])
-        result=self.close_copies()
-        need(_primitive_call(m,seal[8],'database_rows',original['source_scopes'],original['required'])==original['databases'],
-             'backup-source-database')
+        c,seal=_original(self)
+        result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
+            files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
+        need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
+        need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['source_attributes']),deadline=c['deadline'])==c['source_attributes'],'backup-source-attributes')
         _finish(self,c,seal,seal[7])
         return result
 
 
-def copy_and_verify(scopes,out,primitives_path,primitives_sha):
+def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,reflink_restore=False):
     """Mechanism only. Parent continuously owns quiescence; this cannot mint BackupReady."""
     need(type(scopes) is list and len(scopes)==MAX_SCOPES and tuple(s['role'] for s in scopes)==_ROLES,'backup-exact-roles')
     scopes=[{'role':row['role'],'root':row['root'],'databases':list(tuple(row['databases']))} for row in scopes]
@@ -257,17 +325,31 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha):
     out=Path(out);need(out.is_absolute() and not os.path.lexists(out),'backup-exclusive-output')
     need(all(not out.is_relative_to(r) and not r.is_relative_to(out) for r in roots),'backup-output-overlap')
     out_parent=five(os.lstat(out.parent));need(out_parent[2]&0o7777==0o700 and out_parent[3]==os.geteuid(),'backup-private-parent')
-    deadline=time.monotonic()+BACKUP_SECONDS
+    need(type(reflink_restore) is bool,'backup-copy-mode')
+    local_deadline=time.monotonic()+BACKUP_SECONDS
+    if deadline is not None:
+        need(type(deadline) in (int,float) and math.isfinite(deadline),'backup-deadline-type')
+    deadline=local_deadline if deadline is None else min(deadline,local_deadline)
+    need(time.monotonic()<deadline,'backup-original-deadline')
     primitive=Path(primitives_path);primitive_frame=(((str(primitive),nine(os.lstat(primitive))),),tuple((str(q),five(os.lstat(q))) for q in primitive.parents),())
-    original,total=snapshot(roots,source_links=True)  # Complete source frame BEFORE module/hash/database callbacks.
+    original,total=snapshot(roots,source_links=True,deadline=deadline)  # Before module/hash/database callbacks.
     need(2*total<=MAX_BYTES,'backup-two-copy-byte-bound')
+    space=os.statvfs(out.parent)
+    need(space.f_bavail*space.f_frsize>=required_space(total,original,reflink_restore=reflink_restore),
+         'backup-data-and-scratch-capacity')
+    scratch=os.statvfs(tempfile.gettempdir())
+    need(scratch.f_bavail*scratch.f_frsize>=scratch_space(original),'backup-SQL-scratch-capacity')
     raw(primitive_frame)
     m,code=source_module(primitives_path,primitives_sha,primitive_frame);primitive_original=_primitive_original(m);logical={}
+    original_files=dict(original[0])
     for s,p in zip(scopes,roots):
-        rows,_=_primitive_call(m,primitive_original,'inventory',p,'tree');logical[s['role']]=_primitive_call(m,primitive_original,'logical',rows)
-        for row in rows:need(tuple(row['stamp'])==dict(original[0])[str(p if row['path']=='.' else p/row['path'])],'backup-inventory-original')
+        rows,_=_primitive_call(m,primitive_original,'inventory',p,'tree',deadline=deadline);logical[s['role']]=_primitive_call(m,primitive_original,'logical',rows)
+        for row in rows:need(tuple(row['stamp'])==original_files[str(p if row['path']=='.' else p/row['path'])],'backup-inventory-original')
         initial_scopes.append(dict(name=s['role'],path=str(p),kind='tree',records=rows))
-    databases=_primitive_call(m,primitive_original,'database_rows',initial_scopes,required);need(len(databases)<=MAX_DATABASES,'backup-discovered-database-bound');raw(original);raw(code)
+    database_files={scope['name']+':'+row['path'] for scope in initial_scopes for row in scope['records'] if row['kind']=='file'}
+    databases=_primitive_call(m,primitive_original,'database_rows',initial_scopes,required,deadline=deadline)
+    need(type(databases) is dict and set(required)<=set(databases)<=database_files,'backup-discovered-database-census')
+    raw(original);raw(code)
     need(five(os.lstat(out.parent))==out_parent and not os.path.lexists(out),'backup-output-parent-original')
     out.mkdir(mode=0o700);out_node=five(os.lstat(out));(out/'backup').mkdir(mode=0o700);backup_node=five(os.lstat(out/'backup'));(out/'restore').mkdir(mode=0o700);restore_node=five(os.lstat(out/'restore'))
     anchors=(((str(out/'backup'),backup_node),(str(out/'restore'),restore_node),(str(out),out_node)))
@@ -277,17 +359,32 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha):
         need(time.monotonic()<deadline,'backup-deadline');raw(original);raw(code)
         for path,stamp in anchors:
             if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
-        _primitive_call(m,primitive_original,'copy_scope',Path(s['path']),out/'backup'/s['name'],s['records']);raw(original)
+        _primitive_call(m,primitive_original,'copy_scope',Path(s['path']),out/'backup'/s['name'],s['records'],deadline=deadline);raw(original)
         for path,stamp in anchors:
             if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
-        _primitive_call(m,primitive_original,'copy_scope',out/'backup'/s['name'],out/'restore'/s['name'],s['records']);raw(original)
+        _primitive_call(m,primitive_original,'copy_scope',out/'backup'/s['name'],out/'restore'/s['name'],s['records'],deadline=deadline,reflink=reflink_restore);raw(original)
     for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
     need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
     need(five(os.lstat(out))==out_node,'backup-created-output-identity')
-    copied,_=snapshot([out/'backup',out/'restore'],source_nodes=len(original[0]))
+    copied,_=snapshot([out/'backup',out/'restore'],source_nodes=len(original[0]),deadline=deadline)
     copied=(copied[0],copied[1],copied[2]+((str(out),('backup','restore')),))
+    # Verify each detached copy and its independent SQLite restoration exactly
+    # once. No observation exists until all callbacks close against these same
+    # original physical frames, so a caller cannot pre-seed a verified flag.
+    copy_attributes=[]
+    for key in ('backup','restore'):
+        measured=[]
+        for scope in scopes:
+            root=out/key/scope['role']
+            rows,_=_primitive_call(m,primitive_original,'inventory',root,'tree',detached=True,deadline=deadline)
+            need(_primitive_call(m,primitive_original,'copied_records_match',rows,logical[scope['role']]),'backup-copy-content')
+            measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
+            copy_attributes.extend((str(root if row['path']=='.' else root/row['path']),row['attributes']) for row in rows)
+        need(_primitive_call(m,primitive_original,'database_rows',measured,required,deadline=deadline)==databases,'backup-detached-database')
+        raw(original);raw(copied);raw(code);_primitive_original(m,primitive_original)
     digest=hashlib.sha256(encode(dict(scopes=scopes,logical=logical,databases=databases,source=original,copies=copied))).hexdigest()
-    value=object.__new__(BackupObservation);_OBS[value]=dict(scopes=scopes,out=out,source=original,copies=copied,source_code=code,module=m,logical=logical,databases=databases,required=required,source_scopes=initial_scopes,pid=os.getpid(),thread=threading.get_ident(),deadline=deadline,bytes=total,digest=digest)
+    source_attributes=tuple((str(Path(scope['path']) if row['path']=='.' else Path(scope['path'])/row['path']),row['attributes']) for scope in initial_scopes for row in scope['records'])
+    value=object.__new__(BackupObservation);_OBS[value]=dict(scopes=scopes,out=out,source=original,copies=copied,source_code=code,module=m,logical=logical,databases=databases,required=required,source_scopes=initial_scopes,source_attributes=source_attributes,copy_attributes=tuple(copy_attributes),pid=os.getpid(),thread=threading.get_ident(),deadline=deadline,bytes=total,digest=digest)
     c=_OBS[value];table=_OBS;seals=_SEALS;project=_projection;project_code=project.__code__;projection=project(c)
     original_frames=(c['source'],c['copies'],c['source_code']);owner=(c['pid'],c['thread']);original_deadline=c['deadline']
     dto=_json_value(dict({k:v for k,v in c.items() if k not in ('module','out')},out=str(c['out'])))

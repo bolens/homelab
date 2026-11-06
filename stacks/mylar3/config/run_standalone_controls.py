@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 ROOT=Path(__file__).absolute().parent
-HOST=(('test_standalone_backup.py',30),('test_standalone_parent.py',28),
+HOST=(('test_standalone_backup.py',35),('test_standalone_parent.py',28),
       ('test_standalone_runtime_seals.py',6),('test_standalone_bodies.py',11),
       ('test_standalone_publication.py',11),('test_standalone_directory_joins.py',34))
 

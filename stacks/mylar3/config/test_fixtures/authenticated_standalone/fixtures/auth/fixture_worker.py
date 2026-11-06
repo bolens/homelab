@@ -1,6 +1,7 @@
 """Explicit UID fixture worker; mocks installation-root boundary, NEVER deployed."""
 import importlib.util,json,os,sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 import standalone_launch_auth as a
 import v3_auth_core as c
@@ -28,7 +29,11 @@ with patch.object(a,'_INSTALL',r/'installation'),patch.object(a,'_AUTH',auth),pa
  except c.Held:pass
 
  fault=settings.get('fault')
- if fault=='delayed':
+ if fault in('late-backup','terminal-expiry'):
+  verifier=a._BINDINGS[binding]['verifier'];begin=c._CONTEXT_SEALS[verifier][0][9]-5
+  clock=[begin+1799];real_time=c.time
+  c.time=SimpleNamespace(monotonic=lambda:clock[0],time=real_time.time)
+ elif fault=='delayed':
   original=a._BINDINGS[binding]['verifier']
   c.time.monotonic=lambda:c._FRAMES[original][0][9]-5+10
  elif fault:
@@ -59,5 +64,10 @@ with patch.object(a,'_INSTALL',r/'installation'),patch.object(a,'_AUTH',auth),pa
   response=a._read_envelope(0,a._BINDINGS[binding]);regular=binding.host_frame(response)
   packet=c._parse(regular)
   if packet['sequence']!=sequence+1:raise AssertionError('wrong host sequence')
+  if packet['sequence']==2 and fault in('late-backup','terminal-expiry'):
+   row=c._FRAMES[verifier]
+   assert row[7]==min(row[5],clock[0]+180)
+   clock[0]=begin+1801;binding.close()  # Past old waiting, within original terminal phase.
+   if fault=='terminal-expiry':clock[0]=begin+1980;binding.close();raise AssertionError('terminal expiry accepted')
  binding.close()
  # Real fixture process exits naturally0; no production/natural-exit authority.

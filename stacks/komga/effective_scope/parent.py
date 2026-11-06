@@ -305,7 +305,7 @@ def original_service(row, cid):
 
 
 # Only the maintained bootstrap declaration; never a caller-provided mount list.
-BOOTSTRAP_SOURCE_SHA = 'e6814fc1c4809040e24a4a96534a3e20cac4064a50b9d314bf7f4b14f92a2d3b'
+BOOTSTRAP_SOURCE_SHA = '4f540c2db48feefa6fe2891e0bedadc78b175d2adfc105535e13f6d2bfa95a40'
 
 
 class BootstrapOriginals(ConfigOriginals):
