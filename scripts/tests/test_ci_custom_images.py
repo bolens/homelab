@@ -346,6 +346,10 @@ assert sys.argv[1]=='mylar-ci-installed'
         self.assertIn('FROM ' + calls[0][0][1] + '\n', calls[1][1])
         self.assertIn('COPY config/ /opt/mylar3-fixes/', calls[1][1])
         self.assertIn('apply_patches.py /app/mylar3/mylar', calls[1][1])
+        normalization = 'python3 -I -B /opt/mylar3-fixes/protected_image_sources.py --normalize /app/mylar3/mylar'
+        self.assertIn(normalization, calls[1][1])
+        self.assertLess(calls[1][1].index('apply_patches.py /app/mylar3/mylar'),
+                        calls[1][1].index(normalization))
         self.assertEqual(calls[2][0], ['verify', 'mylar-ci-installed'])
 
     def test_failed_pull_never_builds_or_verifies(self):
