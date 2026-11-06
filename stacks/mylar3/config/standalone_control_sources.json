@@ -1391,7 +1391,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "df1e8e3010079030cdca946a961f4e5ade9b544338ca69fa79dfb8444f7089b7",
+    "sha256": "1f90bede4eeeb89e5d141e305ab80dea43357ce4b0b6b58c03c9821410a5468d",
     "target": "test_import_api_copy.py"
   },
   {
@@ -1491,7 +1491,7 @@
   },
   {
     "path": "test_preproof_composed.py",
-    "sha256": "e5402703702ca2b1d47933a0ad7e12fb38e1a79ac821061ccdc54787445c5467",
+    "sha256": "30c9d64a63e16d73f93f5ce4cb35ef87e0326ed63afab94dbed8eb8879c93d2d",
     "target": "test_preproof_composed.py"
   },
   {

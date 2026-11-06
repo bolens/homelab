@@ -49,10 +49,14 @@ class Preproof(base.Composed):
   case=json.loads((Path(__file__).parent/'reader_recovery/helper_profile_vectors.json').read_bytes())['cases']['configured']
   selected_phase='created';states={}
   for role,cid in ids.items():
-   state=copy.deepcopy(case['created'if role=='worker'else'running']['State'])
-   state.update(Running=role!='worker',Paused=False,Pid=0 if role=='worker'else (111 if role=='reader'else 222),StartedAt=''if role=='worker'else role+'-original',Status='created'if role=='worker'else'running')
-   states[cid]=state
+   role_state=copy.deepcopy(case['created'if role=='worker'else'running']['State'])
+   role_state.update(Running=role!='worker',Paused=False,Pid=0 if role=='worker'else (111 if role=='reader'else 222),StartedAt=''if role=='worker'else role+'-original',Status='created'if role=='worker'else'running')
+   states[cid]=role_state
   def row(cid):
+   # Existing Native/Reader role doubles stay minimal. The qualified lifecycle
+   # vectors describe only the selected Worker helper and its original Worker.
+   if cid not in (selected,ids['worker']):
+    return dict(Id=cid,Name='/fixture-'+cid,Path='/init',Args=[],Image='sha256:'+'5'*64,Config=dict(User='1000:1000'),HostConfig={},Mounts=[],NetworkSettings=dict(Networks={}),State=copy.deepcopy(states[cid]))
    phase=selected_phase if cid==selected else ('created'if cid==ids['worker']else'running')
    if cid==selected and phase=='running'and proc.poll()is not None:
     phase='exited';states[cid].update(Running=False,Pid=0,Status='exited',ExitCode=proc.returncode)
