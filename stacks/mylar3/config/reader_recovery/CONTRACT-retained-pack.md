@@ -88,6 +88,11 @@ alongside current tracked-source/cohort pins. Its source-only acceptance label
 does not make those hashes historical. Preserve the separate historical fixture
 and explicit predecessor records.
 
+Source controls derive the complete required public SDK from current file bytes,
+then exercise the real configured-map consumer. The image verifier checks every
+required installed module, including the upstream package initializer. Both checks
+obtain observed hashes independently of the current manifest.
+
 ## Root runtime input
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:

@@ -233,10 +233,13 @@ class CurrentBase(unittest.TestCase):
         ('native_writers.py',
          hashlib.sha256(Path(__file__).parent.parent.joinpath('native_writers.py').read_bytes()).hexdigest()),
         ('pack_catalog.py',
-         hashlib.sha256(Path(__file__).parent.parent.joinpath('pack_catalog.py').read_bytes()).hexdigest()))
+         hashlib.sha256(Path(__file__).parent.parent.joinpath('pack_catalog.py').read_bytes()).hexdigest()),
+        ('pack_intake.py',
+         hashlib.sha256(Path(__file__).parent.parent.joinpath('pack_intake.py').read_bytes()).hexdigest()))
     OLD_PINS=(('getcomics.py','200db5062daec20e226de5d59b20624e5c7e73ae43a555327156c9167718b744'),('comic_retained_standalone_action.py','3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),('publication_guard.py','a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1'),('api.py',
                   '23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d'),('native_writers.py','cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202'),('pack_catalog.py','908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20'))
     OLD_PINS=OLD_PINS+(('publication_guard.py','dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582'),('native_writers.py','98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'))
+    OLD_PINS=OLD_PINS+(('pack_intake.py','8e544c6ad5936f09d9cb895a511198d1c5eb283bebadd68e3907cd7bfebacb89'),)
     def setup_current(self):
         refs=json.loads(Path(__file__).with_name('INSTALLER-SOURCE-LOCATORS.json').read_text())
         sources={name:(Path(__file__).parent/path).read_bytes() for name,path in refs.items()}
@@ -265,6 +268,27 @@ class CurrentBase(unittest.TestCase):
         for name,pin in self.OLD_PINS:
             bad=dict(sdk);bad[name]=pin
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
+    def test_complete_required_sdk_uses_current_public_source_bytes(self):
+        raw,base,_,artifacts,receipt=self.setup_current();fixes=Path(__file__).parent.parent
+        sdk={};upstream=[]
+        for name in base['required_sdk_names']:
+            paths=(fixes/name,fixes/'reader_recovery'/name)
+            path=next((path for path in paths if path.is_file()),None)
+            if path is None:upstream.append(name)
+            else:sdk[name]=m.sha(path.read_bytes())
+        # Only the unchanged upstream package initializer lacks a public copy.
+        # The image verifier independently checks its actual installed bytes.
+        self.assertEqual(upstream,['__init__.py'])
+        historical=Path(__file__).with_name('test_configured_parent_historical_sources.json').read_bytes()
+        self.assertEqual(m.sha(historical),'b6d0c3571128ac80c57961bd9396bd719b302b30578afb9763238bc531e7df1c')
+        sdk['__init__.py']=json.loads(historical)['base_installed_sources']['__init__.py']
+        effective,cohort=m.configured_maps(sdk,raw,artifacts,receipt)
+        self.assertEqual(len(effective),len(base['required_sdk_names']))
+        for name,row in base['base_cohort']['existing_sdk_closure'].items():
+            paths=(fixes/(name+'.py'),fixes/'reader_recovery'/(name+'.py'))
+            path=next(path for path in paths if path.is_file())
+            with self.subTest(module=name):self.assertEqual(m.sha(path.read_bytes()),row['tracked_source_sha256'])
+        self.assertFalse(cohort['runtime_acceptance']);self.assertFalse(cohort['publication_acceptance'])
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
         self.assertEqual(base['base_cohort_sha256'],m.sha(Path(__file__).parent.parent.joinpath('publication_reader_cohort.json').read_bytes()))

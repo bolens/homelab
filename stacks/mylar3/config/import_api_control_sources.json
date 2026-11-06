@@ -709,7 +709,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "7a6086dc52a01e697423bdf369441d6cd34c130c39b36e49e3969aad6d540e65"
+    "sha256": "6721fcab149bfe9f0ec045abf0a193eefc86c560997a0711c9e5eb7ba8cff0e8"
   },
   {
     "path": "run_standalone_controls.py",
@@ -721,7 +721,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "0a24b8ffb52ff2d690c7d73406f8a596ddbad4e223c9f755c3e38b85cd43243f"
+    "sha256": "08c90ccf0b812a3cfebf4d531a82d2345e1b1aaf719b9fac5383cfbfffa42962"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -1361,7 +1361,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "8bf51f1fed750e04f708d2bf9892688bdba47f4258f3e5f83bf7ac13d76c500b"
+    "sha256": "bb4ddcebdd0b3355121d992acf587d24efe2ed28abd22b2e5c750d7200afd49e"
   },
   {
     "path": "test_publication_conversion.py",
@@ -1729,7 +1729,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "f073536d6aaf09037a461e95328e6df53e33b377695e7f0929a434643a7c466d"
+    "sha256": "ec03dac795ba556d82dc0b879f34570fae30f06a411f38df3866e227161c27c1"
   },
   {
     "path": "verify_tagging_stage.py",
