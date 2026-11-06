@@ -1591,7 +1591,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "8f9224dfd216dc96518cdc293e1b991b251fc103cf59d4d26cffa0b6f3ef32d0",
+    "sha256": "bb4ddcebdd0b3355121d992acf587d24efe2ed28abd22b2e5c750d7200afd49e",
     "target": "test_publication_cohort_imports.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "b99b652281e30c4f5913334c9a3920eee552fe4b9a4347c91433e2e4229222cc",
+    "sha256": "ec03dac795ba556d82dc0b879f34570fae30f06a411f38df3866e227161c27c1",
     "target": "verify_publication_reader_cohort.py"
   },
   {

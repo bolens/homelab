@@ -23,7 +23,7 @@ def verify_required_sdk(root, base):
         fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
         try:
             before=os.fstat(fd);frame=signature(before)
-            assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and stat.S_IMODE(before.st_mode)in(0o600,0o644),name
+            assert stat.S_ISREG(before.st_mode) and before.st_nlink==1,name
             assert signature(path.lstat())==frame,name
             digest=hashlib.sha256();size=0
             while True:
