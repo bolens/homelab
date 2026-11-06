@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from contextlib import closing
 from unittest.mock import patch
@@ -46,6 +47,65 @@ class Custody(unittest.TestCase):
         self.assertEqual(outside.read_bytes(),b'preserve outside scope')
         alias.unlink();alias.symlink_to(self.root/'foreign')
         with self.assertRaises(ValueError):held.close()
+
+    def test_closed_source_hardlinks_restore_as_independent_copies(self):
+        source=Path(self.scopes[1]['root']);os.link(source/'payload',source/'preserved-payload')
+        before=backup.nine((source/'payload').stat())
+        held=self.copy();held.close();held.close_copies()
+        self.assertEqual(backup.nine((source/'payload').stat()),before)
+        for stage in ('backup','restore'):
+            first=self.root/'copies'/stage/'worker_state'/'payload'
+            second=first.with_name('preserved-payload')
+            self.assertEqual(first.read_bytes(),second.read_bytes())
+            self.assertEqual(first.stat().st_nlink,1);self.assertEqual(second.stat().st_nlink,1)
+            self.assertNotEqual(first.stat().st_ino,second.stat().st_ino)
+
+    def test_source_link_outside_backup_scope_refuses_before_output(self):
+        os.link(Path(self.scopes[1]['root'])/'payload',self.root/'outside-link')
+        with self.assertRaisesRegex(ValueError,'backup-source-link-group'):self.copy()
+        self.assertFalse((self.root/'copies').exists())
+
+    def test_copy_node_budget_derived_from_both_original_trees(self):
+        roots=[Path(s['root'])for s in self.scopes];original,_=backup.snapshot(roots)
+        with patch.object(backup,'MAX_NODES',len(original[0])):
+            held=self.copy();held.close();held.close_copies()
+
+    def test_double_byte_budget_refuses_before_output(self):
+        _,size=backup.snapshot([Path(s['root'])for s in self.scopes])
+        with patch.object(backup,'MAX_BYTES',size),self.assertRaisesRegex(ValueError,'backup-two-copy-byte-bound'):self.copy()
+        self.assertFalse((self.root/'copies').exists())
+
+    def test_default_snapshot_still_refuses_source_alias(self):
+        source=Path(self.scopes[1]['root']);os.link(source/'payload',source/'alias')
+        with self.assertRaisesRegex(ValueError,'backup-selected-alias'):backup.snapshot([source])
+
+    def test_duplicate_root_does_not_supply_missing_link(self):
+        source=Path(self.scopes[1]['root']);os.link(source/'payload',self.root/'outside')
+        with self.assertRaisesRegex(ValueError,'backup-source-link-group'):
+            backup.snapshot([source,source],source_links=True)
+
+    def test_source_link_metadata_disagreement_refuses(self):
+        source=Path(self.scopes[1]['root']);alias=source/'alias';os.link(source/'payload',alias);original=os.lstat
+        def changed(path,*args,**kwargs):
+            z=original(path,*args,**kwargs)
+            if Path(path)==alias:
+                fields=dict(zip(('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink'),backup.nine(z)))
+                fields['st_gid']+=1;return SimpleNamespace(**fields)
+            return z
+        with patch.object(backup.os,'lstat',side_effect=changed),self.assertRaisesRegex(ValueError,'backup-source-link-group'):
+            backup.snapshot([source],source_links=True)
+
+    def test_link_added_at_final_raw_callback_is_not_adopted(self):
+        source=Path(self.scopes[1]['root']);os.link(source/'payload',source/'alias');original=backup.raw
+        def changed(frame):
+            os.link(source/'payload',self.root/'outside');return original(frame)
+        with patch.object(backup,'raw',side_effect=changed),self.assertRaisesRegex(ValueError,'backup-original-file'):
+            backup.snapshot([source],source_links=True)
+
+    def test_copy_count_rejects_bool_and_incomplete_tree(self):
+        roots=[Path(s['root'])for s in self.scopes[:2]]
+        with self.assertRaisesRegex(ValueError,'backup-copy-source-count'):backup.snapshot(roots,source_nodes=True)
+        with self.assertRaisesRegex(ValueError,'backup-copy-node-count'):backup.snapshot(roots,source_nodes=50)
 
     def rebase(self, held):
         row = backup._OBS[held]
