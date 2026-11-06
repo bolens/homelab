@@ -17,7 +17,7 @@ from publication_guard import current, scope, remote_unlocked, evidence
 ENABLED=False
 NATIVE_SOURCE_ROOT='/app/mylar3/mylar'
 NATIVE_API_SHA=None  # Root must prove final installed canonical API bytes.
-NATIVE_SOURCE_PINS={'native_writers.py': 'ca683bd94d3284770c912fcb73fb10cf450a4844b4b4f25f41de8257a9310954', 'publication_retained_api.py': '5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d', 'publication_retained_delivery.py': 'e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804', 'publication_retained_finalize.py': '6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44'}
+NATIVE_SOURCE_PINS={'native_writers.py': 'ca683bd94d3284770c912fcb73fb10cf450a4844b4b4f25f41de8257a9310954', 'publication_retained_api.py': '5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d', 'publication_retained_delivery.py': 'e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804', 'publication_retained_finalize.py': '19cfd06dd7a3678d01126fd2a448c95584d9defa28ac32f0d3332853148c5632'}
 # Missing installed api.py source pin keeps operational export consumption held.
 
 _RETURN=Maintenance.retained_pack_return
@@ -388,7 +388,8 @@ def terminal_budget(frame,catalog,maintenance,request):
     prefixes.extend(row['worker'] for row in config['publication_roots'])
     growth=max(len(compact(str(prefix))) for prefix in prefixes)
     reserve=6*_LIMIT+6*NATIVE_VECTOR_ROWS*(growth+256)+len(compact(request))+65536
-    bound=len(compact(frame))+len(compact(catalog))+reserve
+    catalog_commitment=dict(catalog_before_sha256=hashlib.sha256(native_compact(catalog)).hexdigest())
+    bound=len(compact(frame))+len(compact(catalog_commitment))+reserve
     check(bound<=TERMINAL_ARTIFACT_BYTES,'retained-terminal-precommit-capacity')
     check(all(type(v) is int and abs(v)<=2**64-1 for stamp in frame['files'].values() for v in stamp),
           'retained-terminal-stat-width')
@@ -396,9 +397,9 @@ def terminal_budget(frame,catalog,maintenance,request):
 
 
 def terminal_artifact(c,frame):
-    return compact(dict(version=2,kind='retained-pack-terminal-artifact',token=c['token'],
+    return compact(dict(version=3,kind='retained-pack-terminal-artifact',token=c['token'],
         request=c['request'],reply_text=c['reply_bytes'].decode('utf-8'),reply_sha256=hashlib.sha256(c['reply_bytes']).hexdigest(),
-        catalog_before=c['catalog'],frame=_detached(frame),
+        catalog_before_sha256=hashlib.sha256(native_compact(c['catalog'])).hexdigest(),frame=_detached(frame),
         historical_import_ack=False,ordinary_import_grant=False,cleanup_grant=False,
         reader_index_acceptance=False,automatic_replay=False,reader_resume_grant=False))
 
@@ -595,9 +596,9 @@ def _original_pack(request,row,workflow,target):
 
 
 def _transition(c,answer):
-    request=c['request'];t=answer['transition'];check(type(t) is dict and set(t)=={'version','kind','request','native_data_root','record_bytes','pack_before_row','pack_after_row','workflow_before','original_vectors','committed_vectors','committed_hashes','native_source_root','native_sources'},'retained-export-schema')
-    check(type(t['version']) is int and t['version']==1 and t['kind']=='retained-pack-two-row-transition' and compact(t['request'])==c['request_bytes'],'retained-export-request')
-    check(compact(t['workflow_before'])==compact(c['workflow']),'retained-original-allSQL')
+    request=c['request'];t=answer['transition'];check(type(t) is dict and set(t)=={'version','kind','request','native_data_root','record_bytes','pack_before_row','pack_after_row','workflow_before_sha256','original_vectors','committed_vectors','committed_hashes','native_source_root','native_sources'},'retained-export-schema')
+    check(type(t['version']) is int and t['version']==2 and t['kind']=='retained-pack-two-row-transition' and compact(t['request'])==c['request_bytes'],'retained-export-request')
+    check(type(t['workflow_before_sha256']) is str and t['workflow_before_sha256']==hashlib.sha256(native_compact(c['workflow'])).hexdigest(),'retained-original-allSQL')
     before=t['pack_before_row'];after=t['pack_after_row'];check(type(before) is list and len(before)==4 and type(after) is list and len(after)==4 and after[:2]==before[:2] and compact(after[3])==compact(before[3]),'retained-exact-pack-row')
     check(c['token']==hashlib.sha256((request['ddl_id']+'\0'+request['pack_id']+'\0'+request['member_id']).encode()).hexdigest(),
           'retained-original-token')

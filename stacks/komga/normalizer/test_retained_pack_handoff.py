@@ -17,6 +17,21 @@ class Mechanics(unittest.TestCase):
    with self.subTest(path=repr(text)),self.assertRaises(ValueError):h._target_witness({'path':text,'sha256':'a'*64},request)
   for value in ({'path':'/library/current.cbz','sha256':'b'*64},{'path':'/library/current.cbz','sha256':'a'*64,'historical_ack':True}):
    with self.assertRaises(ValueError):h._target_witness(value,request)
+ def test_catalog_commitment_keeps_large_models_out_of_artifact_and_reservation(self):
+  import hashlib,json
+  from types import SimpleNamespace
+  catalog=dict(schema=[],rows={'unicode':['é漢字'*(1024**2)]})
+  self.assertGreater(len(h.native_compact(catalog)),4*1024**2)
+  maintenance=SimpleNamespace(worker=SimpleNamespace(config=dict(writer_state='/state',mylar=dict(config_dir='/native'),publication_roots=[dict(worker='/library')])),settings=dict(ddl_cache='/cache'))
+  frame=dict(files={});request={}
+  small=h.terminal_budget(frame,{},maintenance,request)
+  bound=h.terminal_budget(frame,catalog,maintenance,request);self.assertEqual(bound,small)
+  artifact=h.terminal_artifact(dict(token='a'*64,request=request,reply_bytes=b'{}',catalog=catalog),frame)
+  body=json.loads(artifact);self.assertEqual(body['version'],3);self.assertNotIn('catalog_before',body)
+  self.assertEqual(body['catalog_before_sha256'],hashlib.sha256(h.native_compact(catalog)).hexdigest())
+  self.assertLess(len(artifact),1024)
+  with patch.object(h,'TERMINAL_ARTIFACT_BYTES',bound):self.assertEqual(h.terminal_budget(frame,catalog,maintenance,request),bound)
+  with patch.object(h,'TERMINAL_ARTIFACT_BYTES',bound-1),self.assertRaisesRegex(ValueError,'precommit-capacity'):h.terminal_budget(frame,catalog,maintenance,request)
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
   self.root.chmod(0o700);self.parent=h.five(os.lstat(self.root));self.path=self.root/'out.json'

@@ -114,9 +114,9 @@ class SQL(unittest.TestCase):
             original_vectors={}, pack_before=self.pack, pack_after=wanted, **rights)
         self.new = ['pack', self.request['pack_id'], compact(wanted).decode(), 12.5]
         record_bytes = compact(record).decode()
-        transition = dict(version=1, kind='retained-pack-two-row-transition', request=self.request,
+        transition = dict(version=2, kind='retained-pack-two-row-transition', request=self.request,
             native_data_root='/config', record_bytes=record_bytes, pack_before_row=self.old, pack_after_row=self.new,
-            workflow_before=self.before, original_vectors={}, committed_vectors={}, committed_hashes={},
+            workflow_before_sha256=hashlib.sha256(compact(self.before)).hexdigest(), original_vectors={}, committed_vectors={}, committed_hashes={},
             native_source_root='/app/mylar', native_sources=[])
         self.reply = dict(success=True, data=dict(version=1, outcome='fresh-retained-backend-finalized',
             token=self.token, record_kind='retained_delivery_final', record_sha256=hashlib.sha256(record_bytes.encode()).hexdigest(),
@@ -135,6 +135,14 @@ class SQL(unittest.TestCase):
         result = self.call()
         self.assertTrue(all(value is False for key, value in result.items() if key != 'kind'))
 
+    def test_transition_commitment_must_match_complete_independent_preimage(self):
+        self.reply['data']['transition']['workflow_before_sha256']='0'*64
+        with self.assertRaisesRegex(ValueError,'terminal-transition'):self.call()
+
+    def test_previous_transition_version_is_not_current_proof(self):
+        self.reply['data']['transition']['version']=1
+        with self.assertRaisesRegex(ValueError,'terminal-transition'):self.call()
+
     def test_persistent_preimage_commitment_must_match_independent_originals(self):
         answer=self.reply['data'];record=json.loads(answer['transition']['record_bytes'])
         record['workflow_before_sha256']='0'*64
@@ -151,7 +159,7 @@ class SQL(unittest.TestCase):
 
     def test_omitted_original_table_even_with_self_consistent_partial_model_refuses(self):
         del self.before['rows']['unrelated']; self.before['schema'] = [row for row in self.before['schema'] if row[1]!='unrelated']
-        self.reply['data']['transition']['workflow_before'] = copy.deepcopy(self.before)
+        self.reply['data']['transition']['workflow_before_sha256'] = hashlib.sha256(compact(self.before)).hexdigest()
         with self.assertRaisesRegex(ValueError, 'backup-allSQL'): self.call()
 
     def test_omitted_original_row_refuses_against_independent_backup(self):
@@ -363,9 +371,9 @@ class Artifact(unittest.TestCase):
         self.request=dict(ddl_id='42-1',pack_id='a'*64,member_id='b'*64)
         self.token=hashlib.sha256(('42-1\0'+'a'*64+'\0'+'b'*64).encode()).hexdigest()
         self.path='/state/日本/'+self.token+'.done.json';parent=str(Path(self.path).parent)
-        self.body=dict(version=2,kind='retained-pack-terminal-artifact',token=self.token,
+        self.body=dict(version=3,kind='retained-pack-terminal-artifact',token=self.token,
             request=self.request,reply_text='{"success":true}',
-            reply_sha256=hashlib.sha256(b'{"success":true}').hexdigest(),catalog_before={},
+            reply_sha256=hashlib.sha256(b'{"success":true}').hexdigest(),catalog_before_sha256=hashlib.sha256(compact({})).hexdigest(),
             frame=dict(files={},nodes={parent:[1,3,0o40700,1000,1000]},absent=[self.path],names={parent:[]},claims={},hashes={},attrs={}),
             **{k:False for k in ('historical_import_ack','ordinary_import_grant','cleanup_grant',
                                'reader_index_acceptance','automatic_replay','reader_resume_grant')})
@@ -390,6 +398,15 @@ class Artifact(unittest.TestCase):
     def test_unicode_uses_actual_worker_ascii_encoding(self):
         body,final=self.decode();self.assertEqual(body,self.body);self.assertEqual(final,self.final)
         self.assertNotEqual(hashlib.sha256(compact(final)).hexdigest(),self.header['frame_sha256'])
+
+    def test_catalog_commitment_has_strict_hash_shape(self):
+        for value in (True,'g'*64,'A'*64,'0'*63,{}):
+            self.body['catalog_before_sha256']=value;self.build()
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,'catalog-commitment'):self.decode()
+
+    def test_previous_artifact_version_is_not_current_proof(self):
+        self.body['version']=2;self.build()
+        with self.assertRaisesRegex(ValueError,'schema'):self.decode()
 
     def test_wrong_reply_bytes_refuse(self):
         self.body['reply_text']='{"success":false}';self.build()

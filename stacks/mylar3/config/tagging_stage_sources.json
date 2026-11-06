@@ -226,7 +226,7 @@
     },
     {
       "path": "publication_retained_finalize.py",
-      "sha256": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44"
+      "sha256": "19cfd06dd7a3678d01126fd2a448c95584d9defa28ac32f0d3332853148c5632"
     },
     {
       "path": "publication_tagging_recovery.py",

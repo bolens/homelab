@@ -60,6 +60,34 @@ attempt after execution expiry. This does not renew execution authority or
 resume the Reader. The directly captured observer is reaped independently of
 runtime-custody refusal; unknown command acknowledgements are never replayed.
 
+The retained Native transition is version 2. It carries
+`workflow_before_sha256`, the existing canonical complete-workflow commitment,
+instead of repeating the complete model on the wire. Native retains its full
+preimage and exact two-row successor; Worker checks the commitment against its
+sealed complete model; Root checks it against its independently verified backup.
+All complete current-SQL and catalog comparisons remain required.
+
+The Worker terminal artifact is version 3 and carries
+`catalog_before_sha256` instead of repeating its complete catalog model. Both
+commitments use the existing Native canonical JSON encoding (sorted keys,
+compact separators, UTF-8 without ASCII escaping). Root still reads and verifies
+the complete backup and current catalog independently. The artifact itself keeps
+Worker ASCII JSON escaping and its original frame/hash/header joins.
+
+Keep the 1 MiB transition, 4 MiB Native envelope and 64 MiB artifact ceilings.
+Precommit reservation includes the encoded catalog commitment field and its JSON
+overhead; the final actual artifact size must fit that reservation. A large local
+model does not justify enlarging the wire. Deploy matching Native, Worker and
+Root consumers before this route runs; earlier wire versions are not current
+proof. Durable finalization record version 2 and its reconciliation commitment
+are unchanged.
+
+`configured_reader_parent_base_sources.json` declares current required SDK
+hashes and current cohort provenance. Update affected required-module entries
+alongside current tracked-source/cohort pins. Its source-only acceptance label
+does not make those hashes historical. Preserve the separate historical fixture
+and explicit predecessor records.
+
 ## Root runtime input
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:

@@ -188,10 +188,10 @@ def finalize(cap,*,response_handler=None,response_frame=None):
             'reader_index_acceptance':False,'automatic_replay':False}
     raw=o.compact(record).decode();new_value=o.compact(changed).decode()
     # Copies retain the actual owning preimage; never recover from a saved record.
-    packet['transition_bytes']=o.compact(dict(version=1,kind='retained-pack-two-row-transition',
+    packet['transition_bytes']=o.compact(dict(version=2,kind='retained-pack-two-row-transition',
         request=value,native_data_root=str(controller.root),record_bytes=raw,
         pack_before_row=prior,pack_after_row=[prior[0],prior[1],new_value,prior[3]],
-        workflow_before=before,original_vectors=originals))
+        workflow_before_sha256=o.digest(before),original_vectors=originals))
     o.check(len(packet['transition_bytes'])<=1024*1024,'retained-worker-export-precommit-bound')
     expected_sql=copy.deepcopy(before)
     replacement=prior.copy();replacement[2]=new_value

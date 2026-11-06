@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "d78ceb8b319d94d139cc9301d41680773b167db93c9aa3fe7937e78f14be8b71",
+  "base_cohort_sha256": "6372eee432c59a00e57f2c3290beb4e7dfafb5b06e7acf8087031c830b86d0e3",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -236,7 +236,7 @@
     "publication_retained_api.py":
       "5c350920db0defe4ed2cb7a65b65b76ded7fa03255ee714061b9e887f450776d",
     "publication_retained_delivery.py": "e0fcfa3790700d97674fc2ee0351159eed2df4c209335db6e960a26196603804",
-    "publication_retained_finalize.py": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44",
+    "publication_retained_finalize.py": "19cfd06dd7a3678d01126fd2a448c95584d9defa28ac32f0d3332853148c5632",
     "publication_retained_standalone.py": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
     "publication_tagging_recovery.py": "db4e832f5fbf1bb8c55486515b08127ef6d63f396128e712de6dae6c96183c09",
     "publication_transaction.py": "683bec2256d565af2f39af7c750ecfb5bd5bf1c021a8ee51c3d87934c2dcfb5d",
@@ -614,7 +614,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "6cc3f975eca0518e9e85d983dddc2d208827f6524dd6ae5a88edafea9ec2de44"
+        "tracked_source_sha256": "19cfd06dd7a3678d01126fd2a448c95584d9defa28ac32f0d3332853148c5632"
       },
       "publication_retained_standalone": {
         "owning_adapters": [

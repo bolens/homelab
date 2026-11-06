@@ -668,6 +668,17 @@ class Endpoint(unittest.TestCase):
   self.assertTrue(fired)
   self.assertEqual(list((self.c.c.root/fixture.r.NAME).glob('*/accepted.json')),[])
 
+ def test_large_complete_workflow_uses_bounded_transition_commitment(self):
+  self.c.store.set('foreign','large-history',{'payload':'x'*(5*1024**2)})
+  before=fixture.r._sql(self.c.c.database,tuple(fixture.o.signature(self.c.c.database)))
+  self.assertGreater(len(fixture.o.compact(before)),4*1024**2)
+  self.handler.checkParams(cmd='retainedDeliveryFinalize',apikey=self.pkg.CONFIG.API_KEY,request=self.base.raw())
+  wire=self.handler.fetchData();answer=json.loads(wire)
+  self.assertTrue(answer['success']);self.assertLessEqual(len(wire.encode()),4*1024**2)
+  transition=answer['data']['transition'];self.assertEqual(transition['version'],2)
+  self.assertNotIn('workflow_before',transition)
+  self.assertEqual(transition['workflow_before_sha256'],hashlib.sha256(fixture.o.compact(before)).hexdigest())
+
  def test_persistent_final_record_does_not_embed_prior_workflow_history(self):
   self.c.store.set('retained_delivery_final','old-history',{'retained_history':'x'*300000})
   answer=self.call();self.assertTrue(answer['success'])
@@ -675,7 +686,7 @@ class Endpoint(unittest.TestCase):
   self.assertLess(len(raw.encode()),65536)
   self.assertNotIn('workflow_before',record)
   self.assertEqual(record['workflow_before_sha256'],
-      hashlib.sha256(fixture.o.compact(answer['data']['transition']['workflow_before'])).hexdigest())
+      answer['data']['transition']['workflow_before_sha256'])
   self.assertEqual(record['pack_before_row'],answer['data']['transition']['pack_before_row'])
 
  def test_passive_shared_event_validators_refuse_schema_identity_and_rights(self):

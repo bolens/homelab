@@ -20,7 +20,7 @@ class Export(unittest.TestCase):
   before=self.c.database.read_bytes()
   with self.base.c.writer.hold():original=self.f.r._sql(self.c.database,tuple(self.f.o.signature(self.c.database)))
   answer=self.base.call()['data'];t=answer['transition']
-  self.assertEqual(json.dumps(t['workflow_before'],sort_keys=True),json.dumps(original,sort_keys=True))
+  self.assertEqual(t['workflow_before_sha256'],hashlib.sha256(self.f.o.compact(original)).hexdigest())
   self.assertNotEqual(before,self.c.database.read_bytes())
   self.assertEqual(t['pack_before_row'][:2],['pack',t['request']['pack_id']])
   self.assertEqual(t['pack_before_row'][3],t['pack_after_row'][3])

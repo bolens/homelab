@@ -1302,7 +1302,7 @@ def _pack_terminal(launch,backup,media,header,artifact,reference):
     database=lambda name:original['databases']['native_config:'+str(data.relative_to(native_root)/name)]
     parent.verify_retained_sql(workflow_before,catalog_before,backup_workflow=database('workflow.sqlite'),
         backup_catalog=database('mylar.db'),request=request,reply=reply,current=workflow,current_catalog=catalog)
-    if canonical(body['catalog_before'])!=canonical(catalog_before):raise Held('fixed-pack-original-catalog-observation')
+    if body['catalog_before_sha256']!=parent._retained_sql_digest(catalog_before):raise Held('fixed-pack-original-catalog-observation')
     media.close();facts=_pack_actual_facts(original,measured,media.data())
     worker_mounts=state['runtime'].baseline['worker']['Mounts'];native_mounts=state['runtime'].baseline['native']['Mounts']
     _pack_join_vectors(frame,mounts=worker_mounts,facts=facts,image=state['worker_image'])
