@@ -137,7 +137,7 @@ class Callers(unittest.TestCase):
         source=ast.parse((FIXES/'standalone_launch_host/comic_retained_standalone_broker.py').read_bytes())
         method=next(n for n in source.body if isinstance(n,ast.FunctionDef)and n.name=='_launch_bound')
         first=next(i for i,n in enumerate(method.body)if isinstance(n,ast.Assign)and any(isinstance(t,ast.Name)and t.id=='networks'for t in n.targets))
-        last=next(i for i,n in enumerate(method.body)if isinstance(n,ast.Assign)and isinstance(n.value,ast.Call)and isinstance(n.value.func,ast.Attribute)and n.value.func.attr=='bind_running')
+        last=next(i for i,n in enumerate(method.body)if isinstance(n,ast.Expr)and isinstance(n.value,ast.Call)and isinstance(n.value.func,ast.Attribute)and n.value.func.attr=='bind_running')
         code=compile(ast.Module(body=method.body[first:last+1],type_ignores=[]),'<actual-broker-constructor>','exec')
         for module,kind in ((pack,'configured'),(self.host,'none')):
             with self.subTest(kind=kind):

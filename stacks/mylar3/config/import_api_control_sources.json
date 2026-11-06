@@ -721,7 +721,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "d0ad42ce886c461541db19274675e53df70759fef627b3efdb67d3eed213bc14"
+    "sha256": "ed1f19eb2478a1c5aa511617f689acc0db80306cd02f32d421e2fb73ef18dbaf"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -741,7 +741,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "b72714442b1ac9a555b8b52531be7f676c749fbd158a99f4876d03fd0f49e080"
+    "sha256": "5b02bc481c0654bf797c10a879832a0fab9052dc4d0ba8ddf3757c81242078e4"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
@@ -1769,7 +1769,7 @@
   },
   {
     "path": "reader_recovery/test_helper_birth_callers.py",
-    "sha256": "dd582a3bcd8b7a5eff8303713a69c40680e5326ed9108d1a5f6f47a7053c7be9"
+    "sha256": "566a14eaee3f994dad584d2686afbe17718df724d7429bf91dfa13c20d8c182b"
   },
   {
     "path": "reader_recovery/test_helper_profiles.py",

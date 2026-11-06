@@ -759,7 +759,7 @@ def _launch_bound(installation,input_ref,input_child,resources):
     pipes=tuple((stream.fileno(),nine(os.fstat(stream.fileno()))) for stream in (process.stdin,process.stdout,process.stderr))
     left=row['deadline']-time.monotonic()
     if left<=0 or not select.select([process.stdout.fileno()],[],[],left)[0]:raise Held('fixed-child-initial-frame-unavailable')
-    running=runtime.bind_running()
+    runtime.bind_running()
     if pack:
         inventory=parse(read(CHILD_ANCHORS/'inventory-v1.json',row['frame']))
         pins=dict(inventory['sources']);pins.update({str(Path('/app')/name):pin for name,pin in preflight['mapping'].items()})
