@@ -10,7 +10,7 @@ import time
 import types
 
 PRIMITIVES=Path(__file__).with_name('comic_reader_backup_primitives.py')
-PRIMITIVES_SHA='cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
+PRIMITIVES_SHA='9fc2a05a370bbd0a0a1fa20c1b7d941d30bca7ee99d08248b06b57b007bf4e00'
 MAX_JSON=64*1024**2
 class Held(ValueError):pass
 
@@ -107,7 +107,7 @@ def run(args):
  for base in ('backup','restore'):
   measured=[]
   for s in scopes:
-   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.logical(rows)==m.logical(s['records']),'restore-mismatch')
+   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.copied_records_match(rows,s['records']),'restore-mismatch')
    measured.append(dict(s,path=str(root),records=rows));copy_nodes.update({node(root,r):r['stamp'] for r in rows})
   proof=m.database_rows(measured,required);bound();check(proof==databases,'database-restore-mismatch');detached[base]=proof
  source_nodes={}
@@ -123,7 +123,7 @@ def run(args):
  for base in ('backup','restore'):
   check(set(os.listdir(out/base))=={s['name'] for s in scopes},'copy-root-census')
   for s in scopes:
-   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.logical(rows)==m.logical(s['records']),'final-copy-drift');check(all(r['stamp']==copy_nodes[node(root,r)] for r in rows),'copy-incarnation')
+   root=out/base/s['name'];bound();rows,_=m.inventory(root,s['kind'],detached=True);check(m.copied_records_match(rows,s['records']),'final-copy-drift');check(all(r['stamp']==copy_nodes[node(root,r)] for r in rows),'copy-incarnation')
  check(set(os.listdir(out))=={'backup','restore','manifest.json'},'output-census')
  final_ancestors=ancestry(paths+[out/'backup',out/'restore',receipt]);check(all(final_ancestors[p]==v for p,v in admission.items()),'final-ancestor');bound()
  # No file hashing, code/SQL/API/copy/namespace callbacks follow the final vector.

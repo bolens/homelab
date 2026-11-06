@@ -173,13 +173,67 @@ def logical(rows):
     return [{key:value for key,value in row.items() if key != 'stamp'} for row in rows]
 
 
+def mode_nfs4_acl(mode, kind):
+    """Exact trivial NFSv4 ACL for POSIX mode bits (RFC 7530, section 6)."""
+    if type(mode) is not int or not 0 <= mode <= 0o7777 or kind not in ('file', 'directory'):
+        raise Held('nfs4-mode-kind')
+    def access(bits):
+        return ((1 if bits & 4 else 0) | ((6 | (0x40 if kind == 'directory' else 0)) if bits & 2 else 0)
+                | (0x20 if bits & 1 else 0))
+    owner, group, other = (access(mode >> shift) for shift in (6, 3, 0))
+    aces = []
+    if (group | other) & ~owner:aces.append((1, (group | other) & ~owner, b'OWNER@'))
+    aces.extend(((0, 0x160180 | owner, b'OWNER@'), (0, 0x120080 | group, b'GROUP@')))
+    if other & ~group:aces.append((1, other & ~group, b'GROUP@'))
+    aces.append((0, 0x120080 | other, b'EVERYONE@'))
+    return struct.pack('>I', len(aces)) + b''.join(
+        struct.pack('>IIII', typ, 0, mask, len(who)) + who + b'\0' * (-len(who) % 4)
+        for typ, mask, who in aces)
+
+
+def copied_attributes_match(actual, original, kind):
+    if actual == original:return True
+    if kind not in ('file', 'directory') or 'system.nfs4_acl' in original['xattrs']:
+        return False
+    if {k:v for k,v in actual.items() if k != 'xattrs'} != {k:v for k,v in original.items() if k != 'xattrs'}:
+        return False
+    expected = dict(original['xattrs'], **{'system.nfs4_acl':mode_nfs4_acl(original['mode'], kind).hex()})
+    return actual['xattrs'] == expected
+
+
+def copied_records_match(actual, original):
+    if len(actual) != len(original):return False
+    for current, expected in zip(actual, original):
+        if ({k:v for k,v in current.items() if k not in ('stamp', 'attributes')}
+                != {k:v for k,v in expected.items() if k not in ('stamp', 'attributes')}):
+            return False
+        if not copied_attributes_match(current['attributes'], expected['attributes'], expected['kind']):
+            return False
+    return True
+
+
 def apply_attrs(path, value):
+    initial = attrs(path);mode = path.lstat().st_mode
+    kind = 'directory' if stat.S_ISDIR(mode) else 'file' if stat.S_ISREG(mode) else 'symlink'
+    acl = initial['xattrs'].get('system.nfs4_acl')
+    # Inspect before chown/chmod: they can rewrite an inherited or foreign ACL.
+    if acl is not None and acl != value['xattrs'].get('system.nfs4_acl'):
+        if kind == 'symlink' or acl != mode_nfs4_acl(initial['mode'], kind).hex():
+            raise Held('foreign-copy-nfs4-acl')
     os.chown(path,value['uid'],value['gid'],follow_symlinks=False)
     if not path.is_symlink():os.chmod(path,value['mode'])
     current = os.listxattr(path,follow_symlinks=False)
-    for name in set(current)-set(value['xattrs']):os.removexattr(path,name,follow_symlinks=False)
-    for name, encoded in value['xattrs'].items():os.setxattr(path,name,bytes.fromhex(encoded),follow_symlinks=False)
+    for name in set(current)-set(value['xattrs']):
+        if name == 'system.nfs4_acl':
+            if kind == 'symlink' or os.getxattr(path,name,follow_symlinks=False) != mode_nfs4_acl(value['mode'], kind):
+                raise Held('foreign-copy-nfs4-acl')
+        else:os.removexattr(path,name,follow_symlinks=False)
+    for name, encoded in value['xattrs'].items():
+        if name == 'system.nfs4_acl' and name in current and os.getxattr(path,name,follow_symlinks=False).hex() == encoded:
+            continue
+        os.setxattr(path,name,bytes.fromhex(encoded),follow_symlinks=False)
     os.utime(path,ns=(value['mtime_ns'],value['mtime_ns']),follow_symlinks=False)
+    if not copied_attributes_match(attrs(path), value, kind):raise Held('copy-attributes')
 
 
 def sync(path):
@@ -440,7 +494,7 @@ def verify(root, check_source=False, *, _captured=None):
         observed = []
         for scope in manifest['scopes']:
             rows,_ = inventory(root/base/scope['name'],scope['kind'],detached=True)
-            if logical(rows) != logical(scope['records']):raise Held('copy-mismatch')
+            if not copied_records_match(rows, scope['records']):raise Held('copy-mismatch')
             observed.append(dict(scope,path=str(root/base/scope['name']),records=rows))
             source_records = scope['records']
             for old,new in zip(source_records,rows):
@@ -453,7 +507,7 @@ def verify(root, check_source=False, *, _captured=None):
     for scope in manifest['scopes']:
         one,_ = inventory(root/'backup'/scope['name'],scope['kind'],detached=True)
         two,_ = inventory(root/'restore'/scope['name'],scope['kind'],detached=True)
-        if logical(one) != logical(scope['records']) or logical(two) != logical(scope['records']):raise Held('copy-mismatch')
+        if not copied_records_match(one, scope['records']) or not copied_records_match(two, scope['records']):raise Held('copy-mismatch')
         for base,rows in ((root/'backup'/scope['name'],one),(root/'restore'/scope['name'],two)):
             final_stamps.extend((base if row['path']=='.' else base/row['path'],row['stamp']) for row in rows)
         if any(a['kind']=='file' and a['stamp'][:2] == b['stamp'][:2] for a,b in zip(one,two)):raise Held('shared-copy')

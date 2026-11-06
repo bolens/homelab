@@ -13,7 +13,7 @@ MAX_ENTRIES = 100000
 MAX_ARCHIVE_BYTES = 256 * 1024 ** 2
 BACKUP_SECONDS = 1800
 ROLES = ('native_state', 'reader_state', 'retained_source', 'existing_target')
-PRIMITIVES_SHA256 = 'cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
+PRIMITIVES_SHA256 = '9fc2a05a370bbd0a0a1fa20c1b7d941d30bca7ee99d08248b06b57b007bf4e00'
 _OBSERVATIONS = weakref.WeakKeyDictionary()
 _BACKUP_SEALS = weakref.WeakKeyDictionary()
 _PRIMITIVES = weakref.WeakKeyDictionary()
@@ -62,6 +62,15 @@ def attributes(path):
     names = tuple(sorted(os.listxattr(path, follow_symlinks=False)))
     need(len(names) <= 64, 'backup-xattr-count')
     result = tuple((name, os.getxattr(path, name, follow_symlinks=False)) for name in names)
+    need(sum(len(value) for _, value in result) <= 1024 ** 2, 'backup-xattr-size')
+    return result
+
+
+
+def descriptor_attributes(fd):
+    names = tuple(sorted(os.listxattr(fd)))
+    need(len(names) <= 64, 'backup-xattr-count')
+    result = tuple((name, os.getxattr(fd, name)) for name in names)
     need(sum(len(value) for _, value in result) <= 1024 ** 2, 'backup-xattr-size')
     return result
 
@@ -529,6 +538,13 @@ def copy_and_verify(scopes, out):
                  initial[6] == os.geteuid() and initial[8] == 1 and initial[2] == 0,
                  'backup-created-file-security')
             need(nine(os.fstat(incoming)) == original, 'backup-copy-source-FD')
+            initial_attrs = dict(descriptor_attributes(outgoing))
+            acl = initial_attrs.get('system.nfs4_acl')
+            private_acl = _primitive_call(module, primitive, 'mode_nfs4_acl', 0o600, 'file')
+            need(dict(attrs).get('system.nfs4_acl') in (None, private_acl),
+                 'backup-private-source-nfs4-acl')
+            need(acl in (None, private_acl), 'backup-created-file-ACL')
+            need(nine(os.fstat(outgoing)) == initial, 'backup-created-file-initial-FD')
             observed = hashlib.sha256(); count = 0
             while chunk := os.read(incoming, 1024 ** 2):
                 need(time.monotonic() < deadline, 'backup-deadline')
@@ -537,7 +553,17 @@ def copy_and_verify(scopes, out):
                 while offset < len(chunk):
                     written = os.write(outgoing, chunk[offset:]); need(written > 0, 'backup-copy-write'); offset += written
             for name, value in attrs:
+                if name == 'system.nfs4_acl' and initial_attrs.get(name) == value:
+                    continue
                 os.setxattr(outgoing, name, value)
+            copied_attrs = descriptor_attributes(outgoing)
+            # Copies intentionally retain the private creation mode/owner, not
+            # source permissions. Only the checked server ACL transport differs.
+            expected_attrs = dict(mode=0o600, uid=initial[6], gid=initial[7],
+                                  xattrs={name:value.hex() for name,value in attrs})
+            actual_attrs = dict(expected_attrs, xattrs={name:value.hex() for name,value in copied_attrs})
+            need(_primitive_call(module, primitive, 'copied_attributes_match', actual_attrs, expected_attrs, 'file'),
+                 'backup-created-file-attributes')
             os.fsync(outgoing)
             final = nine(os.fstat(outgoing))
             need((final[0], final[1], final[5], final[6], final[7], final[8]) ==
@@ -546,7 +572,7 @@ def copy_and_verify(scopes, out):
                  nine(os.lstat(destination)) == final and nine(os.fstat(incoming)) == original,
                  'backup-created-file-drift')
             created_files[str(destination)] = final
-            content.append((str(destination), digest, attrs))
+            content.append((str(destination), digest, copied_attrs))
             finished = True
         finally:
             try:

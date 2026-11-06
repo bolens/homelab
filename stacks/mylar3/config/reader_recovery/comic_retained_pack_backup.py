@@ -224,7 +224,7 @@ class BackupObservation:
             measured=[]
             for scope in original['scopes']:
                 root=Path(original['out'])/key/scope['role'];rows,_=_primitive_call(m,seal[8],'inventory',root,'tree',detached=True)
-                need(_primitive_call(m,seal[8],'logical',rows)==original['logical'][scope['role']],'backup-copy-content')
+                need(_primitive_call(m,seal[8],'copied_records_match',rows,original['logical'][scope['role']]),'backup-copy-content')
                 measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
             need(_primitive_call(m,seal[8],'database_rows',measured,original['required'])==original['databases'],'backup-detached-database')
         result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(original['scopes']),

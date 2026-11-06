@@ -24,9 +24,9 @@ p = b.p
 need = p.need
 HERE = Path(__file__).absolute().parent
 SOURCE_PINS = {
-    'genuine_application_bootstrap.py': 'e6814fc1c4809040e24a4a96534a3e20cac4064a50b9d314bf7f4b14f92a2d3b',
+    'genuine_application_bootstrap.py': '4f540c2db48feefa6fe2891e0bedadc78b175d2adfc105535e13f6d2bfa95a40',
     'genuine_plan13_producer.py': '6fa59805b6c311de0f2d0da81912433870d2cb0730199590c884a5d2bafc99d4',
-    'comic_reader_lifecycle_parent.py': 'aeb22576ca64770173d2081275249ea4eb0011a767df6255cf3ddccc2a026959',
+    'comic_reader_lifecycle_parent.py': 'c93c33ed9ac008c5017720735e97a8abe7de391ddb9fe25331a2aee69713c3db',
     'publication_native_configured_scope.py': '4214f649b4f5d45377d6336d1e306753f869d33a77dd8a4b110c129793761770',
 }
 PROBE_SHA = '41f5f3bec73769f2ca782f3759fd52323e68f3f0270a0032a6745e4e65ff8861'

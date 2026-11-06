@@ -47,7 +47,7 @@ def _helper(name,pin):
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise ValueError('backup-helper-leaf-final')
     return module
 a=_helper('comic_archive_repair_action.py','cf4d6927a206ef594352f426574141b0f13977c2a87ea13c7c5790113cfdfc64')
-p=_helper('comic_archive_proof_producer.py','8565809da0339815362523c37f9341694b34bf4972590b786f44412565e52b8c')
+p=_helper('comic_archive_proof_producer.py','238add4951e425c10d2e404495f517359e60eb89e21ef9b49d127bb830c3e1d3')
 
 PARENT_SOURCE_SHA=None
 HERE=Path(__file__).resolve().parent
@@ -109,7 +109,7 @@ def backup_existing(plan,watch):
     manifest={'path':str(out/'manifest.json'),'sha256':ack['manifest_sha256']};raw,fact,nodes=a.checked(manifest);manifest['signature9']=fact;originals.ref(manifest);value=a.decode(raw)
     for root in (config,out/'backup'/'config',out/'restore'/'config'):
         records,_=primitive.inventory(root,'tree',detached=root!=config)
-        a.need(primitive.logical(records)==primitive.logical(value['scopes'][0]['records']),'archive-backup-copy-equality')
+        a.need((primitive.logical(records)==primitive.logical(value['scopes'][0]['records']) if root==config else primitive.copied_records_match(records,value['scopes'][0]['records'])),'archive-backup-copy-equality')
         proof=primitive.database_rows([dict(name='config',path=str(root),kind='tree',records=records)],['config:database.sqlite','config:tasks.sqlite'])
         a.need(a.encoded(proof)==a.encoded(value['databases']),'archive-backup-alltables')
         for row in records:originals.record(root if row['path']=='.' else root/row['path'],row['stamp'])

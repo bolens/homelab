@@ -355,7 +355,7 @@ class Bootstrap:
         self.roles()
         need(backup.inventory(self.data, 'tree')[0] == before, 'virgin-backup-original-drift')
         restored, _ = backup.inventory(self.output / 'native-restore', 'tree', detached=True)
-        need(backup.logical(restored) == backup.logical(before), 'virgin-restore-mismatch')
+        need(backup.copied_records_match(restored, before), 'virgin-restore-mismatch')
         manifest = put(self.output / 'virgin-manifest.json', dict(source=str(self.data), records=before))
         proof = put(self.output / 'virgin-restore.json', dict(manifest=manifest, records=restored))
         return dict(manifest_sha256=manifest['sha256'], restore_sha256=proof['sha256'], description='Exclusive disposable virgin native configuration, verified independent restore')

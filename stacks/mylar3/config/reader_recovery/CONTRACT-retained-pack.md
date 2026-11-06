@@ -20,6 +20,16 @@ the newly owned replacement; it does not chmod the original. Intent and terminal
 journal files remain `0600`. Post-capture mode, owner, link or identity drift
 still refuses through the complete original frame.
 
+Private NFS backup copies may gain only the server's exact trivial, mode-derived
+`system.nfs4_acl` when the original lacks it. The transport predicate admits only
+the canonical OWNER@/GROUP@/EVERYONE@ encoding, with zero flags and exact POSIX
+mode permissions; named, inherited, reordered or altered ACLs refuse before
+ownership or mode changes. Original attributes and source-present ACLs remain
+exact. General logical comparison stays strict; copy comparisons use the checked
+transport predicate. Original physical full9 witnesses still detect any later ACL
+presence or byte changes. Restoration to the source filesystem must reproduce the
+original attribute map, including absence of this server-derived ACL.
+
 ## Root runtime input
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:

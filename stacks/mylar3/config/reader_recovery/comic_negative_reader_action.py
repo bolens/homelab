@@ -14,9 +14,9 @@ import re
 import stat
 import sys
 import types
-BACKUP_SHA='b9555ac1b1cf89dde85f9923ce6f02a0f5fce576e0a7efcd6319734ef41dcb71'
-PRIMITIVES_SHA='cf44d4daac4512a5d3374fe3ccfd636b9c911229200f4627b01d62dbda04366b'
-ROWS_SHA='d08baf45a742bf62e5bc8da6569f5804d4fd1fbeb5505be9652d0373540b8149'
+BACKUP_SHA='ae0a1df276c1fc3a3499f24ef540c86b546478b09396169e622777d80f8c2da2'
+PRIMITIVES_SHA='9fc2a05a370bbd0a0a1fa20c1b7d941d30bca7ee99d08248b06b57b007bf4e00'
+ROWS_SHA='7d6ce2e1df987ee35c1ef60301b155b3e27d1f7da05b47979ae608bb19160ce9'
 TERMINAL_PRODUCER_SHA = 'e0d399dec68efd13c34ac9c388fa81d9ab8cccbf434fdb4f3ea6e7d5fdefc6da'
 OBSERVER_SHA='ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04'
 MAX=64*1024**2
@@ -135,7 +135,7 @@ def backup(plan,watch):
  # then coherent database readability/all-table proof, after helper ACK.
  primitive=load('comic_reader_backup_primitives.py',PRIMITIVES_SHA);files={};nodes={}
  for root in (config,out/'backup'/'config',out/'restore'/'config'):
-  records,_=primitive.inventory(root,'tree',detached=root!=config);need(primitive.logical(records)==primitive.logical(value['scopes'][0]['records']),'action-full-backup-reinventory')
+  records,_=primitive.inventory(root,'tree',detached=root!=config);need((primitive.logical(records)==primitive.logical(value['scopes'][0]['records']) if root==config else primitive.copied_records_match(records,value['scopes'][0]['records'])),'action-full-backup-reinventory')
   proof=primitive.database_rows([dict(name='config',path=str(root),kind='tree',records=records)],['config:database.sqlite','config:tasks.sqlite']);need(proof==value['databases'],'action-full-backup-independent-database')
   for row in records:
    path=root if row['path']=='.' else root/row['path'];files[path]=row['stamp']
