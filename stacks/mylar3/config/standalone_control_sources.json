@@ -666,7 +666,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "253f254bb6242bfed99a091bd123052f40bd04ac82eba7937f035081fca641c5",
+    "sha256": "8affc2931fe8dc624bad587b282b3000b64d2bf670e9927d0392344366713816",
     "target": "publication_reader_admission.py"
   },
   {
@@ -776,7 +776,7 @@
   },
   {
     "path": "reader_recovery/comic_reader_backup_primitives.py",
-    "sha256": "052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc",
+    "sha256": "5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396",
     "target": "reader_recovery/comic_reader_backup_primitives.py"
   },
   {
@@ -786,7 +786,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "6723df6f87934cebb8f6a0ff2d8c1d5cd60f0f38e0f5840aaff55047ef30d679",
+    "sha256": "6b8cb7901428f4a1d248cf6704397f8faaf318110808b735a7ffb8d291b838e6",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -801,12 +801,12 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "b3ab8b9a9eab604d4a71be474c2ed468806f744657fc83822a346e58eae9714c",
+    "sha256": "3e3144910685d8061ae34523fb1de99eddb5951b6ef7ae5c072fa20a833e4547",
     "target": "reader_recovery/comic_retained_standalone_backup.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "907a3fe6605eba78246d4f6a312d28cc2edceb4f455dc806985b9fdb0571be5e",
+    "sha256": "f465fdbd86f5d159ddfeded049eb3151446c86faa19af7a162862895ede0d39d",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -831,7 +831,7 @@
   },
   {
     "path": "reader_recovery/test_standalone_parent.py",
-    "sha256": "372a87f9be71bec19f7ea95e1033d15a35173df9adcbef527f06b745a9d8bbaa",
+    "sha256": "256bcf76aaa34240c2fbe2606d8b835dee4b65a993184a5fc52e9bb17fb501f6",
     "target": "reader_recovery/test_standalone_parent.py"
   },
   {
@@ -841,7 +841,7 @@
   },
   {
     "path": "reader_recovery/test_standalone_runtime_seals.py",
-    "sha256": "753b626049f1cb28a8d2b574725b792b524aa103417f74b4e28ff94ecf8c311e",
+    "sha256": "cd3fcb6d760e11dd505ef8969140f4782b06ca2d3c434d7a18b611c783a1f7e8",
     "target": "reader_recovery/test_standalone_runtime_seals.py"
   },
   {
@@ -861,12 +861,12 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "6721fcab149bfe9f0ec045abf0a193eefc86c560997a0711c9e5eb7ba8cff0e8",
+    "sha256": "827e3b85c481d76b8a36a7d59ae96e335f489e77760aa3f7050047b53ce3f7a5",
     "target": "run_reader_recovery_controls.py"
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "6cf617358c4896438858a51d6458cc47f6071d0aa5319c16030233799c5a6e99",
+    "sha256": "d095e62ce3a09d2f3ee28bab583704b943f60b497ee8a16ab4f76d7a0b75a4be",
     "target": "run_standalone_controls.py"
   },
   {
@@ -1391,7 +1391,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "df1e8e3010079030cdca946a961f4e5ade9b544338ca69fa79dfb8444f7089b7",
+    "sha256": "1f90bede4eeeb89e5d141e305ab80dea43357ce4b0b6b58c03c9821410a5468d",
     "target": "test_import_api_copy.py"
   },
   {
@@ -1491,7 +1491,7 @@
   },
   {
     "path": "test_preproof_composed.py",
-    "sha256": "d8042ee2322b1a4025c6a67886ffc5c69d2d2613f3765ec74f8cf5eeb1782a69",
+    "sha256": "30c9d64a63e16d73f93f5ce4cb35ef87e0326ed63afab94dbed8eb8879c93d2d",
     "target": "test_preproof_composed.py"
   },
   {
@@ -1591,7 +1591,7 @@
   },
   {
     "path": "test_publication_cohort_imports.py",
-    "sha256": "bb4ddcebdd0b3355121d992acf587d24efe2ed28abd22b2e5c750d7200afd49e",
+    "sha256": "6196330ba1cb1dff79151d47101c38390f6798538ed36ea1597c5844d2c3de55",
     "target": "test_publication_cohort_imports.py"
   },
   {
@@ -2026,7 +2026,7 @@
   },
   {
     "path": "verify_publication_reader_cohort.py",
-    "sha256": "ec03dac795ba556d82dc0b879f34570fae30f06a411f38df3866e227161c27c1",
+    "sha256": "c98da32d64052189560b17bb45c9de9ce9d108a1065d37949798d0b14dd2b982",
     "target": "verify_publication_reader_cohort.py"
   },
   {
@@ -2071,22 +2071,22 @@
   },
   {
     "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc",
+    "sha256": "5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396",
     "target": "standalone_launch_host/comic_reader_backup_primitives.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "b3ab8b9a9eab604d4a71be474c2ed468806f744657fc83822a346e58eae9714c",
+    "sha256": "3e3144910685d8061ae34523fb1de99eddb5951b6ef7ae5c072fa20a833e4547",
     "target": "standalone_launch_host/comic_retained_standalone_backup.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "1f65e000cb59f991bc711efc6e2eeb3f5e4e46531667e9521b3b0d8421f85b11",
+    "sha256": "5b02bc481c0654bf797c10a879832a0fab9052dc4d0ba8ddf3757c81242078e4",
     "target": "standalone_launch_host/comic_retained_standalone_broker.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "def818b27972f2837d51b7bae868aa89ab2bcf3d24b442ecfc9ec18fea148655",
+    "sha256": "00bf03388a24d9021ec513c78617ccfb8f7e993a61037b540317613e55df40b6",
     "target": "standalone_launch_host/comic_retained_standalone_parent.py"
   },
   {
@@ -2101,7 +2101,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "de34fa58dabf51229232edfde5e480b55634c2237747d872e346f70d0182429b",
+    "sha256": "0369dc35db9da4f68c0b18aac218e5e55f8c1c351d8389e8a230a31107d435f9",
     "target": "test_standalone_anchor_composition.py"
   },
   {
@@ -2178,5 +2178,25 @@
     "path": "test_fixtures/ordinary_import/PostProcessor.py",
     "sha256": "365bdc75327f8a82e75655e3017fbd70ff84858e515d0be5fee598b215da70cc",
     "target": "test_fixtures/ordinary_import/PostProcessor.py"
+  },
+  {
+    "path": "protected_image_sources.py",
+    "sha256": "8d8f0e737d2e70759015bc49fe9970229d96345044cd96e781843c61ffad68ae",
+    "target": "protected_image_sources.py"
+  },
+  {
+    "path": "reader_recovery/helper_profile_vectors.json",
+    "target": "reader_recovery/helper_profile_vectors.json",
+    "sha256": "224270a3202d2dd3f1f46fee4e86296f0e7fd543898895eeb9300a05b099c010"
+  },
+  {
+    "path": "reader_recovery/test_helper_birth_callers.py",
+    "target": "reader_recovery/test_helper_birth_callers.py",
+    "sha256": "a2aabbc365bc0a550280483a18689ab607ee62b4ab99d1167bbcb8a8b9b1912c"
+  },
+  {
+    "path": "reader_recovery/test_helper_profiles.py",
+    "target": "reader_recovery/test_helper_profiles.py",
+    "sha256": "fcdc4f91b12b64cfd40609d0f0e726ad69e43ec6b30adc16ec4d19eedff1cb92"
   }
 ]

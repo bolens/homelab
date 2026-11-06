@@ -1,0 +1,1241 @@
+{
+  "cases": {
+    "configured": {
+      "cid": "1111111111111111111111111111111111111111111111111111111111111111",
+      "created": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "111111111111",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "public-primary",
+          "OomKillDisable": false,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "1111111111111111111111111111111111111111111111111111111111111111",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-configured",
+        "NetworkSettings": {
+          "Networks": {
+            "public-primary": {
+              "Aliases": null,
+              "DNSNames": null,
+              "DriverOpts": null,
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": ""
+            },
+            "public-secondary": {
+              "Aliases": [],
+              "DNSNames": [
+                "public-helper-configured",
+                "111111111111"
+              ],
+              "DriverOpts": {},
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": {},
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": ""
+            }
+          },
+          "Ports": {},
+          "SandboxID": "",
+          "SandboxKey": ""
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 0,
+          "Restarting": false,
+          "Running": false,
+          "StartedAt": "0001-01-01T00:00:00Z",
+          "Status": "created"
+        }
+      },
+      "exited": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "111111111111",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "public-primary",
+          "OomKillDisable": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "1111111111111111111111111111111111111111111111111111111111111111",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-configured",
+        "NetworkSettings": {
+          "Networks": {
+            "public-primary": {
+              "Aliases": null,
+              "DNSNames": [
+                "public-helper-configured",
+                "111111111111"
+              ],
+              "DriverOpts": null,
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "public-secondary": {
+              "Aliases": [],
+              "DNSNames": [
+                "public-helper-configured",
+                "111111111111"
+              ],
+              "DriverOpts": {},
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": {},
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          "Ports": {},
+          "SandboxID": "",
+          "SandboxKey": ""
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "2026-01-01T00:00:02.000000000Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 0,
+          "Restarting": false,
+          "Running": false,
+          "StartedAt": "2026-01-01T00:00:01.000000000Z",
+          "Status": "exited"
+        }
+      },
+      "networks": {
+        "public-primary": {
+          "Attachable": false,
+          "ConfigFrom": {
+            "Network": ""
+          },
+          "ConfigOnly": false,
+          "Created": "2026-01-01T00:00:00Z",
+          "Driver": "bridge",
+          "EnableIPv4": true,
+          "EnableIPv6": false,
+          "IPAM": {
+            "Config": [
+              {
+                "Gateway": "192.0.2.1",
+                "Subnet": "192.0.2.0/24"
+              }
+            ],
+            "Driver": "default",
+            "Options": {}
+          },
+          "Id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "Ingress": false,
+          "Internal": false,
+          "Labels": {},
+          "Name": "public-primary",
+          "Options": {},
+          "Scope": "local"
+        },
+        "public-secondary": {
+          "Attachable": false,
+          "ConfigFrom": {
+            "Network": ""
+          },
+          "ConfigOnly": false,
+          "Created": "2026-01-01T00:00:00Z",
+          "Driver": "bridge",
+          "EnableIPv4": true,
+          "EnableIPv6": false,
+          "IPAM": {
+            "Config": [
+              {
+                "Gateway": "198.51.100.1",
+                "Subnet": "198.51.100.0/24"
+              }
+            ],
+            "Driver": "default",
+            "Options": {}
+          },
+          "Id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "Ingress": false,
+          "Internal": false,
+          "Labels": {},
+          "Name": "public-secondary",
+          "Options": {},
+          "Scope": "local"
+        }
+      },
+      "running": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "111111111111",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "public-primary",
+          "OomKillDisable": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "1111111111111111111111111111111111111111111111111111111111111111",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-configured",
+        "NetworkSettings": {
+          "Networks": {
+            "public-primary": {
+              "Aliases": null,
+              "DNSNames": [
+                "public-helper-configured",
+                "111111111111"
+              ],
+              "DriverOpts": null,
+              "EndpointID": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "Gateway": "192.0.2.1",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "192.0.2.50",
+              "IPPrefixLen": 24,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "02:00:00:00:00:10",
+              "NetworkID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "public-secondary": {
+              "Aliases": [],
+              "DNSNames": [
+                "public-helper-configured",
+                "111111111111"
+              ],
+              "DriverOpts": {},
+              "EndpointID": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "Gateway": "198.51.100.1",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": {},
+              "IPAddress": "198.51.100.50",
+              "IPPrefixLen": 24,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "02:00:00:00:00:20",
+              "NetworkID": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          },
+          "Ports": {},
+          "SandboxID": "4444444444444444444444444444444444444444444444444444444444444444",
+          "SandboxKey": "/var/run/docker/netns/444444444444"
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 12345,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-01-01T00:00:01.000000000Z",
+          "Status": "running"
+        }
+      }
+    },
+    "none": {
+      "cid": "2222222222222222222222222222222222222222222222222222222222222222",
+      "created": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "222222222222",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "none",
+          "OomKillDisable": false,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "2222222222222222222222222222222222222222222222222222222222222222",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-none",
+        "NetworkSettings": {
+          "Networks": {
+            "none": {
+              "Aliases": null,
+              "DNSNames": null,
+              "DriverOpts": null,
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": ""
+            }
+          },
+          "Ports": {},
+          "SandboxID": "",
+          "SandboxKey": ""
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 0,
+          "Restarting": false,
+          "Running": false,
+          "StartedAt": "0001-01-01T00:00:00Z",
+          "Status": "created"
+        }
+      },
+      "exited": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "222222222222",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "none",
+          "OomKillDisable": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "2222222222222222222222222222222222222222222222222222222222222222",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-none",
+        "NetworkSettings": {
+          "Networks": {
+            "none": {
+              "Aliases": null,
+              "DNSNames": null,
+              "DriverOpts": null,
+              "EndpointID": "",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          },
+          "Ports": {},
+          "SandboxID": "",
+          "SandboxKey": ""
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "2026-01-01T00:00:02.000000000Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 0,
+          "Restarting": false,
+          "Running": false,
+          "StartedAt": "2026-01-01T00:00:01.000000000Z",
+          "Status": "exited"
+        }
+      },
+      "networks": {
+        "none": {
+          "Attachable": false,
+          "ConfigFrom": {
+            "Network": ""
+          },
+          "ConfigOnly": false,
+          "Created": "2026-01-01T00:00:00Z",
+          "Driver": "null",
+          "EnableIPv4": true,
+          "EnableIPv6": false,
+          "IPAM": {
+            "Config": null,
+            "Driver": "default",
+            "Options": null
+          },
+          "Id": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "Ingress": false,
+          "Internal": false,
+          "Labels": {},
+          "Name": "none",
+          "Options": {},
+          "Scope": "local"
+        }
+      },
+      "running": {
+        "Args": [
+          "-I",
+          "-B",
+          "-c",
+          "public fixture"
+        ],
+        "Config": {
+          "AttachStderr": true,
+          "AttachStdin": true,
+          "AttachStdout": true,
+          "Cmd": [
+            "-I",
+            "-B",
+            "-c",
+            "public fixture"
+          ],
+          "Domainname": "",
+          "Entrypoint": [
+            "python3"
+          ],
+          "Env": [
+            "A=one=two",
+            "B="
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Hostname": "222222222222",
+          "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "Labels": {},
+          "OpenStdin": true,
+          "StdinOnce": true,
+          "Tty": false,
+          "User": "1000:1000",
+          "Volumes": null,
+          "WorkingDir": "/data"
+        },
+        "HostConfig": {
+          "AutoRemove": false,
+          "Binds": null,
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceWriteIOps": [],
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "Cgroup": "",
+          "CgroupParent": "",
+          "CgroupnsMode": "private",
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "ContainerIDFile": "",
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpuShares": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "Devices": [],
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IOMaximumBandwidth": 0,
+          "IOMaximumIOps": 0,
+          "IpcMode": "private",
+          "Isolation": "",
+          "Links": null,
+          "LogConfig": {
+            "Config": {},
+            "Type": "none"
+          },
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "Memory": 134217728,
+          "MemoryReservation": 0,
+          "MemorySwap": 134217728,
+          "MemorySwappiness": null,
+          "NanoCpus": 250000000,
+          "NetworkMode": "none",
+          "OomKillDisable": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "PidsLimit": 32,
+          "PortBindings": {},
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "ReadonlyRootfs": true,
+          "RestartPolicy": {
+            "MaximumRetryCount": 0,
+            "Name": "no"
+          },
+          "Runtime": "runc",
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "ShmSize": 67108864,
+          "UTSMode": "",
+          "Ulimits": null,
+          "UsernsMode": "",
+          "VolumeDriver": "",
+          "VolumesFrom": null
+        },
+        "Id": "2222222222222222222222222222222222222222222222222222222222222222",
+        "Image": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "Mounts": [],
+        "Name": "/public-helper-none",
+        "NetworkSettings": {
+          "Networks": {
+            "none": {
+              "Aliases": null,
+              "DNSNames": null,
+              "DriverOpts": null,
+              "EndpointID": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "GwPriority": 0,
+              "IPAMConfig": null,
+              "IPAddress": "",
+              "IPPrefixLen": 0,
+              "IPv6Gateway": "",
+              "Links": null,
+              "MacAddress": "",
+              "NetworkID": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          },
+          "Ports": {},
+          "SandboxID": "5555555555555555555555555555555555555555555555555555555555555555",
+          "SandboxKey": "/var/run/docker/netns/555555555555"
+        },
+        "Path": "python3",
+        "State": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 12345,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-01-01T00:00:01.000000000Z",
+          "Status": "running"
+        }
+      }
+    }
+  },
+  "kind": "synthetic-helper-lifecycle-v1",
+  "note": "Docker Engine 29.9.2/API 1.56 shapes; synthetic identities and documentation addresses. No live configuration."
+}

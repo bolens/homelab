@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import stat
 import sys
+import subprocess
 
 
 def verify_required_sdk(root, base):
@@ -49,6 +50,8 @@ def main():
     manifest = json.loads((fixes / 'publication_reader_cohort.json').read_text())
     base = json.loads((fixes / 'reader_recovery/configured_reader_parent_base_sources.json').read_bytes())
     verify_required_sdk(Path('/app/mylar3/mylar'), base)
+    subprocess.run([sys.executable, '-I', '-B', str(fixes / 'protected_image_sources.py'),
+                    '/app/mylar3/mylar'], check=True)
     sys.path[:0] = ['/app/mylar3', '/app/mylar3/lib']
     modules = {}
     for name, row in manifest['modules'].items():

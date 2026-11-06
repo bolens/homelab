@@ -209,6 +209,7 @@ RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run
     && python3 -I -B /opt/mylar3-fixes/test_standalone_anchor_root.py --disposable-build-fixture \
     && python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && chmod 0644 /app/mylar3/mylar/config.py \
+    && python3 -I -B /opt/mylar3-fixes/protected_image_sources.py --normalize /app/mylar3/mylar \
     && chmod 0755 /app/mylar3/Mylar.py \
     && python3 -I -B -c "import os,sys; p='/run/authenticated-fixtures'; os.chmod('/tmp',0o1777); os.chown(p,1000,1000); os.chmod(p,0o700); os.environ['HOME']=p; os.environ['TMPDIR']='/tmp'; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.geteuid()==os.getegid()==1000; os.mkdir(p+'/.cache',0o700); os.execv(sys.executable,[sys.executable,'-B','/opt/mylar3-fixes/verify_image.py','--phase','remaining'])"
 
@@ -222,6 +223,8 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
       org.opencontainers.image.title="Mylar comic automation"
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
 COPY --from=checked /app/mylar3/lib/mega/mega.py /app/mylar3/lib/mega/mega.py
+RUN --mount=type=bind,from=checked,source=/opt/mylar3-fixes/protected_image_sources.py,target=/run/verify-protected-sources.py,readonly --network=none \
+    python3 -I -B /run/verify-protected-sources.py /app/mylar3/mylar
 RUN python3 -I -B -c "import ast; from pathlib import Path; source=Path('/app/mylar3/lib/mega/mega.py').read_text(); assert source.count('# homelab-cache-admission-v1')==1; tree=ast.parse(source); assert all(any(isinstance(node,ast.Call) and ast.unparse(node.func)==name for node in ast.walk(tree)) for name in ('cache_admission.allocation','cache_admission.temporary','reservation.before_write','temp_output_file.promote'))"
 # Public verifier leaves and empty fixed bind targets cross this boundary; no authority or private key.
 COPY --from=checked /opt/mylar-publication-launch/auth/ /opt/mylar-publication-launch/auth/

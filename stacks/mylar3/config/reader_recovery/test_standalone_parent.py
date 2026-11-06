@@ -39,6 +39,12 @@ class ParentTests(unittest.TestCase):
     def process(self,code=CHILD):
         proc=subprocess.Popen([sys.executable,'-I','-B','-c',code],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         self.processes.append(proc);return proc
+    def test_environment_has_exact_values_and_no_duplicate_keys(self):
+        self.assertEqual(p.environment(['B=', 'A=one=two']), p.environment(['A=one=two', 'B=']))
+        for values in (['A=one', 'A=one'], ['A=one', 'A=two'], ['A'], ['=one'], [None], ['A=\0'], 'A=one'):
+            with self.subTest(values=values), self.assertRaisesRegex(ValueError,'environment'):
+                p.environment(values)
+
     def test_real_pipe_six_rounds_waits_final_permission(self):
         proc=self.process();pipe=p.OriginalPipe.from_process(proc,'a'*64,'b'*64)
         one,raw=pipe.receive();self.assertEqual(one['sequence'],1)

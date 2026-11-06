@@ -19,6 +19,64 @@ class PauseStreamDouble:
     def finish(self,original=None):self.closed=True
 
 
+class LaunchProfile(unittest.TestCase):
+    """Real constructor with transport faults; no Docker or process startup."""
+    def setUp(self):
+        import tempfile
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name); self.input = self.root/'input.json'
+        self.input.write_bytes(b'{}'); self.input.chmod(0o600)
+        self.cid = '4'*64; self.calls = []; self.failure = 'inspect'
+        self.original = dict(Image='sha256:'+'5'*64, Config=dict(User='1000:1000',Env=['A=one']),
+            Mounts=[dict(Type='bind',Source=str(self.root),Destination='/state',RW=True)],
+            NetworkSettings=dict(Networks={'first':dict(NetworkID='6'*64)}),HostConfig={'NetworkMode':'first'})
+        def command(args):
+            self.calls.append(args)
+            if args[0]=='create':return self.cid.encode()
+            if args[0]=='network' and self.failure=='network':raise ValueError('fixture-network')
+            return b''
+        def inspect(cid):
+            self.assertEqual(cid,self.cid)
+            if self.failure=='inspect':raise ValueError('fixture-inspect')
+            cmd=self.calls[0][-7:]
+            return dict(Config=dict(Entrypoint=['python3'],Cmd=cmd if self.failure!='command'else []))
+        def profile(row):
+            if self.failure=='profile':raise ValueError('fixture-profile')
+        def static(row):
+            if self.failure=='static':raise ValueError('fixture-static')
+            return b'profile'
+        self.runtime=SimpleNamespace(close=lambda:None,selected=None,native_open=False,
+            baseline={'worker':self.original},command=command,inspect=inspect,selected_profile=profile,static=static,remember_selected_created=lambda row,snapshot:static(row),
+            selected_networks=lambda:{name:dict(Name=name,Id=row['NetworkID']) for name,row in self.original['NetworkSettings']['Networks'].items()})
+
+    def launch(self):
+        return parent.ConfiguredRuntime.launch(self.runtime,str(self.input),'/state/input.json',parent.hashlib.sha256(b'{}').hexdigest())
+
+    def test_malformed_original_environment_never_creates(self):
+        for values in (['A'],['A=one','A=one'],['A=one','A=two'],'A=one'):
+            with self.subTest(values=values),self.assertRaisesRegex(ValueError,'environment'):
+                self.original['Config']['Env']=values;self.launch()
+            self.assertEqual(self.calls,[])
+
+    def test_every_post_ack_failure_retains_exact_cid_without_start_or_selection(self):
+        self.original['NetworkSettings']['Networks']['second']=dict(NetworkID='7'*64)
+        for failure in ('network','inspect','profile','command','static'):
+            with self.subTest(failure=failure):
+                self.calls=[];self.failure=failure
+                with patch('subprocess.Popen',side_effect=AssertionError('START attempted')):
+                    with self.assertRaisesRegex(ValueError,'selected-create-ack-held:'+self.cid)as held:self.launch()
+                self.assertIsInstance(held.exception.__cause__,ValueError)
+                self.assertIsNone(self.runtime.selected)
+                self.assertEqual(sum(args[0]=='create'for args in self.calls),1)
+                self.assertFalse(any(args[0]=='start'for args in self.calls))
+
+    def test_empty_docker_environment_reaches_create(self):
+        self.original['Config']['Env']=None
+        with self.assertRaisesRegex(ValueError,'selected-create-ack-held:'+self.cid):self.launch()
+        self.assertEqual(self.calls[0][0],'create')
+        self.assertNotIn('--env',self.calls[0])
+
+
 class Epoch(unittest.TestCase):
     def setUp(self):
         observer=patch.object(parent,'_NativePauseEvents',PauseStreamDouble)
@@ -33,7 +91,12 @@ class Epoch(unittest.TestCase):
             if active:state['Health']=dict(Status='healthy',FailingStreak=0,Log=[dict(Start='first',End='first',ExitCode=0,Output='')])
             self.rows[cid]=dict(Id=cid,Name='/'+role,Path='/init',Args=[],Image='sha256:'+'a'*64,Config={},HostConfig={},Mounts=[],
                 NetworkSettings=dict(Networks={}),State=state)
+        self.vectors=json.loads(Path(__file__).with_name('helper_profile_vectors.json').read_bytes())['cases']['configured']
+        worker=copy.deepcopy(self.vectors['created']);worker.update(Id=self.ids['worker'],Name='/worker')
+        worker['Config']['Hostname']=self.ids['worker'][:12];self.rows[self.ids['worker']]=worker
+        self.networks=self.vectors['networks']
         def command(runtime,args):
+            if args[:2]==['network','inspect']:return json.dumps([self.networks[args[-1]]]).encode()
             if args[0]=='inspect':return json.dumps([self.rows[args[1]]]).encode()
             self.assertEqual(args[0],'events');return b''
         self.transport=patch.object(parent.ConfiguredRuntime,'command',command)
@@ -73,7 +136,7 @@ class Epoch(unittest.TestCase):
         self.commands=[];original=parent.ConfiguredRuntime.command
         def command(runtime,args):
             self.commands.append(args)
-            if args[0] in ('inspect','events'):return original(runtime,args)
+            if args[0] in ('inspect','events','network'):return original(runtime,args)
             if args[0]=='pause':self.rows[self.ids['native']]['State']['Paused']=True
             elif args[0]=='unpause':self.rows[self.ids['native']]['State']['Paused']=False
             elif args[0]=='stop':self.rows[self.ids['reader']]['State'].update(Running=False,Pid=0,Status='exited',FinishedAt='owned-stop')
@@ -83,21 +146,30 @@ class Epoch(unittest.TestCase):
         context=patch.object(parent.ConfiguredRuntime,'command',command);context.start();self.addCleanup(context.stop)
 
     def terminal(self):
-        # Explicit selected-exit fixture. Real Root data acceptance is tested by
-        # the owning broker; this suite tests the actual lifecycle mechanism.
+        # Real birth/exit custody over the declared metadata transport. No Docker.
+        import subprocess
         self.lifecycle_transport();self.runtime.quiesce();self.runtime.open_native()
-        selected='4'*64;row=copy.deepcopy(self.rows[self.ids['worker']]);row['Id']=selected
-        row['State'].update(StartedAt='selected-start',Status='exited',Running=False,Pid=0)
-        self.rows[selected]=row;self.runtime.selected=selected
-        self.runtime.selected_static=self.runtime.static(row);self.runtime.selected_started='selected-start'
-        self.runtime.process=SimpleNamespace(poll=lambda:0)
-        parent._TERMINALS[self.runtime]=(selected,'selected-start',self.runtime.selected_static,self.runtime.process)
+        cid='4'*64;phases={}
+        for phase in ('created','running','exited'):
+            row=copy.deepcopy(self.vectors[phase]);row.update(Id=cid,Name='/selected')
+            row['Config']['Hostname']=cid[:12]
+            for entry in row['NetworkSettings']['Networks'].values():
+                if entry.get('DNSNames') is not None:entry['DNSNames']=['selected',cid[:12]]
+            phases[phase]=row
+        self.runtime.remember_selected_created(phases['created'])
+        process=subprocess.Popen([sys.executable,'-I','-B','-c','import sys;sys.stdin.buffer.readline()'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        self.addCleanup(lambda:process.kill() if process.poll()is None else None)
+        self.runtime.process=process;phases['running']['State']['Pid']=process.pid
+        self.rows[cid]=phases['running'];self.runtime.bind_running()
+        process.stdin.close();self.assertEqual(process.wait(timeout=5),0);process.stdout.close();process.stderr.close()
+        self.rows[cid]=phases['exited']
+        parent._TERMINALS[self.runtime]=(cid,self.runtime.selected_started,self.runtime.selected_static,process)
 
     def test_quiesce_and_resume_keep_explicit_original_phase(self):
         self.terminal();answer=self.runtime.resume_reader();self.runtime.close()
         self.assertEqual(answer['container'],self.ids['reader']);self.assertTrue(self.runtime.quiescent)
         self.assertTrue(self.runtime.native_open)
-        self.assertEqual([c[0] for c in self.commands if c[0] not in ('inspect','events')],['pause','stop','unpause','start'])
+        self.assertEqual([c[0] for c in self.commands if c[0] not in ('inspect','events','network')],['pause','stop','unpause','start'])
         with self.assertRaisesRegex(ValueError,'resume-once'):self.runtime.resume_reader()
 
     def test_resume_without_selected_natural_exit_refuses_before_start(self):

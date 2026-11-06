@@ -164,6 +164,20 @@ def need(value, reason):
         raise Held(reason)
 
 
+def environment(values):
+    """Docker may reorder Env; preserve exact values and reject ambiguous keys."""
+    if values is None:
+        values = []
+    need(type(values) is list, 'environment-list')
+    result = {}
+    for entry in values:
+        need(type(entry) is str and '\0' not in entry, 'environment-entry')
+        key, separator, value = entry.partition('=')
+        need(separator == '=' and key and key not in result, 'environment-key')
+        result[key] = value
+    return result
+
+
 def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'),
                       ensure_ascii=False, allow_nan=False).encode()
@@ -1277,7 +1291,7 @@ _CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
 _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
-BASE_ADMISSION_SHA = '253f254bb6242bfed99a091bd123052f40bd04ac82eba7937f035081fca641c5'
+BASE_ADMISSION_SHA = '8affc2931fe8dc624bad587b282b3000b64d2bf670e9927d0392344366713816'
 
 def retention_original(path,library,device):
     """Finite directory facts only; operational admission also needs owning stop."""
@@ -2039,7 +2053,7 @@ class ScopedDocker:
   metadata=command(['image','inspect',image]);need(metadata.returncode==0,'library-helper-image-held');images=decode(metadata.stdout)
   need(type(images)is list and len(images)==1 and images[0]['Id']==image and images[0]['Os']=='linux'
        and images[0]['Architecture']=='amd64' and not images[0]['Config'].get('Volumes'),'library-helper-image-original')
-  image_config=images[0]['Config'];labels=image_config.get('Labels')or{}
+  image_config=images[0]['Config'];environment(image_config.get('Env'));labels=image_config.get('Labels')or{}
   need(type(labels)is dict and 'com.homelab.reader.library-query'not in labels,'library-helper-label-collision')
   labels=dict(labels);labels['com.homelab.reader.library-query']=token
   cmd=['-I','-B','-S','-c',program];mode='container:'+reader['Id']
@@ -2058,7 +2072,7 @@ class ScopedDocker:
    need(row['Id']==cid and row['Name']=='/'+name and row['Image']==image and c['Image']==image
         and c['User']=='1000:1000'and c['Entrypoint']==['python3']and c['Cmd']==cmd
         and c['WorkingDir']=='/'and c['OpenStdin']is True and c['Tty']is False
-        and c.get('Env')==image_config.get('Env')and c.get('Labels')==labels
+        and environment(c.get('Env'))==environment(image_config.get('Env'))and c.get('Labels')==labels
         and c.get('Healthcheck')=={'Test':['NONE']},'library-helper-command-profile')
    need(h['ReadonlyRootfs']is True and h['Privileged']is False and h['NetworkMode']==mode
         and h['IpcMode']=='private'and h['PidMode']==''and h['CapDrop']==['ALL']and not h.get('CapAdd')
@@ -2540,8 +2554,8 @@ class LifecycleParent:
                    'comic_archive_proof_producer.py':getattr(self.producer,'PRODUCER_SHA',None),
                    'comic_native_process_probe.py':getattr(self.producer,'PROBE_SHA',None),
                    'publication_native_configured_scope.py':getattr(self.producer,'SCOPE_SHA',None),
-                   'comic_reader_backup.py':'46e77983f7c2eed88fab9bf9895c268a1d98fa9c96445ac74ce54580ba9d27d5',
-                   'comic_reader_backup_primitives.py':'052b0a8382373268db078f1b0b60862d4e1214a499b23d2f16dcc1d2eff553cc',
+                   'comic_reader_backup.py':'137bf796546ffe5ebb899dd542705e0666cf1326aab71b62564b671fd237b606',
+                   'comic_reader_backup_primitives.py':'5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396',
                    'comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7'}
             root=Path(self.source_ref['path']).parent
             need(all(digest(value) for value in names.values())

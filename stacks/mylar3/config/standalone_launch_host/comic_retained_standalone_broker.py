@@ -679,6 +679,7 @@ def _launch_bound(installation,input_ref,input_child,resources):
     runtime=parent.ConfiguredRuntime.observe(document['ids'], installed_anchors=True)
     _verify_runtime_receipt(document,runtime)
     selected=runtime.baseline['worker' if pack else 'native']
+    parent.environment(selected['Config'].get('Env'))
     if parent.mapped_host(selected['Mounts'],input_child)!=input_ref['path']:raise Held('fixed-input-original-bind')
     # Installation is not a reader-stop/backup grant. Owning quiescence is real.
     recovery=observe_recovery_original(installation,runtime,dict(config_ref=document['native_config_ref']) if pack else boot)
@@ -695,7 +696,7 @@ def _launch_bound(installation,input_ref,input_child,resources):
         pins['/app/mylar3/mylar/api.py']=preflight['review']['native_api_sha256']
         native_image=observer.ProcessImageObservation.capture(runtime,'native',pins);resources.append(native_image)
     else:runtime.quiesce()
-    networks=tuple(selected['NetworkSettings']['Networks']) if pack else ('none',)
+    networks=parent.helper_profiles.helper_network_order(selected,runtime.selected_networks()) if pack else ('none',)
     if not 1<=len(networks)<=4:raise Held('fixed-selected-network-bound')
     arguments=['create','--name',name,'--pull','never','--interactive','--read-only','--network',networks[0],'--user','1000:1000',
                '--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','python3']
@@ -712,7 +713,7 @@ def _launch_bound(installation,input_ref,input_child,resources):
         arguments+=['--mount',spec+('' if mount['RW'] else ',readonly')]
     for name in ANCHOR_NAMES:
         arguments+=['--mount','type=bind,src='+str(CHILD_ANCHORS/name)+',dst=/opt/mylar-publication-launch/'+name+',readonly']
-    for value in selected['Config']['Env']:arguments+=['--env',value]
+    for value in (selected['Config']['Env'] or []):arguments+=['--env',value]
     command=['-I','-B','-c',bootstrap.decode(),'--input',input_child,'--input-sha256',input_ref['sha256']]
     arguments += [selected['Image'],*command]
     runtime.close();installation.close();parent.raw(bootframe);parent.raw(inputframe)
@@ -724,16 +725,28 @@ def _launch_bound(installation,input_ref,input_child,resources):
             if five(os.lstat(path))!=tuple(original):raise Held('fixed-precreate-original-node')
         for path,original in frame[0]:
             if nine(os.lstat(path))!=tuple(original):raise Held('fixed-precreate-original-file')
+    close_helper=parent._helper_guard()
     cid=runtime.command(arguments).decode().strip()
     if not hexadecimal(cid):raise Held('fixed-created-child-ID')
-    for network in networks[1:]:
-        installation.close();parent.raw(inputframe);runtime.close()
-        runtime.command(['network','connect',network,cid])
-    observed=runtime.inspect(cid);parent.selected_profile(selected,observed,installed_anchors=True)
-    for mount,volume in volume_originals:
-        if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-after-create')
-    if observed['Config']['Entrypoint']!=['python3'] or observed['Config']['Cmd']!=command or observed['HostConfig'].get('Init'):raise Held('fixed-child-direct-PID1')
-    runtime.selected=cid;runtime.selected_static=runtime.static(observed)
+    try:
+        close_helper()
+        for network in networks[1:]:
+            installation.close();parent.raw(inputframe);runtime.close()
+            close_helper()
+            runtime.command(['network','connect',network,cid]);close_helper()
+        observed=runtime.inspect(cid);close_helper()
+        snapshot=parent.helper_profiles.helper_snapshot(observed)
+        if pack:runtime.selected_profile(observed)
+        else:parent.selected_profile(selected,observed,installed_anchors=True)
+        close_helper()
+        for mount,volume in volume_originals:
+            if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-after-create')
+            close_helper()
+        if observed['Config']['Entrypoint']!=['python3'] or observed['Config']['Cmd']!=command or observed['HostConfig'].get('Init'):raise Held('fixed-child-direct-PID1')
+        runtime.remember_selected_created(observed,snapshot)
+    except BaseException as error:
+        # Factual CREATE acknowledgement only; no ownership or cleanup grant.
+        raise Held('fixed-create-ack-held:'+cid) from error
     installation.close();parent.raw(bootframe);parent.raw(inputframe)
     for frame in (row['frame'],bootframe,inputframe):
         for path,original in frame[1]:
@@ -746,9 +759,7 @@ def _launch_bound(installation,input_ref,input_child,resources):
     pipes=tuple((stream.fileno(),nine(os.fstat(stream.fileno()))) for stream in (process.stdin,process.stdout,process.stderr))
     left=row['deadline']-time.monotonic()
     if left<=0 or not select.select([process.stdout.fileno()],[],[],left)[0]:raise Held('fixed-child-initial-frame-unavailable')
-    running=runtime.inspect(cid);parent.selected_profile(selected,running,installed_anchors=True)
-    if running['State']['Running'] is not True or running['State']['Pid']<=0 or runtime.static(running)!=runtime.selected_static:raise Held('fixed-original-child-start')
-    runtime.selected_started=running['State']['StartedAt'];runtime.selected_pid=running['State']['Pid']
+    runtime.bind_running()
     if pack:
         inventory=parse(read(CHILD_ANCHORS/'inventory-v1.json',row['frame']))
         pins=dict(inventory['sources']);pins.update({str(Path('/app')/name):pin for name,pin in preflight['mapping'].items()})

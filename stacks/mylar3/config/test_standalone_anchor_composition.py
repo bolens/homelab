@@ -128,8 +128,56 @@ class Anchors(unittest.TestCase):
 class Profile(unittest.TestCase):
     def setUp(self):
         self.p=load('comic_retained_standalone_parent')
-        self.native={'Image':'sha256:'+'a'*64,'Mounts':[dict(Type='bind',Source='/public/data',Destination='/config',RW=True)]}
-        self.selected={'Image':self.native['Image'],'Config':{'User':'1000:1000'},'HostConfig':dict(ReadonlyRootfs=True,Privileged=False,CapAdd=None,CapDrop=['ALL'],PortBindings={},Devices=[],NetworkMode='none',SecurityOpt=['no-new-privileges']),'NetworkSettings':{'Networks':{}},'Mounts':[dict(self.native['Mounts'][0])]+[dict(Type='bind',Source=self.p.ANCHOR_SOURCE+n,Destination=self.p.ANCHOR_TARGET+n,RW=False) for n in self.p.ANCHOR_NAMES]}
+        self.native={'Image':'sha256:'+'a'*64,'Config':{'Env':[]},'Mounts':[dict(Type='bind',Source='/public/data',Destination='/config',RW=True)]}
+        self.selected={'Image':self.native['Image'],'Config':{'User':'1000:1000'},'HostConfig':dict(ReadonlyRootfs=True,Privileged=False,CapAdd=None,CapDrop=['ALL'],PortBindings={},Devices=[],NetworkMode='none',SecurityOpt=['no-new-privileges']),'NetworkSettings':{'Networks':{'none':{'NetworkID':'d'*64}}},'Mounts':[dict(self.native['Mounts'][0])]+[dict(Type='bind',Source=self.p.ANCHOR_SOURCE+n,Destination=self.p.ANCHOR_TARGET+n,RW=False) for n in self.p.ANCHOR_NAMES]}
+    def test_actual_broker_post_create_faults_retain_cid_without_selection(self):
+        import ast
+        from types import SimpleNamespace
+        broker=load('comic_retained_standalone_broker')
+        tree=ast.parse((HOST/'comic_retained_standalone_broker.py').read_bytes())
+        method=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_launch_bound')
+        first=next(i for i,n in enumerate(method.body) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name)and t.id=='cid'for t in n.targets))
+        last=next(i for i,n in enumerate(method.body[first:],first) if isinstance(n,ast.Try))
+        code=compile(ast.Module(body=method.body[first:last+1],type_ignores=[]),'<actual-broker-create-ack>','exec')
+        cid='9'*64
+        for failure in ('network','inspect','profile','volume','command','static'):
+            with self.subTest(failure=failure):
+                calls=[]
+                def fail(label):
+                    if failure==label:raise ValueError('fixture-'+label)
+                def command(args):
+                    calls.append(args)
+                    if args[0]=='network':fail('network')
+                    return cid.encode() if args[0]=='create'else b''
+                def inspect(actual):
+                    self.assertEqual(actual,cid);fail('inspect')
+                    return dict(Config=dict(Entrypoint=['python3'],Cmd=[] if failure=='command'else ['fixture']),HostConfig={})
+                def profile(*args,**kwargs):fail('profile')
+                def volume(*args):fail('volume');return 'original-volume'
+                def static(row):fail('static');return b'profile'
+                runtime=SimpleNamespace(command=command,inspect=inspect,close=lambda:None,static=static,selected=None,remember_selected_created=lambda row,snapshot:static(row))
+                scope=dict(close_helper=lambda:None,pack=False,runtime=runtime,arguments=['create'],hexadecimal=broker.hexadecimal,Held=broker.Held,
+                    networks=('first','second'),installation=SimpleNamespace(close=lambda:None),
+                    parent=SimpleNamespace(raw=lambda frame:None,selected_profile=profile,helper_profiles=SimpleNamespace(helper_snapshot=lambda row:repr(row))),inputframe=(),selected={},
+                    volume_originals=[({},'original-volume')],_existing_volume_original=volume,command=['fixture'])
+                with self.assertRaisesRegex(broker.Held,'fixed-create-ack-held:'+cid)as held:exec(code,scope)
+                self.assertIsInstance(held.exception.__cause__,ValueError)
+                self.assertIsNone(runtime.selected)
+                self.assertEqual(sum(args[0]=='create'for args in calls),1)
+                self.assertFalse(any(args[0]=='start'for args in calls))
+
+    def test_environment_order_only_is_supported(self):
+        self.native['Config']['Env'] = ['A=one=two', 'B=']
+        self.selected['Config']['Env'] = ['B=', 'A=one=two']
+        self.assertTrue(self.p.selected_profile(self.native,self.selected,installed_anchors=True))
+
+    def test_environment_changes_or_duplicates_are_refused(self):
+        self.native['Config']['Env'] = ['A=one']
+        for values in (['A=other'], [], ['A=one', 'B=two'], ['A=one', 'A=one'], ['A']):
+            with self.subTest(values=values), self.assertRaisesRegex(ValueError,'environment'):
+                self.selected['Config']['Env'] = values
+                self.p.selected_profile(self.native,self.selected,installed_anchors=True)
+
     def test_actual_launch_argument_builder_adds_only_fixed_readonly_leaves(self):
         import ast
         broker=load('comic_retained_standalone_broker')

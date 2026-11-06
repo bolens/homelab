@@ -66,4 +66,122 @@ for name,reason in [('publication_reader_disk','installed checked reader kernel'
  else:raise AssertionError('host fixture must not receive installed-origin grant')
 """
   subprocess.run([sys.executable,'-c',code,str(ROOT)],check=True)
+
+class ProtectedImageSources(unittest.TestCase):
+ def fixture(self, root):
+  import importlib.util,os
+  spec=importlib.util.spec_from_file_location('protected_sources',ROOT/'protected_image_sources.py')
+  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+  for name in module.PROTECTED_FILES:(root/name).write_bytes(('source:'+name).encode())
+  return module,os.geteuid()
+ def test_group_writable_api_refused_then_normalized_without_byte_changes(self):
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);path=root/'api.py';path.chmod(0o664)
+   before={p.name:p.read_bytes()for p in root.iterdir()}
+   with self.assertRaises(AssertionError):module.inspect_sources(root,owner=owner)
+   rows=module.inspect_sources(root,normalize=True,owner=owner)
+   self.assertEqual(set(rows),set(module.PROTECTED_FILES));self.assertEqual(before,{p.name:p.read_bytes()for p in root.iterdir()})
+   self.assertTrue(all((root/n).stat().st_mode&0o777==0o644 for n in rows))
+   self.assertEqual(rows,module.inspect_sources(root,owner=owner))
+ def test_symlink_and_hardlink_refuse_before_normalization(self):
+  import os
+  for linked in ('symlink','hardlink'):
+   with self.subTest(linked=linked),tempfile.TemporaryDirectory()as folder:
+    root=Path(folder);module,owner=self.fixture(root);api=root/'api.py';api.chmod(0o664);last=root/module.PROTECTED_FILES[-1];last.unlink()
+    if linked=='symlink':last.symlink_to(api)
+    else:os.link(api,last)
+    with self.assertRaises(AssertionError):module.inspect_sources(root,normalize=True,owner=owner)
+    self.assertEqual(api.stat().st_mode&0o777,0o664)
+ def test_foreign_owner_refuses_without_chmod(self):
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);path=root/'api.py';path.chmod(0o664)
+   with self.assertRaises(AssertionError):module.inspect_sources(root,normalize=True,owner=owner+1)
+   self.assertEqual(path.stat().st_mode&0o777,0o664)
+ def test_metadata_drift_during_read_refuses(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);path=root/'api.py';original=os.pread;changed=[]
+   def read(fd,size,offset):
+    raw=original(fd,size,offset)
+    if not changed:path.chmod(0o664);changed.append(True)
+    return raw
+   with patch.object(module.os,'pread',side_effect=read),self.assertRaises(AssertionError):module.inspect_sources(root,owner=owner)
+ def test_later_reused_descriptor_is_never_chmodded(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   parent=Path(folder);root=parent/'sources';root.mkdir();module,owner=self.fixture(root)
+   (root/'api.py').chmod(0o664);later=root/'native_writers.py';later.chmod(0o664)
+   foreign=parent/'foreign';foreign.write_bytes(b'foreign');foreign.chmod(0o664);original=os.fchmod;reused=[]
+   def chmod(fd,mode):
+    original(fd,mode)
+    if not reused:
+     for value in os.listdir('/proc/self/fd'):
+      try:
+       if os.readlink('/proc/self/fd/'+value)==str(later):target=int(value);break
+      except OSError:continue
+     source=os.open(foreign,os.O_RDONLY)
+     try:os.dup2(source,target)
+     finally:os.close(source)
+     reused.append(target)
+   try:
+    with patch.object(module.os,'fchmod',side_effect=chmod),self.assertRaises(AssertionError):module.inspect_sources(root,normalize=True,owner=owner)
+    self.assertEqual(foreign.stat().st_mode&0o777,0o664);self.assertEqual(foreign.read_bytes(),b'foreign')
+   finally:
+    for fd in reused:os.close(fd)
+ def test_readonly_later_leaf_cannot_be_rebound_after_prior_read(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);api=root/'api.py';inode=api.stat().st_ino;original=os.pread;calls=[]
+   def read(fd,size,offset):
+    raw=original(fd,size,offset)
+    if os.fstat(fd).st_ino==inode:
+     calls.append(True)
+     if len(calls)==2:(root/'native_writers.py').chmod(0o444)
+    return raw
+   with patch.object(module.os,'pread',side_effect=read),self.assertRaises(AssertionError):module.inspect_sources(root,owner=owner)
+ def test_final_read_metadata_change_refuses(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);api=root/'api.py';inode=api.stat().st_ino;original=os.pread;calls=[]
+   def read(fd,size,offset):
+    raw=original(fd,size,offset)
+    if os.fstat(fd).st_ino==inode:
+     calls.append(True)
+     if len(calls)==3:api.chmod(0o664)
+    return raw
+   with patch.object(module.os,'pread',side_effect=read),self.assertRaises(AssertionError):module.inspect_sources(root,owner=owner)
+   self.assertEqual(len(calls),3)
+ def test_final_read_ancestor_change_refuses(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   parent=Path(folder);root=parent/'sources';root.mkdir();module,owner=self.fixture(root);inode=(root/'api.py').stat().st_ino;original=os.pread;calls=[]
+   def read(fd,size,offset):
+    raw=original(fd,size,offset)
+    if os.fstat(fd).st_ino==inode:
+     calls.append(True)
+     if len(calls)==3:parent.chmod(0o750)
+    return raw
+   with patch.object(module.os,'pread',side_effect=read),self.assertRaises(AssertionError):module.inspect_sources(root,owner=owner)
+ def test_cleanup_preserves_primary_on_python_without_add_note(self):
+  import io,os
+  class LegacyError(RuntimeError):add_note=None
+  with tempfile.TemporaryDirectory()as folder:
+   root=Path(folder);module,owner=self.fixture(root);original=os.close
+   def close(fd):original(fd);raise OSError('secondary-close')
+   with patch.object(module.os,'pread',side_effect=LegacyError('original-read')),patch.object(module.os,'close',side_effect=close),patch.object(module.sys,'stderr',io.StringIO()),self.assertRaisesRegex(LegacyError,'original-read'):
+    module.inspect_sources(root,owner=owner)
+ def test_unrelated_ancestor_namespace_churn_is_not_source_drift(self):
+  import os
+  with tempfile.TemporaryDirectory()as folder:
+   parent=Path(folder);root=parent/'sources';root.mkdir();module,owner=self.fixture(root);original=os.pread;changed=[]
+   def read(fd,size,offset):
+    raw=original(fd,size,offset)
+    if not changed:(parent/'unrelated').write_bytes(b'fixture');changed.append(True)
+    return raw
+   with patch.object(module.os,'pread',side_effect=read):self.assertEqual(len(module.inspect_sources(root,owner=owner)),5)
+ def test_symlinked_root_refuses(self):
+  with tempfile.TemporaryDirectory()as folder:
+   parent=Path(folder);root=parent/'root';root.mkdir();module,owner=self.fixture(root);link=parent/'alias';link.symlink_to(root,target_is_directory=True)
+   with self.assertRaises(AssertionError):module.inspect_sources(link,owner=owner)
+
 if __name__=='__main__':unittest.main()

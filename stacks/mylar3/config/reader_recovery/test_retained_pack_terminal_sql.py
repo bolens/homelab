@@ -358,6 +358,27 @@ class Profile(unittest.TestCase):
         self.row['NetworkSettings']['Networks']['existing']['NetworkID']='c'*64
         with self.assertRaisesRegex(ValueError,'existing-network'):terminal.selected_profile(self.original,self.row)
 
+    def test_reordered_environment_preserves_exact_values(self):
+        self.original['Config']['Env'] = ['A=one=two', 'B=', 'C=three']
+        self.row['Config']['Env'] = ['C=three', 'A=one=two', 'B=']
+        self.assertTrue(terminal.selected_profile(self.original, self.row))
+
+    def test_changed_missing_or_added_environment_refuses(self):
+        self.original['Config']['Env'] = ['A=one', 'B=two']
+        for values in (['A=other', 'B=two'], ['A=one'], ['A=one', 'B=two', 'C=three']):
+            with self.subTest(values=values), self.assertRaisesRegex(ValueError, 'environment'):
+                self.row['Config']['Env'] = values
+                terminal.selected_profile(self.original, self.row)
+
+    def test_ambiguous_or_malformed_environment_refuses_on_both_sides(self):
+        for values in (['A=one', 'A=one'], ['A=one', 'A=two'], ['A'], ['=one'], [None], ['A=\0'], 'A=one'):
+            for side in ('original', 'row'):
+                with self.subTest(values=values, side=side), self.assertRaisesRegex(ValueError, 'environment'):
+                    self.original['Config']['Env'] = ['A=one']
+                    self.row['Config']['Env'] = ['A=one']
+                    getattr(self, side)['Config']['Env'] = values
+                    terminal.selected_profile(self.original, self.row)
+
     def test_foreign_anchor_or_changed_environment_refuses(self):
         self.anchors();self.row['Mounts'][-1]['Source']='/foreign/public-ed25519.der'
         with self.assertRaisesRegex(ValueError,'exact-public-anchor'):

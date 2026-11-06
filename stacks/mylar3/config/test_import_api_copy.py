@@ -67,5 +67,18 @@ class APICopy(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'exact native source copied'):self.runner.main('observation')
         self.assertEqual(fired,[True])
 
+    def test_explicit_preproof_family_uses_real_closed_copy(self):
+        calls=[]
+        def transport(argv,*,cwd,env):
+            self.assertIn('test_preproof',argv)
+            self.assertNotIn('test_ordinary_import_observation',argv)
+            self.assertNotIn('test_retained_delivery_api',argv)
+            self.assertTrue((Path(cwd)/'reader_recovery/helper_profile_vectors.json').is_file())
+            calls.append(True)
+            raise RuntimeError('actual preproof family selected before transport')
+        with patch.object(self.runner.subprocess,'run',transport):
+            with self.assertRaisesRegex(RuntimeError,'actual preproof family selected'):self.runner.main('preproof')
+        self.assertEqual(calls,[True])
+
 
 if __name__=='__main__':unittest.main()

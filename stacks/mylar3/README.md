@@ -1572,6 +1572,11 @@ original state without reconstructing a mutation capability.
 `archive_repair_rollback=1` advertises code availability; it does not confirm
 reader indexing, ordinary import or live repair acceptance.
 
+Helper creation compares environment keys and values independently of Docker’s
+returned list order. Duplicate keys and malformed entries are refused before
+creation; changed, missing or additional values are refused before startup.
+Subsequent custody checks retain the exact observed container profile.
+
 The retained Root route uses transition v2 and terminal artifact v3. Matching
 Native, Worker and Root consumers are required. Complete SQL preimages and
 successors remain independently checked; canonical commitments remove duplicate
@@ -1734,6 +1739,12 @@ backup/NFS/terminal acceptance remain unfinished.
 The image build preserves the pinned upstream config/main source bytes and closes
 their group-write permission bits (config 0644, entry point 0755). The installed
 cohort verifier checks both boundaries before accepting configured native scope.
+The five Native files consumed by Root retained launch are normalized to 0644
+after patching. The checked stage and final image both require regular,
+single-link, Root-owned files without group or world write access. This includes
+`api.py`, whose upstream permissions survive an in-place patch unless explicitly
+closed. General required-SDK verification still checks bytes and preserves
+unrelated upstream permissions. Neither image gate grants a live repair.
 Standalone recovery loads Mylar’s fixed bundled-library directory alongside the
 canonical package; the selected image remains the dependency provenance boundary.
 
@@ -1750,6 +1761,15 @@ modules. Their original six-frame pipe and full-state backup contracts do not
 establish authenticated launch or actual namespace/runtime fitness. No
 historical ordinary-import acknowledgement, cleanup, resume or index grant is
 created. An accepted activation and protected runtime proof are still required.
+
+Retained helper launch checks derive the primary network from the original
+configuration and preserve network identity/configuration and unique environment
+key/value pairs. They bind
+the exact CREATE observation once, admit only the measured Docker startup and
+natural-exit allocations, and keep same-container checks strict. Failed witness
+acquisition holds the consumed attempt. The reader and installed-host copies use
+identical shared checks and close profile, process and source originals after
+callbacks. These controls do not replace configured repair or resume acceptance.
 
 The image carries three read-only public authentication modules in
 `/opt/mylar-publication-launch/auth/`. Their separate installer and 17 source
