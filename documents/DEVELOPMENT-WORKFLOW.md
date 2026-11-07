@@ -198,6 +198,21 @@ filters, keyboard skip navigation, JavaScript errors, and mobile overflow.
 
 ---
 
+## CI organization
+
+Use the [shared CI vocabulary](https://github.com/bolens/.github/blob/main/docs/woodpecker-transition.md#ci-organization): `validate`, `test`, `site` and `publish` describe purpose; existing workflow names and required status identities stay unchanged. Run commands from the repository root with the documented toolchain.
+
+| Phase / group | Canonical local entrypoint | Native mapping / retained owner |
+| --- | --- | --- |
+| `validate` / repository and secrets | `make validate-changed BASE=origin/main`; full `make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared` after the setup above | `woodpecker` / `repository-validation`, `gitleaks`; strict validation checks all portable contracts and generated content. |
+| `validate` / source and workflow policy | `make source-lint SOURCE_LINT_TOOLING=/path/to/shared`; `actionlint`; `zizmor --offline --min-severity medium --min-confidence medium .github .pre-commit-config.yaml` | `source-and-workflow-policy` also owns pinned Spec Kit integrity and Hadolint. |
+| `test` / source and compiler controls | Existing focused Make targets documented above and in the owning stack guides | `komga-source-controls`, `kavita-dotnet-controls`, and `publisher-broker-tests`; private or installed-runtime controls remain separate from portable source proof. |
+| `site` / generated site and browser checks | `make pages-check`; `make site-test` | `site-quality`; Pages retains its own publication-coupled browser acceptance and protected OIDC deployment. |
+| `validate` / scheduled links | `python3 scripts/ci/check-native-links.py` with the pinned Lychee tool | `weekly-documentation-links` on cron/manual; internal failures are fatal, external reporting is explicitly nonblocking. |
+| `publish` / custom images | The reviewed image contexts and selectors in `.github/custom-images.json` and [RELEASING.md](../RELEASING.md#custom-image-ci-selection) | Retained hosted builds/runtime checks publish only selected trusted-main images. Native validation has no publisher credentials or host Docker socket. |
+
+Duplicate hosted Source lint, Dockerfile Lint, Workflow Security and Weekly Maintenance workflows are retired. The retained repository-validation workflow still owns its nonportable checks; managed security, actual image builds, metadata and deployment remain hosted. The recovery rules below preserve replacement-check proof and operator authority. Repository validation does not deploy any stack.
+
 ## 4. Woodpecker CI
 
 Enable the intended repository on the native GitHub or Gitea forge and use the
