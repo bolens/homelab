@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/mylar3:latest@sha256:2f1cfd67e84a20568f58c5661f7ef3475d17adb2f869555f227b3e6547430e4c AS tagger-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:b4e9713e6eaea87df9cbbaa48ba280b6570cf84b497ff43db13cc5554f54c320 AS tagger-build
 # Modern alone uses CPython 3.13, compiled against this same Jammy ABI/ICU.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -52,9 +52,9 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
-FROM ghcr.io/bolens/archiving-utils@sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c AS archive-verifier
+FROM ghcr.io/bolens/archiving-utils@sha256:26df29f0cbf690627b0abb4694cecda2fe49474df56c829f09ad9dbf382225bb AS archive-verifier
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:2f1cfd67e84a20568f58c5661f7ef3475d17adb2f869555f227b3e6547430e4c AS libarchive-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:b4e9713e6eaea87df9cbbaa48ba280b6570cf84b497ff43db13cc5554f54c320 AS libarchive-build
 # Release tarball digest is published by the official v3.8.9 release asset.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -79,7 +79,7 @@ RUN python3 -c "import hashlib,urllib.request; data=urllib.request.urlopen('http
     && rm -rf /opt/libarchive/include /opt/libarchive/lib/pkgconfig /opt/libarchive/share/man \
     && rm -f /opt/libarchive/lib/*.la
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:2f1cfd67e84a20568f58c5661f7ef3475d17adb2f869555f227b3e6547430e4c AS pdf-runtime
+FROM lscr.io/linuxserver/mylar3:latest@sha256:b4e9713e6eaea87df9cbbaa48ba280b6570cf84b497ff43db13cc5554f54c320 AS pdf-runtime
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends poppler-utils libarchive13=3.6.0-1ubuntu1.9 \

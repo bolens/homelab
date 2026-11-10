@@ -1,4 +1,4 @@
-FROM ghcr.io/bolens/archiving-utils@sha256:2ca2bfa2c4d142d849c3cdd27866867d5337f17ce4dfb92d50bc0d9aeb11654c AS runtime
+FROM ghcr.io/bolens/archiving-utils@sha256:26df29f0cbf690627b0abb4694cecda2fe49474df56c829f09ad9dbf382225bb AS runtime
 USER root
 # hadolint ignore=DL3008
 RUN apt-get update \
