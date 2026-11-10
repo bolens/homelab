@@ -2,7 +2,7 @@ services:
   pocketbase:
     labels:
       logging: "true"
-    image: coollabsio/pocketbase:latest@sha256:846b0fd9ae0f9e39cd24ba9f61fb567d51cfbabe9719d57b222a81123b1467f6
+    image: coollabsio/pocketbase:latest@sha256:afbf77a5f09aa02d522425f78c0ed6c30a50b12c006e2bdb904ac567a9b4d3e7
     container_name: pocketbase
     restart: unless-stopped
     cpus: 1.0
