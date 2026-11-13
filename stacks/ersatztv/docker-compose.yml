@@ -2,7 +2,7 @@ services:
   ersatztv:
     labels:
       logging: "true"
-    image: ghcr.io/ersatztv/legacy:v26.11.6@sha256:7ad1924573ea8dffacc30d097d7f562cc910bf2fd124ee2d6371812958f237f0
+    image: ghcr.io/ersatztv/legacy:v26.12.0@sha256:cfe78ee1148f90d96582dcc58196f4b2153f9e6f70c1bcf6baab3b375d675a47
     container_name: ersatztv
     restart: unless-stopped
     security_opt:

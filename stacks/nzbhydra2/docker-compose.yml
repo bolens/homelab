@@ -2,7 +2,7 @@ services:
   nzbhydra2:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/nzbhydra2:latest@sha256:5b574b8f37db7dfad8a7d9f7421f2a3d01bcb3dfb03a8868291f457f1df0dc9b
+    image: lscr.io/linuxserver/nzbhydra2:latest@sha256:14f1b9bf2ae3d1a46fbd9ac8e394413fa3da922ad534abe75ee0cb3c5a1ab0ed
     container_name: nzbhydra2
     restart: unless-stopped
     cpus: 2.0
