@@ -5,7 +5,7 @@ Root recovery routes. The transport implementation alone grants no backup,
 reader-stop, publication, restart or cleanup authority. Keep those routes held
 until their owning factories and installed-source checks implement this contract.
 
-The fixed retained-pack policy v3 and standalone policy v3 implement the host
+The fixed retained-pack policy v4 and standalone policy v3 implement the host
 transport. Standalone keeps its four original source roles but sends only Native
 and reader app data to Restic. Its selected retained source and existing target
 remain in place. The original standalone observation type, complete SQL proof,
@@ -40,6 +40,29 @@ book/page payloads from Restic and disposable restores. Hash those originals in
 place. Native metadata artwork remains application data. A media exclusion
 changes storage coverage, never source admission or preservation obligations.
 Unknown file kinds, escaping links and unsupported metadata hold the operation. Unknown Native archives also hold. A diagnostic carepackage requires its bounded complete app-member schema and content checks.
+
+## Retained-pack preliminary capacity
+
+The retained-pack preflight samples unpaused application trees for capacity. It
+freezes the fixed role/root/kind inputs before callbacks and keeps strict Native
+and Worker configuration refs, hashes and parent identities separately. It
+traverses held directory descriptors without following links. Each regular file
+has fresh metadata, a joined no-follow descriptor, the actual payload classifier
+and a full-signature close. Only supported local app-file links are accepted.
+Directory namespaces and timestamps may evolve between samples. Replacement,
+unsupported nodes, permission errors and drift during an individual read hold.
+
+The fixed sample is bounded by its original deadline, 100,000 encountered nodes,
+512 GiB of app-plus-media bytes and 4 GiB per app file. Media is sampled from its
+header without imposing the app-file size ceiling. Roots have at most 32 path
+components and traversal has at most 64 descendant levels. It returns aggregate
+preliminary sizes only, with no source frame, preservation proof or backup
+authority. Evolving namespaces can undercount or double-count current content.
+The genuine paused factory still captures the complete original source and SQL
+boundary, checks fresh app-data and scratch capacity, and verifies the actual
+Restic snapshot and independent restore. An insufficient fresh capacity check
+spends the attempt and follows its existing failure path. A sample never grants
+backup-ready, member action, reader resumption or replay.
 
 ## Repository and restore
 

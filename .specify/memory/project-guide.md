@@ -425,6 +425,13 @@ For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
 the whole-file pin and behavioral acceptance checks alongside any method pins.
+Keep unpaused capacity estimates separate from preservation snapshots. Native
+workflow records and directory epochs can change during a preliminary scan even
+when the DDL queue is empty. Sample each file against its own original descriptor
+and retain strict configuration refs separately. Do not freeze a running database
+across a whole capacity scan, ignore changing files, or reuse advisory metadata as
+a backup witness. The owning paused factory must repeat its complete census,
+capacity, SQL, snapshot and restore checks before backup-ready or member action.
 On Btrfs, a reused directory descriptor can return a stale first listing after a
 mutation. Enumerate through a fresh descriptor opened relative to the original
 bound directory, verify its identity before and after reading, and retain exact
