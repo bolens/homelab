@@ -1,0 +1,2 @@
+# Unified Go patch context preserves blank context lines and indentation.
+*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

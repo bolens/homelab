@@ -62,7 +62,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Optional publisher broker: explicit Compose override, private read-only credentials, persistent replay/lease state; never enabled by default.'
+  notes: 'Optional publisher broker: explicit Compose override, private read-only credentials, persistent replay/lease state; never enabled by default. Optional patched-agent cgroup parent requires an explicitly selected override and a CI-only host slice.'
 runtime_security:
   privileged_services: []
   host_network_services: []

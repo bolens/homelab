@@ -53,6 +53,7 @@ updates:
       - "/stacks/torbot"
       - "/stacks/unbound"
       - "/stacks/vane"
+      - "/stacks/woodpecker-ci/agent-patches"
       - "/stacks/woodpecker-ci/publisher-broker"
     schedule:
       interval: "weekly"
