@@ -1587,12 +1587,18 @@ successors remain independently checked; canonical commitments remove duplicate
 models from bounded wire payloads. See the
 [retained contract](config/reader_recovery/CONTRACT-retained-pack.md).
 
-The retained-pack Root profile v3 requires the existing local Restic container
+The retained-pack Root profile v4 requires the existing local Restic container
 named `restic`, with its original `/repository` and `/cache` mounts. It streams
 app data into an encrypted snapshot and verifies one independent app restore.
 Held books stay in place under complete original custody and hash checks.
 An external Worker configuration is backed up as one exact JSON file, without
-selecting its parent or unrelated siblings.
+selecting its parent or unrelated siblings. Preflight samples live capacity with
+strict original configuration refs. It does not require an unchanged database
+across the whole preliminary scan. Each sampled file still closes against its
+own original descriptor and metadata. These estimates grant no backup or
+preservation proof. Under the owned pause, the genuine factory captures its
+complete original census and checks fresh capacity before creating the encrypted
+snapshot.
 Older full-copy helper installations do not satisfy this profile. Verify the
 matching Root installation and current operation before use. This adds no
 permanent Compose mount, environment setting, port or service privilege. See

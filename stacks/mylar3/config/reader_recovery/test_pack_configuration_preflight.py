@@ -158,5 +158,63 @@ class RootPreflight(unittest.TestCase):
             self.broker._pack_scope_successor(old, measured['worker_configuration'], changed={}, new_files=set(), new_directories=set())
 
 
+    def test_preflight_samples_changing_native_database_without_claiming_its_epoch(self):
+        original = self.primitive_module.appdata_payload
+        database = self.native_ini.parent / 'workflow.sqlite'
+        def change_completed_scope(role, *args, **kwargs):
+            if role == 'worker_state':
+                with closing(sqlite3.connect(database)) as db:
+                    db.execute("INSERT INTO protected VALUES ('new current epoch')")
+                    db.commit()
+            return original(role, *args, **kwargs)
+        with synthetic_cli(self.root), patch.object(self.primitive_module, 'appdata_payload', change_completed_scope):
+            plan = self.preflight()
+        controls = dict(plan['config_frame'][0])
+        self.assertIn(str(self.native_ini), controls)
+        self.assertIn(str(self.config), controls)
+        self.assertNotIn(str(database), controls)
+        self.assertEqual(plan['config_frame'][2], ())
+        self.assertFalse(Path(plan['output']).exists())
+
+    def test_native_configuration_change_during_sample_still_refuses(self):
+        original = self.primitive_module.appdata_payload
+        def change(role, *args, **kwargs):
+            if role == 'worker_state':
+                self.native_ini.write_bytes(b'[General]\nchanged=true\n')
+            return original(role, *args, **kwargs)
+        with synthetic_cli(self.root), patch.object(self.primitive_module, 'appdata_payload', change):
+            with self.assertRaises((ValueError, self.broker.Held)):
+                self.preflight()
+
+    def test_worker_configuration_change_during_sample_still_refuses(self):
+        original = self.primitive_module.appdata_payload
+        def change(role, *args, **kwargs):
+            if role == 'native_config':
+                self.config.write_bytes(b'{"changed":true}')
+            return original(role, *args, **kwargs)
+        with synthetic_cli(self.root), patch.object(self.primitive_module, 'appdata_payload', change):
+            with self.assertRaises((ValueError, self.primitive_module.Held, self.broker.Held)):
+                self.preflight()
+
+    def test_genuine_factory_rejects_underestimate_using_fresh_capacity_before_snapshot(self):
+        estimate = dict(app_bytes=0, media_bytes=0, largest_app_file=0, nodes_sampled=3,
+                        preliminary=True, source_preservation=False, backup_authority=False)
+        with synthetic_cli(self.root):
+            with patch.object(self.primitive_module, 'appdata_capacity_sample', return_value=estimate):
+                plan = self.preflight()
+            source = self.native_ini.parent / 'new-current-app-data.bin'
+            with source.open('wb') as output:
+                output.truncate(200 * 1024**2)
+            low = SimpleNamespace(free=1024**3 + 64 * 1024**2)
+            with patch.object(self.primitive_module.shutil, 'disk_usage', return_value=low):
+                with self.assertRaisesRegex(Exception, 'restic-appdata-capacity'):
+                    self.module.copy_and_verify(plan['scopes'], Path(plan['output']), self.primitive,
+                        hashlib.sha256(self.primitive.read_bytes()).hexdigest(), restic_appdata=True,
+                        external_configuration=plan['external_configuration'])
+        self.assertFalse(Path(plan['output']).exists())
+        self.assertEqual(list((self.root / 'synthetic-repository/snapshots').iterdir()), [])
+        self.assertEqual(source.stat().st_size, 200 * 1024**2)
+
+
 if __name__ == '__main__':
     unittest.main()
