@@ -120,9 +120,15 @@ all-files and Git-history suite on demand. Prepare a separate checkout of
 `bolens/.github` at the exact `tooling-ref` in
 `.github/workflows/source-lint.yml`, install its locked tools with
 `npm ci --ignore-scripts --prefix /path/to/shared/tools/source-lint`, and provide
-Ruff 0.15.20. The shared source lint runs first, using the hosted configuration
-and rules. Missing tools, a different checkout revision or changed tooling stop
-the gate; validation does not clone or install tools automatically.
+Ruff 0.17.4. This shared toolchain separately requires Node
+`^22.22.2 || ^24.15.0 || >=26.0.0`. For Homelab source lint and full local CI,
+use the intersection with this repository's Node range: Node 24.15.0 or newer
+within 24.x, or Node 26.x. These are supported prerequisites. The local
+source-lint wrapper does not check the Node version. Node 24.0 through 24.14
+satisfies Homelab's package range but does not support this shared toolchain.
+The shared source lint runs first, using the hosted configuration and rules.
+Missing tools, a different checkout revision or changed tooling stop the gate;
+validation does not clone or install tools automatically.
 
 ```bash
 make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared

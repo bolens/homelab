@@ -115,6 +115,11 @@ CPU and memory limits do not bound disk usage or disk I/O. Monitor free space,
 image/build-cache growth, and host I/O pressure. Do not automatically prune
 shared images or volumes used by other stacks.
 
+Before draining an agent for a slice change, inspect the unit's source, drop-ins,
+resource properties and actual cgroup. A slice can be loaded implicitly with
+pristine defaults. Loaded state alone does not establish custom configuration
+or the intended resource policy.
+
 Before changing an agent's build limits, disable scheduling on that agent and
 wait until its active workflows reach zero. Recreate only the agent using the
 locally installed image, then confirm its original identity reconnects before
@@ -130,6 +135,19 @@ Verify the next build container's Docker `HostConfig` resource fields. An
 agent health check alone does not prove the build limits are applied. See the
 [agent configuration](https://woodpecker-ci.org/docs/administration/configuration/agent)
 and [Docker backend configuration](https://woodpecker-ci.org/docs/administration/configuration/backends/docker).
+
+Resolve the CI build process's host PID to its leaf cgroup and check its kernel
+limits and relevant ancestors separately from the agent budget. For image builds,
+inspect the actual RUN worker. On cgroup v2, `memory.swap.max` exists on
+[non-root cgroups](https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files).
+Stop the walk before the unified root. Missing files on other required cgroups
+remain a failed check.
+
+For Docker's systemd driver, the runtime parent is a slice unit name.
+With [BuildKit 0.34.2](https://github.com/moby/buildkit/blob/v0.34.2/executor/oci/spec.go#L84-L95), as shipped in Moby 29.9.3, pass the full
+hierarchy path to `--cgroup-parent`. For `woodpecker-ci.slice`, that is
+`/woodpecker.slice/woodpecker-ci.slice`. These Docker and BuildKit CLI flags
+do not configure the stock Woodpecker agent.
 
 ## Optional trusted publisher broker
 
