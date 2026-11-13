@@ -74,6 +74,48 @@ class OwnerReads(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'child-permission'):
             self.capture()
 
+    def test_original_root_handle_crosses_private_ancestry_without_reading_it(self):
+        anchors={}
+        for path in reversed((self.media,*self.media.parents)):
+            fd=os.open(path,os.O_PATH|os.O_DIRECTORY|os.O_NOFOLLOW)
+            anchors[str(path)]=(fd,observation.five(os.fstat(fd)))
+        original=self.root.stat().st_mode & 0o777
+        self.root.chmod(0)
+        read_fd,write_fd=os.pipe();pid=os.fork()
+        if pid==0:
+            try:
+                os.close(read_fd)
+                if os.geteuid()==0:os.setgroups([]);os.setgid(1000);os.setuid(1000)
+                value=observation._measure([str(self.media)],[str(self.payload)],time.monotonic()+15,anchors)
+                assert value['hashes'][str(self.payload)]==hashlib.sha256(b'original archive bytes').hexdigest()
+                assert str(self.root) not in value['names']
+                os.write(write_fd,b'ok');os._exit(0)
+            except BaseException:os._exit(1)
+        os.close(write_fd)
+        try:
+            result=os.read(read_fd,16);_,status=os.waitpid(pid,0)
+            self.assertEqual(status,0);self.assertEqual(result,b'ok')
+        finally:
+            self.root.chmod(original);os.close(read_fd)
+            for fd,_ in anchors.values():os.close(fd)
+
+    def test_anchor_metadata_drift_refuses_and_closes_owned_descriptors(self):
+        original=os.waitpid;before=set(os.listdir('/proc/self/fd'))
+        def waited(*args):
+            result=original(*args);self.media.chmod(0o700);return result
+        with patch.object(observation.os,'waitpid',side_effect=waited):
+            with self.assertRaisesRegex(ValueError,'original-anchor'):self.capture()
+        self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
+    def test_failed_initial_anchor_stat_closes_new_descriptor(self):
+        original=os.fstat;before=set(os.listdir('/proc/self/fd'));fired=[]
+        def fail(fd):
+            if not fired:fired.append(fd);raise OSError('initial anchor stat refused')
+            return original(fd)
+        with patch.object(observation.os,'fstat',side_effect=fail):
+            with self.assertRaisesRegex(OSError,'initial anchor stat refused'):self.capture()
+        self.assertTrue(fired);self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
     def test_constructor_cannot_hydrate_saved_observation(self):
         with self.assertRaisesRegex(ValueError, 'Original owner observation'):
             observation.OwnerObservation(self.capture().data())
@@ -120,7 +162,7 @@ class OwnerReads(unittest.TestCase):
     def test_root_path_cannot_cross_symlink_ancestor(self):
         alias = self.root / 'alias'
         alias.symlink_to(self.media, target_is_directory=True)
-        with self.assertRaisesRegex(ValueError, 'child-'):
+        with self.assertRaisesRegex(ValueError, 'anchor-refused'):
             observation.OwnerObservation.capture([str(alias)], [], deadline=time.monotonic()+15)
 
     def test_expired_original_deadline_refuses(self):

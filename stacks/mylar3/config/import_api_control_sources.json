@@ -717,7 +717,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "877b0900e9b784c64653410402369ba3e226c04fef2bc34853e30fddfbbfc6a8"
+    "sha256": "d42c1ba0faff21d310fb83f3365df0d758d6b7bd43ade513911c66fba85125f1"
   },
   {
     "path": "run_standalone_controls.py",
@@ -729,7 +729,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "fe8acc7e0c5be3b5cdc1d2d41af4331051b3a953a2601d111be4497a27241988"
+    "sha256": "5a9da04341d47ed9b189a71fb28ec62bbe9aa05b680d31e77baac342809c5f2b"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",

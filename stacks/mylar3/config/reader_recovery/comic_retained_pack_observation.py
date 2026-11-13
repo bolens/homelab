@@ -49,7 +49,7 @@ def absolute(value):
     return value
 
 
-def _measure(roots,streams,deadline):
+def _measure(roots,streams,deadline,anchors):
     """Only this fixed code runs in the private owner process."""
     need(os.geteuid()==os.getegid()==1000,'owner-observation-principal')
     files={};nodes={};names={};hashes={};attrs={}
@@ -57,12 +57,14 @@ def _measure(roots,streams,deadline):
     def directory(text):
         if text in directories:return directories[text]
         path=Path(text)
-        if text=='/':fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        if text in anchors:fd=os.open('.',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=anchors[text][0])
+        elif text=='/':fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
         else:fd=os.open(path.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,
                         dir_fd=directory(str(path.parent)))
         directories[text]=fd
         return fd
     def observed(text):
+        if text in anchors:return os.fstat(anchors[text][0])
         if text=='/':return os.fstat(directory('/'))
         path=Path(text)
         return os.stat(path.name,dir_fd=directory(str(path.parent)),follow_symlinks=False)
@@ -136,7 +138,8 @@ def _measure(roots,streams,deadline):
         for text,expected in names.items():
             alive();need(children(text)==expected,'owner-observation-final-namespace')
         for text,expected in nodes.items():
-            need(five(observed(text))==expected and five(os.fstat(directory(text)))==expected,
+            descriptor=anchors[text][0] if text in anchors else directory(text)
+            need(five(observed(text))==expected and five(os.fstat(descriptor))==expected,
                  'owner-observation-final-node')
         for text,expected in files.items():
             need(nine(observed(text))==expected,'owner-observation-final-file')
@@ -153,14 +156,30 @@ def _owner_read(roots,streams,deadline):
     need(os.geteuid() in (0,1000),'owner-observation-parent-principal')
     need(len(os.listdir('/proc/self/task'))==1,'owner-observation-single-thread-required')
     original_owner=(os.getpid(),os.geteuid(),os.getegid(),threading.get_ident())
-    read_fd,write_fd=os.pipe();pid=None;reaped=False
+    read_fd,write_fd=os.pipe();pid=None;reaped=False;anchors={}
     try:
+        # Pass only O_PATH directory identities for the exact selected roots
+        # and their ancestors. UID1000 still opens every selected directory
+        # and file itself. Docker's private host ancestry needs no chmod or
+        # inherited supplementary group, and no sibling entry is enumerated.
+        for root in roots:
+            for path in reversed((Path(root),*Path(root).parents)):
+                text=str(path)
+                if text in anchors:continue
+                flags=os.O_PATH|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
+                try:fd=os.open('/',flags) if text=='/' else os.open(path.name,flags,dir_fd=anchors[str(path.parent)][0])
+                except OSError:raise ValueError('owner-observation-anchor-refused') from None
+                try:original=five(os.fstat(fd))
+                except BaseException:
+                    os.close(fd)
+                    raise
+                anchors[text]=(fd,original)
         pid=os.fork()
         if pid==0:
             os.close(read_fd)
             try:
                 if os.geteuid()==0:os.setgroups([]);os.setgid(1000);os.setuid(1000)
-                body=encoder(dict(version=1,kind='owner-media-observation',data=_measure(roots,streams,deadline)))
+                body=encoder(dict(version=1,kind='owner-media-observation',data=_measure(roots,streams,deadline,anchors)))
                 need(len(body)<=MAX_WIRE,'owner-observation-wire-bound')
                 view=memoryview(body)
                 while view:
@@ -198,6 +217,9 @@ def _owner_read(roots,streams,deadline):
              'owner-observation-child-envelope')
         need((os.getpid(),os.geteuid(),os.getegid(),threading.get_ident())==original_owner
              and time.monotonic()<deadline,'owner-observation-parent-original')
+        for text,(fd,original) in anchors.items():
+            need(five(os.fstat(fd))==original==five(os.lstat(text)),
+                 'owner-observation-original-anchor')
         return value['data']
     finally:
         primary=sys.exc_info()[0];cleanup_failed=False
@@ -205,6 +227,14 @@ def _owner_read(roots,streams,deadline):
             if fd is None:continue
             try:os.close(fd)
             except OSError:cleanup_failed=True
+        for fd,original in reversed(tuple(anchors.values())):
+            try:
+                actual=five(os.fstat(fd))
+                need(actual[:2]+(stat.S_IFMT(actual[2]),)==original[:2]+(stat.S_IFMT(original[2]),),
+                     'owner-observation-cleanup-anchor')
+                if actual!=original:cleanup_failed=True
+                os.close(fd)
+            except (OSError,ValueError):cleanup_failed=True
         if pid is not None and pid>0 and not reaped:
             try:waited,_=os.waitpid(pid,os.WNOHANG)
             except OSError:cleanup_failed=True;waited=None
