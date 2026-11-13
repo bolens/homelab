@@ -1,4 +1,5 @@
 # Linux amd64 wheel hashes from primary PyPI metadata; shared fleet versions.
+# Other platform wheels are outside the native runners' Linux amd64 scope.
 PyYAML==6.0.3 \
     --hash=sha256:b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d \
     --hash=sha256:ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc \
@@ -6,9 +7,9 @@ PyYAML==6.0.3 \
     --hash=sha256:c458b6d084f9b935061bc36216e8a69a7e293a2f1e68bf956dcd9e6cbcd143f5 \
     --hash=sha256:00c4bdeba853cc34e7dd471f16b4114f4162dc03e6b7afcc2128711f0eca823c \
     --hash=sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f
-ruff==0.15.20 \
-    --hash=sha256:309809086c2acb67624950a3c8133e80f32d0d3e27106c0cd60ff26657c9f24b \
-    --hash=sha256:1416eb04349192646b54de98f146c4f59afe37d0decfc02c3cbbf396f3a28566
+ruff==0.17.4 \
+    --hash=sha256:2cd025509b2e15721b426fc70fd946d71f43b3db3b08e946dfec2d696d911690 \
+    --hash=sha256:6007e7f3a0e55b0fbdb947af69cf24c21b4928df6be8ef3e767c69b5ccccf496
 zizmor==1.32.0 \
     --hash=sha256:0a999c98015becd9f69919ce01febadfb1c2be9b8ec2ce9ef7eb13ff23ba8eba \
     --hash=sha256:0cdd38fca6eb34ceb567548548d706332e3535ea66894b9168c048e03207b68c \
