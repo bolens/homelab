@@ -11,6 +11,9 @@ from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('backup', Path(__file__).with_name('comic_retained_standalone_backup.py'))
 b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b)
+restic_spec = importlib.util.spec_from_file_location('root_backup',
+    Path(__file__).parent.parent / 'standalone_launch_host/comic_retained_standalone_backup.py')
+root_backup = importlib.util.module_from_spec(restic_spec); restic_spec.loader.exec_module(root_backup)
 
 class BackupTests(unittest.TestCase):
     def setUp(self):
@@ -32,6 +35,17 @@ class BackupTests(unittest.TestCase):
         self.tmp.cleanup()
     def run_backup(self):
         return b.copy_and_verify(self.scopes, self.out)
+
+    def test_restic_mode_rejects_non_boolean_before_output(self):
+        with self.assertRaisesRegex(ValueError, 'backup-copy-mode'):
+            root_backup.copy_and_verify(self.scopes, self.out, restic_appdata=1)
+        self.assertFalse(self.out.exists())
+
+    def test_restic_mode_holds_unknown_native_archive_before_transport(self):
+        with self.assertRaisesRegex(Exception, 'native-unclassified-archive'):
+            root_backup.copy_and_verify(self.scopes, self.out, restic_appdata=True)
+        self.assertFalse(self.out.exists())
+
     def test_real_original_directory_birth_model_and_backup_restore(self):
         before=os.lstat(self.root);result=self.run_backup();answer=result.close()
         self.assertFalse(answer['ordinary_import'])

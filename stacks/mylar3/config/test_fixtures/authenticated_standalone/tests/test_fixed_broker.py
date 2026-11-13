@@ -24,6 +24,75 @@ def load(path,name):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 class BrokerTests(unittest.TestCase):
+    def standalone_resources(self, *, data_free=2*1024**3, scratch_free=1024**3):
+        scopes=[dict(role='native_state',root='/native',databases=['mylar.db']),
+                dict(role='reader_state',root='/reader',databases=['database.sqlite']),
+                dict(role='retained_source',root='/downloads/source.cbz',databases=[]),
+                dict(role='existing_target',root='/library/target.cbz',databases=[])]
+        files=tuple((path,(1,index,100,0,0,0o100600,0,0,1)) for index,path in enumerate(
+                    ('/native/mylar.db','/reader/database.sqlite','/downloads/source.cbz','/library/target.cbz')))
+        original=(files,(),());closed=[]
+        binding=dict(mounts={'/repository':'/repository','/cache':'/cache'},container_id='c'*64)
+        def estimate(selected, records, **kwargs):
+            self.assertEqual(selected,[dict(role='native_config',root='/native'),dict(role='reader_config',root='/reader')])
+            self.assertEqual(records,files[:2])
+            return dict(app_bytes=100*1024**2,media_bytes=100*1024**3,largest_app_file=10)
+        primitive=SimpleNamespace(APPDATA_MAX_INDEX=64*1024**2,
+                    appdata_restic_profile=lambda **kwargs:binding,appdata_estimate=estimate)
+        helper=SimpleNamespace(raw=lambda frame:closed.append(frame))
+        def free(path):return SimpleNamespace(f_bavail=scratch_free if str(path)=='/cache' else data_free,f_frsize=1)
+        with patch.object(self.m.os,'statvfs',free):
+            result=self.m._standalone_backup_resources(primitive,helper,original,scopes,deadline=10**12)
+        self.assertEqual(closed,[original])
+        return result
+
+    def test_config_coverage_requires_selected_root_and_exact_original_file(self):
+        scopes=[dict(root='/native'),dict(root='/worker'),dict(root='/reader')]
+        stamp=(1,2,3,4,5,0o100600,1000,1000,1)
+        for root in ('/native','/worker'):
+            reference=dict(path=root+'/settings',signature9=list(stamp))
+            frame=(((reference['path'],stamp),),(),())
+            self.m._require_configuration_coverage(reference,scopes,frame)
+            for roots,original in (([dict(root='/other')],frame),(scopes,((),(),())),
+                                   (scopes,(((reference['path'],stamp[:-1]+(2,)),),(),()))):
+                with self.subTest(root=root,roots=roots,original=original),self.assertRaisesRegex(self.m.Held,'uncovered-application-configuration'):
+                    self.m._require_configuration_coverage(reference,roots,original)
+
+    def test_nested_app_mounts_hold_even_when_effective_INI_is_covered(self):
+        mounts=[dict(Destination='/config'),dict(Destination='/library')]
+        self.m._require_unshadowed_application_mount(mounts,'/config')
+        for destination in ('/config/external-state','/config/mylar/alternate.ini'):
+            with self.subTest(destination=destination),self.assertRaisesRegex(self.m.Held,'nested-application-mount'):
+                self.m._require_unshadowed_application_mount(mounts+[dict(Destination=destination)],'/config')
+
+    def test_worker_configuration_must_be_in_actual_app_selection(self):
+        primitive=self.m.load_original_installation().close()['modules']['comic_appdata_restic_primitives.py']
+        stamp=(1,2,3,4,5,0o100600,1000,1000,1)
+        scopes=[dict(role='worker_state',root='/worker')]
+        for name in ('settings.json','settings.zip','settings.jpg'):
+            ref=dict(path='/worker/'+name,signature9=list(stamp));original=(((ref['path'],stamp),),(),())
+            if name.endswith('.json'):
+                self.m._require_configuration_appdata(ref,scopes,original,primitive,b'{"placeholder":true}',deadline=10**12)
+            else:
+                with self.subTest(name=name),self.assertRaisesRegex(self.m.Held,'excluded-application-configuration'):
+                    self.m._require_configuration_appdata(ref,scopes,original,primitive,b'{"placeholder":true}',deadline=10**12)
+        for role in ('native_state','native_config'):
+            ref=dict(path='/native/mylar/cache/settings.zip',signature9=list(stamp))
+            with self.subTest(role=role),self.assertRaisesRegex(self.m.Held,'excluded-application-configuration'):
+                self.m._require_configuration_appdata(ref,[dict(role=role,root='/native')],(((ref['path'],stamp),),(),()),primitive,b'[General]\n',deadline=10**12)
+        with self.assertRaisesRegex(self.m.Held,'nested-application-mount'):
+            self.m._require_unshadowed_application_mount([dict(Destination='/state'),dict(Destination='/state/external-control')],'/state')
+
+    def test_standalone_capacity_excludes_both_selected_media_roles(self):
+        result=self.standalone_resources()
+        self.assertEqual(result['required'],100*1024**2+5*1024**2+64*1024**2+1024**3)
+
+    def test_standalone_capacity_checks_app_restore_repository_and_SQL_space(self):
+        with self.assertRaisesRegex(self.m.Held,'insufficient-free-space'):
+            self.standalone_resources(data_free=1)
+        with self.assertRaisesRegex(self.m.Held,'SQL-scratch-capacity'):
+            self.standalone_resources(scratch_free=1)
+
     def resource_fixture(self,*,scratch_free=4*1024**3,data_free=2*1024**3,foreign=False):
         folder=self.root/'private-backups';folder.mkdir(mode=0o700)
         original=self.m.os.lstat;calls=[]
@@ -121,7 +190,9 @@ class BrokerTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(prefix='fixed-launch-fixture-',dir=Path.home()/'.cache');self.root=Path(self.tmp.name);self.root.chmod(0o700)
         self.pkg=self.root/'package';self.pkg.mkdir(mode=0o700)
         shutil.copy2(CRYPTO,self.pkg/'private_crypto.py')
-        for name in ('comic_retained_standalone_parent.py','comic_retained_standalone_backup.py','comic_reader_backup_primitives.py'):shutil.copy2(OLD/name,self.pkg/name)
+        for name in ('comic_retained_standalone_parent.py','comic_retained_standalone_backup.py',
+                     'comic_reader_backup_primitives.py','comic_appdata_restic_primitives.py'):
+            shutil.copy2(OLD/name,self.pkg/name)
         source_root=HERE/'fixtures/probe_sources'
         for name in ('comic_native_process_probe.py','publication_native_configured_scope.py'):shutil.copy2(source_root/name,self.pkg/name)
         shutil.copy2(HERE/'source/BOOTSTRAP.py',self.pkg/'BOOTSTRAP.py')

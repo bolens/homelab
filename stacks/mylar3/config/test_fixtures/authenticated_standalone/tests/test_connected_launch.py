@@ -27,11 +27,22 @@ class Connected(unittest.TestCase):
   self.auth=self.root/'auth';self.auth.mkdir()
   for n in ('standalone_launch_auth.py','v3_auth_core.py','private_crypto.py'):shutil.copyfile(AUTH_SOURCE/n,self.auth/n)
   self.host=self.root/'host';self.host.mkdir()
-  for n in ('comic_retained_standalone_backup.py','comic_reader_backup_primitives.py','comic_retained_standalone_parent.py'):shutil.copyfile(HOST/n,self.host/n)
+  restic=getattr(self,'RESTIC',False)
+  for n in ('comic_retained_standalone_backup.py','comic_reader_backup_primitives.py','comic_retained_standalone_parent.py'):
+   source=DRAFT/'source'/n if restic and n=='comic_retained_standalone_parent.py' else HOST/n
+   shutil.copyfile(source,self.host/n)
+  if restic:shutil.copyfile(HOST/'comic_appdata_restic_primitives.py',self.host/'comic_appdata_restic_primitives.py')
   sys.path.insert(0,str(CHILD_SOURCE));self.addCleanup(lambda:sys.path.remove(str(CHILD_SOURCE)))
   import test_publication_api as fixture
-  self.case=fixture.NativeProtocolTests('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups);self.case.bootstrap()
-  data=self.case.root;self.data=data;self.target=self.case.source;self.cache=data/'ddl';self.cache.mkdir();self.source=self.cache/'download.cbz';shutil.copyfile(self.target,self.source)
+  self.case=fixture.NativeProtocolTests('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups)
+  if restic:
+   # Give this fixture the real scope geometry: library outside Native app DATA.
+   library=self.root/'library';self.assertFalse(library.exists());self.case.library.rename(library)
+   self.case.library=library;self.case.source=library/self.case.source.name
+   with sqlite3.connect(self.case.database)as db:db.execute('UPDATE comics SET ComicLocation=? WHERE ComicID=?',(str(library),'456'));db.commit()
+   self.case.controller=fixture.api.Controller(self.case.root,[library],tool_root=fixture.TOOL_ROOT)
+  self.case.bootstrap()
+  data=self.case.root;self.data=data;self.target=self.case.source;self.cache=data/('cache' if restic else 'ddl');self.cache.mkdir();self.source=self.cache/'download.cbz';shutil.copyfile(self.target,self.source)
   with sqlite3.connect(data/'mylar.db') as db:
    db.execute('CREATE TABLE ddl_info(id TEXT,comicid TEXT,status TEXT,pack INT,filename TEXT,issueid TEXT)');db.execute('INSERT INTO ddl_info VALUES(?,?,?,?,?,?)',('56','456','Completed',0,self.source.name,'123'));db.commit()
   self.reader=self.root/'reader';self.reader.mkdir()
@@ -64,6 +75,8 @@ class Connected(unittest.TestCase):
   sys.path.insert(0,str(self.host));self.addCleanup(lambda:sys.path.remove(str(self.host)))
   pspec=importlib.util.spec_from_file_location('genuine_parent',self.host/'comic_retained_standalone_parent.py');parent=importlib.util.module_from_spec(pspec);pspec.loader.exec_module(parent)
   mounts=[{'Type':'volume','Name':'existing-fixture-volume','Source':'/','Destination':'/','RW':True}] if fault=='volume' else [{'Type':'bind','Source':'/','Destination':'/','RW':True}] # Explicit same-namespace fixture projection, NOT a launch profile.
+  if getattr(self,'RESTIC',False):
+   mounts=[dict(Type='bind',Source=str(path),Destination=str(path),RW=True) for path in (self.data,self.cache,self.case.library)]
   carrier=self.data/parent.CARRIER_NAME
   prelaunch={'carrier9':tuple(nine(carrier)) if carrier.exists() else None,'carrier_names':tuple(sorted(os.listdir(carrier))) if carrier.exists() else (),'token_absent':True}
   hostboot=dict(self.boot,input_sha256=sha(self.input.read_bytes()))
@@ -77,7 +90,25 @@ class Connected(unittest.TestCase):
   initialized=first_body.decoded();parent.join_publication(initial['payload'],hostboot,mounts,initial_original,prelaunch);parent.verify_initialized(initialized,self.boot,mounts)
   backup=importlib.import_module('comic_retained_standalone_backup')
   scopes=[{'role':'native_state','root':str(self.data),'databases':['mylar.db','workflow.sqlite']},{'role':'reader_state','root':str(self.reader),'databases':['database.sqlite']},{'role':'retained_source','root':str(self.source),'databases':[]},{'role':'existing_target','root':str(self.target),'databases':[]}]
-  observed=backup.copy_and_verify(scopes,self.root/'verified-backup');proof=observed.close();self.assertFalse(proof['resume']);self.assertEqual(proof['roles'],[x['role'] for x in scopes])
+  if getattr(self,'RESTIC',False):
+   cli_spec=importlib.util.spec_from_file_location('connected_synthetic_cli',Path(__file__).with_name('appdata_cli_fixture.py'))
+   cli=importlib.util.module_from_spec(cli_spec);cli_spec.loader.exec_module(cli)
+   with cli.synthetic_cli(self.root):observed=backup.copy_and_verify(scopes,self.root/'verified-backup',restic_appdata=True)
+   witness=backup._OBSERVATIONS[observed]['restic']
+   original_fds=tuple((fd,tuple(frame))for _,fd,frame,_ in witness['restore_custody'])+((witness['snapshot_fd'],tuple(witness['snapshot_signature9'])),)
+   original_nodes=tuple((fd,tuple(frame))for _,fd,frame in (*witness['output_ancestors'],*witness['mount_custody']))
+   def close_appdata():
+    for fd,original in original_fds:
+     try:
+      if backup.nine(os.fstat(fd))==original:os.close(fd)
+     except OSError:pass
+    for fd,original in original_nodes:
+     try:
+      if backup.five(os.fstat(fd))==original:os.close(fd)
+     except OSError:pass
+   self.addCleanup(close_appdata)
+  else:observed=backup.copy_and_verify(scopes,self.root/'verified-backup')
+  proof=observed.close();self.assertFalse(proof['resume']);self.assertEqual(proof['roles'],[x['role'] for x in scopes])
   def host(sequence,kind,payload):
    nonlocal chain
    regular={'version':3,'protocol':'standalone-retained-repeat-v3','kind':kind,'sequence':sequence,'nonce':self.boot['nonce'],'challenge':self.boot['challenge'],'payload':payload}
@@ -98,7 +129,7 @@ class Connected(unittest.TestCase):
      if fault not in ('oversize','pipeline'):raise
    chain=hashlib.sha256(chain+ar+sig).digest()
   host(2,'backup-ready',{'initialized_sha256':sha(raw),'backup_sha256':proof['digest'],'original_refs':[self.boot['config_ref'],self.boot['source_map_ref'],ref(self.source),ref(self.target)]})
-  if fault not in (None,'fragment','volume','foreign-entry','body-change','foreign-FD','stale-ACK','late-body','late-target-fstat'):
+  if fault not in (None,'fragment','volume','foreign-entry','body-change','foreign-FD','stale-ACK','late-body','late-target-fstat','late-Restic-FD','late-Restic-binding'):
    self.assertNotEqual(p.wait(timeout=30),0);error=p.stderr.read().decode();self.assertIn('standalone-',error)
    self.assertEqual((self.source.read_bytes(),self.target.read_bytes()),before)
    with sqlite3.connect(self.data/'workflow.sqlite') as db:self.assertEqual(db.execute("SELECT COUNT(*) FROM records WHERE kind='retained_standalone'").fetchone()[0],0)
@@ -140,12 +171,25 @@ class Connected(unittest.TestCase):
      if len(hits)==2:os.chmod(self.target,0o640);fired.append(True)
     return stamp
    broker.os.fstat=late_fstat;self.addCleanup(lambda:setattr(broker.os,'fstat',real_fstat))
+  if fault in ('late-Restic-FD','late-Restic-binding'):
+   import inspect
+   def late_restic(frame):
+    nonlocal foreign_fd
+    real_raw(frame)
+    if frame==final_original and not fired and inspect.currentframe().f_back.f_code is broker._retire_verified_bodies.__code__:
+     fired.append(True)
+     if fault=='late-Restic-binding':witness['snapshot_id']='f'*64
+     else:
+      fd=witness['snapshot_fd'];os.close(fd);foreign_fd=os.open('/dev/null',os.O_RDONLY)
+      if foreign_fd!=fd:os.dup2(foreign_fd,fd);os.close(foreign_fd);foreign_fd=fd
+      self.addCleanup(lambda:os.close(fd))
+   parent.raw=late_restic
   def retire():return broker._retire_verified_bodies(parent,first_body,final_body,initialized=initialized,observed=terminal_body,boot=self.boot,mounts=mounts,backup=observed,initialized_header=initial['payload'],observed_header=terminal['payload'],final_original=final_original,process=p,original_process=p,ack=ack,observed_raw=observed_raw)
-  if fault in ('foreign-entry','body-change','foreign-FD','stale-ACK','late-body','late-target-fstat'):
+  if fault in ('foreign-entry','body-change','foreign-FD','stale-ACK','late-body','late-target-fstat','late-Restic-FD','late-Restic-binding'):
    with self.assertRaises(ValueError):retire()
    self.assertIn(first_body,parent._BODIES);self.assertIn(final_body,parent._BODIES)
-   if fault in ('late-body','late-target-fstat'):self.assertTrue(fired)
-   if foreign_fd is not None:self.assertEqual(os.read(foreign_fd,64),b'leave untouched')
+   if fault in ('late-body','late-target-fstat','late-Restic-FD','late-Restic-binding'):self.assertTrue(fired)
+   if foreign_fd is not None:self.assertEqual(os.read(foreign_fd,64),b'' if fault=='late-Restic-FD' else b'leave untouched')
    for body in (first_body,final_body):os.close(parent._BODIES.pop(body)[2])
    return
   summary=retire()
@@ -171,4 +215,17 @@ class Connected(unittest.TestCase):
  def test_retirement_stale_final_ACK_retains_descriptors(self):self.run_connected('stale-ACK')
  def test_retirement_late_FD_selected_target_change_retains_descriptors(self):self.run_connected('late-target-fstat')
  def test_retirement_last_raw_original_body_mutation_held(self):self.run_connected('late-body')
+
+class ResticConnected(unittest.TestCase):
+ RESTIC=True
+ setUpClass=classmethod(keys.Fixtures.setUpClass.__func__)
+ tearDownClass=classmethod(keys.Fixtures.tearDownClass.__func__)
+ _sign=Connected._sign
+ setUp=Connected.setUp
+ read=Connected.read
+ run_connected=Connected.run_connected
+ def test_signed_Restic_backup_finalize_ACK_and_original_body_retirement(self):self.run_connected()
+ def test_late_Restic_descriptor_replacement_retains_bodies_and_foreign_FD(self):self.run_connected('late-Restic-FD')
+ def test_late_Restic_binding_mutation_retains_original_body_FDs(self):self.run_connected('late-Restic-binding')
+
 if __name__=='__main__':unittest.main()

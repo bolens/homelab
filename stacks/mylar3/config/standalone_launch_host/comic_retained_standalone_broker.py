@@ -24,9 +24,9 @@ LIMIT = 65536
 SOURCE_LIMIT = 4*1024**2
 PREAUTH_SECONDS = 5
 TOTAL_SECONDS = 3600
-LOGICAL_PROFILE_SHA = hashlib.sha256(b'standalone-retained-recovery-policy-v2:original-existing-bind-or-named-volume:readonly-uid1000-capdrop-all-no-new-privileges-network-none:fixed-three-root-anchor-leaf-binds-v2:no-other-new-mounts:no-other-overlay:four-full-roles:3600-1800-120-180:512GiB:100000:no-resume-import-cleanup-index-replay').hexdigest()
+LOGICAL_PROFILE_SHA = hashlib.sha256(b'standalone-retained-recovery-policy-v3:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:four-original-roles-media-in-place:original-existing-bind-or-named-volume:readonly-uid1000-capdrop-all-no-new-privileges-network-none:fixed-three-root-anchor-leaf-binds-v2:no-other-new-mounts:no-other-overlay:3600-1800-120-180:512GiB:100000:no-resume-import-cleanup-index-replay').hexdigest()
 REGISTRY_LIMIT = 512  # exact owning publication_guard registry ceiling
-NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
+NAMES = ('private_crypto.py','comic_reader_backup_primitives.py','comic_appdata_restic_primitives.py',
          'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py',
          'comic_retained_standalone_broker.py','comic_native_process_probe.py',
          'publication_native_configured_scope.py','BOOTSTRAP.py')
@@ -569,6 +569,30 @@ def _pack_backup_resources(primitive,helper,current,bytes_needed,nonce,*,scopes,
     return dict(backup_parent9=parent9,required=required,reflink_restore=False,restic_binding=binding)
 
 
+def _require_unshadowed_application_mount(mounts, destination):
+    # A physical host tree is not the effective tree when a nested mount hides
+    # any of its application state. Multi-origin coverage needs its own profile.
+    root=Path(destination)
+    if any(Path(row['Destination'])!=root and Path(row['Destination']).is_relative_to(root) for row in mounts):
+        raise Held('fixed-nested-application-mount')
+
+
+def _require_configuration_coverage(reference, scopes, original):
+    if (not any(Path(reference['path']).is_relative_to(Path(scope['root'])) for scope in scopes) or
+            dict(original[0]).get(reference['path'])!=tuple(reference['signature9'])):
+        raise Held('fixed-uncovered-application-configuration')
+
+
+def _require_configuration_appdata(reference, scopes, original, primitive, content, *, deadline):
+    _require_configuration_coverage(reference,scopes,original)
+    scope=next(scope for scope in scopes if Path(reference['path']).is_relative_to(Path(scope['root'])))
+    relative=str(Path(reference['path']).relative_to(scope['root']))
+    role={'native_state':'native_config','reader_state':'reader_config'}.get(scope['role'],scope['role'])
+    if primitive.appdata_payload(role,relative,content[:16],path=Path(reference['path']),
+                                 original=reference['signature9'],deadline=deadline):
+        raise Held('fixed-excluded-application-configuration')
+
+
 def _pack_preflight(installation,runtime,boot,nonce):
     """Bind actual configured scopes and existing receipts before any launch."""
     row=installation.close();parent=owning_parent(row);worker=runtime.baseline['worker']
@@ -605,7 +629,10 @@ def _pack_preflight(installation,runtime,boot,nonce):
             or not all(hexadecimal(pin) for pin in review['native_sources'].values())
             or review['native_sources']['native_writers.py']!=row['document']['daemon_sources']['/app/mylar3/mylar/native_writers.py']):raise Held('fixed-pack-native-review')
     state_child=cfg.get('state','/state');state=Path(parent.mapped_host(worker['Mounts'],state_child))
+    _require_unshadowed_application_mount(worker['Mounts'],state_child)
     data_child=boot['data_root'];data=Path(parent.mapped_host(runtime.baseline['native']['Mounts'],data_child))
+    _require_unshadowed_application_mount(runtime.baseline['native']['Mounts'],'/config')
+    _require_unshadowed_application_mount(runtime.baseline['reader']['Mounts'],'/config')
     native_root=Path(parent.mapped_host(runtime.baseline['native']['Mounts'],'/config'))
     reader_root=Path(parent.mapped_host(runtime.baseline['reader']['Mounts'],'/config'))
     if not data.is_relative_to(native_root):raise Held('fixed-pack-covered-native-data')
@@ -615,6 +642,8 @@ def _pack_preflight(installation,runtime,boot,nonce):
     scopes=[dict(role='native_config',root=str(native_root),databases=[str(data.relative_to(native_root)/name) for name in ('mylar.db','workflow.sqlite')]),
             dict(role='worker_state',root=str(state),databases=[]),
             dict(role='reader_config',root=str(reader_root),databases=['database.sqlite','tasks.sqlite'])]
+    if not any(Path(references['config_ref']['path']).is_relative_to(Path(scope['root'])) for scope in scopes):
+        raise Held('fixed-pack-uncovered-worker-configuration')
     receipt=state/'maintenance/packs'/request['pack_id']/'receipt.json'
     receipt_frame=(((str(receipt),nine(os.lstat(receipt))),),tuple((str(p),five(os.lstat(p))) for p in receipt.parents),())
     receipt_ref,receipt_bytes=parent._ref(receipt,limit=4*1024**2);local=document(receipt_bytes)
@@ -642,6 +671,12 @@ def _pack_preflight(installation,runtime,boot,nonce):
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
     helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes],source_links=True)
+    _require_configuration_appdata(references['config_ref'],scopes,current,
+        row['modules']['comic_appdata_restic_primitives.py'],blobs['config_ref'],deadline=runtime.deadline)
+    native_config=_host_original_ref(row['document']['native_config_ref'],runtime.baseline['native']['Mounts'])
+    native_config_bytes,_=parent.read_original(native_config,limit=2*1024**2)
+    _require_configuration_appdata(native_config,scopes,current,
+        row['modules']['comic_appdata_restic_primitives.py'],native_config_bytes,deadline=runtime.deadline)
     if bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-source-byte-bound')
     resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],helper,current,bytes_needed,nonce,scopes=scopes,deadline=runtime.deadline)
     parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
@@ -949,6 +984,10 @@ def _retire_verified_bodies(parent, initialized_body, observed_body, *, initiali
     ack_original=canonical(ack);ack_expected=json.loads(ack_original)
     backup_table=type(backup).close.__globals__['_OBSERVATIONS'];backup_seal=backup_table.get(backup)
     if backup_seal is None:raise Held('fixed-body-original-backup')
+    restic_table=type(backup).close.__globals__['_BACKUP_SEALS'] if backup_seal.get('restic') is not None else None
+    restic_persistent=restic_table.get(backup) if restic_table is not None else None
+    if restic_table is not None and (type(restic_persistent) is not tuple or len(restic_persistent)!=5 or
+            restic_persistent[0] is not backup_seal):raise Held('fixed-body-original-Restic-seal')
     backup_frames=(backup_seal['code'],backup_seal['copies']);backup_digest=backup_seal['digest']
     sql_original=tuple((key,tuple((path,json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False)) for path,value in backup_seal[key])) for key in ('databases','source_databases'))
     sql_expected=tuple((key,tuple((path,json.loads(value)) for path,value in rows)) for key,rows in sql_original)
@@ -1010,6 +1049,20 @@ def _retire_verified_bodies(parent, initialized_body, observed_body, *, initiali
     for path,stamp in source_original[0]:
         z=os.lstat(path)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('fixed-body-final-file')
+    if restic_persistent is not None:
+        witness=backup_seal['restic']
+        for path,descriptor,original,_ in witness['restore_custody']:
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(original):
+                raise Held('fixed-body-original-restored-node-FD')
+        for path,descriptor,original in (*witness['output_ancestors'],*witness['mount_custody']):
+            z=os.fstat(descriptor);current=os.lstat(path)
+            if ((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original) or
+                    (current.st_dev,current.st_ino,current.st_mode,current.st_uid,current.st_gid)!=tuple(original)):
+                raise Held('fixed-body-original-Restic-ancestor-FD')
+        z=os.fstat(witness['snapshot_fd'])
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(witness['snapshot_signature9']):
+            raise Held('fixed-body-original-Restic-snapshot-FD')
     for body,seal in originals:
         if parent._BODIES.get(body) is not seal:raise Held('fixed-body-final-FD-registry')
     if (process.pid,process.stdin,process.stdout)!=process_identity or process.returncode!=0:raise Held('fixed-body-final-original-process')
@@ -1034,12 +1087,46 @@ def _retire_verified_bodies(parent, initialized_body, observed_body, *, initiali
         elif actual!=expected:raise Held('fixed-body-final-ACK-value')
     if authority is not None and (_LAUNCHES.get(authority) is not authority_state or _LAUNCH_SEALS.get(authority) is not authority_seal or _PHASES.get(authority) is not authority_phase or authority_state['process'] is not process):raise Held('fixed-body-final-original-authority')
     if authority is not None and (authority not in _EXITS or _EXITS[authority] is not authority_terminal or authority_runtime not in authority_parent._TERMINALS or authority_parent._TERMINALS[authority_runtime] is not authority_terminal or authority_parent._RUNTIMES is not authority_seal[1]['runtime_table'] or authority_parent._TERMINALS is not authority_seal[1]['terminal_table'] or authority_parent._RUNTIMES.get(authority_runtime) is not authority_seal[1]['runtime_registry']):raise Held('fixed-body-final-runtime-authority')
+    if restic_persistent is not None:
+        pending=[backup_seal];tape=[]
+        while pending:
+            item=pending.pop();kind=type(item)
+            if kind is dict:
+                keys=tuple(sorted(item));tape.append(('dict',keys));pending.extend(item[key] for key in reversed(keys))
+            elif kind in (list,tuple):
+                tape.append((kind.__name__,len(item)));pending.extend(reversed(item))
+            elif kind in (str,int,float,bool,bytes,type(None)):tape.append((kind.__name__,item))
+            else:tape.append(('identity',id(kind),id(item)))
+        if (type(backup).close.__globals__['_OBSERVATIONS'] is not backup_table or
+                type(backup).close.__globals__['_BACKUP_SEALS'] is not restic_table or
+                backup_table is not restic_persistent[1] or restic_table is not restic_persistent[2] or
+                restic_table.get(backup) is not restic_persistent or tuple(tape)!=restic_persistent[3]):
+            raise Held('fixed-body-final-Restic-custody')
     for body,seal in originals:
         os.close(seal[2]);del parent._BODIES[body]
     return summary_original
 
 
 BACKUP_PARENT=Path('/var/lib/mylar-publication-launch/backups')
+
+def _standalone_backup_resources(primitive, helper, original, scopes, *, deadline):
+    selected = [dict(role=role, root=row['root']) for role, row in
+                zip(('native_config', 'reader_config'), scopes[:2])]
+    files = tuple((path, stamp) for path, stamp in original[0]
+                  if any(Path(path).is_relative_to(row['root']) for row in selected))
+    binding = primitive.appdata_restic_profile(deadline=deadline)
+    estimate = primitive.appdata_estimate(selected, files, deadline=deadline)
+    helper.raw(original)
+    required = estimate['app_bytes'] + (estimate['app_bytes'] + 19)//20 + primitive.APPDATA_MAX_INDEX + 1024**3
+    scratch = os.statvfs(binding['mounts']['/cache'])
+    if scratch.f_bavail * scratch.f_frsize < 4 * estimate['largest_app_file'] + 1024**2:
+        raise Held('fixed-capacity-SQL-scratch-capacity')
+    for path in (BACKUP_PARENT, binding['mounts']['/repository']):
+        space = os.statvfs(path)
+        if space.f_bavail * space.f_frsize < required:
+            raise Held('fixed-capacity-insufficient-free-space')
+    return dict(required=required, restic_binding=binding)
+
 
 def _preflight_original_capacity(installation,runtime,boot,nonce):
     """Fixed-role capacity observation; no backup or quiescence authority."""
@@ -1050,7 +1137,12 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
     helper=row['modules']['comic_retained_standalone_backup.py']
     native_mounts=runtime.baseline['native']['Mounts'];reader_mounts=runtime.baseline['reader']['Mounts']
     data=parent.mapped_host(native_mounts,boot['data_root'])
-    config,config_frame=parent.read_original(_host_original_ref(boot['config_ref'],native_mounts))
+    _require_unshadowed_application_mount(native_mounts,'/config')
+    _require_unshadowed_application_mount(reader_mounts,'/config')
+    native_root=Path(parent.mapped_host(native_mounts,'/config'))
+    if not Path(data).is_relative_to(native_root):raise Held('fixed-capacity-covered-native-data')
+    config_reference=_host_original_ref(boot['config_ref'],native_mounts)
+    config,config_frame=parent.read_original(config_reference)
     parser=configparser.ConfigParser(interpolation=None,strict=True);parser.read_string(config.decode())
     if parser.defaults():raise Held('fixed-capacity-config-defaults')
     locations={}
@@ -1083,12 +1175,14 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
         vector['source']=str(Path(locations['cache'])/name)
         vector['target']=str(Path(leaf) if Path(leaf).is_absolute() else Path(folder)/leaf)
         source_child,target_child=parent.owner_paths(vector,locations,dict(comics[0]))
-    scopes=[dict(role='native_state',root=data,databases=['mylar.db','workflow.sqlite']),
+    scopes=[dict(role='native_state',root=str(native_root),databases=[str(Path(data).relative_to(native_root)/name) for name in ('mylar.db','workflow.sqlite')]),
             dict(role='reader_state',root=reader,databases=['database.sqlite']),
             dict(role='retained_source',root=parent.mapped_host(native_mounts,source_child),databases=[]),
             dict(role='existing_target',root=parent.mapped_host(native_mounts,target_child),databases=[])]
     # Entire raw namespace/file metadata, without streaming the whole library.
     original,_=helper.capture([Path(s['root']) for s in scopes])
+    _require_configuration_appdata(config_reference,scopes[:1],original,
+        row['modules']['comic_appdata_restic_primitives.py'],config,deadline=runtime.deadline)
     parent_original=nine(os.lstat(BACKUP_PARENT));names=tuple(sorted(os.listdir(BACKUP_PARENT)))
     if (parent_original[5]&0o170000!=0o040000 or parent_original[5]&0o7777!=0o700 or
             parent_original[6:8]!=(0,0) or nonce in names or os.path.lexists(BACKUP_PARENT/nonce)):
@@ -1102,13 +1196,13 @@ def _preflight_original_capacity(installation,runtime,boot,nonce):
             count+=1
             if stamp[5]&0o170000==0o100000:bytes_needed+=stamp[2]
         if count>100000 or bytes_needed>512*1024**3:raise Held('fixed-capacity-state-ceiling')
-        # Exactly one preservation plus one independent restore, with a fixed
-        # conservative filesystem allowance. No caller can increase these budgets.
-        required=2*bytes_needed+(bytes_needed+19)//20+1024**2
+        resources=_standalone_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],
+            helper,original,scopes,deadline=runtime.deadline)
+        required=resources['required']
         if free<required:raise Held('fixed-capacity-insufficient-free-space')
         result=dict(scopes=scopes,source=parent.mapped_host(native_mounts,source_child),target=parent.mapped_host(native_mounts,target_child),frame=original,
                     backup_parent9=parent_original,backup_parent_names=names,bytes=bytes_needed,
-                    required=required,free=free,output=str(BACKUP_PARENT/nonce))
+                    required=required,free=free,output=str(BACKUP_PARENT/nonce),restic_binding=resources['restic_binding'])
         _close_unpaused_original(runtime,parent);installation.close();parent.raw(config_frame);helper.raw(original)
         if nine(os.fstat(parent_fd))!=parent_original or nine(os.lstat(BACKUP_PARENT))!=parent_original or tuple(sorted(os.listdir(BACKUP_PARENT)))!=names:raise Held('fixed-capacity-final-parent')
         current_space=os.fstatvfs(parent_fd)
@@ -1478,8 +1572,12 @@ def run_original(launch):
     vector=parent.verify_initialized(initialized,boot,mounts)
     if parent.mapped_host(mounts,vector['source'])!=state['preflight']['source'] or parent.mapped_host(mounts,vector['target'])!=state['preflight']['target']:raise Held('fixed-original-preflight-owner-path')
     helper=state['installation'].close()['modules']['comic_retained_standalone_backup.py']
-    backup=helper.copy_and_verify(state['preflight']['scopes'],Path(state['preflight']['output']),deadline=state['deadline'])
-    proof=backup.close();refs=[boot['config_ref'],boot['source_map_ref']]
+    backup=helper.copy_and_verify(state['preflight']['scopes'],Path(state['preflight']['output']),
+                                  deadline=state['deadline'],restic_appdata=True)
+    proof=backup.close()
+    if type(backup) is not helper.BackupObservation or helper._OBSERVATIONS[backup]['restic']['binding']!=state['preflight']['restic_binding']:
+        raise Held('fixed-original-Restic-binding')
+    refs=[boot['config_ref'],boot['source_map_ref']]
     for key in ('source','target'):
         path=vector[key];reference=dict(path=path,sha256=vector['hashes'][path],signature9=vector['files'][path])
         _host_original_ref(reference,mounts);refs.append(reference)

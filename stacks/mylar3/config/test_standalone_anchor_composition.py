@@ -21,7 +21,8 @@ class Anchors(unittest.TestCase):
         self.root=Path(self.tmp.name);self.root.chmod(0o700);self.review=self.root/'reviewed-child';self.review.mkdir(mode=0o700)
         self.child=self.root/'child';self.enroll=self.root/'enrollment-v1.json';self.deployment=self.root/'deployment-v1.json'
         self.package=self.root/'package';self.package.mkdir(mode=0o700)
-        for name in ('private_crypto.py','comic_reader_backup_primitives.py','comic_retained_standalone_backup.py','comic_retained_standalone_parent.py','comic_retained_standalone_broker.py','comic_native_process_probe.py','publication_native_configured_scope.py','BOOTSTRAP.py'):
+        for name in ('private_crypto.py','comic_reader_backup_primitives.py','comic_appdata_restic_primitives.py',
+                     'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py','comic_retained_standalone_broker.py','comic_native_process_probe.py','publication_native_configured_scope.py','BOOTSTRAP.py'):
             path=self.package/name;path.write_bytes((HOST/name).read_bytes());path.chmod(0o444)
         spec=importlib.util.spec_from_file_location('actual_copied_broker',self.package/'comic_retained_standalone_broker.py')
         self.b=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.b)

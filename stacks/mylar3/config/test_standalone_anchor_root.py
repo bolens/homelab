@@ -44,7 +44,8 @@ def main():
         etc,package,keyroot=roots
         for name in ('reviewed-child',):directory(etc/name)
         for path in HOST.iterdir():
-            if path.name in ('private_crypto.py','comic_reader_backup_primitives.py','comic_retained_standalone_backup.py','comic_retained_standalone_parent.py','comic_retained_standalone_broker.py','comic_native_process_probe.py','publication_native_configured_scope.py','BOOTSTRAP.py'):
+            if path.name in ('private_crypto.py','comic_reader_backup_primitives.py','comic_appdata_restic_primitives.py',
+                             'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py','comic_retained_standalone_broker.py','comic_native_process_probe.py','publication_native_configured_scope.py','BOOTSTRAP.py'):
                 write(package/path.name,path.read_bytes(),0o444)
         spec=importlib.util.spec_from_file_location('fixed_installed_broker',package/'comic_retained_standalone_broker.py')
         broker=importlib.util.module_from_spec(spec);spec.loader.exec_module(broker)

@@ -478,6 +478,10 @@ def appdata_payload(role, relative, head, *, path=None, original=None, deadline=
     if parts and parts[0] == 'mylar':
         parts = parts[1:]
     leaf = parts[-1] if parts else ''
+    if (len(parts) >= 3 and parts[-3] == 'retained-standalone-v1' and
+            re.fullmatch('[0-9a-f]{64}', parts[-2]) and
+            re.fullmatch(r'target-(?:preserved|restored)(?:\.[^./\\\x00]*)?', leaf)):
+        return True
     for position, part in enumerate(parts[:-1]):
         if re.fullmatch('archive-repair-[0-9a-f]{64}', part) and leaf in ('original.arc', 'restored-original.arc', 'prepared.cbz'):
             return True

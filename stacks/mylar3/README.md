@@ -270,8 +270,12 @@ Run the gate from this full Git checkout with host Python 3 available. Its
 repository helper inventories only tracked public configuration files; ignored
 live configuration and caches are excluded. The source mounts remain read-only,
 and fault tests change disposable copies owned by the fixture user. The gate limits
-memory to 512 MiB and its temporary filesystem to 256 MiB, allowing the
-unchanged 128 MiB preservation reserve and private parallel fixtures.
+memory to 512 MiB. Both disposable scratch filesystems, `/tmp` and the private
+authenticated fixture HOME, have a 2 GiB ceiling. Each needs room for the app-only
+Restic transport's unchanged 1 GiB preservation reserve, bounded index and private
+fixtures. The authenticated tests keep their synthetic repository under HOME.
+The image-build remaining-controls stage uses the same ceilings. These test
+settings do not change live service resources or backup policy.
 
 The gate copies public application source inside an isolated container, applies
 all build-time patches, and runs DDL, tagging-timeout, and health regressions. It has
@@ -1790,14 +1794,23 @@ placeholders are not enrollment or authority; existing authentication refuses
 empty documents. The final image build checks their exact namespace, type,
 ownership, permissions, empty bytes and independent links.
 
-The separate retained-recovery profile v2 permits exactly three additional
-read-only regular-file binds from the fixed root-owned
+The standalone recovery policy v3 retains exactly three additional read-only
+regular-file binds from anchor layout v2, using the fixed root-owned
 `/etc/mylar-publication-launch/child/` directory to those same three canonical
 container basenames. It preserves the original native image and every original
 mount, and rejects writable, missing, extra, duplicated, foreign-source and
 protected-native-path overlays. It does not change ordinary Compose mounts,
 networking, privileges, startup, or processing admission. Legacy profiles retain
 their exact no-additional-mount rule.
+
+This host policy uses the existing local Restic owner for an app-only snapshot
+and an independent Native/reader app restore. It retains all four original
+source roles, including the selected retained source and existing target, under
+their original hash, metadata and custody checks. Neither selected media file
+is copied into the snapshot or restore. Capacity admission measures app data,
+repository space and SQL scratch. The matching reviewed Root installation and
+configured acceptance remain required. See
+[the app-only recovery contract](config/reader_recovery/CONTRACT-appdata-restic.md).
 
 Explicit root maintenance `provision_original_anchors()` in the reviewed host
 broker copies only the three original public files from fixed
