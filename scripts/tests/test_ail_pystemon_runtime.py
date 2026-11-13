@@ -32,6 +32,20 @@ class PystemonRuntimeTests(unittest.TestCase):
         self.assertEqual(RUNTIME.launcher_text(result, self.contract,
                                               Path('/opt/pystemon-runtime')), result)
 
+    def test_runtime_census_includes_consumable_bytecode_and_nested_input_names(self):
+        prefix = self.root / 'runtime'
+        cache = prefix / 'lib/__pycache__'
+        cache.mkdir(parents=True)
+        bytecode = cache / 'module.cpython-313.pyc'
+        bytecode.write_bytes(b'original bytecode')
+        (prefix / 'inputs.json').write_text('root marker')
+        nested = prefix / 'lib/inputs.json'
+        nested.write_text('runtime content')
+        original = RUNTIME.runtime_files(prefix)
+        self.assertEqual(set(original), {'lib/__pycache__/module.cpython-313.pyc', 'lib/inputs.json'})
+        bytecode.write_bytes(b'changed bytecode')
+        self.assertNotEqual(RUNTIME.runtime_files(prefix), original)
+
     def test_launcher_source_command_duplicates_and_unsafe_prefix_fail_closed(self):
         for text in (self.original + '# drift', self.original + RUNTIME.COLLECTOR,
                      self.original.replace('PystemonImporter.py', 'Other.py')):

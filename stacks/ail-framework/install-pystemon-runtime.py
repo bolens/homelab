@@ -95,7 +95,7 @@ def runtime_files(prefix):
     return {p.relative_to(prefix).as_posix(): (
         {'link': os.readlink(p)} if p.is_symlink() else {'sha256': sha(p)})
         for p in prefix.rglob('*') if (p.is_file() or p.is_symlink())
-        and p != prefix / 'inputs.json' and '__pycache__' not in p.parts and p.suffix != '.pyc'}
+        and p != prefix / 'inputs.json'}
 
 
 def install(manifest, requirements, source, launcher, prefix):
@@ -130,9 +130,10 @@ def install(manifest, requirements, source, launcher, prefix):
                  f'import platform; assert platform.python_version() == {contract["pythonVersion"]!r}'], work)
             run([python, '-I', '-B', '-m', 'venv', '--copies', '--without-pip', prefix / 'venv'], work)
             private = prefix / 'venv/bin/python'
+            # ensurepip's bundled bytecode is part of the checked baseline too.
             run([private, '-I', '-B', '-m', 'ensurepip'], work)
             run([private, '-I', '-B', '-m', 'pip', '--isolated', 'install',
-                 '--disable-pip-version-check', '--no-cache-dir', '--only-binary=:all:',
+                 '--disable-pip-version-check', '--no-cache-dir', '--no-compile', '--only-binary=:all:',
                  '--require-hashes', '--index-url', 'https://pypi.org/simple', '-r', requirements], work)
             run([private, '-I', '-B', '-m', 'pip', 'check'], work)
         marker.write_text(json.dumps({'inputs': identity, 'files': runtime_files(prefix)},

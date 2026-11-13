@@ -38,8 +38,9 @@ def qualify(require_jammy):
         before = RUNTIME.sha(prefix / 'inputs.json')
         RUNTIME.install(*args)
         assert before == RUNTIME.sha(prefix / 'inputs.json')
-        tamper = prefix / 'unexpected-runtime-file'
-        tamper.write_text('changed')
+        tamper = prefix / 'python/lib/python3.13/__pycache__/fixture.cpython-313.pyc'
+        tamper.parent.mkdir(exist_ok=True)
+        tamper.write_bytes(b'changed bytecode')
         try:
             RUNTIME.install(*args)
         except ValueError:
@@ -99,6 +100,9 @@ print(json.dumps({"python":platform.python_version(), "openssl":ssl.OPENSSL_VERS
             versions = [(int(a), int(b)) for a, b in re.findall(r'GLIBC_(\d+)\.(\d+)', symbols)]
             max_glibc = max([max_glibc, *versions])
         assert elf_count >= 10 and max_glibc <= (2, 35), (elf_count, max_glibc)
+        # Successful controlled imports/entrypoints must leave the full baseline intact.
+        RUNTIME.install(*args)
+        assert before == RUNTIME.sha(prefix / 'inputs.json')
         print('PYSTEMON_RUNTIME_RESULT ' + json.dumps({
             'jammyExecuted': jammy, 'architecture': RUNTIME.platform.machine(),
             'python': contract['pythonVersion'], 'sourcePythonFiles': len(contract['pystemon']['pythonFiles']),
