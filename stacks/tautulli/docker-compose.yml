@@ -2,7 +2,7 @@ services:
   tautulli:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/tautulli:latest@sha256:529c7eabcc40554c1dc48f33f1f3cc3b1438462d73e0ec2dac8ac0b66aeeb8d4
+    image: lscr.io/linuxserver/tautulli:latest@sha256:5e8f80cc18f03c606a3567c8a9b37d80812ed8017d2e2f8ff2e2a91b54a3aef1
     container_name: tautulli
     restart: unless-stopped
     cpus: 1.5

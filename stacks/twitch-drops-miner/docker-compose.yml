@@ -1,6 +1,6 @@
 services:
   twitch-drops-miner:
-    image: rangermix/twitch-drops-miner:latest@sha256:6366705ddf920b46e71b0e78fc2f50937784be7727659b3678cce75204d1981f
+    image: rangermix/twitch-drops-miner:latest@sha256:81c93729ab95135dc50264be49bbbc18d418f3563ff57b4e2e73345707f9346a
     # No host port: expose only via Caddy reverse proxy
     container_name: twitch-drops-miner
     volumes:

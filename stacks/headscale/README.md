@@ -49,3 +49,11 @@ Use the Headscale CLI (install separately) and point it at your server URL, or r
 docker exec headscale headscale users list
 docker exec headscale headscale preauthkeys create --user myuser --reusable
 ```
+
+## Selected security release
+
+[0.29.7](https://github.com/juanfont/headscale/releases/tag/v0.29.7) requires
+Tailscale clients at least 1.80.0. Upstream recommends 1.104.4 or newer for the
+separate Tailscale SSH security fixes. Updating this server image does not update
+node clients. Preserve existing configuration, database and keys when rehearsing
+the update, and verify registration, OIDC and configured metrics access.

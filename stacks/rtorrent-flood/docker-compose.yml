@@ -24,7 +24,7 @@ services:
   flood:
     labels:
       logging: "true"
-    image: jesec/flood:latest@sha256:241f172786fe958a09a55615cb4cd1b15d0aec9751f2d87dd8d7a67bcd24f0fa
+    image: jesec/flood:latest@sha256:72bdc95ff160e1f6b8ad72c171eff53f0bab8aa651389ca710ffff170278390a
     container_name: flood
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"

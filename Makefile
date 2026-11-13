@@ -18,6 +18,7 @@ help:
 	@echo "  source-lint        Run pinned shared lint; requires SOURCE_LINT_TOOLING"
 	@echo "  mylar-source-check Run Mylar recovery/archive source controls without Docker"
 	@echo "  komga-source-check Run the Komga source/compile gate; requires JAVA_HOME_21"
+	@echo "  ail-pystemon-check  Qualify the private collector runtime without starting services"
 	@echo "  komga-worker-check Run the full worker suite with the checked archive SDK"
 	@echo "  hooks-install      Install repository pre-commit hooks"
 	@echo "  hooks-install-site Opt in to Pages browser tests before push"
@@ -53,6 +54,7 @@ ci-local:
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
 	$(MAKE) nodepad-source-check
 	$(MAKE) openai-oauth-source-check
+	$(MAKE) ail-pystemon-check
 	$(MAKE) source-lint
 	$(MAKE) mylar-source-check
 	$(MAKE) komga-worker-check
@@ -173,3 +175,9 @@ monitoring-sync-blackbox:
 .PHONY: nodepad-source-check
 nodepad-source-check:
 	python3 scripts/check-nodepad-source.py
+
+.PHONY: ail-pystemon-check
+PYSTEMON_CHECK_ARGS ?=
+ail-pystemon-check:
+	python3 -B -m unittest discover -s scripts/tests -p test_ail_pystemon_runtime.py
+	python3 -B scripts/ci/check-pystemon-runtime.py $(PYSTEMON_CHECK_ARGS)

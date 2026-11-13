@@ -16,6 +16,11 @@ Local CI also installs the locked OpenAI OAuth runtime in a temporary directory
 and checks response limits, chat and streaming with synthetic responses. Run
 `make openai-oauth-source-check` for that focused gate.
 
+`make ail-pystemon-check` qualifies AIL's private Pystemon runtime with public,
+hash-locked suppliers and disposable files. Its Woodpecker lane runs the same
+command on Ubuntu 22.04. It starts no collectors or AIL services and does not
+replace full AIL image build and startup verification.
+
 Prepare Nodepad’s pinned patched source with `bash stacks/nodepad/clone-repo.sh`,
 then run `npm ci` inside `stacks/nodepad/repo`. `make ci-local` runs its proxy,
 client and TypeScript controls in a fresh tree made from the pinned Git base and

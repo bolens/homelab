@@ -6,7 +6,7 @@ services:
   mariadb:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/mariadb:latest@sha256:7b4b9904c151bc50caf2ec9c5bc2213ceedc82c30eaf9ed2b0d47492ebffbe08
+    image: lscr.io/linuxserver/mariadb:latest@sha256:cc9c523dead7690487d5892419b5c513c78bf398fe03b115e43a652ab75a237c
     container_name: bookstack-mariadb
     restart: unless-stopped
     env_file:
@@ -30,7 +30,7 @@ services:
   bookstack:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/bookstack:latest@sha256:33f61a72d9aaa021f7e687987b9fcb992673d9ca3fc08f63f5ddaddf59e94efc
+    image: lscr.io/linuxserver/bookstack:latest@sha256:42d8c8a5b74e2fd8613547ce14a1c011293765ceb3cd50ef4e751597b457798b
     container_name: bookstack
     restart: unless-stopped
     depends_on:

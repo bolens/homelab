@@ -303,7 +303,7 @@ class MandatoryCoverageTests(unittest.TestCase):
         steps = {step['name']: step for step in pipeline['steps']}
         for name in ['gitleaks', 'repository-validation', 'source-and-workflow-policy',
                      'komga-source-controls', 'kavita-dotnet-controls', 'site-quality',
-                     'publisher-broker-tests']:
+                     'publisher-broker-tests', 'ail-pystemon-controls']:
             self.assertNotIn('when', steps[name])
             self.assertRegex(steps[name]['image'], r'@sha256:[0-9a-f]{64}$')
         self.assertEqual(steps['weekly-documentation-links']['when']['event'], ['cron', 'manual'])
@@ -312,6 +312,10 @@ class MandatoryCoverageTests(unittest.TestCase):
         self.assertIn(steps['publisher-broker-tests']['image'],
                       (ROOT / 'stacks/woodpecker-ci/publisher-broker/Dockerfile').read_text())
         self.assertIn('21-jdk-noble@sha256:', steps['komga-source-controls']['image'])
+        self.assertIn(steps['ail-pystemon-controls']['image'],
+                      (ROOT / 'stacks/ail-framework/Dockerfile.build').read_text())
+        self.assertIn('bash scripts/ci/check-native.sh pystemon',
+                      steps['ail-pystemon-controls']['commands'])
 
     def test_only_pure_hosted_jobs_have_the_default_off_retirement_guard(self):
         jobs = {'repository-validation.yml': ['validate', 'site-quality'], 'source-lint.yml': ['lint'],
