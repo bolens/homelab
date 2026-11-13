@@ -111,12 +111,22 @@ class PystemonRuntimeTests(unittest.TestCase):
         target.mkdir()
         for name, kind, link in (('../outside', tarfile.REGTYPE, ''),
                                  ('/absolute', tarfile.REGTYPE, ''),
+                                 ('python/absolute-link', tarfile.SYMTYPE, '/outside'),
                                  ('python/link', tarfile.SYMTYPE, '../../outside'),
                                  ('python/hard', tarfile.LNKTYPE, 'python/file'),
                                  ('python/device', tarfile.CHRTYPE, '')):
             with self.subTest(name=name), self.assertRaises((ValueError, tarfile.FilterError)):
                 RUNTIME.extract(self.archive(name, kind, link), target)
             self.assertEqual(list(target.iterdir()), [])
+
+        with tarfile.open(self.root / 'duplicate.tar', 'w') as output:
+            for _ in range(2):
+                info = tarfile.TarInfo('python/duplicate')
+                info.size = 4
+                output.addfile(info, io.BytesIO(b'data'))
+        with self.assertRaises(ValueError):
+            RUNTIME.extract(self.root / 'duplicate.tar', target)
+        self.assertEqual(list(target.iterdir()), [])
 
     def test_archive_preserves_internal_python_symlink_and_executable(self):
         archive = self.root / 'valid.tar'
@@ -130,6 +140,51 @@ class PystemonRuntimeTests(unittest.TestCase):
         RUNTIME.extract(archive, self.root / 'target')
         self.assertEqual((self.root / 'target/python/bin/python3').read_bytes(), b'pass')
         self.assertTrue((self.root / 'target/python/bin/python3.13').stat().st_mode & 0o111)
+
+    def test_parent_relative_terminfo_link_preserves_target_and_data_ownership_policy(self):
+        archive = self.root / 'terminfo.tar'
+        with tarfile.open(archive, 'w') as output:
+            info = tarfile.TarInfo('python/share/terminfo/a/adm1178')
+            info.size = 4
+            output.addfile(info, io.BytesIO(b'data'))
+            info = tarfile.TarInfo('python/share/terminfo/1/1178')
+            info.type, info.linkname = tarfile.SYMTYPE, '../a/adm1178'
+            info.uid, info.gid, info.uname, info.gname, info.mode = 123, 456, 'other', 'other', 0o777
+            output.addfile(info)
+        target = self.root / 'target'
+        filtered = RUNTIME.safe_data_filter(info, str(target))
+        self.assertEqual((filtered.uid, filtered.gid, filtered.uname, filtered.gname, filtered.mode),
+                         (None, None, None, None, None))
+        RUNTIME.extract(archive, target)
+        link = target / info.name
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(link.readlink().as_posix(), '../a/adm1178')
+        self.assertEqual(link.read_bytes(), b'data')
+
+    def test_late_symlink_chain_escape_is_rejected_without_outside_writes(self):
+        archive = self.root / 'chain.tar'
+        outside = self.root / 'preserve'
+        outside.write_bytes(b'unrelated')
+        with tarfile.open(archive, 'w') as output:
+            for name, link in [('python/A', 'B/../..'), ('python/B', '..')]:
+                info = tarfile.TarInfo(name)
+                info.type, info.linkname = tarfile.SYMTYPE, link
+                output.addfile(info)
+        with self.assertRaises((ValueError, tarfile.FilterError)):
+            RUNTIME.extract(archive, self.root / 'target')
+        self.assertEqual(outside.read_bytes(), b'unrelated')
+
+    def test_existing_symlink_parent_escape_and_root_replacement_are_rejected(self):
+        target = self.root / 'target'
+        target.mkdir()
+        (target / 'escape').symlink_to(self.root, target_is_directory=True)
+        info = tarfile.TarInfo('escape/link')
+        info.type, info.linkname = tarfile.SYMTYPE, 'inside'
+        with self.assertRaises((ValueError, tarfile.FilterError)):
+            RUNTIME.safe_data_filter(info, str(target))
+        info.name, info.linkname = '.', 'inside'
+        with self.assertRaises(ValueError):
+            RUNTIME.safe_data_filter(info, str(target))
 
 
 if __name__ == '__main__':

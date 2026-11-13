@@ -37,6 +37,24 @@ def download(spec, target):
         raise ValueError('supplier hash mismatch')
 
 
+def safe_data_filter(member, destination):
+    """Keep data-filter bounds with parent-relative symlinks on Jammy Python 3.10."""
+    if not member.issym():
+        return tarfile.data_filter(member, destination)
+    if PurePosixPath(member.name) == PurePosixPath('.') or os.path.isabs(member.linkname):
+        raise ValueError('absolute link or destination-root replacement')
+    # Jammy's data_filter incorrectly joins symlink targets to the archive root.
+    # tar_filter still checks the member pathname. Supply the correct link bound
+    # and the same ownership/mode stripping that data_filter applies to symlinks.
+    filtered = tarfile.tar_filter(member, destination)
+    root = Path(destination).resolve()
+    parent = (root / filtered.name).parent.resolve()
+    target = (parent / filtered.linkname).resolve()
+    if not parent.is_relative_to(root) or not target.is_relative_to(root):
+        raise ValueError('symlink target escapes extraction directory')
+    return filtered.replace(mode=None, uid=None, gid=None, uname=None, gname=None, deep=False)
+
+
 def extract(archive, target):
     """Validate the whole archive before writing. Preserve only internal symlinks."""
     if not hasattr(tarfile, 'data_filter'):
@@ -54,8 +72,13 @@ def extract(archive, target):
             size += member.size
             if size > 512 * 1024 * 1024:
                 raise ValueError('expanded supplier too large')
-            tarfile.data_filter(member, str(target))
-        source.extractall(target, members=members, filter='data')
+            safe_data_filter(member, str(target))
+        source.extractall(target, members=members, filter=safe_data_filter)
+        # Later aliases can change an earlier link's resolution. Admit the final
+        # namespace too before the caller executes anything from this prefix.
+        for member in members:
+            if member.issym():
+                safe_data_filter(member, str(target))
 
 
 def verify_source(source, contract):
