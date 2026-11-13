@@ -7,6 +7,7 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ingress-public"
+# Compose uses legacy-backend.env.example directly as the empty legacy fallback.
 prepare_stack_msg "Stoat config and secrets are operator-owned; preparation does not generate or overwrite them."
 prepare_stack_msg "Before deployment, review STOAT_CONFIG_DIR and STOAT_SECRETS_FILE and provide stoat.json."
 prepare_stack_end
