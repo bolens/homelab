@@ -10,7 +10,6 @@ import os
 from pathlib import Path
 import sqlite3
 import sys
-import time
 from types import SimpleNamespace
 import unittest
 from contextlib import closing
