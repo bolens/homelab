@@ -144,6 +144,10 @@ place under the full source census, hashes and original custody. Its dedicated
 host primitives leave the existing Native SDK and legacy fixture primitives
 unchanged. Require the matching qualified Root installation before use. See
 [the app-only recovery contract](CONTRACT-appdata-restic.md).
+The fixed standalone policy v3 uses that transport for Native and reader app
+data while retaining its four original source roles. Its original typed backup,
+SQL proof and physical descriptors remain checked through terminal verification
+and body retirement. The selected source and target remain in place.
 The factual result grants no automatic restart, cleanup or reader acceptance.
 The fixed Root broker separately verifies current SQL, complete state and media
 originals, Worker release and natural exit before its guarded reader resume and

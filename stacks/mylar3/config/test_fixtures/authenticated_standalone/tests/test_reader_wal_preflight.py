@@ -1,5 +1,5 @@
 """Reader WAL capacity/stop/copy; root ownership and Docker inspection are explicit fixtures."""
-import copy,hashlib,os,sqlite3,subprocess,sys,tempfile,unittest
+import copy,hashlib,json,os,sqlite3,subprocess,sys,tempfile,unittest
 from pathlib import Path
 from contextlib import closing
 from unittest.mock import patch
@@ -18,14 +18,14 @@ class ReaderCapacity(unittest.TestCase):
   exec(compile(projected,self.b.__file__,'exec'),self.b.__dict__);self.b.__dict__.update(fixed)
   installation=self.b.load_original_installation();row=installation.close();self.installation=installation
   self.parent=row['modules']['comic_retained_standalone_parent.py'];self.helper=row['modules']['comic_retained_standalone_backup.py']
-  self.data=self.case.root/'data';self.data.mkdir();self.reader=self.case.root/'reader';self.reader.mkdir()
+  self.native_config=self.case.root/'native-config';self.native_config.mkdir();self.data=self.native_config/'mylar';self.data.mkdir();self.reader=self.case.root/'reader';self.reader.mkdir()
   self.cache=self.case.root/'cache';self.cache.mkdir();self.library=self.case.root/'library';self.library.mkdir()
   self.source=self.cache/'incoming.cbz';self.source.write_bytes(b'original incoming');self.target=self.library/'existing.cbz';self.target.write_bytes(b'original target')
   with closing(sqlite3.connect(self.data/'mylar.db')) as db:
    db.executescript('CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Status TEXT,Location TEXT);CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);CREATE TABLE ddl_info(id TEXT,comicid TEXT,status TEXT,pack INT,filename TEXT,issueid TEXT);')
    db.execute('INSERT INTO issues VALUES(?,?,?,?)',('12','34','Downloaded',self.target.name));db.execute('INSERT INTO comics VALUES(?,?)',('34',str(self.library)));db.execute('INSERT INTO ddl_info VALUES(?,?,?,?,?,?)',('56','34','Completed',0,self.source.name,'12'));db.commit()
   with closing(sqlite3.connect(self.data/'workflow.sqlite')) as db:db.execute('CREATE TABLE records(kind TEXT)');db.commit()
-  self.config=self.case.root/'config.ini';self.config.write_text('[General]\ndestination_dir='+str(self.library)+'\n[DDL]\nddl_location='+str(self.cache)+'\n');self.config.chmod(0o600)
+  self.config=self.data/'config.ini';self.config.write_text('[General]\ndestination_dir='+str(self.library)+'\n[DDL]\nddl_location='+str(self.cache)+'\n');self.config.chmod(0o600)
   def ref(p):return dict(path=str(p),sha256=hashlib.sha256(p.read_bytes()).hexdigest(),signature9=list(self.b.nine(os.lstat(p))))
   self.boot=dict(data_root=str(self.data),config_ref=ref(self.config),request=dict(version=1,kind='standalone-retained-ddl-v1',ddl_id='56',owner=dict(table='issues',issueid='12',parentcomicid='34',releasecomicid='34'),source_sha256='a'*64,target_sha256='b'*64,review_sha256='c'*64))
   backup_temp=tempfile.TemporaryDirectory(prefix='reader-wal-backup-');self.addCleanup(backup_temp.cleanup)
@@ -40,7 +40,7 @@ class ReaderCapacity(unittest.TestCase):
   self.addCleanup(cleanup)
   self.ids=dict(native='1'*64,reader='2'*64,worker='3'*64)
   state=dict(Running=True,Paused=False,Pid=os.getpid(),StartedAt='original',Restarting=False,Dead=False,OOMKilled=False,Status='running',ExitCode=0)
-  self.rows={key:dict(Id=cid,Image='sha256:'+'e'*64,Config={},HostConfig={},Mounts=[dict(Type='bind',Source='/',Destination='/',RW=True)] if key=='native' else [dict(Type='bind',Source=str(self.reader),Destination='/config',RW=True)] if key=='reader' else [],NetworkSettings=dict(Networks={}),State=dict(state)) for key,cid in self.ids.items()}
+  self.rows={key:dict(Id=cid,Image='sha256:'+'e'*64,Config={},HostConfig={},Mounts=[dict(Type='bind',Source='/',Destination='/',RW=True),dict(Type='bind',Source=str(self.native_config),Destination='/config',RW=True)] if key=='native' else [dict(Type='bind',Source=str(self.reader),Destination='/config',RW=True)] if key=='reader' else [],NetworkSettings=dict(Networks={}),State=dict(state)) for key,cid in self.ids.items()}
   self.rows['worker']['State'].update(Running=False,Pid=0,Status='exited')
   def command(runtime,args):
    if args[0]=='inspect':return self.parent.encode([copy.deepcopy(next(row for row in self.rows.values() if row['Id']==args[1]))])
@@ -50,12 +50,31 @@ class ReaderCapacity(unittest.TestCase):
     self.process.stdin.write(b'stop\n');self.process.stdin.flush();self.assertEqual(self.process.wait(timeout=10),0);self.rows['reader']['State'].update(Running=False,Pid=0,Status='exited');return b''
    raise AssertionError(args)
   self.cmd=patch.object(self.parent.ConfiguredRuntime,'command',command);self.cmd.start();self.addCleanup(self.cmd.stop)
+  # The real capacity classifier uses an explicitly synthetic Restic inspect
+  # response. No daemon, repository operation or snapshot is used by this fixture.
+  repository=self.case.root/'restic-repository';repository.mkdir()
+  scratch=self.case.root/'restic-cache';scratch.mkdir()
+  restic=dict(Id='c'*64,Name='/restic',Image='sha256:'+'e'*64,Config=dict(Env=['RESTIC_REPOSITORY=/repository']),
+              HostConfig={},RestartCount=0,State=dict(Running=True,Status='running',Pid=os.getpid(),StartedAt='fixture-original'),
+              Mounts=[dict(Type='bind',Source=str(path),Destination=leaf,RW=True)
+                      for leaf,path in (('/repository',repository),('/cache',scratch))])
+  original_run=subprocess.run
+  def inspect_restic(argv,**kwargs):
+   if tuple(argv)==('/usr/bin/docker','inspect','restic'):
+    return subprocess.CompletedProcess(argv,0,stdout=json.dumps([restic]).encode(),stderr=b'')
+   return original_run(argv,**kwargs)
+  self.restic_inspect=patch.object(subprocess,'run',inspect_restic);self.restic_inspect.start();self.addCleanup(self.restic_inspect.stop)
   with patch.object(self.parent.os,'geteuid',return_value=0):self.runtime=self.parent.ConfiguredRuntime.observe(self.ids)
  def capacity(self):return self.b._preflight_original_capacity(self.installation,self.runtime,self.boot,'a'*64)
  def test_running_reader_WAL_SHM_included_and_actual_owner_paths(self):
+  sibling=self.native_config/'application-settings';sibling.write_bytes(b'complete config scope')
   result=self.capacity();paths=dict(result['frame'][0]);self.assertIn(str(self.reader/'database.sqlite-wal'),paths);self.assertIn(str(self.reader/'database.sqlite-shm'),paths)
-  self.assertEqual(result['source'],str(self.source));self.assertEqual(result['target'],str(self.target));self.assertGreaterEqual(result['bytes'],sum(p.stat().st_size for p in self.reader.iterdir()))
+  self.assertIn(str(sibling),paths);self.assertIn(str(self.config),paths);self.assertEqual(result['scopes'][0]['root'],str(self.native_config));self.assertEqual(result['scopes'][0]['databases'],['mylar/mylar.db','mylar/workflow.sqlite']);self.assertEqual(result['source'],str(self.source));self.assertEqual(result['target'],str(self.target));self.assertGreaterEqual(result['bytes'],sum(p.stat().st_size for p in self.reader.iterdir()))
   self.assertEqual(hashlib.sha256(Path(self.b.__file__).read_bytes()).hexdigest(),self.source_sha)
+ def test_configuration_outside_complete_native_root_is_held(self):
+  external=self.case.root/'external-config.ini';external.write_bytes(self.config.read_bytes());external.chmod(0o600)
+  self.boot['config_ref']=dict(path=str(external),sha256=hashlib.sha256(external.read_bytes()).hexdigest(),signature9=list(self.b.nine(os.lstat(external))))
+  with self.assertRaisesRegex(ValueError,'uncovered-application-configuration'):self.capacity()
  def test_native_WAL_refused_before_immutable_SQL(self):
   (self.data/'mylar.db-wal').write_bytes(b'foreign sidecar')
   with self.assertRaisesRegex(ValueError,'current-DB-companion'):self.capacity()

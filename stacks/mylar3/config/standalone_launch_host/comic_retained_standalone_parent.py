@@ -1359,6 +1359,11 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
         raise ValueError('standalone-genuine-backup-observation')
     seal=backup_module._OBSERVATIONS.get(backup)
     if seal is None:raise ValueError('standalone-genuine-backup-original-registry')
+    restic_persistent=backup_module._BACKUP_SEALS.get(backup) if seal.get('restic') is not None else None
+    if restic_persistent is not None and (type(restic_persistent) is not tuple or len(restic_persistent)!=5 or
+            restic_persistent[0] is not seal):raise ValueError('standalone-original-Restic-seal')
+    if seal.get('restic') is not None and restic_persistent is None:
+        raise ValueError('standalone-original-Restic-seal')
     owner_original=(seal['pid'],seal['thread'],seal['deadline'])
     seal_original=(seal['source'],seal['copies'],seal['code'],tuple(seal['content']),tuple(seal['source_content']),seal['bytes'],seal['digest'])
     # Detached type-sensitive tapes retain BOTH complete owning SQL evidence
@@ -1382,6 +1387,10 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
     child_files={};child_spaces={}
 
     def child_path(host):
+        if native_data_root is not None:
+            child=str(Path(data_root)/Path(host).relative_to(native_data_root))
+            need(mapped_host(mounts,child)==host,'standalone-backup-original-data-child-path')
+            return child
         candidates=[]
         for mount in mounts:
             if mount.get('Type') in ('bind','volume') and mount.get('RW') is True:
@@ -1392,11 +1401,16 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
         need(len(set(candidates))==1,'standalone-backup-original-unique-child-path')
         return candidates[0]
 
+    # Only Native DATA owns directory successors. Other app configuration and
+    # Reader state remain in the complete original host preservation frame.
+    native_data_root=Path(mapped_host(mounts,data_root)) if restic_persistent is not None else None
     for path,value in original_frame[0]:
+        if native_data_root is not None and not Path(path).is_relative_to(native_data_root):continue
         child=child_path(path)
         need(child not in child_files or child_files[child]==value,'standalone-backup-file-alias-conflict')
         child_files[child]=value
     for path,value in original_frame[2]:
+        if native_data_root is not None and not Path(path).is_relative_to(native_data_root):continue
         child=child_path(path)
         need(child not in child_spaces or child_spaces[child]==value,'standalone-backup-space-alias-conflict')
         child_spaces[child]=value
@@ -1447,6 +1461,11 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
     host=mapped_host(mounts,artifact);need(host not in expected_files,'standalone-body-original-absence')
     expected_files[host]=tuple(observed_body_ref['signature9'])
     read_original(dict(observed_body_ref,path=host),max_bytes=256*1024**2)
+    if restic_persistent is not None:
+        for index, target in enumerate((expected_files,nodes,expected_spaces)):
+            for path,value in seal_original[1][index]:
+                need(path not in target or target[path]==value,'standalone-Restic-copy-frame-conflict')
+                target.setdefault(path,value)
     # Carry the original helper/primitive code leaves and ancestors into the
     # outer final frame, rather than ending their custody at close_copies().
     for path,value in seal_original[2][0]:
@@ -1473,6 +1492,20 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
         z=os.lstat(path)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:
             raise ValueError('standalone-successor-final-file')
+    if restic_persistent is not None:
+        witness=seal['restic']
+        for path,descriptor,original,_ in witness['restore_custody']:
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(original):
+                raise ValueError('standalone-original-restored-node-FD')
+        for path,descriptor,original in (*witness['output_ancestors'],*witness['mount_custody']):
+            z=os.fstat(descriptor);current=os.lstat(path)
+            if ((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original) or
+                    (current.st_dev,current.st_ino,current.st_mode,current.st_uid,current.st_gid)!=tuple(original)):
+                raise ValueError('standalone-original-Restic-ancestor-FD')
+        z=os.fstat(witness['snapshot_fd'])
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(witness['snapshot_signature9']):
+            raise ValueError('standalone-original-Restic-snapshot-FD')
     pending=list(zip((initial,final,initialized_publication,observed_publication,mounts,observed_body_ref),logical_copies))
     while pending:
         actual,expected=pending.pop()
@@ -1501,4 +1534,17 @@ def join_backup_directory_successors(initial,final,initialized_publication,obser
             module_original.database is not database_function or
             (seal['source'],seal['copies'],seal['code'],tuple(seal['content']),tuple(seal['source_content']),seal['bytes'],seal['digest'])!=seal_original):
         raise ValueError('standalone-successor-final-backup-seal')
+    if restic_persistent is not None:
+        pending=[seal];tape=[]
+        while pending:
+            item=pending.pop();kind=type(item)
+            if kind is dict:
+                keys=tuple(sorted(item));tape.append(('dict',keys));pending.extend(item[key] for key in reversed(keys))
+            elif kind in (list,tuple):
+                tape.append((kind.__name__,len(item)));pending.extend(reversed(item))
+            elif kind in (str,int,float,bool,bytes,type(None)):tape.append((kind.__name__,item))
+            else:tape.append(('identity',id(kind),id(item)))
+        if (backup_module._OBSERVATIONS is not restic_persistent[1] or backup_module._BACKUP_SEALS is not restic_persistent[2] or
+                backup_module._BACKUP_SEALS.get(backup) is not restic_persistent or tuple(tape)!=restic_persistent[3]):
+            raise ValueError('standalone-final-Restic-custody')
     return result

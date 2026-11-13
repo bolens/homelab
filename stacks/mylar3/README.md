@@ -1790,14 +1790,23 @@ placeholders are not enrollment or authority; existing authentication refuses
 empty documents. The final image build checks their exact namespace, type,
 ownership, permissions, empty bytes and independent links.
 
-The separate retained-recovery profile v2 permits exactly three additional
-read-only regular-file binds from the fixed root-owned
+The standalone recovery policy v3 retains exactly three additional read-only
+regular-file binds from anchor layout v2, using the fixed root-owned
 `/etc/mylar-publication-launch/child/` directory to those same three canonical
 container basenames. It preserves the original native image and every original
 mount, and rejects writable, missing, extra, duplicated, foreign-source and
 protected-native-path overlays. It does not change ordinary Compose mounts,
 networking, privileges, startup, or processing admission. Legacy profiles retain
 their exact no-additional-mount rule.
+
+This host policy uses the existing local Restic owner for an app-only snapshot
+and an independent Native/reader app restore. It retains all four original
+source roles, including the selected retained source and existing target, under
+their original hash, metadata and custody checks. Neither selected media file
+is copied into the snapshot or restore. Capacity admission measures app data,
+repository space and SQL scratch. The matching reviewed Root installation and
+configured acceptance remain required. See
+[the app-only recovery contract](config/reader_recovery/CONTRACT-appdata-restic.md).
 
 Explicit root maintenance `provision_original_anchors()` in the reviewed host
 broker copies only the three original public files from fixed
