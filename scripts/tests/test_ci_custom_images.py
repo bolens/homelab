@@ -305,17 +305,21 @@ class MylarInstalledGateTests(unittest.TestCase):
     def test_backup_fixtures_have_space_above_the_real_Restic_reserve(self):
         dockerfile = (ROOT / 'stacks/mylar3/Dockerfile').read_text()
         remaining = dockerfile.split('FROM verification-runtime AS app-checked\n', 1)[1]
-        build = re.search(r'--mount=type=tmpfs,target=/tmp,size=(\d+)', remaining)
         verifier = (ROOT / 'stacks/mylar3/verify-image.sh').read_text()
-        runtime = re.search(r'--tmpfs /tmp:rw,size=(\d+)([mg]?),mode=1777', verifier)
-        self.assertIsNotNone(build)
-        self.assertIsNotNone(runtime)
-        runtime_bytes = int(runtime[1]) * {'': 1, 'm': 1024**2, 'g': 1024**3}[runtime[2]]
         # Production's 1 GiB reserve, the bounded app index, and fixture demand
         # must fit without mocking or weakening the real capacity check.
         required = 1024**3 + 64 * 1024**2 + 1024**2
-        self.assertGreater(int(build[1]), required)
-        self.assertGreater(runtime_bytes, required)
+        # Authenticated fixtures put their synthetic repository under HOME;
+        # ordinary app-data fixtures use TMPDIR. Both run real capacity guards.
+        for target in ('/tmp', '/run/authenticated-fixtures'):
+            with self.subTest(target=target):
+                build = re.search(r'--mount=type=tmpfs,target=' + re.escape(target) + r',size=(\d+)', remaining)
+                runtime = re.search(r'--tmpfs ' + re.escape(target) + r':[^\s]*size=(\d+)([mg]?),', verifier)
+                self.assertIsNotNone(build)
+                self.assertIsNotNone(runtime)
+                runtime_bytes = int(runtime[1]) * {'': 1, 'm': 1024**2, 'g': 1024**3}[runtime[2]]
+                self.assertGreater(int(build[1]), required)
+                self.assertGreater(runtime_bytes, required)
 
     def invoke(self, failed_command=None):
         workflow = (ROOT / ".github/workflows/repository-validation.yml").read_text()
