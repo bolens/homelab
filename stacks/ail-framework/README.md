@@ -60,7 +60,22 @@ corresponding `*_NUM_THREADS` environment variables when sizing larger deploymen
 
 Official releases (e.g. **v7.0**) are not published as images; this stack builds from the [official repo](https://github.com/ail-project/ail-framework). The official image and this compose file use **/opt/AIL** for data paths.
 
-**This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v7.0**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
+`Dockerfile.build` consumes an externally prepared, ignored source directory at
+`ail-framework-docker/ail-framework`. Prepare a new context from AIL **v7.0**
+([commit `416cff1`](https://github.com/ail-project/ail-framework/tree/416cff17724ce1787c9b5b19a9c771651fdcdeb5)).
+Its operator-maintained Jammy fixes must implement the existing
+`AIL_INSTALL_PHASE=native` / `python` and `AIL_TORCH_VARIANT` installer contracts,
+plus the Python 3 installer adaptations. This repository does not supply those
+local patches or the source directory. An unmodified upstream checkout does not
+implement the split installer contracts; prepare and review them separately,
+preserving an existing context's unrelated patches and configuration.
+
+Keep `bin/LAUNCH.sh` identical to that pinned upstream revision through both
+installer phases. `pystemon-runtime.json` records its complete SHA-256 and source
+URL. The private runtime installer refuses a changed launcher before updating
+only the collector command. Review any existing launcher customization separately
+instead of bypassing that guard. The tracked image's removal of launch-time
+self-update happens afterward, in the final image stage.
 
 The native builder stays on Ubuntu 22.04 because its cleanup and runtime packages
 use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
