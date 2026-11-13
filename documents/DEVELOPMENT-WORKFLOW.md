@@ -234,12 +234,16 @@ The pipeline runs:
 - pinned shared source lint, actionlint, offline zizmor, Spec Kit integrity and
   Hadolint for tracked files named exactly `Dockerfile`;
 - the existing Komga source/compile controls with JDK 21;
-- the default-CI Kavita compiler controls with .NET SDK 10.0.403 and Node 26.7.0,
+- the default-CI Kavita compiler controls with .NET SDK 10.0.404 and Node 26.7.0,
   requiring at least nine executed tests and no skips;
 - the locked Playwright/Axe site suite using the existing Chrome channel;
 - publisher-broker race tests and vet; and
 - internal documentation links on cron/manual runs, with external URLs remaining
   a report-only check under the existing weekly workflow's exact arguments.
+
+Keep the Kavita Dockerfile SDK pin, native compiler lane and exact runtime
+prerequisite aligned. The publisher-broker compiler lane likewise follows its
+Dockerfile compiler pin; contract tests reject drift in either pair.
 
 Tool downloads retain a 15-second socket inactivity timeout, a 256 MiB byte bound
 and the pinned SHA-256 check. EOF and verified content determine completion; a
