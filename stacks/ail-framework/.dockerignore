@@ -2,6 +2,8 @@
 !requirements-cpu.txt
 !requirements-opencv.txt
 !requirements-pystemon.txt
+!pystemon-runtime.json
+!install-pystemon-runtime.py
 !requirements-runtime.txt
 !ail-dark-mode.css
 !ail-dark-mode.js

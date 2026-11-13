@@ -49,6 +49,13 @@ steps:
       - git config --global --add safe.directory "$CI_WORKSPACE"
       - bash scripts/ci/check-native.sh dotnet
 
+  - name: ail-pystemon-controls
+    image: ubuntu:22.04@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
+    commands:
+      - apt-get update && apt-get install -y --no-install-recommends git make python3 ca-certificates binutils
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - bash scripts/ci/check-native.sh pystemon
+
   - name: site-quality
     image: node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617
     commands:

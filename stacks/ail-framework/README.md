@@ -60,7 +60,22 @@ corresponding `*_NUM_THREADS` environment variables when sizing larger deploymen
 
 Official releases (e.g. **v7.0**) are not published as images; this stack builds from the [official repo](https://github.com/ail-project/ail-framework). The official image and this compose file use **/opt/AIL** for data paths.
 
-**This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v7.0**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
+`Dockerfile.build` consumes an externally prepared, ignored source directory at
+`ail-framework-docker/ail-framework`. Prepare a new context from AIL **v7.0**
+([commit `416cff1`](https://github.com/ail-project/ail-framework/tree/416cff17724ce1787c9b5b19a9c771651fdcdeb5)).
+Its operator-maintained Jammy fixes must implement the existing
+`AIL_INSTALL_PHASE=native` / `python` and `AIL_TORCH_VARIANT` installer contracts,
+plus the Python 3 installer adaptations. This repository does not supply those
+local patches or the source directory. An unmodified upstream checkout does not
+implement the split installer contracts; prepare and review them separately,
+preserving an existing context's unrelated patches and configuration.
+
+Keep `bin/LAUNCH.sh` identical to that pinned upstream revision through both
+installer phases. `pystemon-runtime.json` records its complete SHA-256 and source
+URL. The private runtime installer refuses a changed launcher before updating
+only the collector command. Review any existing launcher customization separately
+instead of bypassing that guard. The tracked image's removal of launch-time
+self-update happens afterward, in the final image stage.
 
 The native builder stays on Ubuntu 22.04 because its cleanup and runtime packages
 use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
@@ -69,6 +84,30 @@ verifying the complete CPU image build and native application startup. Dependabo
 refreshes the selected Ubuntu release digest; release changes require that
 reviewed migration. The custom
 image CI builds Lacus and Tor; it does not build the AIL application image. Installed Python package test directories are retained because QReader imports NumPy testing helpers during normal startup.
+
+Pystemon alone uses a private CPython 3.13.18 runtime under
+`/opt/pystemon-runtime`. Its SoupSieve 4.0.1 lock requires Python 3.11.5 or newer;
+AIL's main environment and `PystemonImporter.py` remain on the existing Python
+3.10 ABI. The build verifies every Python file in the pinned Pystemon source and
+the complete upstream launcher before changing only the collector command.
+The collector retains AILENV's Redis 5-compatible client, `redis==5.3.1`, and
+its locked PyJWT dependency. The qualification exercises the pinned storage's
+actual PING and LPUSH calls against a disposable Redis 5 RESP2 wire fixture,
+including rejection of a forced RESP3 client and the former Redis 8.1 default.
+The [fixed Redis 8.1 negative supplier](../../scripts/ci/fixtures/pystemon-redis8-negative.txt)
+is test data outside the production pip update directories. Keep that version
+fixed to preserve the regression. These fixtures do not qualify a real Redis
+server or configured collection.
+`pystemon-runtime.json` owns the immutable Python archives and source hashes.
+Review this manifest manually when updating the standalone interpreter or either
+upstream source; Dependabot continues to monitor the package lock and Ubuntu image.
+
+Run `make ail-pystemon-check` for the same installer, repeat-install integrity,
+compiled dependency imports, guarded launcher arguments and non-starting
+entrypoint controls used by the `ail-pystemon-controls` Woodpecker step. That
+step executes on the pinned Ubuntu 22.04 image on amd64. The arm64 supplier has a
+verified upstream checksum but no executed qualification lane. These focused
+checks do not qualify the full CPU/GPU image build or application startup.
 
 1. **Build both variants.** Native compilation is shared by BuildKit; build the
    CPU image first so the primary image does not wait for CUDA downloads:

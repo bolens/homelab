@@ -5,7 +5,7 @@ and optional qBittorrent downloads. Existing library managers remain independent
 
 **Upstream:** <https://github.com/JeremiahM37/librarr>
 **Image:** <https://github.com/JeremiahM37/librarr/pkgs/container/librarr>
-**Inspected release:** [v1.4.1](https://github.com/JeremiahM37/librarr/releases/tag/v1.4.1)
+**Inspected release:** [v1.5.0](https://github.com/JeremiahM37/librarr/releases/tag/v1.5.0)
 
 ## Setup
 
@@ -153,6 +153,16 @@ A passing health check alone does not verify sources, downloaded content or read
 imports. `/metrics` is available for optional internal Prometheus collection;
 this change does not add a live scrape target or monitor.
 
+## Selected 1.5 release
+
+[1.5.0](https://github.com/JeremiahM37/librarr/releases/tag/v1.5.0) retains the
+existing configuration. Enabled release profiles now affect automatic grabs,
+and manual imports can copy to Calibre and Komga and trigger scans. Review saved
+profiles and keep the existing unset reader-copy paths and explicit library IDs
+before enabling acquisition. The new native rTorrent client is optional; existing
+Flood and NZBGet adapter selections remain unchanged. Existing Kavita duplicates
+are retained, so the new import fix does not establish prior-library cleanup.
+
 ## Backup, upgrade and recovery
 
 Before a live update, record the image digest, settings, database counts and
@@ -178,7 +188,7 @@ or rescanning Kavita does not register a Calibre book.
 ## Flood / rTorrent
 
 The optional `docker-compose.flood.yml` runs a restricted Transmission RPC adapter
-for Librarr v1.4.1 against Flood's existing rTorrent socket. Select Flood's matching
+for the existing Librarr Transmission integration against Flood's rTorrent socket. Select Flood's matching
 `docker-compose.librarr.yml` first, preserving original overrides, images, accounts
 and state. Both stacks must see the same dedicated download directories at
 `/data/downloads/librarr/{ebooks,audiobooks,manga}`. Set unique `BRIDGE_USER` and
@@ -224,7 +234,7 @@ files through Bookshelf and verify their book IDs separately.
 
 ## NZBGet downloads from Librarr
 
-Librarr v1.4.1 speaks SABnzbd's API. The optional `docker-compose.nzbget.yml`
+Librarr speaks SABnzbd's API. The optional `docker-compose.nzbget.yml`
 provides only its required version, addurl, queue and history operations and
 forwards them to NZBGet's JSON-RPC API. No black-hole directory is needed.
 The adapter has no host port or ingress route and joins only `media-automation`.
@@ -261,8 +271,7 @@ torrent client. The adapter does not convert one protocol into another.
 Only jobs with the dedicated category and adapter duplicate-key prefix are
 reported. Completion requires an ordinary successful NZB history status, no failed
 script/move stage, and a destination below the configured dedicated root. Manual
-success overrides and warnings are not automatically imported. Native Librarr
-v1.4.1 moves supported NZB media into its organized library even when
+success overrides and warnings are not automatically imported. The previously inspected v1.4.1 importer moves supported NZB media into its organized library even when
 `IMPORT_MODE=copy`; the completed-download copy is not retained. Torrent seeding
 payloads remain intact, and subsequent Bookshelf imports should still use copy
 mode. Deletion and arbitrary API modes are rejected;
