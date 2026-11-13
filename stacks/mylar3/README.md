@@ -1583,6 +1583,15 @@ successors remain independently checked; canonical commitments remove duplicate
 models from bounded wire payloads. See the
 [retained contract](config/reader_recovery/CONTRACT-retained-pack.md).
 
+The retained-pack Root profile v2 requires the existing local Restic container
+named `restic`, with its original `/repository` and `/cache` mounts. It streams
+app data into an encrypted snapshot and verifies one independent app restore.
+Held books stay in place under complete original custody and hash checks.
+Older full-copy helper installations do not satisfy this profile. Verify the
+matching Root installation and current operation before use. This adds no
+permanent Compose mount, environment setting, port or service privilege. See
+[app-only recovery](config/reader_recovery/CONTRACT-appdata-restic.md).
+
 `publication_retained_delivery.py` is installed but disabled. It can create a fresh, bounded acceptance of a preserved existing target after an actual catalog event; it never creates a historical ordinary import acknowledgement. Current evidence is bound to the producing process. The source adds disabled primary-key POST `retainedDeliveryFinalize` and `retainedDeliveryStatus` hooks, with strict ordinary-purpose admission and typed response closure after serialization and writer release. Restart provenance, worker receipt consumption and matching installed semantic acceptance remain unfinished. It grants no placement, cleanup, Wanted-state or reader-index rights.
 
 Selected pack reports derive the member's complete current catalog owner,
