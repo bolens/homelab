@@ -336,7 +336,7 @@
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
-    "sha256": "a13707e48fcb374010e6f36dc8c53609ec299b77cf2899f7485c639a0c99e5d1",
+    "sha256": "eefd681ad8321b2906a7922b2cba53f54c50962257e6bef62381fd18aee443a2",
     "target": "source/BOOTSTRAP.py"
   },
   {
@@ -511,7 +511,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "5c4531059f09432cdf6fba4fb288487f352e780014059b721804d4f1e5cb7fa8",
+    "sha256": "428bbc9fdccf25ba045b5476d9aac5fd9e687b367dc51675a987cec7957c66b6",
     "target": "tests/test_fixed_broker.py"
   },
   {

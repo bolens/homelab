@@ -193,6 +193,48 @@ class BrokerTests(unittest.TestCase):
             with self.subTest(name=name):self.assertTrue(accepts(name))
         for name in ('../operations_v2.py','.py','3module.py','path/module.py'):
             with self.subTest(name=name):self.assertFalse(accepts(name))
+    def bootstrap_inventory(self, *, parent_mode=0o40755, file_uid=0, expected_hash=None):
+        import ast
+        source=ast.parse((HERE/'source/BOOTSTRAP.py').read_bytes())
+        loops=[node for node in source.body if isinstance(node,ast.For)
+               and isinstance(node.iter,ast.Call) and isinstance(node.iter.func,ast.Attribute)
+               and isinstance(node.iter.func.value,ast.Subscript)
+               and isinstance(node.iter.func.value.value,ast.Name)
+               and node.iter.func.value.value.id=='inventory']
+        self.assertEqual(len(loops),2)
+        path='/app/fixture.py';content=b'original source bytes'
+        original=(1,2,len(content),3,4,0o100444,file_uid,0,1)
+        files={path:original};nodes={str(parent):(1,index,parent_mode,0,0)
+                                   for index,parent in enumerate(Path(path).parents)}
+        reads=[]
+        def need(value,reason):
+            if not value:raise ValueError(reason)
+        def read(name,stamp,maximum):
+            self.assertEqual(name,path)
+            self.assertIs(stamp,original)
+            self.assertEqual(len(stamp),9)
+            reads.append(stamp)
+            return content
+        scope=dict(inventory={'sources':{path:expected_hash or hashlib.sha256(content).hexdigest()}},
+                   files=files,nodes=nodes,Path=Path,need=need,read=read,hashlib=hashlib,hashes={},LIMIT=4096)
+        exec(compile(ast.Module(body=[loops[1]],type_ignores=[]),'actual-bootstrap-inventory','exec'),scope)
+        return reads,original,scope['hashes']
+
+    def test_bootstrap_inventory_keeps_original_full9_after_parent_checks(self):
+        reads,original,hashes=self.bootstrap_inventory()
+        self.assertEqual(reads,[original])
+        self.assertEqual(set(hashes),{'/app/fixture.py'})
+
+    def test_bootstrap_inventory_still_refuses_untrusted_file_or_parent(self):
+        with self.assertRaisesRegex(ValueError,'bootstrap-inventory-root-file'):
+            self.bootstrap_inventory(file_uid=1000)
+        with self.assertRaisesRegex(ValueError,'bootstrap-inventory-root-node'):
+            self.bootstrap_inventory(parent_mode=0o40777)
+
+    def test_bootstrap_inventory_still_requires_the_original_source_hash(self):
+        with self.assertRaisesRegex(ValueError,'bootstrap-inventory-original-hash'):
+            self.bootstrap_inventory(expected_hash='0'*64)
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(prefix='fixed-launch-fixture-',dir=Path.home()/'.cache');self.root=Path(self.tmp.name);self.root.chmod(0o700)
         self.pkg=self.root/'package';self.pkg.mkdir(mode=0o700)
