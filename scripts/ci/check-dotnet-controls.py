@@ -18,8 +18,8 @@ def prerequisite():
             raise RuntimeError('mandatory compiler control prerequisite unavailable: '+program)
     sdk = subprocess.check_output(['dotnet', '--version'], text=True, timeout=30).strip()
     node = subprocess.check_output(['node', '--version'], text=True, timeout=10).strip()
-    if sdk != '10.0.403' or node != 'v26.7.0':
-        raise RuntimeError('mandatory compiler controls require pinned .NET10.0.403 and Node26.7.0')
+    if sdk != '10.0.404' or node != 'v26.7.0':
+        raise RuntimeError('mandatory compiler controls require pinned .NET10.0.404 and Node26.7.0')
 
 
 def flatten(suite):

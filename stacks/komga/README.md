@@ -27,7 +27,7 @@ metadata lookup fails or takes more than 1.5 seconds, the toast uses a cleaned
 filename. Its Open action still targets the imported book. Failure notifications
 also omit the source directory; detailed import history remains unchanged.
 
-The image builds the UI from the checksum-verified Komga 1.29.2 source and locked
+The image builds the UI from the checksum-verified Komga 1.30.0 source and locked
 npm dependencies. Its patch fails if the expected upstream notification changes.
 The patch preserves all other entries in the pinned server JAR, including the
 legacy UI. Its exact server-version gate must advance with the source archive.
@@ -35,12 +35,12 @@ For a live update, verify an isolated restore of Komga's configuration/database,
 drain normalizer upgrades, update only Komga, and verify catalog and reader state.
 Retain the previous image for rollback. No library copy is needed for this UI change.
 
-Komga 1.29.0 also persists HTTP sessions in a dedicated SQLite database. Before
+Komga 1.30.0 persists HTTP sessions in a dedicated SQLite database by default. Before
 upgrading from an earlier release, back up the complete `/config` volume
 consistently and verify an isolated restore. Inventory every database and its
 journal/WAL companions rather than assuming a fixed database count. After
 startup, verify catalog records, reader progress, authentication and database
-readability. See the [upstream release notes](https://github.com/gotson/komga/releases/tag/1.29.0).
+readability. See the [upstream release notes](https://github.com/gotson/komga/releases/tag/1.30.0).
 
 ## Library
 
