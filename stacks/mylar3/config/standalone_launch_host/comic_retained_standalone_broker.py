@@ -35,7 +35,7 @@ PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py','comic_app
               'comic_retained_pack_backup.py','comic_retained_pack_observation.py','retained_pack_control.py','comic_retained_pack_parent.py','comic_retained_native_control.py',
               'comic_retained_standalone_broker.py','comic_native_process_probe.py',
               'publication_native_configured_scope.py','BOOTSTRAP.py')
-PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v2:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:media-originals-in-place:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
+PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v3:explicit-external-worker-configuration-file:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:media-originals-in-place:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
 
 
 def installation_contract(document):
@@ -642,8 +642,7 @@ def _pack_preflight(installation,runtime,boot,nonce):
     scopes=[dict(role='native_config',root=str(native_root),databases=[str(data.relative_to(native_root)/name) for name in ('mylar.db','workflow.sqlite')]),
             dict(role='worker_state',root=str(state),databases=[]),
             dict(role='reader_config',root=str(reader_root),databases=['database.sqlite','tasks.sqlite'])]
-    if not any(Path(references['config_ref']['path']).is_relative_to(Path(scope['root'])) for scope in scopes):
-        raise Held('fixed-pack-uncovered-worker-configuration')
+    external_configuration=None if any(Path(references['config_ref']['path']).is_relative_to(Path(scope['root'])) for scope in scopes) else references['config_ref']
     receipt=state/'maintenance/packs'/request['pack_id']/'receipt.json'
     receipt_frame=(((str(receipt),nine(os.lstat(receipt))),),tuple((str(p),five(os.lstat(p))) for p in receipt.parents),())
     receipt_ref,receipt_bytes=parent._ref(receipt,limit=4*1024**2);local=document(receipt_bytes)
@@ -670,17 +669,25 @@ def _pack_preflight(installation,runtime,boot,nonce):
     capture=parent.mapped_host(worker['Mounts'],local['capture_source'])
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
-    helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes],source_links=True)
-    _require_configuration_appdata(references['config_ref'],scopes,current,
-        row['modules']['comic_appdata_restic_primitives.py'],blobs['config_ref'],deadline=runtime.deadline)
+    coverage_scopes=list(scopes)
+    file_roots=() if external_configuration is None else (Path(external_configuration['path']),)
+    if external_configuration is not None:
+        coverage_scopes.append(dict(role='worker_configuration',root=external_configuration['path'],kind='file'))
+    helper=row['modules']['comic_retained_pack_backup.py']
+    current,bytes_needed=helper.snapshot([Path(s['root']) for s in coverage_scopes],source_links=True,file_roots=file_roots)
+    if external_configuration is None:
+        _require_configuration_appdata(references['config_ref'],scopes,current,
+            row['modules']['comic_appdata_restic_primitives.py'],blobs['config_ref'],deadline=runtime.deadline)
+    else:
+        _require_configuration_coverage(external_configuration,coverage_scopes,current)
     native_config=_host_original_ref(row['document']['native_config_ref'],runtime.baseline['native']['Mounts'])
     native_config_bytes,_=parent.read_original(native_config,limit=2*1024**2)
     _require_configuration_appdata(native_config,scopes,current,
         row['modules']['comic_appdata_restic_primitives.py'],native_config_bytes,deadline=runtime.deadline)
     if bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-source-byte-bound')
-    resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],helper,current,bytes_needed,nonce,scopes=scopes,deadline=runtime.deadline)
+    resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],helper,current,bytes_needed,nonce,scopes=coverage_scopes,deadline=runtime.deadline)
     parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
-    return dict(scopes=scopes,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
+    return dict(scopes=scopes,external_configuration=external_configuration,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
                 worker_state=str(state),state_child=state_child,native_data=str(data),native_config=str(native_root),
                 config_dir=config_dir,source=source,target=target,capture_source=capture,roots=roots,streams=sorted(set(streams)),
                 mapping=mapping,review=review,**resources)
@@ -1451,6 +1458,9 @@ def _pack_terminal(launch,backup,media,header,artifact,reference):
         new_files={str(p.relative_to(state_root)) for p in (intent,done)},new_directories=set())
     reader_old=next(s['records'] for s in original['source_scopes'] if s['name']=='reader_config')
     _pack_scope_successor(reader_old,measured['reader_config'],changed={},new_files=set(),new_directories=set())
+    if 'worker_configuration' in measured:
+        configuration_old=next(s['records'] for s in original['source_scopes'] if s['name']=='worker_configuration')
+        _pack_scope_successor(configuration_old,measured['worker_configuration'],changed={},new_files=set(),new_directories=set())
     # Final complete source/name closure follows SQL, decoding and semantic work.
     fresh_original,fresh=_pack_current_scopes(backup,deadline=state['deadline'])
     if canonical(fresh_original)!=canonical(original) or canonical(fresh)!=canonical(measured):raise Held('fixed-pack-terminal-physical-drift')
@@ -1487,7 +1497,8 @@ def _run_pack_original(launch):
         if nine(os.lstat(BACKUP_PARENT))!=tuple(plan['backup_parent9']):raise Held('fixed-pack-original-backup-parent')
         observer=state['runtime'].quiesce()
         backup=helper.copy_and_verify(plan['scopes'],Path(plan['output']),primitive,state['installation'].close()['document']['host_sources'][primitive.name],
-            deadline=state['deadline'],reflink_restore=plan['reflink_restore'],restic_appdata=True)
+            deadline=state['deadline'],reflink_restore=plan['reflink_restore'],restic_appdata=True,
+            external_configuration=plan.get('external_configuration'))
         if helper._OBS[backup]['restic']['binding']!=plan['restic_binding']:raise Held('fixed-pack-original-Restic-binding')
         summary=backup.close();media.close()
     except BaseException as error:
