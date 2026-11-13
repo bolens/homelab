@@ -25,11 +25,20 @@ class DirectoryTests(unittest.TestCase):
         for path in (self.native,self.reader/'database.sqlite'):
             with closing(sqlite3.connect(path)) as db:db.execute('CREATE TABLE unchanged(id INTEGER PRIMARY KEY,value BLOB)');db.execute('INSERT INTO unchanged VALUES (1,?)',(b'\x00\xff',));db.commit()
         with closing(sqlite3.connect(self.workflow)) as db:db.execute('CREATE TABLE records(kind TEXT,key TEXT,value TEXT,updated REAL,PRIMARY KEY(kind,key))');db.commit()
+        if getattr(self,'restic_prior_fixture',False):
+            with closing(sqlite3.connect(self.reader/'tasks.sqlite')) as db:
+                db.execute('CREATE TABLE additional(value BLOB)');db.execute('INSERT INTO additional VALUES (?)',(b'keep discovered SQLite rows',));db.commit()
         self.token='a'*64;self.journal=self.data/'retained-standalone-v1';self.directory=self.journal/self.token
         existing=getattr(self,'existing_journal',False)
         if existing:
             self.mkdir(self.journal);self.mkdir(self.journal/'older-original-token')
             self.write(self.journal/'older-original-token'/'original.json',b'retained old token')
+            if getattr(self,'restic_prior_fixture',False):
+                prior=self.journal/('b'*64);self.mkdir(prior)
+                self.write(prior/'accepted.json',b'{"fixture":"retained prior control"}')
+                for stem in ('target-preserved','target-restored'):
+                    for suffix in ('.cbz','.cbr','.zip'):
+                        self.write(prior/(stem+suffix),b'original prior payload '+suffix.encode())
         pre=self.stamp(self.data);pre_names=self.names(self.data)
         journal_before=self.stamp(self.journal) if existing else None
         journal_names=self.names(self.journal) if existing else []

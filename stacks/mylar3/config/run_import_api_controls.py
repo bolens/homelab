@@ -35,6 +35,8 @@ STANDALONE_FIXTURES = frozenset((
     'reader_recovery/comic_retained_standalone_backup.py',
     'reader_recovery/comic_retained_standalone_parent.py',
     'reader_recovery/test_standalone_backup.py',
+    'reader_recovery/test_standalone_appdata.py',
+    'reader_recovery/appdata_cli_fixture.py',
     'reader_recovery/test_standalone_bodies.py',
     'reader_recovery/test_standalone_directory_joins.py',
     'reader_recovery/test_standalone_parent.py',

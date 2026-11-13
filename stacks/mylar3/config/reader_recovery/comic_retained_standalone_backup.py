@@ -6,6 +6,7 @@ import math
 import os
 from pathlib import Path
 import threading
+import tempfile
 import time
 import weakref
 
@@ -15,6 +16,7 @@ MAX_ARCHIVE_BYTES = 256 * 1024 ** 2
 BACKUP_SECONDS = 1800
 ROLES = ('native_state', 'reader_state', 'retained_source', 'existing_target')
 PRIMITIVES_SHA256 = '5b3c1df6345af3fa551ee48a82711912e591a257ce0373082a53aff112e5b396'
+APPDATA_PRIMITIVES_SHA256 = 'd2e209dd371e147815c7560de1b461753659afed915fbd990772290427995b8a'
 _OBSERVATIONS = weakref.WeakKeyDictionary()
 _BACKUP_SEALS = weakref.WeakKeyDictionary()
 _PRIMITIVES = weakref.WeakKeyDictionary()
@@ -157,7 +159,7 @@ def read_hash(path, original, deadline):
         os.close(fd)
 
 
-def load_primitives(path, original_frame):
+def load_primitives(path, original_frame, *, expected_sha=PRIMITIVES_SHA256):
     originals = dict(original_frame[0]); path = Path(path)
     original = originals[str(path)]
     need(original[5] & 0o170000 == 0o100000 and original[8] == 1 and original[2] <= 1024 ** 2,
@@ -169,7 +171,7 @@ def load_primitives(path, original_frame):
         while chunk := os.read(fd, 1024 ** 2):
             data += chunk
         need(nine(os.fstat(fd)) == original and
-             hashlib.sha256(data).hexdigest() == PRIMITIVES_SHA256, 'backup-algorithm-pin')
+             hashlib.sha256(data).hexdigest() == expected_sha, 'backup-algorithm-pin')
     finally:
         os.close(fd)
     module = importlib.util.module_from_spec(importlib.util.spec_from_loader('standalone_neutral_backup', loader=None))
@@ -179,7 +181,9 @@ def load_primitives(path, original_frame):
                    None if function.__kwdefaults__ is None else tuple((key,type(value),value) for key,value in sorted(function.__kwdefaults__.items())))
                   for name,function in vars(module).items()
                   if type(function).__name__=='function' and function.__globals__ is vars(module))
-    constants=tuple((name,vars(module)[name]) for name in ('MAX_FILES','MAX_MANIFEST','MAX_BYTES','DEADLINE','Held'))
+    constants=tuple((name,vars(module)[name]) for name in ('MAX_FILES','MAX_MANIFEST','MAX_BYTES','DEADLINE','Held') +
+                    (('APPDATA_ONLY','APPDATA_MAX_INDEX','APPDATA_MAX_FILE','APPDATA_MAX_NODES','APPDATA_MEDIA_SUFFIXES','APPDATA_MAGIC')
+                     if hasattr(module,'APPDATA_ONLY') else ()))
     _PRIMITIVES[module]=(_PRIMITIVES,methods,constants)
     raw(original_frame)
     _primitive_original(module)
@@ -283,6 +287,22 @@ class BackupObservation:
                 if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                         z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != stamp:
                     raise ValueError('backup-final-file')
+        if state.get('restic') is not None:
+            witness = state['restic']
+            for path, descriptor, original, _ in witness['restore_custody']:
+                z = os.fstat(descriptor)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,
+                        z.st_uid,z.st_gid,z.st_nlink) != tuple(original):
+                    raise ValueError('backup-original-restored-node-FD')
+            for path, descriptor, original in (*witness['output_ancestors'], *witness['mount_custody']):
+                z = os.fstat(descriptor); current = os.lstat(path)
+                if ((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) != tuple(original) or
+                        (current.st_dev,current.st_ino,current.st_mode,current.st_uid,current.st_gid) != tuple(original)):
+                    raise ValueError('backup-original-Restic-ancestor-FD')
+            z = os.fstat(witness['snapshot_fd'])
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,
+                    z.st_uid,z.st_gid,z.st_nlink) != tuple(witness['snapshot_signature9']):
+                raise ValueError('backup-original-Restic-snapshot-FD')
         if (_OBSERVATIONS.get(self) is not seal or (seal['pid'], seal['thread'], seal['deadline']) != owner_original
                 or seal['module'] is not module or module.database is not database_function
                 or (seal['copies'], seal['code']) + ((seal['source'],) if sources else ()) != frames
@@ -341,8 +361,135 @@ class BackupObservation:
         return self.close(sources=False)
 
 
-def copy_and_verify(scopes, out, *, deadline=None):
+def _restic_copy_and_verify(scopes, roots, out, source, source_content, code_original,
+                            module, primitive, deadline, parent_original9, parent_names,
+                            requested_scopes, scope_original):
+    """Preserve four original roles while transporting only application data."""
+    original_files = dict(source[0])
+    selected_scopes = []
+    required = []
+    for role, scope, root in zip(('native_config', 'reader_config'), scopes[:2], roots[:2]):
+        records, _ = _primitive_call(module, primitive, 'inventory', root, 'tree', deadline=deadline)
+        for record in records:
+            path = str(root if record['path'] == '.' else root / record['path'])
+            need(tuple(record['stamp']) == original_files[path], 'backup-inventory-original')
+        selected_scopes.append(dict(role=role, root=str(root), records=records))
+        required.extend(role + ':' + relative for relative in scope['databases'])
+    index = _primitive_call(module, primitive, 'appdata_make_index', selected_scopes, deadline=deadline)
+    selection = _primitive_call(module, primitive, 'appdata_policy_frozen', index)
+    values = _primitive_call(module, primitive, 'appdata_policy_value', index)
+    binding = _primitive_call(module, primitive, 'appdata_restic_profile', deadline=deadline)
+    cache = Path(binding['mounts']['/cache'])
+    largest = max((row['stamp'][2] for scope in values['scopes'] for row in scope['records']
+                   if row['kind'] == 'file' and not row['media']), default=0)
+    space = os.statvfs(cache)
+    need(space.f_bavail * space.f_frsize >= 4 * largest + 1024**2, 'backup-app-SQL-scratch-capacity')
+    source_views = [dict(name=row['role'], path=row['root'], kind='tree', records=row['records'])
+                    for row in selected_scopes]
+    prior_scratch = tempfile.tempdir
+    try:
+        tempfile.tempdir = str(cache)
+        sql = _primitive_call(module, primitive, 'database_rows', source_views, required, deadline=deadline)
+    finally:
+        tempfile.tempdir = prior_scratch
+    source_databases = []
+    for key, logical in sql.items():
+        role, relative = key.split(':', 1)
+        root = next(Path(row['root']) for row in selected_scopes if row['role'] == role)
+        source_databases.append((str(root / relative), logical))
+    raw(source); raw(code_original)
+    need(nine(os.lstat(out.parent)) == parent_original9 and
+         tuple(sorted(os.listdir(out.parent))) == parent_names and not os.path.lexists(out),
+         'backup-output-parent-drift')
+    witness = None
+    cleanup_records = ()
+    success = False
+    try:
+        witness = _primitive_call(module, primitive, 'appdata_restic_backup', index, out, deadline=deadline)
+        cleanup_records = tuple((fd, tuple(frame)) for _, fd, frame, _ in witness['restore_custody']) + \
+                          tuple((fd, tuple(frame)) for _, fd, frame in
+                                (*witness['output_ancestors'], *witness['mount_custody'])) + \
+                          ((witness['snapshot_fd'], tuple(witness['snapshot_signature9'])),)
+        need(witness['binding'] == binding and witness['selection'] == selection ==
+             _primitive_call(module, primitive, 'appdata_policy_frozen', index), 'backup-original-app-selection')
+        _primitive_call(module, primitive, 'appdata_close_restore', witness['restore_custody'])
+        restored = []
+        content = []
+        for scope in values['scopes']:
+            root = out / 'restore' / scope['role']
+            records, _ = _primitive_call(module, primitive, 'inventory', root, 'tree',
+                                          detached=True, deadline=deadline)
+            expected = [{key: value for key, value in row.items() if key not in ('stamp', 'media')}
+                        for row in scope['records'] if not row['media']]
+            need(_primitive_call(module, primitive, 'copied_records_match', records, expected),
+                 'backup-restic-app-content')
+            restored.append(dict(name=scope['role'], path=str(root), kind='tree', records=records))
+            for row in expected:
+                if row['kind'] == 'file':
+                    attrs = tuple((key, bytes.fromhex(value)) for key, value in sorted(row['attributes']['xattrs'].items()))
+                    content.append((str(root / row['path']), row['sha256'], attrs))
+        prior_scratch = tempfile.tempdir
+        try:
+            tempfile.tempdir = str(cache)
+            need(_primitive_call(module, primitive, 'database_rows', restored, required,
+                                 deadline=deadline) == sql, 'backup-restic-detached-database')
+        finally:
+            tempfile.tempdir = prior_scratch
+        databases = []
+        for key, logical in sql.items():
+            role, relative = key.split(':', 1)
+            databases.append((str(out / 'restore' / role / relative), logical))
+        _primitive_call(module, primitive, 'appdata_close_restore', witness['restore_custody'])
+        _primitive_call(module, primitive, 'appdata_close_ancestors', witness['output_ancestors'])
+        _primitive_call(module, primitive, 'appdata_close_ancestors', witness['mount_custody'])
+        snapshot = Path(witness['snapshot_path'])
+        born = witness['restore_custody']
+        nodes = dict((path, tuple(frame)) for path, _, frame in witness['output_ancestors'])
+        nodes.update((str(path), five(os.lstat(path))) for path in snapshot.parents)
+        copied = (tuple((path, tuple(frame)) for path, _, frame, _ in born) +
+                  ((str(snapshot), tuple(witness['snapshot_signature9'])),),
+                  tuple(sorted(nodes.items())),
+                  tuple((path, tuple(names)) for path, _, _, names in born if names is not None))
+        snapshot_attrs = tuple((key, bytes.fromhex(value)) for key, value in
+                               sorted(witness['snapshot_attributes']['xattrs'].items()))
+        content.append((str(snapshot), witness['snapshot_id'], snapshot_attrs))
+        raw(source); raw(copied); raw(code_original)
+        _primitive_original(module, primitive)
+        digest = hashlib.sha256(encode(dict(source=source, copies=copied, restic=witness,
+                                            databases=databases, source_databases=source_databases))).hexdigest()
+        observation = object.__new__(BackupObservation)
+        state = dict(pid=os.getpid(), thread=threading.get_ident(), deadline=deadline,
+                     source=source, copies=copied, code=code_original, module=module,
+                     source_content=source_content, source_databases=source_databases,
+                     content=content, databases=databases, bytes=witness['app_bytes'],
+                     digest=digest, restic=witness)
+        _OBSERVATIONS[observation] = state
+        _BACKUP_SEALS[observation] = (state, _OBSERVATIONS, _BACKUP_SEALS, _projection(state), primitive)
+        observation.close()
+        if (type(requested_scopes) is not list or len(requested_scopes) != 4 or
+                any(type(row) is not dict or set(row) != {'role','root','databases'} or
+                    type(row['role']) is not str or type(row['root']) is not str or type(row['databases']) is not list or
+                    any(type(item) is not str for item in row['databases']) for row in requested_scopes) or
+                tuple((row['role'],row['root'],tuple(row['databases'])) for row in requested_scopes) != scope_original):
+            raise ValueError('backup-original-request')
+        success = True
+        return observation
+    finally:
+        if not success:
+            for descriptor, original in cleanup_records:
+                try:
+                    current = os.fstat(descriptor)
+                except OSError:
+                    continue
+                if (current.st_dev,current.st_ino,current.st_mode & 0o170000) == \
+                        (original[0],original[1],original[5 if len(original)==9 else 2] & 0o170000):
+                    os.close(descriptor)
+
+
+def copy_and_verify(scopes, out, *, deadline=None, restic_appdata=False):
     """Neutral preservation only; a live parent must separately own quiescence."""
+    if type(restic_appdata) is not bool:
+        raise ValueError('backup-copy-mode')
     # Syntactic access only precedes the complete explicit-root original capture.
     if (type(scopes) is not list or len(scopes) != 4 or
             any(type(row) is not dict or set(row) != {'role','root','databases'} or
@@ -356,7 +503,8 @@ def copy_and_verify(scopes, out, *, deadline=None):
     z = os.lstat(out.parent)
     parent_original9 = (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
     parent_original = (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
-    primitive_path = Path(__file__).with_name('comic_reader_backup_primitives.py')
+    primitive_path = Path(__file__).with_name('comic_appdata_restic_primitives.py' if restic_appdata
+                                              else 'comic_reader_backup_primitives.py')
     code_paths = (Path(__file__).absolute(), primitive_path)
     early_code_files = []; early_code_nodes = {}
     for path in code_paths:
@@ -420,14 +568,22 @@ def copy_and_verify(scopes, out, *, deadline=None):
                 if stamp[5] & 0o170000 == 0o100000 and Path(path).is_relative_to(root))
     need(total <= MAX_BYTES, 'backup-all-role-byte-bound')
     capacity = os.statvfs(out.parent)
-    need(capacity.f_bavail * capacity.f_frsize >= 2 * total + 1024 ** 2, 'backup-two-copy-space')
+    if not restic_appdata:
+        need(capacity.f_bavail * capacity.f_frsize >= 2 * total + 1024 ** 2, 'backup-two-copy-space')
     raw(source); raw(code_original)
-    module = load_primitives(primitive_path, code_original);primitive=_primitive_original(module)
+    module = (load_primitives(primitive_path, code_original, expected_sha=APPDATA_PRIMITIVES_SHA256)
+              if restic_appdata else load_primitives(primitive_path, code_original))
+    primitive=_primitive_original(module)
     source_content = []; source_databases = []
     original_files = dict(source[0])
     for path, stamp in source[0]:
         if stamp[5] & 0o170000 == 0o100000:
             source_content.append((path, read_hash(path, stamp, deadline), attributes(path)))
+    if restic_appdata:
+        observation = _restic_copy_and_verify(scopes, roots, out, source, source_content,
+                                             code_original, module, primitive, deadline,
+                                             parent_original9, parent_names, requested_scopes, scope_original)
+        return observation
     for row, root in zip(scopes[:2], roots[:2]):
         for relative in row['databases']:
             path = root / relative

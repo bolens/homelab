@@ -478,6 +478,10 @@ def appdata_payload(role, relative, head, *, path=None, original=None, deadline=
     if parts and parts[0] == 'mylar':
         parts = parts[1:]
     leaf = parts[-1] if parts else ''
+    if (len(parts) >= 3 and parts[-3] == 'retained-standalone-v1' and
+            re.fullmatch('[0-9a-f]{64}', parts[-2]) and
+            re.fullmatch(r'target-(?:preserved|restored)(?:\.[^./\\\x00]*)?', leaf)):
+        return True
     for position, part in enumerate(parts[:-1]):
         if re.fullmatch('archive-repair-[0-9a-f]{64}', part) and leaf in ('original.arc', 'restored-original.arc', 'prepared.cbz'):
             return True
@@ -504,14 +508,27 @@ def appdata_payload(role, relative, head, *, path=None, original=None, deadline=
 
 
 def appdata_validate(index):
-    appdata_need(type(index) is dict and set(index) == {'version', 'kind', 'scopes'} and (type(index['version']) is int) and (index['version'] == 1) and (index['kind'] == 'publication-appdata-transport-v1'), 'index-schema')
+    appdata_need(type(index) is dict and set(index) == {'version', 'kind', 'scopes'} and type(index['version']) is int and
+                 (index['version'], index['kind']) in ((1, 'publication-appdata-transport-v1'),
+                                                      (2, 'publication-appdata-transport-v2')), 'index-schema')
+    version = index['version']
     scopes = index['scopes']
-    appdata_need(type(scopes) is list and tuple((row['role'] for row in scopes)) in (('native_config', 'reader_config'), ('native_config', 'worker_state', 'reader_config')), 'scope-order')
+    roles = (('native_config', 'reader_config'), ('native_config', 'worker_state', 'reader_config')) if version == 1 else (
+        ('native_config', 'worker_state', 'reader_config', 'worker_configuration'),)
+    appdata_need(type(scopes) is list and tuple((row['role'] for row in scopes)) in roles, 'scope-order')
     total = 0
     for scope in scopes:
-        appdata_need(type(scope) is dict and set(scope) == {'role', 'root', 'records'}, 'scope-schema')
+        appdata_need(type(scope) is dict and set(scope) == ({'role', 'root', 'records'} if version == 1 else
+                                                         {'role', 'root', 'records', 'kind'}), 'scope-schema')
+        file_scope = version == 2 and scope['role'] == 'worker_configuration'
+        if version == 2:
+            appdata_need(scope['kind'] == ('file' if file_scope else 'tree'), 'scope-kind')
         root = Path(scope['root'])
         appdata_need(root.is_absolute() and str(root) == scope['root'], 'scope-root')
+        if file_scope:
+            appdata_need(all(not root.is_relative_to(Path(other['root'])) and
+                             not Path(other['root']).is_relative_to(root) for other in scopes[:-1]),
+                         'configuration-scope-overlap')
         records = scope['records']
         appdata_need(type(records) is list and len(records) <= APPDATA_MAX_NODES, 'scope-census')
         by_path = {}
@@ -526,10 +543,17 @@ def appdata_validate(index):
                 appdata_need(type(row['sha256']) is str and len(row['sha256']) == 64 and all((c in '0123456789abcdef' for c in row['sha256'])) and (0 <= row['stamp'][2] <= 512 * 1024 ** 3), 'record-file')
                 appdata_need(row['media'] or row['stamp'][2] <= APPDATA_MAX_FILE, 'app-file-bound')
             by_path[relative] = row
-        appdata_need(by_path.get('.', {}).get('kind') == 'directory', 'record-root')
+        if file_scope:
+            appdata_need(len(records) == 1 and set(by_path) == {'configuration.json'}, 'configuration-file-census')
+            row = records[0]
+            appdata_need(row['kind'] == 'file' and row['media'] is False and row['link'] is None and
+                         stat.S_ISREG(row['stamp'][5]) and row['stamp'][8] == 1 and
+                         0 < row['stamp'][2] <= 2 * 1024**2, 'configuration-file-record')
+        else:
+            appdata_need(by_path.get('.', {}).get('kind') == 'directory', 'record-root')
         for relative, row in by_path.items():
             p = Path(relative)
-            if relative != '.':
+            if relative != '.' and not file_scope:
                 appdata_need(by_path.get(p.parent.as_posix(), {}).get('kind') == 'directory', 'record-parent')
             if row['kind'] == 'symlink':
                 target = row['link']
@@ -565,10 +589,56 @@ def _appdata_policy_factory():
 _appdata_policy_create, appdata_policy_frozen, appdata_policy_value = _appdata_policy_factory()
 
 
+def appdata_source(scope, row):
+    if scope.get('kind') == 'file':
+        appdata_need(scope['role'] == 'worker_configuration' and row['path'] == 'configuration.json',
+                     'configuration-source')
+        return Path(scope['root'])
+    return Path(scope['root']) / row['path']
+
+
+def appdata_configuration(path, original, expected_sha, *, deadline):
+    """One bounded, original JSON object, never a media classification override."""
+    check_deadline(deadline)
+    appdata_need(stat.S_ISREG(original[5]) and original[8] == 1 and 0 < original[2] <= 2 * 1024**2,
+                 'configuration-file-bound')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        appdata_need(appdata_signature(os.fstat(fd)) == original == appdata_signature(path.lstat()),
+                     'configuration-original-FD')
+        chunks = []; total = 0
+        while raw := os.read(fd, 65536):
+            check_deadline(deadline)
+            total += len(raw)
+            appdata_need(total <= original[2], 'configuration-original-overrun')
+            chunks.append(raw)
+        data = b''.join(chunks)
+        appdata_need(total == original[2] and hashlib.sha256(data).hexdigest() == expected_sha,
+                     'configuration-original-content')
+        def pairs(rows):
+            value = {}
+            for key, item in rows:
+                appdata_need(key not in value, 'configuration-duplicate-key')
+                value[key] = item
+            return value
+        try:
+            value = json.loads(data, object_pairs_hook=pairs,
+                               parse_constant=lambda _: (_ for _ in ()).throw(Held('configuration-number')))
+        except (ValueError, UnicodeError, RecursionError):
+            raise Held('configuration-JSON') from None
+        appdata_need(type(value) is dict, 'configuration-object')
+        check_deadline(deadline)
+        appdata_need(appdata_signature(os.fstat(fd)) == original == appdata_signature(path.lstat()),
+                     'configuration-original-close')
+    finally:
+        os.close(fd)
+
+
 def appdata_make_index(scopes, *, deadline=None):
     """Select from the owning caller's freshly captured complete inventories."""
     check_deadline(deadline)
-    index = {'version': 1, 'kind': 'publication-appdata-transport-v1', 'scopes': appdata_thaw(appdata_freeze(scopes))}
+    version = 2 if any(scope.get('role') == 'worker_configuration' for scope in scopes) else 1
+    index = {'version': version, 'kind': 'publication-appdata-transport-v' + str(version), 'scopes': appdata_thaw(appdata_freeze(scopes))}
     for scope in index['scopes']:
         root = Path(scope['root'])
         appdata_need(root.is_absolute() and str(root) == scope['root'] and (root.resolve() == root), 'selection-root')
@@ -579,8 +649,11 @@ def appdata_make_index(scopes, *, deadline=None):
             row['media'] = False
             if row['kind'] != 'file':
                 continue
-            path = Path(scope['root']) / row['path']
+            path = appdata_source(scope, row)
             appdata_need(appdata_signature(path.lstat()) == row['stamp'], 'selection-original')
+            if scope.get('kind') == 'file':
+                appdata_configuration(path, row['stamp'], row['sha256'], deadline=deadline)
+                continue
             fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
             try:
                 appdata_need(appdata_signature(os.fstat(fd)) == row['stamp'] and stat.S_ISREG(os.fstat(fd).st_mode), 'selection-FD')
@@ -607,7 +680,12 @@ def appdata_estimate(scopes, files, *, deadline=None):
         fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         try:
             appdata_need(appdata_signature(os.fstat(fd)) == list(original), 'appdata-estimate-FD')
-            media = appdata_payload(scope['role'], source.relative_to(scope['root']).as_posix(), os.read(fd, 16), path=source, original=original, deadline=deadline)
+            if scope.get('kind') == 'file':
+                appdata_need(source == Path(scope['root']), 'configuration-estimate-source')
+                appdata_configuration(source, list(original), hash_file(source, deadline=deadline), deadline=deadline)
+                media = False
+            else:
+                media = appdata_payload(scope['role'], source.relative_to(scope['root']).as_posix(), os.read(fd, 16), path=source, original=original, deadline=deadline)
             appdata_need(appdata_signature(os.fstat(fd)) == list(original) == appdata_signature(source.lstat()), 'appdata-estimate-close')
         finally:
             os.close(fd)
@@ -697,7 +775,7 @@ def appdata_write_archive(stream, index, *, deadline):
         archive.addfile(member, io.BytesIO(body))
         for scope, row in rows:
             appdata_need(time.monotonic() < deadline, 'transport-deadline')
-            source = appdata_OriginalFile(Path(scope['root']) / row['path'], row, deadline)
+            source = appdata_OriginalFile(appdata_source(scope, row), row, deadline)
             try:
                 member = tarfile.TarInfo(scope['role'] + '/' + row['path'])
                 member.size = row['stamp'][2]
@@ -930,6 +1008,8 @@ def appdata_verify_restored(destination, index, *, deadline, custody):
             actual.add(relative)
             for name in dirs + files:
                 actual.add((Path(directory) / name).relative_to(root).as_posix())
+        if scope.get('kind') == 'file':
+            actual.discard('.')
         appdata_need(actual == set(expected), 'restore-complete-census')
         for relative, row in expected.items():
             appdata_need(time.monotonic() < deadline, 'transport-deadline')

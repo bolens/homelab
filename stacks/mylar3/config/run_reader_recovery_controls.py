@@ -34,7 +34,8 @@ SUITES=SUITES+(('test_fixture_transition.py',41),('test_transition_consumers.py'
 SUITES=SUITES+(('test_configured_archive_geometry.py', 34),('test_configured_plan13_producer.py', 21),)
 SUITES=SUITES+(('test_retained_pack_terminal_sql.py',61),)
 SUITES=SUITES+(('test_retained_pack_backup_custody.py',42),('test_retained_pack_observation.py',22))
-SUITES=SUITES+(('test_appdata_transport.py',18),)
+SUITES=SUITES+(('test_appdata_transport.py',20),)
+SUITES=SUITES+(('test_appdata_configuration.py',8),('test_pack_configuration.py',5),('test_pack_configuration_preflight.py',2))
 SUITES=SUITES+(('test_retained_pack_runtime.py',26),('test_retained_native_control.py',10))
 SUITES=SUITES+(('test_helper_profiles.py',12),('test_helper_birth_callers.py',18))
 # Resource ceiling shared with the complete owning source union. This is not

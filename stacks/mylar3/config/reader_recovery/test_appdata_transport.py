@@ -46,6 +46,13 @@ class AppDataTransport(unittest.TestCase):
         self.custody = {}
         self.addCleanup(lambda:[transport.appdata_release_restore(value) for value in self.custody.values()])
 
+    def test_custom_native_DATA_prior_payload_layouts_are_excluded(self):
+        for prefix in ('', 'mylar/', 'custom/', 'nested/custom/'):
+            for name in ('target-preserved.cbz','target-restored.cbr'):
+                self.assertTrue(transport.appdata_payload('native_config',prefix+'retained-standalone-v1/'+('b'*64)+'/'+name,b'PK\x03\x04',deadline=time.monotonic()+10))
+        with self.assertRaises(transport.Held):
+            transport.appdata_payload('native_config','custom/retained-standalone-v1/not-a-token/target-preserved.cbz',b'PK\x03\x04',deadline=time.monotonic()+10)
+
     def archive(self, index=None):
         result = io.BytesIO()
         transport.appdata_write_archive(result, self.index if index is None else index,
@@ -120,6 +127,17 @@ class AppDataTransport(unittest.TestCase):
         self.assertFalse(transport.appdata_payload('native_config','mylar/logs/'+package.name,b'PK\x03\x04',path=package,original=transport.appdata_signature(package.lstat())))
         with zipfile.ZipFile(package,'a')as archive:archive.writestr('001.jpg',b'original book page')
         with self.assertRaises(transport.Held):transport.appdata_payload('native_config','mylar/logs/'+package.name,b'PK\x03\x04',path=package,original=transport.appdata_signature(package.lstat()))
+
+    def test_prior_standalone_preservation_layout_excludes_only_owned_archives(self):
+        folder='retained-standalone-v1/'+64*'b'
+        for prefix in ('','mylar/'):
+            for stem in ('target-preserved','target-restored'):
+                for suffix in ('','.cbz','.cbr','.zip','.cb7','.tar','.unusual'):
+                    self.assertTrue(transport.appdata_payload('native_config',prefix+folder+'/'+stem+suffix,b'PK\x03\x04'))
+        self.assertFalse(transport.appdata_payload('native_config',folder+'/accepted.json',b'{"placeholder":true}'))
+        for name in (folder+'/target-preserved-extra.cbz','old/'+folder+'/subdir/target-preserved.cbz',
+                     'retained-standalone-v1/'+32*'b'+'/target-restored.cbz'):
+            with self.assertRaises(transport.Held):transport.appdata_payload('native_config',name,b'PK\x03\x04')
 
     def test_missing_wrong_extra_and_link_members_refuse(self):
         cases = [self.rewrite(omit='reader_config/settings.json'),

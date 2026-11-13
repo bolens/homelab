@@ -30,8 +30,10 @@ def five(z):return (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
 def encode(v):return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 
 
-def snapshot(roots, *, source_links=False, source_nodes=None, deadline=None):
+def snapshot(roots, *, source_links=False, source_nodes=None, deadline=None, file_roots=()):
     roots=tuple(roots)
+    need(type(file_roots) is tuple and len(file_roots)<=1 and all(type(p) is type(Path('/')) and p in roots for p in file_roots),'backup-file-root-schema')
+    need(not file_roots or source_nodes is None,'backup-file-root-mode')
     need(type(source_links) is bool,'backup-link-policy')
     limit=MAX_NODES
     if source_nodes is not None:
@@ -63,7 +65,11 @@ def snapshot(roots, *, source_links=False, source_nodes=None, deadline=None):
     # Known roots and ancestors precede first enumeration.
     for root in roots:
         for p in (root,*root.parents):
-            z=os.lstat(p);value=five(z);need(z.st_mode&0o170000==0o040000,'backup-directory')
+            z=os.lstat(p);value=five(z)
+            if p==root and root in file_roots:
+                need(z.st_mode&0o170000==0o100000 and z.st_nlink==1 and 0<z.st_size<=2*1024**2,'backup-configuration-file')
+                continue
+            need(z.st_mode&0o170000==0o040000,'backup-directory')
             need(str(p) not in nodes or nodes[str(p)]==value,'backup-ancestor-conflict');nodes[str(p)]=value
         files[str(root)]=nine(os.lstat(root))
     for root in roots:walk(root)
@@ -257,7 +263,7 @@ class BackupObservation:
         result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
             files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
         if c.get('restic') is not None:
-            result.update(storage='restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
+            result.update(storage='restic-appdata-v2' if len(c['scopes'])==4 else 'restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
                           app_files=c['restic']['app_files'],media_copies=0)
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
         _finish(self,c,seal,frames)
@@ -280,7 +286,8 @@ class BackupObservation:
         original={key:_json_value(c[key]) for key in ('source_scopes','databases','required')};original['out']=str(c['out'])
         original_expected=projection(original)
         scopes=original['source_scopes'];roots=[Path(scope['path']) for scope in scopes]
-        current,_=snapshot(roots,source_links=True,deadline=deadline)
+        current,_=snapshot(roots,source_links=True,deadline=deadline,
+            file_roots=tuple(Path(scope['path']) for scope in scopes if scope['kind']=='file'))
         measured={}
         attributes=dict(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in current[0]),deadline=deadline))
         for scope,root in zip(scopes,roots):
@@ -319,7 +326,7 @@ class BackupObservation:
         result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
             files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
         if c.get('restic') is not None:
-            result.update(storage='restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
+            result.update(storage='restic-appdata-v2' if len(c['scopes'])==4 else 'restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
                           app_files=c['restic']['app_files'],media_copies=0)
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['source_attributes']),deadline=c['deadline'])==c['source_attributes'],'backup-source-attributes')
@@ -327,10 +334,23 @@ class BackupObservation:
         return result
 
 
-def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,reflink_restore=False,restic_appdata=False):
+def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,reflink_restore=False,restic_appdata=False,external_configuration=None):
     """Mechanism only. Parent continuously owns quiescence; this cannot mint BackupReady."""
     need(type(scopes) is list and len(scopes)==MAX_SCOPES and tuple(s['role'] for s in scopes)==_ROLES,'backup-exact-roles')
     scopes=[{'role':row['role'],'root':row['root'],'databases':list(tuple(row['databases']))} for row in scopes]
+    configuration_ref=None
+    if external_configuration is not None:
+        need(restic_appdata is True and type(external_configuration) is dict and
+             set(external_configuration)=={'path','sha256','signature9'} and
+             type(external_configuration['signature9']) in (list,tuple),'backup-external-configuration-mode')
+        configuration_ref=dict(path=external_configuration['path'],sha256=external_configuration['sha256'],
+                               signature9=list(tuple(external_configuration['signature9'])))
+        need(type(configuration_ref['path']) is str and type(configuration_ref['sha256']) is str and
+             len(configuration_ref['sha256'])==64 and all(c in '0123456789abcdef' for c in configuration_ref['sha256']) and
+             len(configuration_ref['signature9'])==9 and all(type(v) is int for v in configuration_ref['signature9']),
+             'backup-external-configuration-ref')
+        scopes.append(dict(role='worker_configuration',root=configuration_ref['path'],databases=[]))
+    file_roots=() if configuration_ref is None else (Path(configuration_ref['path']),)
     roots=[];required=[];initial_scopes=[]
     for s in scopes:
         need(type(s) is dict and set(s)=={'role','root','databases'} and type(s['databases']) is list,'backup-scope-schema')
@@ -352,7 +372,7 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,re
     deadline=local_deadline if deadline is None else min(deadline,local_deadline)
     need(time.monotonic()<deadline,'backup-original-deadline')
     primitive=Path(primitives_path);primitive_frame=(((str(primitive),nine(os.lstat(primitive))),),tuple((str(q),five(os.lstat(q))) for q in primitive.parents),())
-    original,total=snapshot(roots,source_links=True,deadline=deadline)  # Before module/hash/database callbacks.
+    original,total=snapshot(roots,source_links=True,deadline=deadline,file_roots=file_roots)  # Before module/hash/database callbacks.
     if not restic_appdata:
         need(2*total<=MAX_BYTES,'backup-two-copy-byte-bound')
         space=os.statvfs(out.parent)
@@ -365,14 +385,23 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,re
     need(not hasattr(m,'APPDATA_ONLY') or restic_appdata and m.APPDATA_ONLY is True,'backup-app-only-profile-required')
     original_files=dict(original[0])
     for s,p in zip(scopes,roots):
-        rows,_=_primitive_call(m,primitive_original,'inventory',p,'tree',deadline=deadline);logical[s['role']]=_primitive_call(m,primitive_original,'logical',rows)
+        kind='file' if p in file_roots else 'tree'
+        rows,_=_primitive_call(m,primitive_original,'inventory',p,kind,deadline=deadline);logical[s['role']]=_primitive_call(m,primitive_original,'logical',rows)
+        if kind=='file':
+            need(len(rows)==1 and rows[0]['stamp']==configuration_ref['signature9'] and rows[0]['sha256']==configuration_ref['sha256'],'backup-original-configuration-ref')
         for row in rows:need(tuple(row['stamp'])==original_files[str(p if row['path']=='.' else p/row['path'])],'backup-inventory-original')
-        initial_scopes.append(dict(name=s['role'],path=str(p),kind='tree',records=rows))
+        initial_scopes.append(dict(name=s['role'],path=str(p),kind=kind,records=rows))
     database_files={scope['name']+':'+row['path'] for scope in initial_scopes for row in scope['records'] if row['kind']=='file'}
     app_index=None;restic_binding=None;app_restic=None
     if restic_appdata:
-        app_index=_primitive_call(m,primitive_original,'appdata_make_index',[
-            dict(role=scope['name'],root=scope['path'],records=scope['records']) for scope in initial_scopes],deadline=deadline)
+        app_scopes=[]
+        for scope in initial_scopes:
+            records=[dict(row) for row in scope['records']]
+            if scope['kind']=='file':records[0]['path']='configuration.json'
+            selected=dict(role=scope['name'],root=scope['path'],records=records)
+            if configuration_ref is not None:selected['kind']=scope['kind']
+            app_scopes.append(selected)
+        app_index=_primitive_call(m,primitive_original,'appdata_make_index',app_scopes,deadline=deadline)
         app_selection=_primitive_call(m,primitive_original,'appdata_policy_frozen',app_index)
         app_values=_primitive_call(m,primitive_original,'appdata_policy_value',app_index)
         restic_binding=_primitive_call(m,primitive_original,'appdata_restic_profile',deadline=deadline)
@@ -397,12 +426,15 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,re
         _primitive_call(m,primitive_original,'appdata_close_restore',app_restic['restore_custody'])
         measured=[];copy_attributes=[]
         for scope,selection in zip(scopes,app_values['scopes']):
+            kind='file' if scope['role']=='worker_configuration' else 'tree'
             root=out/'restore'/scope['role']
-            rows,_=_primitive_call(m,primitive_original,'inventory',root,'tree',detached=True,deadline=deadline)
+            if kind=='file':root=root/'configuration.json'
+            rows,_=_primitive_call(m,primitive_original,'inventory',root,kind,detached=True,deadline=deadline)
             expected=[{key:value for key,value in row.items() if key not in ('stamp','media')}
                       for row in selection['records'] if not row['media']]
+            if kind=='file':expected[0]['path']='.'
             need(_primitive_call(m,primitive_original,'copied_records_match',rows,expected),'backup-restic-app-content')
-            measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
+            measured.append(dict(name=scope['role'],path=str(root),kind=kind,records=rows))
             copy_attributes.extend((str(root if row['path']=='.' else root/row['path']),row['attributes']) for row in rows)
         prior_scratch=tempfile.tempdir
         try:
