@@ -1069,7 +1069,9 @@ unverified checks complete.
 Keep `.specify/templates/`, `.specify/scripts/`, and generated Codex skills under their
 integration manifests. Use this guide and the constitution for local customization.
 Regenerate managed files through Spec Kit and verify that project-owned memory survives
-updates. Follow `RELEASING.md` for push, merge, release or delivery, and recovery.
+updates. The tracked `speckit-taskstoissues` skill is retained project compatibility
+content; Spec Kit 1.4 no longer owns it through the integration manifest.
+Follow `RELEASING.md` for push, merge, release or delivery, and recovery.
 
 The retrospective specification register is [specs/README.md](../../specs/README.md).
 

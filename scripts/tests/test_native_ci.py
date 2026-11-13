@@ -330,8 +330,16 @@ class MandatoryCoverageTests(unittest.TestCase):
         self.assertEqual(tools['node']['version'], '26.7.0')
         self.assertEqual(tools['chrome']['version'], '157.0.8103.38')
         self.assertIn("channel: 'chrome'", (ROOT / 'playwright.config.js').read_text())
+        package = json.loads((ROOT / 'package.json').read_text())
+        version = package['devDependencies']['@playwright/test']
+        self.assertRegex(version, r'^[0-9]+\.[0-9]+\.[0-9]+$')
         lock = json.loads((ROOT / 'package-lock.json').read_text())
-        self.assertEqual(lock['packages']['node_modules/@playwright/test']['version'], '1.64.1')
+        packages = lock['packages']
+        self.assertEqual(packages['']['devDependencies']['@playwright/test'], version)
+        for name in ['@playwright/test', 'playwright', 'playwright-core']:
+            self.assertEqual(packages[f'node_modules/{name}']['version'], version)
+        self.assertEqual(packages['node_modules/@playwright/test']['dependencies']['playwright'], version)
+        self.assertEqual(packages['node_modules/playwright']['dependencies']['playwright-core'], version)
 
 
 class LinkPolicyTests(unittest.TestCase):
