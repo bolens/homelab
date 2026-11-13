@@ -90,6 +90,14 @@ Pystemon alone uses a private CPython 3.13.18 runtime under
 AIL's main environment and `PystemonImporter.py` remain on the existing Python
 3.10 ABI. The build verifies every Python file in the pinned Pystemon source and
 the complete upstream launcher before changing only the collector command.
+The collector retains AILENV's Redis 5-compatible client, `redis==5.3.1`, and
+its locked PyJWT dependency. The qualification exercises the pinned storage's
+actual PING and LPUSH calls against a disposable Redis 5 RESP2 wire fixture,
+including rejection of a forced RESP3 client and the former Redis 8.1 default.
+The [fixed Redis 8.1 negative supplier](../../scripts/ci/fixtures/pystemon-redis8-negative.txt)
+is test data outside the production pip update directories. Keep that version
+fixed to preserve the regression. These fixtures do not qualify a real Redis
+server or configured collection.
 `pystemon-runtime.json` owns the immutable Python archives and source hashes.
 Review this manifest manually when updating the standalone interpreter or either
 upstream source; Dependabot continues to monitor the package lock and Ubuntu image.
