@@ -649,7 +649,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_backup.py",
-    "sha256": "cc3c107b81635de5c9081c844e6da20e2411897ce6c8ff81d147a68af54b3821"
+    "sha256": "8e89ad2d30f06374382070f3bd78fdcd2f108865d2db921fe4116cbd4b51148a"
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
@@ -661,7 +661,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "8e2a84b0931314166cc286efbeca9fcb7d6ee061e321994221b90532e8563170"
+    "sha256": "0aff8ff0a036b9fa15cfe65a09cb4b686aa7c9d29bb99d5e6a0a9f19233a0abb"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
@@ -717,7 +717,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "2f6dff6e951edf213fbb195b40eda6934c1dd7edb27faed95e45ba626d8a7825"
+    "sha256": "28658e6308262fc818ffa9dabed9892479c961697e5a721edcb30f8052d435e8"
   },
   {
     "path": "run_standalone_controls.py",
@@ -729,7 +729,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "4b4dc9f71c9d91d2eaab0deb21d0a25a5087f52bb691f9e8ae9ab2aa7ce64a07"
+    "sha256": "469c7fcaf7b3ca92fe098f07bf6c90ecbdabca9ec6b81bb8c83f5d2e10ca3e29"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -745,11 +745,11 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "8e2a84b0931314166cc286efbeca9fcb7d6ee061e321994221b90532e8563170"
+    "sha256": "0aff8ff0a036b9fa15cfe65a09cb4b686aa7c9d29bb99d5e6a0a9f19233a0abb"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "b982bb1b9401e859df1cc7b639828e2a9bdba96aec7ac8d49fee6c7b16679956"
+    "sha256": "1b145f2a3213c243e8bafec33e452e1fbbe03ebac4992940f53dc0cd1cc3368e"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
@@ -1785,11 +1785,11 @@
   },
   {
     "path": "standalone_launch_host/comic_appdata_restic_primitives.py",
-    "sha256": "a606e91db553828e5d17ae3bd1035f5d0a4e59fcb1c7705a86d7e2501624bb1d"
+    "sha256": "d2e209dd371e147815c7560de1b461753659afed915fbd990772290427995b8a"
   },
   {
     "path": "reader_recovery/CONTRACT-appdata-restic.md",
-    "sha256": "883fa1741d738440b79590b4ef4e8881b38a341faca73800ce944855f23f0784"
+    "sha256": "6b137cb1435b8d24c2976fc5e9b01552e14d5bc3db00e1d635c384240b269d61"
   },
   {
     "path": "reader_recovery/test_appdata_transport.py",
