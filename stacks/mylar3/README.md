@@ -270,8 +270,11 @@ Run the gate from this full Git checkout with host Python 3 available. Its
 repository helper inventories only tracked public configuration files; ignored
 live configuration and caches are excluded. The source mounts remain read-only,
 and fault tests change disposable copies owned by the fixture user. The gate limits
-memory to 512 MiB and its temporary filesystem to 256 MiB, allowing the
-unchanged 128 MiB preservation reserve and private parallel fixtures.
+memory to 512 MiB and its disposable temporary filesystem to 2 GiB. The larger
+filesystem leaves room for the app-only Restic transport's unchanged 1 GiB
+preservation reserve, bounded index and private fixtures. The image-build
+remaining-controls stage uses the same scratch ceiling. These test settings do
+not change live service resources or backup policy.
 
 The gate copies public application source inside an isolated container, applies
 all build-time patches, and runs DDL, tagging-timeout, and health regressions. It has

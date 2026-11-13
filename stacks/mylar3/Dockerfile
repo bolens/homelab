@@ -205,7 +205,8 @@ RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run
 FROM verification-runtime AS app-checked
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
-RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run/authenticated-fixtures,size=67108864 --network=none python3 -I -B /opt/mylar3-fixes/patch_publication_launch_auth.py /opt/mylar-publication-launch/auth \
+# App-only backup fixtures retain the real 1 GiB reserve in disposable scratch.
+RUN --mount=type=tmpfs,target=/tmp,size=2147483648 --mount=type=tmpfs,target=/run/authenticated-fixtures,size=67108864 --network=none python3 -I -B /opt/mylar3-fixes/patch_publication_launch_auth.py /opt/mylar-publication-launch/auth \
     && python3 -I -B /opt/mylar3-fixes/test_standalone_anchor_root.py --disposable-build-fixture \
     && python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && chmod 0644 /app/mylar3/mylar/config.py \
