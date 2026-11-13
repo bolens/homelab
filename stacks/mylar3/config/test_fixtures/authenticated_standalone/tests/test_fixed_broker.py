@@ -1,10 +1,12 @@
 """Explicit disposable installation projection; no actual root enrollment/auth launch claim."""
 import hashlib
+from contextlib import closing
 import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -22,54 +24,68 @@ def load(path,name):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 class BrokerTests(unittest.TestCase):
-    def resource_fixture(self,supported,*,scratch_free=10**9,foreign=False):
+    def resource_fixture(self,*,scratch_free=4*1024**3,data_free=2*1024**3,foreign=False):
         folder=self.root/'private-backups';folder.mkdir(mode=0o700)
-        original=self.m.os.lstat
+        original=self.m.os.lstat;calls=[]
         def owned(path,*args,**kwargs):
             z=original(path,*args,**kwargs)
             if Path(path)!=folder:return z
+            calls.append(True)
             values={name:getattr(z,name) for name in ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')}
-            values.update(st_uid=0,st_gid=0);return SimpleNamespace(**values)
-        identity=list(self.m.five(owned(folder)))
-        if foreign:identity[1]+=1
-        primitive=SimpleNamespace(qualify_reflink_restore=lambda path:dict(parent5=identity,reflink_restore=supported))
-        helper=SimpleNamespace(scratch_space=lambda frame:1024**2+40,required_space=lambda total,frame,*,reflink_restore:total*(1 if reflink_restore else 2)+2048)
-        def free(path):return SimpleNamespace(f_bavail=150*1024**2 if Path(path)==folder else scratch_free,f_frsize=1)
+            values.update(st_uid=0,st_gid=0)
+            if foreign and len(calls)>1:values['st_ino']+=1
+            return SimpleNamespace(**values)
+        binding=dict(mounts={'/repository':'/repository','/cache':'/cache'},container_id='c'*64)
+        primitive=SimpleNamespace(APPDATA_MAX_INDEX=64*1024**2,
+            appdata_restic_profile=lambda **kwargs:binding,
+            appdata_estimate=lambda scopes,files,**kwargs:dict(app_bytes=100*1024**2,media_bytes=100*1024**3,largest_app_file=10))
+        helper=SimpleNamespace(raw=lambda frame:None)
+        def free(path):return SimpleNamespace(f_bavail=scratch_free if str(path)=='/cache'else data_free,f_frsize=1)
         with patch.object(self.m,'BACKUP_PARENT',folder),patch.object(self.m.os,'lstat',owned),patch.object(self.m.os,'statvfs',free):
-            result=self.m._pack_backup_resources(primitive,helper,((('/source',(1,2,10,0,0,0o100600,0,0,1)),),(),()),100*1024**2,'a'*64)
+            result=self.m._pack_backup_resources(primitive,helper,((('/source',(1,2,10,0,0,0o100600,0,0,1)),),(),()),
+                100*1024**3,'a'*64,scopes=[],deadline=10**12)
         self.assertEqual(list(folder.iterdir()),[])
         return result
 
-    def test_pack_resource_admission_uses_qualified_restore_clone_only(self):
-        result=self.resource_fixture(True)
-        self.assertIs(result['reflink_restore'],True)
-        self.assertEqual(result['required'],100*1024**2+2048)
-        # A different private parent avoids adopting the prior fixture.
+    def test_pack_resource_admission_sizes_appdata_without_media_clones(self):
+        result=self.resource_fixture()
+        self.assertIs(result['reflink_restore'],False)
+        self.assertEqual(result['required'],100*1024**2+5*1024**2+64*1024**2+1024**3)
         (self.root/'private-backups').rmdir()
-        with self.assertRaisesRegex(self.m.Held,'backup-capacity'):self.resource_fixture(False)
+        with self.assertRaisesRegex(self.m.Held,'backup-capacity'):self.resource_fixture(data_free=1)
 
     def test_pack_resource_admission_checks_SQL_scratch_before_quiescence(self):
-        with self.assertRaisesRegex(self.m.Held,'SQL-scratch-capacity'):self.resource_fixture(True,scratch_free=1)
+        with self.assertRaisesRegex(self.m.Held,'SQL-scratch-capacity'):self.resource_fixture(scratch_free=1)
 
-    def test_pack_resource_admission_refuses_replaced_qualified_parent(self):
-        with self.assertRaisesRegex(self.m.Held,'clone-parent'):self.resource_fixture(True,foreign=True)
+    def test_pack_resource_admission_refuses_replaced_private_parent(self):
+        with self.assertRaisesRegex(self.m.Held,'original-backup-parent'):self.resource_fixture(foreign=True)
 
     def test_pack_terminal_rejects_wrong_catalog_commitment_before_later_facts(self):
-        # Only the catalog join is isolated here; genuine complete SQL and
-        # artifact decoding have separate composed/owning controls.
-        model=dict(schema=[],rows={});events=[]
+        # Read actual SQLite app-restores before the isolated catalog commitment
+        # check. No plaintext backup tree exists in the new storage contract.
+        events=[];reads=[];output=self.root/'appdata';restored=output/'restore/native_config';native=self.root/'native'
+        for root in(restored,native):
+            root.mkdir(parents=True)
+            for leaf in('workflow.sqlite','mylar.db'):
+                with closing(sqlite3.connect(root/leaf))as db:
+                    db.execute('CREATE TABLE protected(value TEXT)');db.execute("INSERT INTO protected VALUES ('preserve')");db.commit()
+        def sql(path,deadline):
+            self.assertTrue(path.is_file());reads.append(path)
+            with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True))as db:
+                return dict(schema=[],rows={'protected':db.execute('SELECT value FROM protected').fetchall()})
         parent=SimpleNamespace(decode_terminal_artifact=lambda *args:({'reply_text':json.dumps({'data':{'transition':{},'token':'a'*64}}),'catalog_before_sha256':'f'*64},{}),
-            retained_sql_model=lambda *args:model,verify_retained_sql=lambda *args,**kwargs:events.append('verified-SQL'),
+            retained_sql_model=sql,verify_retained_sql=lambda *args,**kwargs:events.append('verified-SQL'),
             _retained_sql_digest=lambda value:self.m.sha(self.m.canonical(value)))
         installation=SimpleNamespace(close=lambda:{})
-        state=dict(installation=installation,preflight=dict(native_data='/native',native_config='/native'),boot=dict(request={}),deadline=10**12)
+        state=dict(installation=installation,preflight=dict(native_data=str(native),native_config=str(native)),boot=dict(request={}),deadline=10**12)
         launch=SimpleNamespace(close=lambda:state)
-        original=dict(out='/backup',databases={'native_config:workflow.sqlite':{},'native_config:mylar.db':{}})
+        original=dict(out=str(output),databases={'native_config:workflow.sqlite':{},'native_config:mylar.db':{}})
         media=SimpleNamespace(close=lambda:events.append('later-media'))
         with patch.object(self.m,'owning_parent',return_value=parent),patch.object(self.m,'_pack_current_scopes',return_value=(original,{})):
             with self.assertRaisesRegex(self.m.Held,'original-catalog-observation'):
                 self.m._pack_terminal(launch,object(),media,{},b'{}',{})
-        self.assertEqual(events,['verified-SQL'])
+        self.assertEqual(reads,[restored/'workflow.sqlite',restored/'mylar.db',native/'workflow.sqlite',native/'mylar.db'])
+        self.assertFalse((output/'backup').exists());self.assertEqual(events,['verified-SQL'])
 
     def test_pack_target_witness_needs_no_ordinary_destination_history(self):
         request={'target_sha256':'a'*64}
