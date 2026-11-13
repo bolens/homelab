@@ -138,9 +138,11 @@ The separate disabled retained-pack parent keeps one selected worker and its
 original pipes and worker lock alive through initialization, consistent state
 backup, isolated restore, one member action, and the final result exchange. Its
 neutral backup covers native configuration, worker state and reader configuration.
-The retained-pack Root profile v2 uses the original existing local Restic owner
+The retained-pack Root profile v3 uses the original existing local Restic owner
 for app-only snapshots and independently restored app data. Media remains in
-place under the full source census, hashes and original custody. Its dedicated
+place under the full source census, hashes and original custody.
+An external Worker configuration is backed up as one exact JSON file, without
+selecting its parent or unrelated siblings. Its dedicated
 host primitives leave the existing Native SDK and legacy fixture primitives
 unchanged. Require the matching qualified Root installation before use. See
 [the app-only recovery contract](CONTRACT-appdata-restic.md).

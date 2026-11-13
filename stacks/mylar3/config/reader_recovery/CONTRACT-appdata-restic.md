@@ -5,7 +5,7 @@ Root recovery routes. The transport implementation alone grants no backup,
 reader-stop, publication, restart or cleanup authority. Keep those routes held
 until their owning factories and installed-source checks implement this contract.
 
-The fixed retained-pack policy v2 and standalone policy v3 implement the host
+The fixed retained-pack policy v3 and standalone policy v3 implement the host
 transport. Standalone keeps its four original source roles but sends only Native
 and reader app data to Restic. Its selected retained source and existing target
 remain in place. The original standalone observation type, complete SQL proof,
@@ -24,11 +24,14 @@ roles. Standalone backs up the complete Native `/config` mount, including app
 files outside DATA. Nested Native or Reader `/config` mounts hold until their
 effective multi-origin source coverage has a reviewed profile. Its effective configuration must belong to that original
 source census. Reader state stays host-only during Native directory-successor
-checks and remains in the complete terminal preservation frame. The current
-retained-pack profile refuses a Worker configuration outside its three backed
-app-data roots. Supporting a separate configuration file requires an explicit
-versioned file scope. The effective Worker configuration must also survive the
-app-data classifier. Nested mounts below the Worker state root hold. Archive recovery also retains its actual original and
+checks and remains in the complete terminal preservation frame. The retained-pack profile selects an external Worker configuration through an
+explicit v2 file scope when it lies outside the three app-data trees. This scope
+names the exact original bounded JSON object and restores only
+`worker_configuration/configuration.json`. It never enumerates or backs up the
+source parent directory. The same original full signature, hash, attributes and
+restored-file descriptors stay in the genuine backup observation through terminal
+closure. Files already covered by a tree must survive its app-data classifier.
+Nested mounts below the Worker state root hold. Archive recovery also retains its actual original and
 custody archives.
 
 Back up configuration, databases with required companions, operational controls
