@@ -168,6 +168,11 @@ def _owner_read(roots,streams,deadline):
                 if text in anchors:continue
                 flags=os.O_PATH|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
                 try:fd=os.open('/',flags) if text=='/' else os.open(path.name,flags,dir_fd=anchors[str(path.parent)][0])
+                except PermissionError:
+                    # A root-squashed NFS ancestor may permit UID1000 but
+                    # refuse Root. Leave that suffix to the original owner
+                    # traversal; already-held prefix descriptors stay exact.
+                    break
                 except OSError:raise ValueError('owner-observation-anchor-refused') from None
                 try:original=five(os.fstat(fd))
                 except BaseException:
@@ -196,9 +201,10 @@ def _owner_read(roots,streams,deadline):
                 except BaseException:pass
                 os._exit(1)
         os.close(write_fd);write_fd=None;parts=[];size=0
+        poller=select.poll();poller.register(read_fd,select.POLLIN|select.POLLHUP|select.POLLERR)
         while True:
             remaining=deadline-time.monotonic()
-            need(remaining>0 and select.select([read_fd],[],[],remaining)[0],'owner-observation-parent-deadline')
+            need(remaining>0 and poller.poll(max(1,math.ceil(remaining*1000))),'owner-observation-parent-deadline')
             block=os.read(read_fd,65536)
             if not block:break
             size+=len(block);need(size<=MAX_WIRE,'owner-observation-parent-wire-bound');parts.append(block)

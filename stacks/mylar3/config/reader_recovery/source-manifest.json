@@ -19,7 +19,7 @@
       "sha256": "f22fc49b32df8b01a1173e839e6e403a261d2306f525f4233237e583b6044464"
     },
     "CONTRACT-retained-pack.md": {
-      "sha256": "2a1335a4510071c7bd0015e5da6dadd77336f7ecd835421abf5bdb11fef90e10"
+      "sha256": "9d60f8eb83007f8cda4f39db2038be71c95c08522fd02fff00102c2740d895de"
     },
     "CONTRACT-stopped-nfs-handoff.md": {
       "sha256": "b0bdda9a77f36255a6a6fc7e811a8cc4ece0f480170b5ccbef5f8775451f48cc"
@@ -493,7 +493,7 @@
       "sha256": "8e89ad2d30f06374382070f3bd78fdcd2f108865d2db921fe4116cbd4b51148a"
     },
     "comic_retained_pack_observation.py": {
-      "sha256": "b67b7f077a0ac81e1f28f5fe55afbd6c03c36d78106d5660f516bb7574b89654"
+      "sha256": "c8fd89c7c508d794cf3a522c852811327a5b6886fb294eafda24483e84a2e0a0"
     },
     "comic_retained_pack_parent.py": {
       "sha256": "6b8cb7901428f4a1d248cf6704397f8faaf318110808b735a7ffb8d291b838e6"
@@ -844,7 +844,7 @@
       "sha256": "2a9f94a151ca0e586f4e65d159fed0968936bf1f5c275aba9a10e8a7af90c30d"
     },
     "test_retained_pack_observation.py": {
-      "sha256": "921c7a0fdffd6ae67c68b67b767da8decfb51ed4cff438c3ec7a1d0758799333"
+      "sha256": "f7a8a51f2320250daf63cd223e279149bd79ada71a133c5e5c0f78f347f77943"
     },
     "test_retained_pack_runtime.py": {
       "sha256": "5f02d7480dab3806c3cfa47eb8ee73f1d5d8bb797ce08b1526f54c34ea0fd500"

@@ -107,6 +107,27 @@ class OwnerReads(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'original-anchor'):self.capture()
         self.assertEqual(set(os.listdir('/proc/self/fd')),before)
 
+    def test_denied_parent_anchor_preserves_actual_owner_traversal(self):
+        parent=os.getpid();opened=os.open;denied=[]
+        def deny(path,flags,*args,**kwargs):
+            if os.getpid()==parent and path==self.media.name and flags & os.O_PATH:
+                denied.append(True);raise PermissionError('simulated root-squashed ancestor')
+            return opened(path,flags,*args,**kwargs)
+        with patch.object(observation.os,'open',side_effect=deny):
+            held=self.capture();self.assertEqual(held.close()['hashes'][str(self.payload)],
+                                              hashlib.sha256(self.payload.read_bytes()).hexdigest())
+        self.assertTrue(denied)
+
+    def test_denied_parent_anchor_cannot_bypass_owner_directory_permissions(self):
+        parent=os.getpid();opened=os.open
+        def deny(path,flags,*args,**kwargs):
+            if os.getpid()==parent and path==self.media.name and flags & os.O_PATH:
+                raise PermissionError('simulated root-squashed ancestor')
+            return opened(path,flags,*args,**kwargs)
+        self.media.chmod(0);self.addCleanup(self.media.chmod,0o700)
+        with patch.object(observation.os,'open',side_effect=deny):
+            with self.assertRaisesRegex(ValueError,'child-permission'):self.capture()
+
     def test_failed_initial_anchor_stat_closes_new_descriptor(self):
         original=os.fstat;before=set(os.listdir('/proc/self/fd'));fired=[]
         def fail(fd):
@@ -115,6 +136,17 @@ class OwnerReads(unittest.TestCase):
         with patch.object(observation.os,'fstat',side_effect=fail):
             with self.assertRaisesRegex(OSError,'initial anchor stat refused'):self.capture()
         self.assertTrue(fired);self.assertEqual(set(os.listdir('/proc/self/fd')),before)
+
+    def test_actual_owner_pipe_above_select_descriptor_limit(self):
+        descriptors=[]
+        try:
+            while not descriptors or descriptors[-1]<=1030:
+                descriptors.append(os.open('/dev/null',os.O_RDONLY|os.O_CLOEXEC))
+            held=self.capture()
+            self.assertEqual(held.close()['hashes'][str(self.payload)],
+                             hashlib.sha256(self.payload.read_bytes()).hexdigest())
+        finally:
+            for descriptor in reversed(descriptors):os.close(descriptor)
 
     def test_constructor_cannot_hydrate_saved_observation(self):
         with self.assertRaisesRegex(ValueError, 'Original owner observation'):
