@@ -93,7 +93,7 @@ class BrokerTests(unittest.TestCase):
         with self.assertRaisesRegex(self.m.Held,'SQL-scratch-capacity'):
             self.standalone_resources(scratch_free=1)
 
-    def resource_fixture(self,*,scratch_free=4*1024**3,data_free=2*1024**3,foreign=False):
+    def resource_fixture(self,*,scratch_free=4*1024**3,data_free=2*1024**3,foreign=False,sample_changes=None):
         folder=self.root/'private-backups';folder.mkdir(mode=0o700)
         original=self.m.os.lstat;calls=[]
         def owned(path,*args,**kwargs):
@@ -105,14 +105,15 @@ class BrokerTests(unittest.TestCase):
             if foreign and len(calls)>1:values['st_ino']+=1
             return SimpleNamespace(**values)
         binding=dict(mounts={'/repository':'/repository','/cache':'/cache'},container_id='c'*64)
+        estimate=dict(app_bytes=100*1024**2,media_bytes=100*1024**3,largest_app_file=10,
+                      nodes_sampled=3,preliminary=True,source_preservation=False,backup_authority=False)
+        if sample_changes is not None:estimate.update(sample_changes)
         primitive=SimpleNamespace(APPDATA_MAX_INDEX=64*1024**2,
             appdata_restic_profile=lambda **kwargs:binding,
-            appdata_estimate=lambda scopes,files,**kwargs:dict(app_bytes=100*1024**2,media_bytes=100*1024**3,largest_app_file=10))
-        helper=SimpleNamespace(raw=lambda frame:None)
+            appdata_capacity_sample=lambda scopes,**kwargs:dict(estimate))
         def free(path):return SimpleNamespace(f_bavail=scratch_free if str(path)=='/cache'else data_free,f_frsize=1)
         with patch.object(self.m,'BACKUP_PARENT',folder),patch.object(self.m.os,'lstat',owned),patch.object(self.m.os,'statvfs',free):
-            result=self.m._pack_backup_resources(primitive,helper,((('/source',(1,2,10,0,0,0o100600,0,0,1)),),(),()),
-                100*1024**3,'a'*64,scopes=[],deadline=10**12)
+            result=self.m._pack_backup_resources(primitive,'a'*64,scopes=[],deadline=10**12)
         self.assertEqual(list(folder.iterdir()),[])
         return result
 
@@ -121,6 +122,12 @@ class BrokerTests(unittest.TestCase):
         self.assertIs(result['reflink_restore'],False)
         self.assertEqual(result['required'],100*1024**2+5*1024**2+64*1024**2+1024**3)
         (self.root/'private-backups').rmdir()
+        for changes in ({'backup_authority':True},{'source_preservation':True},{'preliminary':False},
+                        {'app_bytes':True},{'largest_app_file':512*1024**3},{'frame':()},
+                        {'nodes_sampled':100001}):
+            with self.subTest(changes=changes),self.assertRaisesRegex(self.m.Held,'preliminary-capacity-sample'):
+                self.resource_fixture(sample_changes=changes)
+            (self.root/'private-backups').rmdir()
         with self.assertRaisesRegex(self.m.Held,'backup-capacity'):self.resource_fixture(data_free=1)
 
     def test_pack_resource_admission_checks_SQL_scratch_before_quiescence(self):
