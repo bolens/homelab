@@ -1,0 +1,7 @@
+# Explicit opt-in. Requires the reviewed patched agent, never the official image.
+# Supply WOODPECKER_CGROUP_AGENT_IMAGE through --env-file stack.env.
+services:
+  agent:
+    image: ${WOODPECKER_CGROUP_AGENT_IMAGE:?set an immutable reviewed patched agent image}
+    environment:
+      WOODPECKER_BACKEND_DOCKER_CGROUP_PARENT: woodpecker-ci.slice

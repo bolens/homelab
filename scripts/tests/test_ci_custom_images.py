@@ -60,6 +60,7 @@ class ImageSelectionTests(unittest.TestCase):
         # Keep reasons aligned with documents/CUSTOM-IMAGES.md. A new Dockerfile
         # must enter the publish matrix or receive a reviewed exclusion.
         excluded = {
+            "stacks/woodpecker-ci/agent-patches/Dockerfile",  # Reviewed local binary supplier, explicitly transferred to CI hosts.
             "stacks/woodpecker-ci/publisher-broker/Dockerfile",  # Explicit local-only optional credential broker.
             "stacks/ail-framework/Dockerfile.build",  # Untracked vendor source.
             "stacks/paperclip/codex-git.Dockerfile",  # Explicit operator-local workaround.

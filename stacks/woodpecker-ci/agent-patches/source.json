@@ -1,0 +1,19 @@
+{
+  "upstreamVersion": "3.20.1",
+  "upstreamCommit": "3f1bb0bd0db28e410ad797034d75780116122c91",
+  "upstreamArchiveSha256": "253dd24b6f4c4ac733c92bb962b4522d6a8b1fa7ffb9024b566665ab9bb551e7",
+  "goVersion": "1.27.3",
+  "target": "linux/amd64",
+  "agentVersion": "3.20.1+networkcreate.1.cgroupparent.1",
+  "baseImage": "woodpeckerci/woodpecker-agent:v3.20.1@sha256:a7d7299a13add0b3936fa0ac9ed23507fe283a7fc7d9596c4289d7e8206541eb",
+  "patches": [
+    {
+      "path": "network-create.patch",
+      "sha256": "068a4fce3dc10279dfb68b6e542d952b522947e6f4463fd212ba1e3c07e40e06"
+    },
+    {
+      "path": "cgroup-parent.patch",
+      "sha256": "94c7ab1ffe323f5808cd9f5a1263f11e94726fb78320f2272eb34d574d559bf1"
+    }
+  ]
+}
