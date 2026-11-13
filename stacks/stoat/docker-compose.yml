@@ -157,7 +157,7 @@ services:
   api:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/api:v0.16.4
+    image: ghcr.io/stoatchat/api:v0.16.4@sha256:0a495b947d2b33398364f0caec3937860fc2d2ceb9be17e2c46705026adcc73c
     container_name: stoat-api
     restart: unless-stopped
     env_file:
@@ -188,7 +188,7 @@ services:
   events:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/events:v0.16.4
+    image: ghcr.io/stoatchat/events:v0.16.4@sha256:7ab7b3f071b1665df2e4dc272ba6a037defd2b0fa350f222f87050f5e5ac8a16
     container_name: stoat-events
     restart: unless-stopped
     env_file:
@@ -217,7 +217,7 @@ services:
   autumn:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/file-server:v0.16.4
+    image: ghcr.io/stoatchat/file-server:v0.16.4@sha256:1c98cd336d766efad3f9d8719cd145dadb1cd891ea1c8d3f4f0424196b7525e3
     container_name: stoat-autumn
     restart: unless-stopped
     env_file:
@@ -246,7 +246,7 @@ services:
   january:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/proxy:v0.16.4
+    image: ghcr.io/stoatchat/proxy:v0.16.4@sha256:384c8f947d6a88541c18e2868f23591d4d6a3eb243b44861d92c1c381a526245
     container_name: stoat-january
     restart: unless-stopped
     env_file:
@@ -270,7 +270,7 @@ services:
   gifbox:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/gifbox:v0.16.4
+    image: ghcr.io/stoatchat/gifbox:v0.16.4@sha256:cba63ccaea6884e23e7977b9e015b11deb71251f2e484e40de596ef81fd0f9c5
     container_name: stoat-gifbox
     restart: unless-stopped
     env_file:
@@ -294,7 +294,7 @@ services:
   crond:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/crond:v0.16.4
+    image: ghcr.io/stoatchat/crond:v0.16.4@sha256:bb33c9b7372f67d20e212575cc08a13df624f2946946975bb270473fc27b78b4
     container_name: stoat-crond
     restart: unless-stopped
     env_file:
@@ -323,7 +323,7 @@ services:
   pushd:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/pushd:v0.16.4
+    image: ghcr.io/stoatchat/pushd:v0.16.4@sha256:a57c9e2596a0ebbafce60fed7afaf49fb36d1116372fb1f6c23d38f76d2061ab
     container_name: stoat-pushd
     restart: unless-stopped
     env_file:
@@ -354,7 +354,7 @@ services:
   voice-ingress:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/voice-ingress:v0.16.4
+    image: ghcr.io/stoatchat/voice-ingress:v0.16.4@sha256:4f0f532e53e800e1f5bbf1ae69f8fe67ef972f12599663d4ef6f0fc8085b3121
     container_name: stoat-voice-ingress
     restart: unless-stopped
     env_file:

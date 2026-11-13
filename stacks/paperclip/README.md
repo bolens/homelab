@@ -7,7 +7,7 @@ Paperclip includes email/password authentication through Better Auth.
 - [Documentation](https://docs.paperclip.ing)
 - [Source](https://github.com/paperclipai/paperclip)
 - [Container image](https://github.com/paperclipai/paperclip/pkgs/container/paperclip)
-- [Pinned release](https://github.com/paperclipai/paperclip/releases/tag/v2026.1023.0)
+- [Pinned release](https://github.com/paperclipai/paperclip/releases/tag/v2026.1106.0)
 
 ## Deployment
 
@@ -79,7 +79,7 @@ provider credential directory, Docker socket, or device is mounted.
 
 ## Storage and runtime
 
-The digest-pinned `2026.1023.0` image runs the server and bundled agent CLIs.
+The digest-pinned `2026.1106.0` image runs the server and bundled agent CLIs.
 Public authenticated mode requires a separate PostgreSQL connection. A pinned
 PostgreSQL 17 service stores its database in `paperclip_paperclip_pgdata` on the
 private stack network, with no host port or Caddy network access. Named volume
@@ -92,6 +92,21 @@ port published. Public exposure uses authenticated mode with an explicit URL.
 The app has a 2 CPU, 4 GiB memory, and 2048 process ceiling. PostgreSQL has
 a 1 CPU and 1 GiB memory ceiling. Agent workloads
 share these limits. Raise them deliberately if agent runs need more resources.
+
+## Selected release and existing overrides
+
+[2026.1106.0](https://github.com/paperclipai/paperclip/releases/tag/v2026.1106.0)
+removes the Pipelines experiment while retaining its stored records. New agents
+use the native Runner on supported hosts; existing agents retain their runner.
+Run-history API clients must paginate, and run-failure reporting is now opt-in.
+Review those changes against the existing agent and API configuration before an
+operator upgrades the service.
+
+The optional Codex Git workaround below remains a separate, explicitly pinned
+`2026.1023.0` image with its original source-hash guards. Selecting that override
+keeps that image rather than the updated base image. Its maintained port or
+retirement needs its own source and authentication verification. Preserve the
+existing override selection until that work is accepted.
 
 ## Codex and private GitHub repositories
 

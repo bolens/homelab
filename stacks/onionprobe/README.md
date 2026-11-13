@@ -61,3 +61,12 @@ Ensure the stack is on the `ingress-admin` network so Caddy can reach `op-grafan
 
 From this directory: `./clone-repo.sh` once, then `docker compose up -d`.  
 In Portainer: clone the repo into the stack folder (or mount it), add the stack, ensure `ingress-admin` network exists, deploy.
+
+## Alertmanager 0.35 compatibility
+
+[0.35.0](https://github.com/prometheus/alertmanager/releases/tag/v0.35.0) replaces
+`--enable-feature=auto-gomemlimit` with `--auto-gomemlimit`. Event-recorder outputs
+need explicit names and use the new events/v2 schema. The tracked service passes
+only its existing configuration and storage flags. Review the selected upstream
+configuration and any private overrides for those changed interfaces before an
+operator deploys the new image.

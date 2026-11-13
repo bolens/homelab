@@ -42,7 +42,7 @@ services:
   op-alertmanager:
     labels:
       logging: "true"
-    image: quay.io/prometheus/alertmanager:v0.35.0
+    image: quay.io/prometheus/alertmanager:v0.35.0@sha256:5f6e66c01bd610aef6dd671642a52eee775fd3a89bd8788ebada33efaf373d10
     container_name: onionprobe-alertmanager
     restart: unless-stopped
     volumes:
