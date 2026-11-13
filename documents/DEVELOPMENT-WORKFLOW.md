@@ -222,8 +222,13 @@ Duplicate hosted Source lint, Dockerfile Lint, Workflow Security and Weekly Main
 ## 4. Woodpecker CI
 
 Enable the intended repository on the native GitHub or Gitea forge and use the
-root `.woodpecker.yml`. It retains the single `woodpecker` result on every push,
-PR, manual run and cron, without path filters that could omit a required result.
+root `.woodpecker.yml`. It retains the single `woodpecker` result on pull
+requests, default-branch pushes, manual runs and cron. Feature-branch pushes
+receive native validation when their pull request opens or updates. This avoids
+duplicate push and PR runs for the same feature commit. The default branch uses
+`CI_REPO_DEFAULT_BRANCH`, so merged-main validation follows the forge setting.
+Manual and cron runs remain available on other branches. No path filters omit a
+required result.
 The Linux Docker backend needs no published port, host mount, Docker socket,
 privileged step, registry login or pipeline secret for these checks.
 
@@ -236,6 +241,8 @@ The pipeline runs:
 - the existing Komga source/compile controls with JDK 21;
 - the default-CI Kavita compiler controls with .NET SDK 10.0.403 and Node 26.7.0,
   requiring at least nine executed tests and no skips;
+- the private AIL Pystemon runtime controls on Ubuntu 22.04, without starting
+  collectors or replacing full AIL image and startup verification;
 - the locked Playwright/Axe site suite using the existing Chrome channel;
 - publisher-broker race tests and vet; and
 - internal documentation links on cron/manual runs, with external URLs remaining

@@ -297,7 +297,10 @@ class MandatoryCoverageTests(unittest.TestCase):
     def test_native_core_and_explicit_sdk_jdk_lanes_are_unconditional(self):
         pipeline = yaml.safe_load((ROOT / '.woodpecker.yml').read_text())
         self.assertEqual(pipeline['clone']['git']['settings'], {'depth': 0, 'partial': False})
-        self.assertEqual(pipeline['when'][0]['event'], ['push', 'pull_request', 'manual', 'cron'])
+        self.assertEqual(pipeline['when'], [
+            {'event': 'push', 'branch': '${CI_REPO_DEFAULT_BRANCH}'},
+            {'event': ['pull_request', 'manual', 'cron']},
+        ])
         steps = {step['name']: step for step in pipeline['steps']}
         for name in ['gitleaks', 'repository-validation', 'source-and-workflow-policy',
                      'komga-source-controls', 'kavita-dotnet-controls', 'site-quality',
@@ -312,6 +315,41 @@ class MandatoryCoverageTests(unittest.TestCase):
                       (ROOT / 'stacks/ail-framework/Dockerfile.build').read_text())
         self.assertIn('bash scripts/ci/check-native.sh pystemon',
                       steps['ail-pystemon-controls']['commands'])
+
+    def test_native_event_truth_table_excludes_only_feature_pushes(self):
+        pipeline = yaml.safe_load((ROOT / '.woodpecker.yml').read_text())
+        links = next(step for step in pipeline['steps']
+                     if step['name'] == 'weekly-documentation-links')
+        # Woodpecker 3.20 constraints OR alternatives and AND each alternative's
+        # event/branch conditions. The default-branch variable is interpolated
+        # before constraint matching. This checks the tracked policy, not a live run.
+        def matches(conditions, event, branch, default_branch):
+            return any(
+                event in ([row['event']] if isinstance(row['event'], str) else row['event'])
+                and ('branch' not in row or branch == row['branch'].replace(
+                    '${CI_REPO_DEFAULT_BRANCH}', default_branch))
+                for row in conditions
+            )
+
+        for default_branch in ['main', 'trunk']:
+            cases = [
+                ('push', default_branch, True, False),
+                ('push', 'codex/example', False, False),
+                ('pull_request', default_branch, True, False),
+                ('pull_request', 'release', True, False),
+                ('manual', default_branch, True, True),
+                ('manual', 'codex/example', True, True),
+                ('cron', default_branch, True, True),
+                ('cron', 'release', True, True),
+                ('tag', 'v1', False, False),
+                ('release', default_branch, False, False),
+            ]
+            for event, branch, expected, expected_links in cases:
+                with self.subTest(default_branch=default_branch, event=event, branch=branch):
+                    actual = matches(pipeline['when'], event, branch, default_branch)
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(actual and matches([links['when']], event, branch,
+                                                        default_branch), expected_links)
 
     def test_only_pure_hosted_jobs_have_the_default_off_retirement_guard(self):
         jobs = {'repository-validation.yml': ['validate', 'site-quality'], 'source-lint.yml': ['lint'],
