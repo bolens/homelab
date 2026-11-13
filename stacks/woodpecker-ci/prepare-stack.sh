@@ -26,4 +26,6 @@ if [[ "${WOODPECKER_PREPARE_PUBLISHER_BROKER:-0}" == 1 ]]; then
   fi
   prepare_stack_msg "publisher broker placeholders prepared; configure private files and matching UID/GID before explicit deployment"
 fi
+# docker-compose.cgroup-parent.yml.example is administrator-selected, never copied or activated.
+prepare_stack_msg "optional cgroup-parent override and host slice require explicit administrator installation; preparation leaves both inactive"
 prepare_stack_end

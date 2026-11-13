@@ -1,0 +1,6 @@
+[Unit]
+Description=Woodpecker CI build containers
+
+[Slice]
+MemoryAccounting=yes
+MemorySwapMax=0

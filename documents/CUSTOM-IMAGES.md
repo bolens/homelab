@@ -45,6 +45,13 @@ See its [owning contract](../stacks/woodpecker-ci/publisher-broker/README.md). P
 it is an explicitly selected operator-local workaround for one upstream release,
 not the default stack image. Its base-image updates remain monitored.
 
+The optional [Woodpecker agent repair](../stacks/woodpecker-ci/agent-patches/README.md)
+is also an explicit local-only supplier. Its Dockerfile consumes the separately
+qualified static agent binary from a generated image-only context. It is excluded
+from automatic publication until CI owns that source-build and binary admission
+contract. Administrators transfer the same reviewed immutable image to each CI
+host. Its base-image updates remain monitored and require coupled source review.
+
 ## Comic automation
 
 - `ghcr.io/bolens/homelab-mylar3` includes DDL recovery, import problems,
