@@ -781,7 +781,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_backup.py",
-    "sha256": "8ea0d6b8056e0bea127da485996ed9c6b654d1547b540a8895e6647fc5dad378",
+    "sha256": "cc3c107b81635de5c9081c844e6da20e2411897ce6c8ff81d147a68af54b3821",
     "target": "reader_recovery/comic_retained_pack_backup.py"
   },
   {
@@ -861,7 +861,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "827e3b85c481d76b8a36a7d59ae96e335f489e77760aa3f7050047b53ce3f7a5",
+    "sha256": "a20d394d5c4e2eb8b47bbd26e7e6019330909c46647c36a68bc8cbef1fb33877",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -2081,7 +2081,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "5b02bc481c0654bf797c10a879832a0fab9052dc4d0ba8ddf3757c81242078e4",
+    "sha256": "7648dd947c7340def9c2b46ed6a9ce60f3fc6d190449823901fe3c4083b5f2d1",
     "target": "standalone_launch_host/comic_retained_standalone_broker.py"
   },
   {
@@ -2198,5 +2198,20 @@
     "path": "reader_recovery/test_helper_profiles.py",
     "target": "reader_recovery/test_helper_profiles.py",
     "sha256": "fcdc4f91b12b64cfd40609d0f0e726ad69e43ec6b30adc16ec4d19eedff1cb92"
+  },
+  {
+    "path": "standalone_launch_host/comic_appdata_restic_primitives.py",
+    "sha256": "94578d4636abe3ac7fd3bea0ffdf2ece3b99b5935cb4b6bbf0c6060673a2176d",
+    "target": "standalone_launch_host/comic_appdata_restic_primitives.py"
+  },
+  {
+    "path": "reader_recovery/CONTRACT-appdata-restic.md",
+    "sha256": "141b3cdffe4426112a137ae7ccb35ebbfdb091c135fbc2289828fca98e77cb1c",
+    "target": "reader_recovery/CONTRACT-appdata-restic.md"
+  },
+  {
+    "path": "reader_recovery/test_appdata_transport.py",
+    "sha256": "9a521edaace64092b4214dbcfd232569a4cbc733fe0433342692cf939d92b13e",
+    "target": "reader_recovery/test_appdata_transport.py"
   }
 ]

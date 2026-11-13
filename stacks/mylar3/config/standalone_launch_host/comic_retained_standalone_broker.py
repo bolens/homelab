@@ -9,7 +9,6 @@ import select
 import sys
 import subprocess
 import threading
-import tempfile
 import time
 import weakref
 
@@ -31,12 +30,12 @@ NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
          'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py',
          'comic_retained_standalone_broker.py','comic_native_process_probe.py',
          'publication_native_configured_scope.py','BOOTSTRAP.py')
-PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
+PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py','comic_appdata_restic_primitives.py',
               'comic_reader_lifecycle_parent.py',
               'comic_retained_pack_backup.py','comic_retained_pack_observation.py','retained_pack_control.py','comic_retained_pack_parent.py','comic_retained_native_control.py',
               'comic_retained_standalone_broker.py','comic_native_process_probe.py',
               'publication_native_configured_scope.py','BOOTSTRAP.py')
-PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v1:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
+PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v2:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:media-originals-in-place:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
 
 
 def installation_contract(document):
@@ -553,18 +552,21 @@ def _pack_existing_target(review,request,member):
     return text
 
 
-def _pack_backup_resources(primitive,helper,current,bytes_needed,nonce):
+def _pack_backup_resources(primitive,helper,current,bytes_needed,nonce,*,scopes,deadline):
     parent9=nine(os.lstat(BACKUP_PARENT))
     if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
-    clone=primitive.qualify_reflink_restore(BACKUP_PARENT)
-    if tuple(clone['parent5'])!=five(os.lstat(BACKUP_PARENT)):raise Held('fixed-pack-clone-parent')
-    # Probe creation changes the parent's timestamps; bind its final original.
-    parent9=nine(os.lstat(BACKUP_PARENT))
-    free=os.statvfs(BACKUP_PARENT);required=helper.required_space(bytes_needed,current,reflink_restore=clone['reflink_restore'])
-    scratch=os.statvfs(tempfile.gettempdir())
-    if scratch.f_bavail*scratch.f_frsize<helper.scratch_space(current):raise Held('fixed-pack-SQL-scratch-capacity')
-    if free.f_bavail*free.f_frsize<required:raise Held('fixed-pack-backup-capacity')
-    return dict(backup_parent9=parent9,required=required,reflink_restore=clone['reflink_restore'])
+    binding=primitive.appdata_restic_profile(deadline=deadline)
+    estimate=primitive.appdata_estimate(scopes,current[0],deadline=deadline)
+    helper.raw(current)
+    if nine(os.lstat(BACKUP_PARENT))!=parent9:raise Held('fixed-pack-original-backup-parent')
+    required=estimate['app_bytes']+(estimate['app_bytes']+19)//20+primitive.APPDATA_MAX_INDEX+1024**3
+    scratch_required=4*estimate['largest_app_file']+1024**2
+    scratch=os.statvfs(binding['mounts']['/cache'])
+    if scratch.f_bavail*scratch.f_frsize<scratch_required:raise Held('fixed-pack-SQL-scratch-capacity')
+    for path in (BACKUP_PARENT,binding['mounts']['/repository']):
+        free=os.statvfs(path)
+        if free.f_bavail*free.f_frsize<required:raise Held('fixed-pack-backup-capacity')
+    return dict(backup_parent9=parent9,required=required,reflink_restore=False,restic_binding=binding)
 
 
 def _pack_preflight(installation,runtime,boot,nonce):
@@ -640,8 +642,8 @@ def _pack_preflight(installation,runtime,boot,nonce):
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
     helper=row['modules']['comic_retained_pack_backup.py'];current,bytes_needed=helper.snapshot([Path(s['root']) for s in scopes],source_links=True)
-    if 2*bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-two-copy-byte-bound')
-    resources=_pack_backup_resources(row['modules']['comic_reader_backup_primitives.py'],helper,current,bytes_needed,nonce)
+    if bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-source-byte-bound')
+    resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],helper,current,bytes_needed,nonce,scopes=scopes,deadline=runtime.deadline)
     parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
     return dict(scopes=scopes,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
                 worker_state=str(state),state_child=state_child,native_data=str(data),native_config=str(native_root),
@@ -1306,8 +1308,8 @@ def _pack_terminal(launch,backup,media,header,artifact,reference):
     reply=document(body['reply_text'].encode());transition=reply['data']['transition'];token=reply['data']['token']
     original,measured=_pack_current_scopes(backup,deadline=state['deadline'])
     data=Path(plan['native_data']);native_root=Path(plan['native_config'])
-    workflow_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'workflow.sqlite',state['deadline'])
-    catalog_before=parent.retained_sql_model(Path(original['out'])/'backup/native_config'/data.relative_to(native_root)/'mylar.db',state['deadline'])
+    workflow_before=parent.retained_sql_model(Path(original['out'])/'restore/native_config'/data.relative_to(native_root)/'workflow.sqlite',state['deadline'])
+    catalog_before=parent.retained_sql_model(Path(original['out'])/'restore/native_config'/data.relative_to(native_root)/'mylar.db',state['deadline'])
     workflow=parent.retained_sql_model(data/'workflow.sqlite',state['deadline'])
     catalog=parent.retained_sql_model(data/'mylar.db',state['deadline'])
     database=lambda name:original['databases']['native_config:'+str(data.relative_to(native_root)/name)]
@@ -1385,13 +1387,14 @@ def _run_pack_original(launch):
     if media.data()['hashes'].get(plan['target'])!=request['target_sha256']:raise Held('fixed-pack-current-target-content')
     first.close();media.close();launch.close()
     helper=state['installation'].close()['modules']['comic_retained_pack_backup.py']
-    primitive=PACKAGE/'comic_reader_backup_primitives.py'
+    primitive=PACKAGE/'comic_appdata_restic_primitives.py'
     primary=None;observer=None
     try:
         if nine(os.lstat(BACKUP_PARENT))!=tuple(plan['backup_parent9']):raise Held('fixed-pack-original-backup-parent')
         observer=state['runtime'].quiesce()
         backup=helper.copy_and_verify(plan['scopes'],Path(plan['output']),primitive,state['installation'].close()['document']['host_sources'][primitive.name],
-            deadline=state['deadline'],reflink_restore=plan['reflink_restore'])
+            deadline=state['deadline'],reflink_restore=plan['reflink_restore'],restic_appdata=True)
+        if helper._OBS[backup]['restic']['binding']!=plan['restic_binding']:raise Held('fixed-pack-original-Restic-binding')
         summary=backup.close();media.close()
     except BaseException as error:
         primary=error

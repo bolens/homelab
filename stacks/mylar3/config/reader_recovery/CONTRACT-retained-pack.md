@@ -4,7 +4,7 @@ This retained-recovery protocol remains default-disabled. Its original same-live
 
 ## Files and identities
 
-Install locations for a future reviewed integration are `stacks/mylar3/config/reader_recovery/comic_retained_pack_parent.py` and adjacent `comic_retained_pack_backup.py`, and `stacks/komga/normalizer/retained_pack_control.py`. The parent also needs an adjacent byte-identical control module for its pipe mechanism, plus existing neutral `comic_reader_backup_primitives.py`. The parent reuses the existing reader profile comparators for owned stop/start transitions; it imports no Reader-specific phase or negative-five capability. The copied primitive source is an existing dependency, not a production edit.
+Install locations for a reviewed integration are `stacks/mylar3/config/reader_recovery/comic_retained_pack_parent.py` and adjacent `comic_retained_pack_backup.py`, and `stacks/komga/normalizer/retained_pack_control.py`. The parent also needs an adjacent byte-identical control module for its pipe mechanism. Root profile v2 uses the separately pinned host-only `comic_appdata_restic_primitives.py`; legacy copy fixtures retain `comic_reader_backup_primitives.py`. The parent reuses the existing reader profile comparators for owned stop/start transitions; it imports no Reader-specific phase or negative-five capability.
 
 The worker uses actual Normalizer, Maintenance, OperationsV2 session, Writer, source frames, action and fixed finalize/status transport. It holds the actual existing worker.lock FD across initialization, waiting, selection and result. Selection starts only after the original parent challenge joins its actual sealed BackupObservation. There is no session/action/observation deserializer, generic inspect engine parameter, backup callback or repeated finalize.
 
@@ -39,7 +39,7 @@ the newly owned replacement; it does not chmod the original. Intent and terminal
 journal files remain `0600`. Post-capture mode, owner, link or identity drift
 still refuses through the complete original frame.
 
-Private NFS backup copies may gain only the server's exact trivial, mode-derived
+Legacy plaintext-copy fixtures may gain only the server's exact trivial, mode-derived
 `system.nfs4_acl` when the original lacks it. The transport predicate admits only
 the canonical OWNER@/GROUP@/EVERYONE@ encoding, with zero flags and exact POSIX
 mode permissions; named, inherited, reordered or altered ACLs refuse before
@@ -48,21 +48,25 @@ exact. General logical comparison stays strict; copy comparisons use the checked
 transport predicate. Original physical full9 witnesses still detect any later ACL
 presence or byte changes. Restoration to the source filesystem must reproduce the
 original attribute map, including absence of this server-derived ACL.
+Root profile v2 verifies exact restored attributes through its held descriptors;
+it does not admit this legacy extra-ACL allowance.
 
-Both detached copies receive complete content and SQLite verification before
-an in-process observation is published. Later checks reuse that proof only
+The actual encrypted Restic snapshot and one independent app-data restore receive
+complete content, attribute and SQLite verification before an in-process
+observation is published. Later checks reuse that proof only
 while its original file identities, metadata, attributes, namespaces, source
 code, owner, registry and deadline remain exact. Saved JSON cannot restore this
 proof. Post-transaction application and SQL observations remain fresh.
 
-The configured Root path may stream the live scopes into an independent
-backup, then reflink that immutable backup into the restore tree on the same
-destination filesystem. It first qualifies the actual private destination's
-creation policy before quiescence. A failed clone holds without a streaming
-fallback after reduced-space admission. Both copies have separate single-link
-inodes and COW isolation; they share a storage failure domain. Capacity includes
-one materialized copy only when qualified, the unchanged reserve and bounded
-SQLite scratch. The logical two-copy byte ceiling remains unchanged.
+The configured Root profile v2 streams only enumerated app data through the
+existing local Restic owner. It verifies the actual snapshot and independently
+restores app data into an exclusive private tree. Held media stays in place under
+the complete original census, hashes and physical custody. Capacity covers the
+app artifact, independent app restore, reserve and bounded SQLite scratch.
+Bind the original repository, encrypted snapshot, restore descriptors and output
+ancestry through final closure. The legacy plaintext-copy and reflink paths are
+fixture controls and do not satisfy this profile. Follow
+[the app-only recovery contract](CONTRACT-appdata-restic.md).
 
 Current terminal inventories still measure every name, original file identity
 and attribute. They reuse a source hash only from that same sealed backup when
@@ -112,7 +116,14 @@ then exercise the real configured-map consumer. The image verifier checks every
 required installed module, including the upstream package initializer. Both checks
 obtain observed hashes independently of the current manifest.
 
-## Root runtime input
+## Legacy Root runtime input
+
+The version-1 `from_original_pipe` conversation and `run_operation` CLI remain
+default-disabled legacy fixture mechanisms. Their copy primitives do not supply
+app-only Restic or configured live profile-v2 proof. Keep these routes inactive
+under the current backup policy. Configured live retained-pack recovery uses
+only the reviewed fixed Root profile v2 described below, which directly invokes
+the dedicated app-only backup factory.
 
 Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lowercase hex full SHA256, and nine integers: dev,ino,size,mtime_ns,ctime_ns,mode,uid,gid,nlink. Original known refs and ancestors precede runtime callbacks. The exact canonical compact JSON root-plan keys are:
 
@@ -120,7 +131,7 @@ Every ref is exactly `{path,sha256,signature9}` with canonical absolute path, lo
 
 Version is integer1; kind is `retained-pack-preproof-runtime-v1`. The three container IDs are distinct; nonce and selectors are proper lowercase hex values. `containers` is exactly reader/native/worker IDs. Config path is derived from original configured normalize.py argv and checked bind projection, then joined to worker_config_ref. No API key is in the plan. The original map is checked against control_source, and both imported host control/observer bytes join exact refs. Child config/map/lock full9 must actually equal proposed host facts; differing kernel namespace facts refuse rather than being relabeled.
 
-Scopes derive from actual original native `/config`, worker configured state, reader `/config` mounts. Native DATA/mylar.db and workflow.sqlite are derived from the real daemon process; reader database.sqlite/tasks.sqlite are required. Additional SQLite pairs are discovered by the neutral inventory/schema algorithm. Only state/config scopes are copied; library files remain under the existing action's complete untouched raw vectors and selected preservation copies.
+Scopes derive from actual original native `/config`, worker configured state, reader `/config` mounts. Native DATA/mylar.db and workflow.sqlite are derived from the real daemon process; reader database.sqlite/tasks.sqlite are required. Additional SQLite pairs are discovered by the neutral inventory/schema algorithm. Profile v2 uses these same source roles, but only enumerated app data enters its snapshot and restore. Libraries, completed downloads and held payloads remain under complete original hash, attribute and physical custody checks.
 
 The parent creates exclusive private input/conversation files inside already-mounted worker state and private host output; it does not create a missing bind root or add mounts. Initialization occurs before the backup proof lifetime. Root source/output refs are kept private. Unknown create/start/stop/unpause/pipe acknowledgements retain outputs and hold without replay or cleanup.
 
@@ -139,17 +150,22 @@ native member row. Reports derive the complete current owner, including an
 annual's distinct release comic, from the native catalog and recheck it before
 commit. This records current facts without an import ACK or cleanup permission.
 
-## Conversation and backup
+## Legacy conversation and backup
 
 Wire frame is bounded canonical compact JSON with exact `version,kind,nonce,sequence,challenge,payload`. Integer/bool/float distinctions matter. Original actual FIFO fd9, process/thread, sequence and fresh challenge remain bound. Public Pipe construction is a mechanism, not a backup capability. The owning root invocation/profile/input and original inherited channel are required; saved messages or an arbitrary separately launched worker are not an accepted operational producer.
 
-Phases are initialized → backup-verified → released → terminal-result → observed-release → observed-final-ACK → observed-exit → observed. The original selected process, session and worker.lock remain alive until the last same-channel observed-exit. Parent then permits only that precise original child exit0, unchanged image/static/mount/StartedAt and original Popen/stdio identities; it never relaxes Running globally. Parent only releases after genuine in-memory BackupObservation verifies complete original source tree vectors, byte/attribute copies, full schema/all-table SQLite fingerprints and isolated restore. Source known leaves/ancestors precede stream/module/database callbacks; copied anchor identity and namespace remain original. A foreign output, source incarnation/attribute/census drift, incomplete restore, SQLite journal, source code change or deadline holds. Returned worker view has an exact fourteen-field, type-sensitive factual-only schema. Imported count remains zero and cleanup/ordinary-import/historical-ACK/index/replay rights remain false.
+Phases are initialized → backup-verified → released → terminal-result → observed-release → observed-final-ACK → observed-exit → observed. The original selected process, session and worker.lock remain alive until the last same-channel observed-exit. Parent then permits only that precise original child exit0, unchanged image/static/mount/StartedAt and original Popen/stdio identities; it never relaxes Running globally. The legacy fixture Parent only releases after genuine in-memory BackupObservation verifies complete original source tree vectors, byte/attribute copies, full schema/all-table SQLite fingerprints and isolated restore. Source known leaves/ancestors precede stream/module/database callbacks; copied anchor identity and namespace remain original. A foreign output, source incarnation/attribute/census drift, incomplete restore, SQLite journal, source code change or deadline holds. Returned worker view has an exact fourteen-field, type-sensitive factual-only schema. Imported count remains zero and cleanup/ordinary-import/historical-ACK/index/replay rights remain false. These legacy copy controls do not establish configured profile-v2 backup acceptance.
 
 ## Exact bounds
 
-Total parent/control lifecycle3600s; waiting and backup1800s; frame65536 bytes; one selected member; three exact state roles; <=16 explicitly required SQLite pairs; every discovered SQLite file is bounded by the exact captured file census; <=100000 tree nodes; <=512GiB aggregate snapshot bytes. The copied backup+restore aggregate uses the same 512GiB bound, so large source scopes may refuse at the stricter two-copy capacity. Control refs/config/map <=1MiB, installed worker source file <=8MiB, map <=128 modules, mount count<=32, configured networks<=4, subprocess result<=4MiB, native observation<=1MiB/45s. Enumeration, file chunks, hashing and SQLite work check the original minimum deadline; blocking kernel I/O is not forcibly cancelled by these cooperative checks. Existing action90s is unchanged and begins only at actual select after backup.
+Total parent/control lifecycle3600s; waiting and backup1800s; frame65536 bytes; one selected member; three exact state roles; <=16 explicitly required SQLite pairs; every discovered SQLite file is bounded by the exact captured file census; <=100000 tree nodes; <=512GiB aggregate original source bytes. Root profile v2 separately bounds its app-only artifact and restore against actual capacity, without copying excluded media. Control refs/config/map <=1MiB, installed worker source file <=8MiB, map <=128 modules, mount count<=32, configured networks<=4, subprocess result<=4MiB, native observation<=1MiB/45s. Enumeration, file chunks, hashing and SQLite work check the original minimum deadline; blocking kernel I/O is not forcibly cancelled by these cooperative checks. Existing action90s is unchanged and begins only at actual select after backup.
 
-These are refusal ceilings tested on actual disposable state, not measured live baseline capacity. Before activation, root must independently establish original real state byte/node/database totals and free space for both verified state copies, including their actual storage policy and SQLite scratch. The known large media-library size is not a reason to copy/hash it in this state backup.
+The 4 MiB subprocess bound above applies to the existing controller. The separate
+Restic CLI path allows at most 64 MiB command output. Its app index is bounded
+at 64 MiB and each app file at 4 GiB. These transport ceilings do not enlarge
+controller frames or publication authority.
+
+These are refusal ceilings tested on disposable state, not measured live baseline capacity. Before activation, Root must independently establish complete original source byte/node/database totals, the selected app-data coverage and free space for the snapshot, independent app restore and SQLite scratch. Verify media in place and preserve its originals.
 
 ## Activation graph and remaining gates
 
@@ -255,9 +271,10 @@ actual configured Docker lifecycle or selected-image acceptance.
 
 State backup source hardlinks are accepted only when every link in each original
 full9 group is enumerated inside the declared scopes. Outside-scope aliases and
-inconsistent groups refuse before output. Backup and isolated restore remain
-independent, single-link copies: preservation covers bytes, paths, attributes and
-database contents, while source inode sharing remains unchanged. Authority files
-and copied trees retain their single-link rules. The copied node ceiling derives
-from two captured source trees plus their two container roots; the doubled byte
-ceiling is checked before output, including configured preflight.
+inconsistent groups refuse before output. Profile v2 preserves app bytes, paths,
+attributes and database contents in the Restic snapshot and independent restore.
+Restored files have independent single-link identities; original inode sharing
+remains unchanged. Authority files retain their single-link rules. The old
+two-tree copied-node ceiling and doubled-byte preflight apply only to legacy
+copy fixtures. Configured profile v2 measures app-data capacity separately and
+retains the complete original source ceiling.

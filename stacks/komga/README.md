@@ -888,6 +888,14 @@ resume; the factual worker result grants neither. Actual installed source,
 configured bind geometry and terminal reader acceptance remain required before
 activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
 
+Retained-pack Root profile v2 uses the existing local `restic` container for
+native, worker and reader app data. It verifies the actual encrypted snapshot
+and an independent app restore while hashing held media in place. This optional
+host workflow adds no Compose mount, setting, port or service privilege. Refresh
+and verify the matching Root installation before activation; an older full-copy
+backup or a manual restore receipt grants no owning admission. See
+[app-only recovery](../mylar3/config/reader_recovery/CONTRACT-appdata-restic.md).
+
 An existing target does not need destination history in the retained receipt.
 The signed review binds its current worker path and hash; preparation resolves
 that target again from the catalog under Writer and checks source preservation
