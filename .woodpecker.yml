@@ -43,7 +43,7 @@ steps:
       - bash scripts/ci/check-native.sh komga
 
   - name: kavita-dotnet-controls
-    image: mcr.microsoft.com/dotnet/sdk:10.0.403-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b
+    image: mcr.microsoft.com/dotnet/sdk:10.0.404-noble@sha256:fe0fd4e93bd2fbb47c883b7a6369e5c8d3db8bf01cdc5981f6ee35fbdf3ff4fb
     commands:
       - apt-get update && apt-get install -y --no-install-recommends git python3 python3-venv python3-pip ca-certificates libatomic1
       - git config --global --add safe.directory "$CI_WORKSPACE"
@@ -64,7 +64,7 @@ steps:
       - bash scripts/ci/check-native.sh site
 
   - name: publisher-broker-tests
-    image: docker.io/library/golang:1.27.3-bookworm@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9
+    image: docker.io/library/golang:1.27.3-bookworm@sha256:dc0963f32053e4bc451d24d87e3892d42d01021b61f093e98eb95c0352bb84b0
     commands:
       - cd stacks/woodpecker-ci/publisher-broker
       - go test -race -tags repositoryfixtures ./...

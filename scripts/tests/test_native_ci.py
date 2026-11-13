@@ -286,12 +286,14 @@ class MandatoryCoverageTests(unittest.TestCase):
     def test_dotnet_prerequisite_refuses_absent_or_wrong_compilers(self):
         with patch.object(DOTNET.shutil, 'which', return_value=None), self.assertRaises(RuntimeError):
             DOTNET.prerequisite()
+        for sdk in ('9.0.1', '10.0.403'):
+            with self.subTest(sdk=sdk), \
+                    patch.object(DOTNET.shutil, 'which', return_value='/tool'), \
+                    patch.object(DOTNET.subprocess, 'check_output', side_effect=[sdk, 'v26.7.0']), \
+                    self.assertRaises(RuntimeError):
+                DOTNET.prerequisite()
         with patch.object(DOTNET.shutil, 'which', return_value='/tool'), \
-                patch.object(DOTNET.subprocess, 'check_output', side_effect=['9.0.1', 'v26.7.0']), \
-                self.assertRaises(RuntimeError):
-            DOTNET.prerequisite()
-        with patch.object(DOTNET.shutil, 'which', return_value='/tool'), \
-                patch.object(DOTNET.subprocess, 'check_output', side_effect=['10.0.403', 'v26.7.0']):
+                patch.object(DOTNET.subprocess, 'check_output', side_effect=['10.0.404', 'v26.7.0']):
             DOTNET.prerequisite()
 
     def test_native_core_and_explicit_sdk_jdk_lanes_are_unconditional(self):
@@ -307,6 +309,8 @@ class MandatoryCoverageTests(unittest.TestCase):
         self.assertEqual(steps['weekly-documentation-links']['when']['event'], ['cron', 'manual'])
         self.assertIn(steps['kavita-dotnet-controls']['image'],
                       (ROOT / 'stacks/kavita/independent/Dockerfile').read_text())
+        self.assertIn(steps['publisher-broker-tests']['image'],
+                      (ROOT / 'stacks/woodpecker-ci/publisher-broker/Dockerfile').read_text())
         self.assertIn('21-jdk-noble@sha256:', steps['komga-source-controls']['image'])
         self.assertIn(steps['ail-pystemon-controls']['image'],
                       (ROOT / 'stacks/ail-framework/Dockerfile.build').read_text())

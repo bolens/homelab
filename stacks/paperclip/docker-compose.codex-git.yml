@@ -1,7 +1,7 @@
 # Opt in explicitly. Build before deployment; retain this file on subsequent up commands.
 services:
   paperclip:
-    image: paperclip-codex-git:2026.1023.0-1
+    image: paperclip-codex-git:2026.1106.0-1
     pull_policy: never
     build:
       context: .
