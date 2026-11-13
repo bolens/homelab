@@ -1,0 +1,265 @@
+--- a/pipeline/backend/docker/docker.go
++++ b/pipeline/backend/docker/docker.go
+@@ -28,6 +28,7 @@
+ 	"github.com/containerd/errdefs"
+ 	"github.com/docker/go-connections/tlsconfig"
+ 	"github.com/moby/moby/api/pkg/stdcopy"
++	"github.com/moby/moby/api/types/container"
+ 	"github.com/moby/moby/api/types/network"
+ 	"github.com/moby/moby/api/types/system"
+ 	"github.com/moby/moby/client"
+@@ -193,6 +194,21 @@
+ 		return err
+ 	}
+ 	containerName := toContainerName(step)
++
++	// Create on the workflow network so Docker initializes its resolver and
++	// routing there, instead of inheriting the default bridge before connect.
++	// Explicit network modes and steps without workflow networks keep their
++	// existing behavior. Additional networks are connected after creation.
++	var networkingConfig *network.NetworkingConfig
++	if step.NetworkMode == "" && len(step.Networks) > 0 {
++		primary := step.Networks[0]
++		hostConfig.NetworkMode = container.NetworkMode(primary.Name)
++		networkingConfig = &network.NetworkingConfig{
++			EndpointsConfig: map[string]*network.EndpointSettings{
++				primary.Name: {Aliases: primary.Aliases},
++			},
++		}
++	}
+ 
+ 	// create pull options with encoded authorization credentials.
+ 	pullOpts := client.ImagePullOptions{}
+@@ -223,9 +239,10 @@
+ 	hostConfig.Binds = utils.DeduplicateStrings(append(hostConfig.Binds, e.config.volumes...))
+ 
+ 	_, err = e.client.ContainerCreate(ctx, client.ContainerCreateOptions{
+-		Config:     config,
+-		HostConfig: hostConfig,
+-		Name:       containerName,
++		Config:           config,
++		HostConfig:       hostConfig,
++		NetworkingConfig: networkingConfig,
++		Name:             containerName,
+ 	})
+ 	if errdefs.IsNotFound(err) {
+ 		// automatically pull and try to re-create the image if the
+@@ -242,9 +259,10 @@
+ 		responseBody.Close()
+ 
+ 		_, err = e.client.ContainerCreate(ctx, client.ContainerCreateOptions{
+-			Config:     config,
+-			HostConfig: hostConfig,
+-			Name:       containerName,
++			Config:           config,
++			HostConfig:       hostConfig,
++			NetworkingConfig: networkingConfig,
++			Name:             containerName,
+ 		})
+ 	}
+ 	if err != nil {
+@@ -252,7 +270,10 @@
+ 	}
+ 
+ 	if len(step.NetworkMode) == 0 {
+-		for _, net := range step.Networks {
++		for index, net := range step.Networks {
++			if index == 0 && networkingConfig != nil {
++				continue // already attached with its aliases by ContainerCreate
++			}
+ 			_, err = e.client.NetworkConnect(ctx, net.Name, client.NetworkConnectOptions{
+ 				EndpointConfig: &network.EndpointSettings{
+ 					Aliases: net.Aliases,
+--- /dev/null
++++ b/pipeline/backend/docker/network_create_test.go
+@@ -0,0 +1,190 @@
++// Copyright 2026 Woodpecker Authors
++// SPDX-License-Identifier: Apache-2.0
++
++package docker
++
++import (
++	"encoding/json"
++	"io"
++	"net/http"
++	"net/http/httptest"
++	"reflect"
++	"strings"
++	"testing"
++
++	"github.com/moby/moby/api/types/container"
++	"github.com/moby/moby/api/types/network"
++	"github.com/moby/moby/api/types/system"
++	"github.com/moby/moby/client"
++	"github.com/stretchr/testify/require"
++
++	backend_types "go.woodpecker-ci.org/woodpecker/v3/pipeline/backend/types"
++)
++
++type networkCreateRequest struct {
++	HostConfig       container.HostConfig
++	NetworkingConfig *network.NetworkingConfig
++}
++
++type networkCreateDaemon struct {
++	creates        []networkCreateRequest
++	connects       []backend_types.Conn
++	events         []string
++	missingImage   bool
++	createFailure  bool
++	pullFailure    bool
++	connectFailure bool
++	startFailure   bool
++}
++
++func (d *networkCreateDaemon) ServeHTTP(w http.ResponseWriter, r *http.Request) {
++	w.Header().Set("Content-Type", "application/json")
++	fail := func(message string) {
++		w.WriteHeader(http.StatusInternalServerError)
++		_ = json.NewEncoder(w).Encode(map[string]string{"message": message})
++	}
++	switch {
++	case strings.HasSuffix(r.URL.Path, "/containers/create"):
++		d.events = append(d.events, "create")
++		var request networkCreateRequest
++		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
++			fail(err.Error())
++			return
++		}
++		d.creates = append(d.creates, request)
++		if d.createFailure {
++			fail("create refused")
++			return
++		}
++		if d.missingImage && len(d.creates) == 1 {
++			w.WriteHeader(http.StatusNotFound)
++			_, _ = io.WriteString(w, `{"message":"No such image"}`)
++			return
++		}
++		w.WriteHeader(http.StatusCreated)
++		_, _ = io.WriteString(w, `{"Id":"owned-fixture","Warnings":[]}`)
++	case strings.HasSuffix(r.URL.Path, "/images/create"):
++		d.events = append(d.events, "pull")
++		if d.pullFailure {
++			fail("pull refused")
++			return
++		}
++		_, _ = io.WriteString(w, "{\"status\":\"Downloaded\"}\n")
++	case strings.HasSuffix(r.URL.Path, "/connect"):
++		d.events = append(d.events, "connect")
++		var request struct {
++			Container      string
++			EndpointConfig *network.EndpointSettings
++		}
++		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
++			fail(err.Error())
++			return
++		}
++		parts := strings.Split(r.URL.Path, "/")
++		connection := backend_types.Conn{Name: parts[len(parts)-2]}
++		if request.EndpointConfig != nil {
++			connection.Aliases = request.EndpointConfig.Aliases
++		}
++		d.connects = append(d.connects, connection)
++		if d.connectFailure {
++			fail("connect refused")
++			return
++		}
++		w.WriteHeader(http.StatusOK)
++		_, _ = io.WriteString(w, `{}`)
++	case strings.HasSuffix(r.URL.Path, "/start"):
++		d.events = append(d.events, "start")
++		if d.startFailure {
++			fail("start refused")
++			return
++		}
++		w.WriteHeader(http.StatusNoContent)
++	default:
++		fail("unexpected Docker endpoint " + r.URL.Path)
++	}
++}
++
++func runNetworkCreateStep(t *testing.T, daemon *networkCreateDaemon, mode string, networks []backend_types.Conn, backendNetwork string) error {
++	t.Helper()
++	server := httptest.NewServer(daemon)
++	t.Cleanup(server.Close)
++	cl, err := client.New(client.WithHost("tcp://"+strings.TrimPrefix(server.URL, "http://")), client.WithAPIVersion("1.51"), client.WithHTTPClient(server.Client()))
++	require.NoError(t, err)
++	t.Cleanup(func() { _ = cl.Close() })
++	engine := &docker{client: cl, info: system.Info{OSType: "linux"}, config: config{network: backendNetwork}}
++	step := &backend_types.Step{UUID: "network-fixture", Name: "fixture", Image: "public-fixture:immutable", NetworkMode: mode, Networks: networks}
++	before, err := json.Marshal(step)
++	require.NoError(t, err)
++	err = engine.StartStep(t.Context(), step, "owned-task")
++	after, marshalErr := json.Marshal(step)
++	require.NoError(t, marshalErr)
++	require.Equal(t, string(before), string(after), "network construction must not rewrite the shared step")
++	return err
++}
++
++func TestStartStepCreatesOnPrimaryWorkflowNetwork(t *testing.T) {
++	workflow := backend_types.Conn{Name: "workflow", Aliases: []string{"clone", "service"}}
++	secondary := backend_types.Conn{Name: "secondary", Aliases: []string{"other"}}
++	cases := []struct {
++		name, mode, backend, wantMode string
++		networks                      []backend_types.Conn
++		wantConnect                   []backend_types.Conn
++		primary                       *backend_types.Conn
++	}{
++		{name: "one workflow", networks: []backend_types.Conn{workflow}, wantMode: "workflow", primary: &workflow},
++		{name: "additional and backend networks", networks: []backend_types.Conn{workflow, secondary}, backend: "external", wantMode: "workflow", primary: &workflow, wantConnect: []backend_types.Conn{secondary, {Name: "external"}}},
++		{name: "no networks preserves Docker default"},
++		{name: "backend-only preserves previous create default", backend: "external", wantConnect: []backend_types.Conn{{Name: "external"}}},
++		{name: "explicit none", mode: "none", networks: []backend_types.Conn{workflow}, backend: "external", wantMode: "none"},
++		{name: "explicit host", mode: "host", networks: []backend_types.Conn{workflow}, backend: "external", wantMode: "host"},
++		{name: "explicit custom", mode: "custom", networks: []backend_types.Conn{workflow}, backend: "external", wantMode: "custom"},
++	}
++	for _, test := range cases {
++		t.Run(test.name, func(t *testing.T) {
++			daemon := &networkCreateDaemon{}
++			require.NoError(t, runNetworkCreateStep(t, daemon, test.mode, test.networks, test.backend))
++			require.Len(t, daemon.creates, 1)
++			request := daemon.creates[0]
++			require.Equal(t, test.wantMode, string(request.HostConfig.NetworkMode))
++			if test.primary == nil {
++				require.Nil(t, request.NetworkingConfig)
++			} else {
++				require.NotNil(t, request.NetworkingConfig)
++				require.Equal(t, map[string]*network.EndpointSettings{test.primary.Name: {Aliases: test.primary.Aliases}}, request.NetworkingConfig.EndpointsConfig)
++			}
++			require.True(t, reflect.DeepEqual(test.wantConnect, daemon.connects), "additional networks or aliases changed: %#v", daemon.connects)
++			require.Equal(t, "create", daemon.events[0])
++			require.Equal(t, "start", daemon.events[len(daemon.events)-1])
++		})
++	}
++}
++
++func TestStartStepPrimaryNetworkSurvivesImagePullRecreate(t *testing.T) {
++	daemon := &networkCreateDaemon{missingImage: true}
++	require.NoError(t, runNetworkCreateStep(t, daemon, "", []backend_types.Conn{{Name: "workflow", Aliases: []string{"clone"}}}, ""))
++	require.Equal(t, []string{"create", "pull", "create", "start"}, daemon.events)
++	require.Len(t, daemon.creates, 2)
++	require.Equal(t, daemon.creates[0], daemon.creates[1])
++	require.Equal(t, "workflow", string(daemon.creates[1].HostConfig.NetworkMode))
++	require.Nil(t, daemon.connects, "primary is never connected a second time")
++}
++
++func TestStartStepNetworkFailuresPropagate(t *testing.T) {
++	cases := []struct {
++		name   string
++		daemon networkCreateDaemon
++		events []string
++	}{
++		{"create", networkCreateDaemon{createFailure: true}, []string{"create"}},
++		{"pull", networkCreateDaemon{missingImage: true, pullFailure: true}, []string{"create", "pull"}},
++		{"connect", networkCreateDaemon{connectFailure: true}, []string{"create", "connect"}},
++		{"start", networkCreateDaemon{startFailure: true}, []string{"create", "connect", "start"}},
++	}
++	for _, test := range cases {
++		t.Run(test.name, func(t *testing.T) {
++			err := runNetworkCreateStep(t, &test.daemon, "", []backend_types.Conn{{Name: "workflow"}, {Name: "secondary"}}, "")
++			require.ErrorContains(t, err, test.name+" refused")
++			require.Equal(t, test.events, test.daemon.events, "failed prerequisite must prevent later work")
++		})
++	}
++}

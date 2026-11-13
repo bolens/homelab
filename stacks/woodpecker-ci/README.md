@@ -142,3 +142,18 @@ existing HTTPS ingress; queueing does not consume the GitHub token lifetime.
 No App key enters a build, no host port/socket is added, and the default stack
 continues without the broker. Keep netrc transfer and local fallback publisher
 secrets disabled. Preparation requires explicit opt-in and never deploys it.
+
+## Optional CI-only no-swap ancestor
+
+The [patched-agent contract](agent-patches/README.md) adds an administrator-only
+Docker cgroup parent while preserving the existing workflow-network creation fix.
+The optional `docker-compose.cgroup-parent.yml.example` and host slice are
+inactive by default. They do not
+change the official agent image, ingress, application data or per-container budgets.
+Preparation never installs the host unit or selects this override.
+
+Docker's configured equal RAM/swap limits must also be checked against the kernel.
+Some runc/systemd combinations can lose a child's zero swap ceiling on a manager
+reload. A CI-only ancestor with `MemorySwapMax=0` keeps the effective swap ceiling
+zero even if a descendant's own ceiling becomes unlimited. Verify the actual
+ancestor chain. Docker `HostConfig` alone is insufficient evidence.

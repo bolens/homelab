@@ -1,0 +1,145 @@
+diff --git i/pipeline/backend/docker/config.go w/pipeline/backend/docker/config.go
+index 18b7844..22a9f4b 100644
+--- i/pipeline/backend/docker/config.go
++++ w/pipeline/backend/docker/config.go
+@@ -27,6 +27,7 @@ type config struct {
+ 	network       string
+ 	volumes       []string
+ 	apparmor      string
++	cgroupParent  string
+ 	resourceLimit resourceLimit
+ 	stopTimeout   int64
+ }
+@@ -42,9 +43,10 @@ type resourceLimit struct {
+ 
+ func configFromCli(c *cli.Command) (config, error) {
+ 	conf := config{
+-		enableIPv6: c.Bool("backend-docker-ipv6"),
+-		network:    c.String("backend-docker-network"),
+-		apparmor:   c.String("backend-docker-apparmor-profile"),
++		enableIPv6:   c.Bool("backend-docker-ipv6"),
++		network:      c.String("backend-docker-network"),
++		apparmor:     c.String("backend-docker-apparmor-profile"),
++		cgroupParent: c.String("backend-docker-cgroup-parent"),
+ 		resourceLimit: resourceLimit{
+ 			MemSwapLimit: c.Int64("backend-docker-limit-mem-swap"),
+ 			MemLimit:     c.Int64("backend-docker-limit-mem"),
+diff --git i/pipeline/backend/docker/convert.go w/pipeline/backend/docker/convert.go
+index ccda25b..fa73941 100644
+--- i/pipeline/backend/docker/convert.go
++++ w/pipeline/backend/docker/convert.go
+@@ -79,12 +79,13 @@ func toContainerName(step *types.Step) string {
+ // returns a container host configuration.
+ func toHostConfig(step *types.Step, conf *config) (*container.HostConfig, error) {
+ 	config := &container.HostConfig{
+-		CPUQuota:   conf.resourceLimit.CPUQuota,
+-		CPUShares:  conf.resourceLimit.CPUShares,
+-		CpusetCpus: conf.resourceLimit.CPUSet,
+-		Memory:     conf.resourceLimit.MemLimit,
+-		MemorySwap: conf.resourceLimit.MemSwapLimit,
+-		ShmSize:    conf.resourceLimit.ShmSize,
++		CPUQuota:     conf.resourceLimit.CPUQuota,
++		CPUShares:    conf.resourceLimit.CPUShares,
++		CpusetCpus:   conf.resourceLimit.CPUSet,
++		Memory:       conf.resourceLimit.MemLimit,
++		MemorySwap:   conf.resourceLimit.MemSwapLimit,
++		ShmSize:      conf.resourceLimit.ShmSize,
++		CgroupParent: conf.cgroupParent,
+ 		LogConfig: container.LogConfig{
+ 			Type: "json-file",
+ 		},
+diff --git i/pipeline/backend/docker/flags.go w/pipeline/backend/docker/flags.go
+index 9c2b008..347b900 100644
+--- i/pipeline/backend/docker/flags.go
++++ w/pipeline/backend/docker/flags.go
+@@ -51,6 +51,11 @@ var Flags = []cli.Flag{
+ 		Name:    "backend-docker-network",
+ 		Usage:   "backend docker network",
+ 	},
++	&cli.StringFlag{
++		Sources: cli.EnvVars("WOODPECKER_BACKEND_DOCKER_CGROUP_PARENT"),
++		Name:    "backend-docker-cgroup-parent",
++		Usage:   "administrator-selected parent cgroup for all backend Docker containers",
++	},
+ 	&cli.StringFlag{
+ 		Sources: cli.EnvVars("WOODPECKER_BACKEND_DOCKER_VOLUMES"),
+ 		Name:    "backend-docker-volumes",
+diff --git 1/pipeline/backend/docker/cgroup_parent_test.go 2/pipeline/backend/docker/cgroup_parent_test.go
+new file mode 100644
+index 0000000..2528b88
+--- /dev/null
++++ 2/pipeline/backend/docker/cgroup_parent_test.go
+@@ -0,0 +1,73 @@
++// Copyright 2026 Woodpecker Authors
++// SPDX-License-Identifier: Apache-2.0
++
++package docker
++
++import (
++	"context"
++	"net/http/httptest"
++	"strings"
++	"testing"
++
++	"github.com/moby/moby/api/types/system"
++	"github.com/moby/moby/client"
++	"github.com/stretchr/testify/require"
++	"github.com/urfave/cli/v3"
++
++	backend_types "go.woodpecker-ci.org/woodpecker/v3/pipeline/backend/types"
++)
++
++func TestAdministratorCgroupParentOnCreateAndPullRetry(t *testing.T) {
++	for _, test := range []struct {
++		name, environment, expected string
++		arguments                   []string
++	}{
++		{name: "unset retains Docker default"},
++		{name: "administrator environment", environment: "woodpecker-ci.slice", expected: "woodpecker-ci.slice"},
++		{name: "administrator flag overrides environment", environment: "environment.slice", expected: "woodpecker-ci.slice", arguments: []string{"--backend-docker-cgroup-parent", "woodpecker-ci.slice"}},
++	} {
++		t.Run(test.name, func(t *testing.T) {
++			t.Setenv("WOODPECKER_BACKEND_DOCKER_CGROUP_PARENT", test.environment)
++			// CLI flags retain parsing state. Model a fresh agent for each case,
++			// preserving the registered flag's actual name, default and env keys.
++			flags := append([]cli.Flag(nil), Flags...)
++			for index, registered := range flags {
++				if flag, ok := registered.(*cli.StringFlag); ok && flag.Name == "backend-docker-cgroup-parent" {
++					flags[index] = &cli.StringFlag{Name: flag.Name, Value: flag.Value, Sources: cli.EnvVars(flag.GetEnvVars()...)}
++				}
++			}
++			daemon := &networkCreateDaemon{missingImage: true}
++			server := httptest.NewServer(daemon)
++			t.Cleanup(server.Close)
++			cl, err := client.New(client.WithHost("tcp://"+strings.TrimPrefix(server.URL, "http://")), client.WithAPIVersion("1.51"), client.WithHTTPClient(server.Client()))
++			require.NoError(t, err)
++			t.Cleanup(func() { _ = cl.Close() })
++			cmd := &cli.Command{
++				Flags: flags,
++				Action: func(ctx context.Context, command *cli.Command) error {
++					conf, configErr := configFromCli(command)
++					require.NoError(t, configErr)
++					engine := &docker{client: cl, info: system.Info{OSType: "linux"}, config: conf}
++					step := &backend_types.Step{
++						UUID: "cgroup-fixture", Name: "fixture", Image: "public-fixture:immutable",
++						Networks:       []backend_types.Conn{{Name: "owned-network", Aliases: []string{"fixture"}}},
++						BackendOptions: map[string]any{"docker": map[string]any{"cgroup_parent": "escape.slice"}},
++					}
++					return engine.StartStep(ctx, step, "owned-task")
++				},
++			}
++			arguments := []string{"agent", "--backend-docker-limit-mem", "6442450944", "--backend-docker-limit-mem-swap", "6442450944", "--backend-docker-limit-cpu-quota", "200000", "--backend-docker-limit-shm-size", "67108864"}
++			require.NoError(t, cmd.Run(t.Context(), append(arguments, test.arguments...)))
++			require.Len(t, daemon.creates, 2, "exercise the missing-image pull retry")
++			for _, request := range daemon.creates {
++				require.Equal(t, test.expected, request.HostConfig.CgroupParent, "pipeline options must not replace the administrator parent")
++				require.EqualValues(t, 6442450944, request.HostConfig.Memory)
++				require.EqualValues(t, 6442450944, request.HostConfig.MemorySwap)
++				require.EqualValues(t, 200000, request.HostConfig.CPUQuota)
++				require.EqualValues(t, 67108864, request.HostConfig.ShmSize)
++				require.Equal(t, "owned-network", string(request.HostConfig.NetworkMode), "retain workflow-network creation")
++				require.Equal(t, []string{"fixture"}, request.NetworkingConfig.EndpointsConfig["owned-network"].Aliases)
++			}
++		})
++	}
++}
