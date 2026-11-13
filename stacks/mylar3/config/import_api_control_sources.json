@@ -661,7 +661,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "0aff8ff0a036b9fa15cfe65a09cb4b686aa7c9d29bb99d5e6a0a9f19233a0abb"
+    "sha256": "0cc4aa0979ea2d03dfb9fa5ae4556c1318519686d29bde1373dac405f6b1205e"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
@@ -717,7 +717,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "28658e6308262fc818ffa9dabed9892479c961697e5a721edcb30f8052d435e8"
+    "sha256": "877b0900e9b784c64653410402369ba3e226c04fef2bc34853e30fddfbbfc6a8"
   },
   {
     "path": "run_standalone_controls.py",
@@ -729,7 +729,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "469c7fcaf7b3ca92fe098f07bf6c90ecbdabca9ec6b81bb8c83f5d2e10ca3e29"
+    "sha256": "bd36d20d4385179910d240be6be672d4d1b0901325e78b0c76b32990fb8d0645"
   },
   {
     "path": "standalone_launch_host/BOOTSTRAP.py",
@@ -745,11 +745,11 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "0aff8ff0a036b9fa15cfe65a09cb4b686aa7c9d29bb99d5e6a0a9f19233a0abb"
+    "sha256": "0cc4aa0979ea2d03dfb9fa5ae4556c1318519686d29bde1373dac405f6b1205e"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "1b145f2a3213c243e8bafec33e452e1fbbe03ebac4992940f53dc0cd1cc3368e"
+    "sha256": "347c7db817bf03e6da6f6522bd5c83de0c90ff82541a93452a9b6d7991fd5a54"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
@@ -1785,11 +1785,11 @@
   },
   {
     "path": "standalone_launch_host/comic_appdata_restic_primitives.py",
-    "sha256": "d2e209dd371e147815c7560de1b461753659afed915fbd990772290427995b8a"
+    "sha256": "e485905718d52e232b49c3cf45b11e6634df2dce6c72528969b1046537ddffa6"
   },
   {
     "path": "reader_recovery/CONTRACT-appdata-restic.md",
-    "sha256": "6b137cb1435b8d24c2976fc5e9b01552e14d5bc3db00e1d635c384240b269d61"
+    "sha256": "34276896bdd065d726fbcc6e8588bcb3a01160d739a514ae307672221dd3d874"
   },
   {
     "path": "reader_recovery/test_appdata_transport.py",

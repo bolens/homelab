@@ -694,6 +694,179 @@ def appdata_estimate(scopes, files, *, deadline=None):
             result['largest_app_file'] = max(result['largest_app_file'], original[2])
     return result
 
+def appdata_capacity_sample(scopes, *, deadline):
+    """Preliminary live capacity only. Never a source census or backup proof.
+
+    Files close individually against their sampled original. Directory epochs
+    may evolve between samples. The paused factory must remeasure everything.
+    """
+    appdata_need(deadline is not None, 'capacity-original-deadline')
+    check_deadline(deadline)
+    appdata_need(type(scopes) is list and len(scopes) in (3, 4), 'capacity-scope-count')
+    selected = []
+    for scope in scopes:
+        appdata_need(type(scope) is dict and set(scope) == {'role', 'root', 'kind'} and
+                     all(type(scope[key]) is str for key in scope), 'capacity-scope-schema')
+        selected.append((scope['role'], scope['root'], scope['kind']))
+    selected = tuple(selected)
+    appdata_need(tuple(row[0] for row in selected) ==
+                 ('native_config', 'worker_state', 'reader_config') +
+                 (('worker_configuration',) if len(selected) == 4 else ()), 'capacity-scope-order')
+    appdata_need(all(kind == ('file' if role == 'worker_configuration' else 'tree')
+                     for role, _, kind in selected), 'capacity-scope-kind')
+    roots = tuple(Path(text) for _, text, _ in selected)
+    for root, (_, text, _) in zip(roots, selected):
+        appdata_need(root.is_absolute() and str(root) == text and '..' not in root.parts and
+                     len(text.encode()) <= 4096 and len(root.parts) <= 32, 'capacity-canonical-root')
+    appdata_need(all(not a.is_relative_to(b) for i, a in enumerate(roots)
+                     for j, b in enumerate(roots) if i != j), 'capacity-scope-overlap')
+    result = dict(app_bytes=0, media_bytes=0, largest_app_file=0, nodes_sampled=0,
+                  preliminary=True, source_preservation=False, backup_authority=False)
+    held = []
+    directories = set()
+    links = {}
+    work = 0
+    file_roots = []
+
+    def close_all():
+        appdata_close_ancestors(held)
+        for path, descriptor, original in file_roots:
+            appdata_need(appdata_signature(os.fstat(descriptor)) == original ==
+                         appdata_signature(path.lstat()), 'capacity-original-configuration-root')
+
+    def read_file(path, parent_fd, role, root, *, external=False, alias=False):
+        nonlocal work
+        check_deadline(deadline)
+        work += 1
+        appdata_need(work <= 200000, 'capacity-file-work-bound')
+        before = appdata_signature(os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False))
+        appdata_need(stat.S_ISREG(before[5]) and before[8] >= 1 and
+                     0 <= before[2] <= 512 * 1024**3, 'capacity-file-kind-size')
+        fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
+                     dir_fd=parent_fd)
+        acquired = None
+        try:
+            acquired = appdata_node5(os.fstat(fd))
+            appdata_need(appdata_signature(os.fstat(fd)) == before == appdata_signature(path.lstat()),
+                         'capacity-original-file-FD')
+            close_all()
+            if external:
+                appdata_configuration(path, before, hash_file(path, deadline=deadline), deadline=deadline)
+                media = False
+            else:
+                media = appdata_payload(role, path.relative_to(root).as_posix(), os.pread(fd, 16, 0),
+                                        path=path, original=before, deadline=deadline)
+            close_all()
+            appdata_need(appdata_signature(os.fstat(fd)) == before == appdata_signature(path.lstat()) ==
+                         appdata_signature(os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)),
+                         'capacity-original-file-close')
+            appdata_need(media or before[2] <= APPDATA_MAX_FILE, 'capacity-app-file-bound')
+            if alias:
+                appdata_need(not media, 'capacity-link-app-target')
+                return
+            identity = (before[0], before[1])
+            count, names = links.setdefault(identity, (before[8], set()))
+            appdata_need(count == before[8], 'capacity-hardlink-generation')
+            names.add(str(path))
+            result['media_bytes' if media else 'app_bytes'] += before[2]
+            appdata_need(result['app_bytes'] + result['media_bytes'] <= 512 * 1024**3,
+                         'capacity-byte-bound')
+            if not media:
+                result['largest_app_file'] = max(result['largest_app_file'], before[2])
+        finally:
+            if acquired is None:
+                os.close(fd)
+            else:
+                appdata_release_ancestors(((str(path), fd, acquired),))
+
+    def walk(path, parent_fd, role, root, depth):
+        check_deadline(deadline)
+        result['nodes_sampled'] += 1
+        appdata_need(result['nodes_sampled'] <= 100000 and depth <= 64, 'capacity-node-depth-bound')
+        before = os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)
+        if stat.S_ISREG(before.st_mode):
+            read_file(path, parent_fd, role, root)
+            return
+        if stat.S_ISLNK(before.st_mode):
+            original = appdata_signature(before)
+            appdata_need(before.st_nlink == 1 and stat.S_IMODE(before.st_mode) == 0o777 and
+                         not os.listxattr(path, follow_symlinks=False), 'capacity-link-metadata')
+            target = os.readlink(path.name, dir_fd=parent_fd)
+            appdata_need(target not in ('', '.', '..') and Path(target).name == target and
+                         len(target.encode()) <= 255, 'capacity-link-local-file')
+            read_file(path.parent / target, parent_fd, role, root, alias=True)
+            appdata_need(appdata_signature(os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)) ==
+                         original == appdata_signature(path.lstat()), 'capacity-original-link-close')
+            return
+        appdata_need(stat.S_ISDIR(before.st_mode), 'capacity-unsupported-node')
+        original = appdata_node5(before)
+        identity = original[:2]
+        appdata_need(identity not in directories, 'capacity-directory-alias')
+        directories.add(identity)
+        fd = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                     dir_fd=parent_fd)
+        try:acquired = appdata_node5(os.fstat(fd))
+        except BaseException:
+            os.close(fd)
+            raise
+        record = (str(path), fd, acquired)
+        held.append(record)
+        try:
+            appdata_need(appdata_node5(os.fstat(fd)) == original == appdata_node5(path.lstat()),
+                         'capacity-original-directory-FD')
+            # A new relative descriptor avoids stale Btrfs readdir state. Names
+            # stream under the total work bound, with no whole-tree epoch claim.
+            fresh = os.open('.', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+            fresh_record = (str(path), fresh, original)
+            try:
+                appdata_need(appdata_node5(os.fstat(fresh)) == original, 'capacity-fresh-directory')
+                with os.scandir(fresh) as entries:
+                    for entry in entries:
+                        walk(path / entry.name, fd, role, root, depth + 1)
+                close_all()
+            finally:
+                appdata_release_ancestors((fresh_record,))
+        finally:
+            held.pop()
+            appdata_release_ancestors((record,))
+
+    try:
+        # Capture every root ancestry before the first classification callback.
+        # Root directories stay in these chains for all later sampled scopes.
+        parents = []
+        for root, (_, _, kind) in zip(roots, selected):
+            records = appdata_hold_output_parent(root if kind == 'file' else root / 'capacity-witness')
+            held.extend(records)
+            appdata_need(len(held) <= 128, 'capacity-original-ancestor-bound')
+            parents.append(records[-1][1] if kind == 'file' else records[-2][1])
+            if kind == 'file':
+                before = appdata_signature(root.lstat())
+                appdata_need(stat.S_ISREG(before[5]) and before[8] == 1 and 0 < before[2] <= 2 * 1024**2,
+                             'capacity-configuration-root')
+                fd = os.open(root.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
+                             dir_fd=parents[-1])
+                try:acquired = appdata_node5(os.fstat(fd))
+                except BaseException:
+                    os.close(fd)
+                    raise
+                held.append((str(root), fd, acquired))
+                file_roots.append((root, fd, before))
+        close_all()
+        for root, (role, _, kind), parent_fd in zip(roots, selected, parents):
+            if kind == 'file':
+                result['nodes_sampled'] += 1
+                appdata_need(result['nodes_sampled'] <= 100000, 'capacity-node-depth-bound')
+                read_file(root, parent_fd, role, root, external=True)
+            else:
+                walk(root, parent_fd, role, root, 0)
+        for count, names in links.values():
+            appdata_need(len(names) == count, 'capacity-complete-hardlink-group')
+        close_all()
+        return result
+    finally:
+        appdata_release_ancestors(held)
+
+
 def appdata_selected(index):
     appdata_validate(index)
     return [(scope, row) for scope in index['scopes'] for row in sorted(scope['records'], key=lambda value: value['path']) if row['kind'] == 'file' and (not row['media'])]

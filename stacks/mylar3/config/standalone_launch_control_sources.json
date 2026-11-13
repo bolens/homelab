@@ -341,7 +341,7 @@
   },
   {
     "path": "standalone_launch_host/comic_appdata_restic_primitives.py",
-    "sha256": "d2e209dd371e147815c7560de1b461753659afed915fbd990772290427995b8a",
+    "sha256": "e485905718d52e232b49c3cf45b11e6634df2dce6c72528969b1046537ddffa6",
     "target": "fixtures/host/comic_appdata_restic_primitives.py"
   },
   {
@@ -356,12 +356,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "0aff8ff0a036b9fa15cfe65a09cb4b686aa7c9d29bb99d5e6a0a9f19233a0abb",
+    "sha256": "0cc4aa0979ea2d03dfb9fa5ae4556c1318519686d29bde1373dac405f6b1205e",
     "target": "fixtures/host/comic_retained_standalone_backup.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "1b145f2a3213c243e8bafec33e452e1fbbe03ebac4992940f53dc0cd1cc3368e",
+    "sha256": "347c7db817bf03e6da6f6522bd5c83de0c90ff82541a93452a9b6d7991fd5a54",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
@@ -511,7 +511,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "6006af892190fd65c305a52741ecdc3b278e3d6435e81408e415a90cdd66f819",
+    "sha256": "5c4531059f09432cdf6fba4fb288487f352e780014059b721804d4f1e5cb7fa8",
     "target": "tests/test_fixed_broker.py"
   },
   {

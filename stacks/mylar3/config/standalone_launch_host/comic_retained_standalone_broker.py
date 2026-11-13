@@ -35,7 +35,7 @@ PACK_NAMES = ('private_crypto.py','comic_reader_backup_primitives.py','comic_app
               'comic_retained_pack_backup.py','comic_retained_pack_observation.py','retained_pack_control.py','comic_retained_pack_parent.py','comic_retained_native_control.py',
               'comic_retained_standalone_broker.py','comic_native_process_probe.py',
               'publication_native_configured_scope.py','BOOTSTRAP.py')
-PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v3:explicit-external-worker-configuration-file:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:media-originals-in-place:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
+PACK_PROFILE_SHA = hashlib.sha256(b'pack-retained-recovery-v4:preliminary-live-capacity-sample:strict-original-configuration:paused-factory-capacity-recheck:explicit-external-worker-configuration-file:existing-local-Restic-owner:app-only-stdin-snapshot:one-independent-app-restore:media-originals-in-place:original-worker-image-existing-bind-or-named-volume:original-network-ids:readonly-uid1000-capdrop-all-no-new-privileges:fixed-three-root-anchor-leaves:original-signed-six-stage-transcript:independent-three-scope-backup-successor:Writer-release-before-reader-resume:no-bulk-import-cleanup-index-replay').hexdigest()
 
 
 def installation_contract(document):
@@ -552,12 +552,19 @@ def _pack_existing_target(review,request,member):
     return text
 
 
-def _pack_backup_resources(primitive,helper,current,bytes_needed,nonce,*,scopes,deadline):
+def _pack_backup_resources(primitive,nonce,*,scopes,deadline):
     parent9=nine(os.lstat(BACKUP_PARENT))
     if parent9[5]&0o7777!=0o700 or parent9[6:8]!=(0,0) or os.path.lexists(BACKUP_PARENT/nonce):raise Held('fixed-pack-private-backup-parent')
     binding=primitive.appdata_restic_profile(deadline=deadline)
-    estimate=primitive.appdata_estimate(scopes,current[0],deadline=deadline)
-    helper.raw(current)
+    selected=[dict(role=scope['role'],root=scope['root'],kind=scope.get('kind','tree')) for scope in scopes]
+    estimate=primitive.appdata_capacity_sample(selected,deadline=deadline)
+    if (type(estimate) is not dict or set(estimate)!={'app_bytes','media_bytes','largest_app_file','nodes_sampled','preliminary','source_preservation','backup_authority'}
+            or estimate['preliminary'] is not True or estimate['source_preservation'] is not False or estimate['backup_authority'] is not False
+            or any(type(estimate[key]) is not int or not 0<=estimate[key]<=512*1024**3 for key in ('app_bytes','media_bytes','largest_app_file'))
+            or not 0<=estimate['largest_app_file']<=estimate['app_bytes']
+            or estimate['app_bytes']+estimate['media_bytes']>512*1024**3
+            or type(estimate['nodes_sampled']) is not int or not 1<=estimate['nodes_sampled']<=100000):
+        raise Held('fixed-pack-preliminary-capacity-sample')
     if nine(os.lstat(BACKUP_PARENT))!=parent9:raise Held('fixed-pack-original-backup-parent')
     required=estimate['app_bytes']+(estimate['app_bytes']+19)//20+primitive.APPDATA_MAX_INDEX+1024**3
     scratch_required=4*estimate['largest_app_file']+1024**2
@@ -613,9 +620,12 @@ def _pack_preflight(installation,runtime,boot,nonce):
             or any(type(owner[k]) is not str or re.fullmatch('[1-9][0-9]{0,15}',owner[k]) is None for k in ('issueid','parentcomicid','releasecomicid'))
             or owner['table']=='issues' and owner['parentcomicid']!=owner['releasecomicid']):raise Held('fixed-pack-owner')
     references={key:_host_original_ref(boot[key],worker['Mounts']) for key in ('config_ref','source_map_ref','review_ref')}
-    # Capture every known reference/ancestor before configuration or receipt reads.
-    frame=(tuple((ref['path'],tuple(ref['signature9'])) for ref in references.values()),
-           tuple((str(p),five(os.lstat(p))) for ref in references.values() for p in Path(ref['path']).parents),())
+    native_config=_host_original_ref(row['document']['native_config_ref'],runtime.baseline['native']['Mounts'])
+    controls=(*references.values(),native_config)
+    # Strict control-file originals remain separate from preliminary app-data
+    # capacity. No unpaused database or directory namespace epoch is inferred.
+    frame=(tuple((ref['path'],tuple(ref['signature9'])) for ref in controls),
+           tuple((str(p),five(os.lstat(p))) for ref in controls for p in Path(ref['path']).parents),())
     parent.raw(frame)
     blobs={key:parent.read_original(ref)[0] for key,ref in references.items()}
     cfg=document(blobs['config_ref']);mapping=document(blobs['source_map_ref']);review=document(blobs['review_ref'])
@@ -670,23 +680,18 @@ def _pack_preflight(installation,runtime,boot,nonce):
     streams=[p for p in (source,target) if any(Path(p).is_relative_to(Path(root)) for root in roots)]
     if target not in streams:raise Held('fixed-pack-covered-current-target')
     coverage_scopes=list(scopes)
-    file_roots=() if external_configuration is None else (Path(external_configuration['path']),)
     if external_configuration is not None:
         coverage_scopes.append(dict(role='worker_configuration',root=external_configuration['path'],kind='file'))
-    helper=row['modules']['comic_retained_pack_backup.py']
-    current,bytes_needed=helper.snapshot([Path(s['root']) for s in coverage_scopes],source_links=True,file_roots=file_roots)
     if external_configuration is None:
-        _require_configuration_appdata(references['config_ref'],scopes,current,
+        _require_configuration_appdata(references['config_ref'],scopes,frame,
             row['modules']['comic_appdata_restic_primitives.py'],blobs['config_ref'],deadline=runtime.deadline)
     else:
-        _require_configuration_coverage(external_configuration,coverage_scopes,current)
-    native_config=_host_original_ref(row['document']['native_config_ref'],runtime.baseline['native']['Mounts'])
+        _require_configuration_coverage(external_configuration,coverage_scopes,frame)
     native_config_bytes,_=parent.read_original(native_config,limit=2*1024**2)
-    _require_configuration_appdata(native_config,scopes,current,
+    _require_configuration_appdata(native_config,scopes,frame,
         row['modules']['comic_appdata_restic_primitives.py'],native_config_bytes,deadline=runtime.deadline)
-    if bytes_needed>helper.MAX_BYTES:raise Held('fixed-pack-source-byte-bound')
-    resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],helper,current,bytes_needed,nonce,scopes=coverage_scopes,deadline=runtime.deadline)
-    parent.raw(frame);parent.raw(receipt_frame);helper.raw(current);_close_unpaused_original(runtime,parent);installation.close()
+    resources=_pack_backup_resources(row['modules']['comic_appdata_restic_primitives.py'],nonce,scopes=coverage_scopes,deadline=runtime.deadline)
+    _close_unpaused_original(runtime,parent);installation.close();parent.raw(receipt_frame);parent.raw(frame)
     return dict(scopes=scopes,external_configuration=external_configuration,output=str(BACKUP_PARENT/nonce),config_frame=frame,receipt_frame=receipt_frame,receipt_ref=receipt_ref,receipt_bytes=receipt_bytes.decode(),
                 worker_state=str(state),state_child=state_child,native_data=str(data),native_config=str(native_root),
                 config_dir=config_dir,source=source,target=target,capture_source=capture,roots=roots,streams=sorted(set(streams)),
