@@ -5,6 +5,7 @@ import sqlite3
 import json
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location(
@@ -35,6 +36,9 @@ class Tests(unittest.TestCase):
         self.plan = {"candidates": [{"sha256": "a" * 64}], "baseline": {"bookCount": 1}}
         self.patches = [
             patch.object(M, "require_root", lambda: None),
+            patch.object(
+                M.shutil, "disk_usage", return_value=SimpleNamespace(free=64 * 1024**3)
+            ),
             patch.object(M, "RUNTIME", self.runtime),
             patch.object(M, "SYNC_LOCK", self.runtime / "publication.lock"),
             patch.dict(M.os.environ, {"CALIBRE_AUTO_REGISTER": "true"}),
@@ -134,6 +138,21 @@ class Tests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 M.main()
         self.assertFalse(any(a[:2] == ["docker", "stop"] for a in self.actions))
+
+    def test_insufficient_capacity_refuses_before_writer_stop_or_backup(self):
+        with (
+            patch.object(M.shutil, "disk_usage", return_value=SimpleNamespace(free=0)),
+            patch.object(M, "copy") as backup_copy,
+            patch.object(M, "nfs_proof") as restore_proof,
+        ):
+            with self.assertRaisesRegex(
+                AssertionError, "backup and rehearsal capacity insufficient"
+            ):
+                M.main()
+        self.assertTrue(all(action[0] == "findmnt" for action in self.actions))
+        backup_copy.assert_not_called()
+        restore_proof.assert_not_called()
+        self.assertFalse(list(self.runtime.glob("run-*")))
 
     def test_empty_plan_exports_without_quiesce(self):
         self.plan["candidates"] = []
