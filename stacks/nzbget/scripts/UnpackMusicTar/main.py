@@ -330,10 +330,11 @@ class ProcessingPlan:
     repaired: list[Path]
     unknown: list[Path]
     media: int
+    duplicate_audio: dict[Path, Path]
 
     @property
     def changed(self) -> bool:
-        return bool(self.removed or self.cues or any(source != target for source, target in self.targets.items()))
+        return bool(self.duplicate_audio or self.removed or self.cues or any(source != target for source, target in self.targets.items()))
 
 
 def tree_files(directory: Path, exclude: Path | None = None) -> list[Path]:
@@ -849,6 +850,24 @@ def extension_target(path: Path) -> Path:
     return path.with_name(path.name + suffix)
 
 
+def identical_audio_aliases(files: list[Path]) -> dict[Path, Path]:
+    """Coalesce only extension repairs onto an existing byte-identical audio file."""
+    available = set(files)
+    aliases = {}
+    for path in files:
+        target = extension_target(path)
+        if target == path or target not in available or target.parent != path.parent:
+            continue
+        suffix = detected_suffix(path)
+        if (suffix not in AUDIO_SUFFIXES or detected_suffix(target) != suffix
+                or target.suffix.casefold() != suffix or extension_target(target) != target):
+            continue
+        if path.stat().st_size > 0 and path.stat().st_size == target.stat().st_size:
+            if file_hash(path) == file_hash(target):
+                aliases[path] = target
+    return aliases
+
+
 def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Path | None:
     """Resolve local WAV/FLAC export names with strong, unambiguous FLAC evidence."""
     def identity(value: str) -> str:
@@ -964,10 +983,11 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
     return matches[0] if len(albums) == 1 and len(matches) == 1 else None
 
 
-def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[str, Path]]]:
+def read_cues(files: list[Path], root: Path, aliases: dict[Path, Path] | None = None) -> dict[Path, tuple[str, str, dict[str, Path]]]:
     cues = {}
     repaired = set()
     by_relative = {path.relative_to(root).as_posix(): path for path in files}
+    by_relative.update({path.relative_to(root).as_posix(): target for path, target in (aliases or {}).items()})
     for cue in files:
         if extension_target(cue).suffix.casefold() != ".cue":
             continue
@@ -999,7 +1019,9 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
             target = (extension_target(cue).parent / portable).resolve()
             target.relative_to(root)
             relative = target.relative_to(root).as_posix()
-            if relative not in by_relative:
+            if relative in by_relative:
+                target = by_relative[relative]
+            else:
                 candidates = [value for key, value in by_relative.items() if key.casefold() == relative.casefold()]
                 if len(candidates) == 1:
                     target = candidates[0]
@@ -1022,7 +1044,7 @@ def read_cues(files: list[Path], root: Path) -> dict[Path, tuple[str, str, dict[
     if affected:
         # A repaired track-file cue must not turn a missing album track into
         # apparent image evidence. Other folders keep their original protection.
-        check_album_tracks(files, {p for p in files if p.parent not in affected} | images, root)
+        check_album_tracks(files, {p for p in files if p.parent not in affected} | images, root, aliases=aliases)
     return cues
 
 
@@ -1147,12 +1169,16 @@ def album_directory(path: Path, root: Path) -> Path:
     return path.parent
 
 
-def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], parent: Path) -> list[set[Path]]:
+def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], parent: Path,
+                           aliases: dict[Path, Path] | None = None) -> list[set[Path]]:
     available: dict[str, set[Path]] = {}
     for path in audio:
         for target in (path, extension_target(path)):
             if target.is_relative_to(parent):
                 available.setdefault(target.relative_to(parent).as_posix().casefold(), set()).add(path)
+    for path, target in (aliases or {}).items():
+        if target in audio and path.is_relative_to(parent):
+            available.setdefault(path.relative_to(parent).as_posix().casefold(), set()).add(target)
     resolved = []
     for entry in entries:
         key = entry.as_posix().casefold()
@@ -1166,7 +1192,8 @@ def playlist_local_targets(entries: list[PurePosixPath], audio: list[Path], pare
 
 def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                          required_manifests: set[Path] | None = None,
-                         proven_tracks: set[Path] | None = None) -> dict[Path, str]:
+                         proven_tracks: set[Path] | None = None,
+                         aliases: dict[Path, Path] | None = None) -> dict[Path, str]:
     """Partition numbered tracks using covering playlists or matching CD NFOs."""
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
@@ -1235,7 +1262,7 @@ def playlist_disc_groups(files: list[Path], protected: set[Path], root: Path,
                 entries = playlist_entries(playlist)
                 if not entries or len(entries) != len(records):
                     continue
-                resolved = playlist_local_targets(entries, audio, playlist.parent)
+                resolved = playlist_local_targets(entries, audio, playlist.parent, aliases)
                 if (all(len(matches) == 1 for matches in resolved)
                         and {next(iter(matches)) for matches in resolved} == {path for path, _ in records}):
                     inferred.update(positions)
@@ -1334,7 +1361,8 @@ def nfo_disc_manifest(path: Path, artist: str, album: str,
 
 
 def release_total_evidence(groups: dict, members: dict, files: list[Path],
-                           required_manifests: set[Path] | None) -> set[Path]:
+                           required_manifests: set[Path] | None,
+                           aliases: dict[Path, Path] | None = None) -> set[Path]:
     """Disambiguate whole-release totals only with an NFO and covering playlist."""
     cohorts = {}
     for key, records in groups.items():
@@ -1400,7 +1428,7 @@ def release_total_evidence(groups: dict, members: dict, files: list[Path],
                 entries = playlist_entries(playlist)
                 if not entries or len(entries) != len(paths):
                     continue
-                resolved = playlist_local_targets(entries, audio, playlist.parent)
+                resolved = playlist_local_targets(entries, audio, playlist.parent, aliases)
                 if all(len(items) == 1 for items in resolved) and {next(iter(items)) for items in resolved} == paths:
                     proven.update(paths)
                     if required_manifests is not None:
@@ -1410,9 +1438,10 @@ def release_total_evidence(groups: dict, members: dict, files: list[Path],
 
 
 def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
-                       required_manifests: set[Path] | None = None) -> set[Path]:
+                       required_manifests: set[Path] | None = None,
+                       aliases: dict[Path, Path] | None = None) -> set[Path]:
     proven = set(protected)
-    filename_discs = playlist_disc_groups(files, protected, root, required_manifests, proven)
+    filename_discs = playlist_disc_groups(files, protected, root, required_manifests, proven, aliases)
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
     discs: dict[tuple, list[tuple[str, str]]] = {}
     members: dict[tuple, set[Path]] = {}
@@ -1446,7 +1475,7 @@ def check_album_tracks(files: list[Path], protected: set[Path], root: Path,
         numbers = {int(number) for number, _ in records if re.fullmatch(r"[0-9]{1,5}", number)}
         if any(not re.fullmatch(r"[0-9]{1,5}", number) for number, _ in records) or numbers != set(range(1, total + 1)):
             raise ValueError(f"incomplete album: missing or invalid discs of {total}; retaining all files")
-    release_proven = release_total_evidence(groups, members, files, required_manifests)
+    release_proven = release_total_evidence(groups, members, files, required_manifests, aliases)
     proven.update(release_proven)
     for records in groups.values():
         if all(path in release_proven for path, _, _ in records):
@@ -1586,7 +1615,8 @@ def playlist_title(value: str) -> str:
     return "".join(word for word in words if word not in {"and", "feat", "ft", "featuring"})
 
 
-def redundant_playlist_tail(entries: list[PurePosixPath], audio: list[Path], playlist: Path) -> bool:
+def redundant_playlist_tail(entries: list[PurePosixPath], audio: list[Path], playlist: Path,
+                            aliases: dict[Path, Path] | None = None) -> bool:
     """Recognise a repeated scene filename tail only beside a complete tagged disc."""
     if playlist.suffix.casefold() not in {".m3u", ".m3u8"} or len(entries) < 3:
         return False
@@ -1596,7 +1626,7 @@ def redundant_playlist_tail(entries: list[PurePosixPath], audio: list[Path], pla
             or not re.fullmatch(r"[0-9]{1,5}-.+-[0-9a-fA-F]{8}\.flac", previous.name)
             or not previous.name.endswith(tail.name)):
         return False
-    resolved = playlist_local_targets(entries, audio, playlist.parent)
+    resolved = playlist_local_targets(entries, audio, playlist.parent, aliases)
     if resolved[-1] or any(len(paths) != 1 for paths in resolved[:-1]):
         return False
     tracks = [next(iter(paths)) for paths in resolved[:-1]]
@@ -1624,7 +1654,8 @@ def check_playlists(files: list[Path], protected: set[Path],
                     covered: set[Path] | None = None,
                     references: dict[Path, dict[PurePosixPath, Path]] | None = None,
                     redundant_tails: dict[Path, PurePosixPath] | None = None,
-                    validate: bool = True) -> set[Path]:
+                    validate: bool = True,
+                    aliases: dict[Path, Path] | None = None) -> set[Path]:
     recognised = set()
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
@@ -1632,11 +1663,11 @@ def check_playlists(files: list[Path], protected: set[Path],
         entries = playlist_entries(playlist)
         if entries is None:
             continue
-        if playlist not in protected and redundant_playlist_tail(entries, audio, playlist):
+        if playlist not in protected and redundant_playlist_tail(entries, audio, playlist, aliases):
             if redundant_tails is not None:
                 redundant_tails[playlist] = entries[-1]
             entries = entries[:-1]
-        resolved = playlist_local_targets(entries, audio, playlist.parent)
+        resolved = playlist_local_targets(entries, audio, playlist.parent, aliases)
         local = [bool(matches) for matches in resolved]
         if all(local):
             if any(len(matches) != 1 for matches in resolved) or len({next(iter(matches)) for matches in resolved}) != len(entries):
@@ -1703,21 +1734,26 @@ def plan_tree(root: Path, *, flatten: bool = True,
     for path in files:
         if path.suffix.casefold() in AUDIO_SUFFIXES and path.stat().st_size == 0:
             raise ValueError(f"empty audio file: {path.name}; retaining all files")
-    cues = read_cues(files, root)
+    duplicate_audio = identical_audio_aliases(files) if cleanup and extensions else {}
+    files = [path for path in files if path not in duplicate_audio]
+    cues = read_cues(files, root, duplicate_audio)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
     completeness_cues = cue_image_targets(cues) if require_completeness else protected
     completeness_manifests: set[Path] = set()
-    proven = check_album_tracks(files, completeness_cues, root, completeness_manifests) if cleanup or require_completeness else set()
+    proven = check_album_tracks(files, completeness_cues, root, completeness_manifests, duplicate_audio) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
     redundant_tails: dict[Path, PurePosixPath] = {}
     playlists = check_playlists(files, protected, covered, playlist_refs, redundant_tails,
-                               validate=cleanup or require_completeness)
+                               validate=cleanup or require_completeness, aliases=duplicate_audio)
     available_names = {target.as_posix().casefold() for path in files for target in (path, extension_target(path))}
     if any(path not in playlist_refs and (path.suffix.casefold() in {".m3u", ".m3u8"}
            or any((path.parent / entry).as_posix().casefold() in available_names
                   for entry in playlist_entries(path) or [])) for path in files):
         # Unknown retained playlists may contain references we cannot safely rewrite.
+        if duplicate_audio:
+            return plan_tree(root, flatten=False, extensions=False, cleanup=cleanup,
+                             require_completeness=require_completeness)
         flatten = extensions = False
     if require_completeness:
         unresolved = [path for path in files if (detected_suffix(path) in AUDIO_SUFFIXES
@@ -1808,7 +1844,7 @@ def plan_tree(root: Path, *, flatten: bool = True,
         content = "".join(lines).encode(encoding)
         if content != cue.read_bytes():
             rewritten[cue] = content
-    return ProcessingPlan(plans, rewritten, removed, repaired, unknown, media)
+    return ProcessingPlan(plans, rewritten, removed, repaired, unknown, media, duplicate_audio)
 
 
 def normalize_tree(root: Path, scratch: Path, *, flatten: bool = True,
@@ -2088,7 +2124,8 @@ def print_summary(plan: ProcessingPlan, *, archives: int = 0, duplicates: int = 
     print(f"[INFO] {label}: {plan.media} media files retained; "
           f"{len(plan.removed) + duplicates} sidecars removed; {len(plan.repaired)} extensions repaired; "
           f"{len(plan.cues)} cue/playlist files updated; {len(plan.unknown)} unidentified files retained; "
-          f"{archives} archives extracted; {len(plan.targets)} total files retained")
+          f"{archives} archives extracted; {len(plan.duplicate_audio)} identical audio copies removed; "
+          f"{len(plan.targets)} total files retained")
     for path in plan.unknown:
         print(f"[WARNING] Unidentified file retained: {json.dumps(plan.targets[path].name, ensure_ascii=False)}")
 
@@ -2127,6 +2164,9 @@ def preview(directory: Path, *, verify_audio: bool = False, require_completeness
             print("[INFO] Preview only; the release was not modified")
             for name in archives:
                 print(f"[PREVIEW] Extract archive: {json.dumps(name, ensure_ascii=False)}")
+            for source, target in plan.duplicate_audio.items():
+                print(f"[PREVIEW] Remove identical audio copy: {json.dumps(source.relative_to(stage).as_posix(), ensure_ascii=False)}"
+                      f" -> retain {json.dumps(target.relative_to(stage).as_posix(), ensure_ascii=False)}")
             for source in plan.removed:
                 print(f"[PREVIEW] Remove sidecar: {json.dumps(source.relative_to(stage).as_posix(), ensure_ascii=False)}")
             if duplicates:

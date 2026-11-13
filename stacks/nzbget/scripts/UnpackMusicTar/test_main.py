@@ -1335,6 +1335,137 @@ class MusicProcessingSeamTest(unittest.TestCase):
         cue = b"\x85\x00\x00\x01\x00" if embedded_cue else b""
         return b"fLaC" + streaminfo + comment_header + comments + cue + b"audio fixture"
 
+    def test_identical_extension_repair_copies_are_removed_transactionally(self) -> None:
+        for archived in (False, True):
+            with self.subTest(archived=archived), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = {f"{n}.flac": self.tagged_flac({"ALBUM": "Fixture", "TRACKNUMBER": str(n),
+                                                     "TRACKTOTAL": "2"}) for n in (1, 2)}
+                files = {**audio, **{name[:-5]: data for name, data in audio.items()}}
+                if archived:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, data in files.items():
+                            output.writestr("album/" + name, data)
+                else:
+                    for name, data in files.items():
+                        (root / name).write_bytes(data)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), audio)
+                with mock.patch.object(main, "publish", side_effect=AssertionError("retry published")):
+                    main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), audio)
+
+    def test_identical_audio_preview_reports_copies_without_changing_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = self.tagged_flac({"TRACKNUMBER": "1", "TRACKTOTAL": "1"})
+            for name in ("track", "track.flac"):
+                (root / name).write_bytes(data)
+            before = self.snapshot(root)
+            states = {p: main.file_state(p) for p in root.iterdir()}
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                main.preview(root, require_completeness=True)
+            self.assertIn('Remove identical audio copy: "track" -> retain "track.flac"', output.getvalue())
+            self.assertIn('1 identical audio copies removed', output.getvalue())
+            self.assertEqual(self.snapshot(root), before)
+            self.assertEqual({p: main.file_state(p) for p in root.iterdir()}, states)
+
+    def test_different_audio_or_disabled_options_preserve_original_copies(self) -> None:
+        for problem in ("different bytes", "extensions disabled", "cleanup disabled"):
+            with self.subTest(problem=problem), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                data = self.tagged_flac({"ALBUM": "Fixture", "TRACKNUMBER": "1"})
+                (root / "track").write_bytes(data)
+                (root / "track.flac").write_bytes(data[:-1] + b"X" if problem == "different bytes" else data)
+                before = self.snapshot(root)
+                with self.assertRaises((ValueError, FileExistsError)):
+                    main.process_release(root, extensions=problem != "extensions disabled",
+                                         cleanup=problem != "cleanup disabled")
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_identical_audio_does_not_merge_distinct_track_names_or_discs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = self.tagged_flac({"ALBUM": "Fixture", "TRACKNUMBER": "1"})
+            for folder in ("CD1", "CD2"):
+                (root / folder).mkdir()
+                for name in ("track", "track.flac"):
+                    (root / folder / name).write_bytes(data)
+            main.process_release(root)
+            self.assertEqual(self.snapshot(root), {f"CD{n}/track.flac": data for n in (1, 2)})
+            (root / "CD1/another.flac").write_bytes(data)
+            before = self.snapshot(root)
+            with self.assertRaisesRegex(ValueError, "duplicate FLAC"):
+                main.process_release(root)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_identical_audio_rewrites_cue_and_strict_playlist_aliases(self) -> None:
+        for reference in ("cue", "playlist"):
+            with self.subTest(reference=reference), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                data = self.tagged_flac({})
+                alias = "track" if reference == "cue" else "track.mp3"
+                for name in (alias, "track.flac"):
+                    (root / name).write_bytes(data)
+                name = "album.cue" if reference == "cue" else "album.m3u8"
+                content = ('FILE "track" WAVE\r\n  TRACK 01 AUDIO\r\n  TRACK 02 AUDIO\r\n'
+                           if reference == "cue" else '#EXTM3U\r\ntrack.mp3\r\n')
+                (root / name).write_bytes(b"\xef\xbb\xbf" + content.encode())
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), {"track.flac": data,
+                    name: b"\xef\xbb\xbf" + content.replace(alias, "track.flac").encode()})
+                main.process_release(root, require_completeness=True)
+
+    def test_identical_audio_cannot_hide_missing_tracks_or_repeated_playlist_entries(self) -> None:
+        for problem in ("missing track", "duplicate playlist entry"):
+            with self.subTest(problem=problem), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {"TRACKNUMBER": "1", "TRACKTOTAL": "2"} if problem == "missing track" else {}
+                data = self.tagged_flac(tags)
+                for name in ("track.mp3", "track.flac"):
+                    (root / name).write_bytes(data)
+                if problem == "duplicate playlist entry":
+                    (root / "album.m3u").write_text("track.mp3\ntrack.flac\n")
+                before = self.snapshot(root)
+                with self.assertRaises(ValueError), mock.patch.object(main, "publish") as publish:
+                    main.process_release(root)
+                publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_unknown_playlist_prevents_removing_its_extensionless_audio_target(self) -> None:
+        for tagged in (False, True):
+            with self.subTest(tagged=tagged), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                data = self.tagged_flac({"TRACKNUMBER": "1"} if tagged else {})
+                for name in ("track", "track.flac"):
+                    (root / name).write_bytes(data)
+                (root / "album.m3u").write_text("track\n")
+                before = self.snapshot(root)
+                if tagged:
+                    with self.assertRaisesRegex(ValueError, "duplicate FLAC"):
+                        main.process_release(root)
+                else:
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_identical_audio_publication_failure_restores_both_copies(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = self.tagged_flac({"TRACKNUMBER": "1", "TRACKTOTAL": "1"})
+            for name in ("track", "track.flac"):
+                (root / name).write_bytes(data)
+            before = self.snapshot(root)
+            rename = Path.rename
+            def fail_install(source: Path, target: Path) -> Path:
+                if source.parent.name == "release" and target == root / "track.flac":
+                    raise OSError("injected publication failure")
+                return rename(source, target)
+            with mock.patch.object(Path, "rename", fail_install), self.assertRaises(OSError):
+                main.process_release(root)
+            self.assertEqual(self.snapshot(root), before)
+            self.assertFalse(list(root.glob(".unpack-music-*")))
+
     @classmethod
     def id3_flac(cls, tags: dict[str, str], *, version: int = 3, footer: bool = False) -> bytes:
         flac = bytearray(cls.tagged_flac(tags))

@@ -60,7 +60,16 @@ Numbered CD-maxi folders such as `CDM-1` and `CDM-2` keep their boundaries.
 Disc labels such as `CD 1 - Original Mixes` and `Disc 2 (Remixes)` are also
 retained in full. Tracks with identical numbers and filenames stay in their
 separate disc folders, preserving different mixes without renaming the tracks.
-Filename collisions within the same disc still fail rather than overwrite a file.
+When cleanup and extension repairs are enabled, an audio file whose repaired
+name already exists in the same folder is removed only if both files have the
+same detected audio format, nonzero size and full SHA-256 hash. The existing
+correctly suffixed file is retained unchanged. Cue and recognized playlist references to the
+removed copy are rewritten to that survivor. Unrecognized retained playlists
+disable deduplication, preserving their original targets. Preview reports each duplicate
+separately from sidecars. Validation and transactional publication finish before
+original copies are removed, and ordinary publication failures restore both.
+Files with different bytes, different track names or separate disc paths are
+never merged by this rule. Other filename collisions still fail.
 Nested numbered disc folders retain their hierarchy.
 Music jobs carrying a valid `drone` identifier from Lidarr require at least one
 audio candidate before cleanup can succeed. Audio filenames and signatures use

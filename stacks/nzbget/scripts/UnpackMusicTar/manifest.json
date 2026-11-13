@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.53",
+  "version": "1.54",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -14,6 +14,7 @@
     "Optional VerifyAudio setting requires ffmpeg in the NZBGet runtime"
   ],
   "description": [
+    "Coalesces same-folder extension-repair copies only onto an existing audio file with matching detected format, nonzero size and full SHA-256; rewrites cue and playlist aliases, preserves distinct track/disc paths and differing bytes, and retains transactional rollback.",
     "Requires an audio candidate for music jobs carrying a valid Lidarr drone identifier; rejects video-only payloads before publication while preserving manual video jobs, mixed audio/video releases and the existing audio filename/signature classification.",
     "Repairs a final repeated scene filename fragment in explicit M3U playlists only when every preceding entry resolves to a distinct local FLAC in one complete tagged disc; preserves encodings, comments, audio and all other missing-track guards.",
     "Recognises classic TIFF raster sidecars and bounded Windows v3 Thumbs.db caches containing only hashed JPEG thumbnails; preserves unknown databases, malformed files, named media and cue references.",
