@@ -158,6 +158,7 @@ config/test_fixtures/retained_pack_worker/**
 !config/test_fixtures/retained_pack_worker/check_preproof_session.py
 !config/test_fixtures/retained_pack_worker/retained_pack_control.py
 !config/reader_recovery/CONTRACT-retained-pack.md
+!config/reader_recovery/CONTRACT-appdata-restic.md
 
 # Exact public authenticated launch controls; no enrollment or keys.
 !config/standalone_launch_control_sources.json
@@ -182,6 +183,7 @@ config/test_fixtures/authenticated_standalone/fixtures/child/source/**
 !config/standalone_launch_host/BOOTSTRAP.py
 !config/standalone_launch_host/comic_native_process_probe.py
 !config/standalone_launch_host/comic_reader_backup_primitives.py
+!config/standalone_launch_host/comic_appdata_restic_primitives.py
 !config/standalone_launch_host/comic_retained_standalone_backup.py
 !config/standalone_launch_host/comic_retained_standalone_broker.py
 !config/standalone_launch_host/comic_retained_standalone_parent.py
