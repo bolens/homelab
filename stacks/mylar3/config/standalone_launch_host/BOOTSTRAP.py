@@ -103,10 +103,10 @@ for path,digest in inventory['sources'].items():
     q=Path(path);need(str(q)==path and '..' not in q.parts and (q.is_relative_to(AUTH) or (q.parent==ROOT if PACK else q.is_relative_to(ROOT))) and re.fullmatch('[0-9a-f]{64}',digest),'bootstrap-inventory-fixed-path')
     capture(path,files,nodes)
 for path,digest in inventory['sources'].items():
-    v=files[path];need(v[6]==0 and not v[5]&0o022,'bootstrap-inventory-root-file')
+    file_original=files[path];need(file_original[6]==0 and not file_original[5]&0o022,'bootstrap-inventory-root-file')
     for parent in Path(path).parents:
-        v=nodes[str(parent)];need(v[3]==0 and not v[2]&0o022,'bootstrap-inventory-root-node')
-    content=read(path,v,LIMIT);need(hashlib.sha256(content).hexdigest()==digest,'bootstrap-inventory-original-hash');hashes[path]=digest
+        parent_original=nodes[str(parent)];need(parent_original[3]==0 and not parent_original[2]&0o022,'bootstrap-inventory-root-node')
+    content=read(path,file_original,LIMIT);need(hashlib.sha256(content).hexdigest()==digest,'bootstrap-inventory-original-hash');hashes[path]=digest
 for path,content in zip(fixed[:3],(anchor_raw,inventory_raw,public_raw)):hashes[str(path)]=hashlib.sha256(content).hexdigest()
 need({str(AUTH/name) for name in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')}<=set(inventory['sources']),'bootstrap-required-auth')
 close(files,nodes);auth_absence()
