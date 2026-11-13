@@ -38,6 +38,9 @@ git push --set-upstream origin HEAD
 
 Confirm `github` points to `bolens/homelab` on GitHub before pushing.
 Do not push `main`, force-push, skip failing hooks, or bypass protection.
+Native Woodpecker validation starts when the feature pull request opens or
+updates. Feature pushes alone do not start it. The merged default-branch push,
+manual runs and cron still validate the full native pipeline.
 
 ## Review, deliver, and verify
 
