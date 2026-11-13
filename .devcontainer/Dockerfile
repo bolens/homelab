@@ -57,7 +57,7 @@ RUN curl --fail --silent --show-error --location \
     && npm install --global --offline /tmp/corepack-0.36.0.tgz \
     && rm /tmp/corepack-0.36.0.tgz \
     && corepack enable \
-    && UV_TOOL_DIR=/opt/uv-tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install zizmor==1.30.0
+    && UV_TOOL_DIR=/opt/uv-tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install zizmor==1.32.0
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PATH="/workspace/node_modules/.bin:${PATH}"
 WORKDIR /workspace
