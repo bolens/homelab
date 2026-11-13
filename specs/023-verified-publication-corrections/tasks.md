@@ -8,6 +8,13 @@
 
 ## Current acceptance work
 
+**Recovery policy update, 2026-11-12.** Current operations must use app-only
+Restic recovery and in-place media verification. The configured full-copy Root
+routes remain held until T034 implements the
+[replacement contract](../../stacks/mylar3/config/reader_recovery/CONTRACT-appdata-restic.md).
+Historical accepted proofs remain historical evidence. Do not repeat them or
+copy held media to satisfy the new storage contract.
+
 **Updated 2026-10-31.** Six tasks retain live acceptance criteria.
 T026/T029 are complete: FH's genuine owning forward and the separate FJ rollback
 pass with exact installation, image, terminal-consumption and independent
@@ -34,6 +41,18 @@ their recorded acceptance. Isolated repair does not establish live import or ACK
 Use milestones rather than circular whole-task dependencies. A reviewed run may
 supply evidence for several task IDs; do not repeat an accepted operation just
 to create a second receipt. Each checkbox still requires all its criteria.
+
+T034 precedes each affected configured backup route. It does not reopen the
+accepted isolated forward/rollback pair or ordinary Native rollout criteria.
+
+- [ ] T034 Replace configured Root full-copy backup paths with the app-only
+  Restic contract, retaining complete original media/source custody, the existing
+  typed owning observations, SQL checks and final physical closure. Bind the
+  actual snapshot and independent app restore, update finite profiles and source
+  pins together, qualify the real filesystem/repository, and complete independent
+  source/failure review and normal local/hosted delivery before a fresh owning
+  operation. A transport or manual restore receipt alone does not complete this
+  task. Share the result with feature 024's affected backup gate.
 
 | Track / milestone | Tasks | Exit condition |
 | --- | --- | --- |
@@ -172,7 +191,7 @@ T017 retains the verified 12-scope outer backup and isolated restore with all 72
 | --- | --- | --- |
 | T017 | Coordinate writers and follow the owning rollout route. For registration/reconciliation use `scripts/prepare-publication-corrections.py`, native registration preparation/acceptance, a fresh retained-repeat plan, `commitRetainedRepeat` and passive `retainedRepeatStatus`. | Verified backup/restore, exact image/config/data baseline, accepted registration/token/status, wrong repeat outside the scanned library, correct owners/bytes/readers and database integrity unchanged. Complete only after T027 and the required retained paths succeed. |
 | T027 | Use the maintained NFS factual/reader-proof contracts with original operational geometry and mount/source refs. Retain custody through canary cleanup, Writer release, reader stop, backup/restore and independent terminal verification. | Actual readiness and owned cleanup; checked factual owner; stopped-reader and database-restore controls; terminal/reader resume proof and complete final physical coverage. Disposable Btrfs helper tests do not prove actual NFS or lease behavior. |
-| T028 | Bind reviewed configured source/pins for `publication_retained_api.py`, `publication_retained_finalize.py`, `standalone_launch_host/comic_retained_standalone_broker.py` and worker `retained_pack_handoff.py`; portable defaults stay disabled. Verify fixed image anchors, UID1000 original refs, the same-live worker pipes, measured two-copy backup capacity and actual restore before one retained member action. Reserve native operations for the original request through verified terminal/Worker release and Reader resumption, including raw publication-control Writer routes. Use authenticated finalize/status and the owning independent terminal/restart contracts. | Exact current capture/member/source/target/owner, fresh retained catalog-event/ACK provenance, authenticated finalization, terminal SQL/reader preservation and compatible restart. Ordinary import and cleanup acceptance remain excluded. Root completion requires independent current backup/SQL/media proof, the authenticated Worker release and natural exit, guarded Reader resume and Native reservation retirement. A factual worker reply grants none of these. Generic `--pack-capture` refuses `retained-accepted` members and cannot substitute for this route. Preserve all failed histories and uncertain replies; never manufacture historical ACK or retire a source before fresh acceptance. |
+| T028 | Bind reviewed configured source/pins for `publication_retained_api.py`, `publication_retained_finalize.py`, `standalone_launch_host/comic_retained_standalone_broker.py` and worker `retained_pack_handoff.py`; portable defaults stay disabled. Verify fixed image anchors, UID1000 original refs, the same-live worker pipes, measured app-only Restic snapshot and independent app-restore capacity before one retained member action. Reserve native operations for the original request through verified terminal/Worker release and Reader resumption, including raw publication-control Writer routes. Use authenticated finalize/status and the owning independent terminal/restart contracts. | Exact current capture/member/source/target/owner, fresh retained catalog-event/ACK provenance, authenticated finalization, terminal SQL/reader preservation and compatible restart. Ordinary import and cleanup acceptance remain excluded. Root completion requires independent current backup/SQL/media proof, the authenticated Worker release and natural exit, guarded Reader resume and Native reservation retirement. A factual worker reply grants none of these. Generic `--pack-capture` refuses `retained-accepted` members and cannot substitute for this route. Preserve all failed histories and uncertain replies; never manufacture historical ACK or retire a source before fresh acceptance. |
 | T033 | Reuse the accepted native and selected worker’s exact installed-image proofs only for matching immutable images; the permanent Created worker has a different image and is not covered by that selected proof. Capture fresh runtime/configuration/selected-pack originals, bind a reviewed successor to the old preflight/capture/backup suppliers, then use documented `--pack-capture <sha256> --pack-ddl <id>` for one eligible ordinary capture with configured mappings, current Writer/publication/reader checks and verified affected-state backup. Then use `docker-compose.packs.yml` last with `--packs-only`; `--packs-only --once` proves only a bounded canary. Selected flags and recurring mode are mutually exclusive. | Ordinary selected ACK plus a later new capture consumed by the ongoing mode without another invocation, restart/lost-response reconciliation, fresh health and retained originals. Existing-target retained recovery stays under T028. Neither T028 completion nor archive NFS proof is a prerequisite of this ordinary path; general/bulk permission remains separate. |
 | T018 | Apply the quickstart conflict/different-payload vectors and complete the current correction-family census, covering metadata on/off/Legacy and ordinary/annual/storyarc/oneoff paths where applicable. | No wrong publication, source deletion or false completion; correct owner/reader/database baseline, restart retention and complete current-library/second-pass evidence before explicit bulk resume. Later post-bulk acceptance belongs to feature 022 T024. |
 | T019 | Derive each cleanup candidate from its accepted exact operation receipt and original ownership; inspect status before calling its typed cleanup route. | Per-copy accepted disposition, exact owned absence, surviving current verified backup and preserved unresolved originals/history. Cleanup carries no additional import, reader or bulk rights. |

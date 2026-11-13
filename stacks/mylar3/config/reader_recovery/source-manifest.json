@@ -1,5 +1,8 @@
 {
   "files": {
+    "CONTRACT-appdata-restic.md": {
+      "sha256": "141b3cdffe4426112a137ae7ccb35ebbfdb091c135fbc2289828fca98e77cb1c"
+    },
     "CONTRACT-archive-parent.md": {
       "sha256": "dfac64ae2744c4927611444b9123235b1f174e49898c9c7128166ec301460d9c"
     },
@@ -16,7 +19,7 @@
       "sha256": "f22fc49b32df8b01a1173e839e6e403a261d2306f525f4233237e583b6044464"
     },
     "CONTRACT-retained-pack.md": {
-      "sha256": "60907d229bfe329381b78f0ac74d79a1a35abc96400c41f15b691301e14bfad0"
+      "sha256": "cccdd7bbcac158ad028999c571d63149559e183e748be3338144fc72f48a162f"
     },
     "CONTRACT-stopped-nfs-handoff.md": {
       "sha256": "b0bdda9a77f36255a6a6fc7e811a8cc4ece0f480170b5ccbef5f8775451f48cc"
@@ -31,7 +34,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "16a9359f4ffc86419e992437e78e1cbb9b5e2833a879cad18c21b5d60d1ee92f"
+      "sha256": "7853554f658c6ca173f998bd3537eae1f98a8069ec4ea6baeba602116d28ba6f"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -484,7 +487,7 @@
       "sha256": "7787df11d3ce2f6c3ad2ea804cb76e2d34eb472bfaed37eb466c56fe35bba192"
     },
     "comic_retained_pack_backup.py": {
-      "sha256": "8ea0d6b8056e0bea127da485996ed9c6b654d1547b540a8895e6647fc5dad378"
+      "sha256": "cc3c107b81635de5c9081c844e6da20e2411897ce6c8ff81d147a68af54b3821"
     },
     "comic_retained_pack_observation.py": {
       "sha256": "1528fcb79ec62922a9a6afd343b9945e72e700bbd22fc46814284a492122a980"
@@ -566,6 +569,9 @@
     },
     "retained_pack_control.py": {
       "sha256": "53b8546838adc32fbd4bded66b0e0d12a369826d88e4652c84d103255153fa57"
+    },
+    "test_appdata_transport.py": {
+      "sha256": "9a521edaace64092b4214dbcfd232569a4cbc733fe0433342692cf939d92b13e"
     },
     "test_archive_backup_action.py": {
       "sha256": "2fcedd295200a2e484afa8eceeda382ba57933dff0b08fe5c3a3ac31b9117643"

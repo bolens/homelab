@@ -118,7 +118,7 @@ def source_module(path,expected,original_frame=None):
                    None if function.__kwdefaults__ is None else tuple((key,type(value),value) for key,value in sorted(function.__kwdefaults__.items())))
                   for name,function in vars(module).items()
                   if type(function).__name__=='function' and function.__globals__ is vars(module))
-    constants=tuple((name,vars(module)[name]) for name in ('MAX_FILES','MAX_MANIFEST','MAX_BYTES','DEADLINE','Held'))
+    constants=tuple((name,vars(module)[name]) for name in ('MAX_FILES','MAX_MANIFEST','MAX_BYTES','DEADLINE','Held') + (('APPDATA_ONLY','APPDATA_MAX_INDEX','APPDATA_MAX_FILE','APPDATA_MAX_NODES','APPDATA_MEDIA_SUFFIXES','APPDATA_MAGIC') if hasattr(module,'APPDATA_ONLY') else ()))
     _PRIMITIVES[module]=(_PRIMITIVES,methods,constants)
     raw((((str(path),original),),parents,()))
     _primitive_original(module)
@@ -201,6 +201,19 @@ def _finish(value,c,seal,frames):
         for path,stamp in files:
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(stamp):raise ValueError('backup-final-file')
+    if c.get('restic') is not None:
+        witness=c['restic']
+        for path,descriptor,frame,_ in witness['restore_custody']:
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(frame):
+                raise ValueError('backup-original-restored-node-FD')
+        for path,descriptor,frame in (*witness['output_ancestors'],*witness['mount_custody']):
+            z=os.fstat(descriptor);current=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(frame) or (current.st_dev,current.st_ino,current.st_mode,current.st_uid,current.st_gid)!=tuple(frame):
+                raise ValueError('backup-original-Restic-ancestor-FD')
+        z=os.fstat(witness['snapshot_fd'])
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(witness['snapshot_signature9']):
+            raise ValueError('backup-original-Restic-snapshot-FD')
     # Inline primitive projection: no replaceable checker/serializer runs after
     # the physical tail and before original-table/entry comparison.
     pending=[c];result=[]
@@ -243,6 +256,9 @@ class BackupObservation:
         # cannot construct an observation or refresh any witness.
         result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
             files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
+        if c.get('restic') is not None:
+            result.update(storage='restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
+                          app_files=c['restic']['app_files'],media_copies=0)
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
         _finish(self,c,seal,frames)
         return result
@@ -302,13 +318,16 @@ class BackupObservation:
         c,seal=_original(self)
         result=dict(kind='retained-neutral-backup-observation-v1',scopes=len(c['scopes']),
             files=len(c['source'][0]),bytes=c['bytes'],digest=c['digest'],mutation_authority=False)
+        if c.get('restic') is not None:
+            result.update(storage='restic-appdata-v1',restic_snapshot_id=c['restic']['snapshot_id'],
+                          app_files=c['restic']['app_files'],media_copies=0)
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['copy_attributes']),deadline=c['deadline'])==c['copy_attributes'],'backup-copy-attributes')
         need(_primitive_call(c['module'],seal[8],'attributes_many',tuple(path for path,_ in c['source_attributes']),deadline=c['deadline'])==c['source_attributes'],'backup-source-attributes')
         _finish(self,c,seal,seal[7])
         return result
 
 
-def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,reflink_restore=False):
+def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,reflink_restore=False,restic_appdata=False):
     """Mechanism only. Parent continuously owns quiescence; this cannot mint BackupReady."""
     need(type(scopes) is list and len(scopes)==MAX_SCOPES and tuple(s['role'] for s in scopes)==_ROLES,'backup-exact-roles')
     scopes=[{'role':row['role'],'root':row['root'],'databases':list(tuple(row['databases']))} for row in scopes]
@@ -325,7 +344,8 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,re
     out=Path(out);need(out.is_absolute() and not os.path.lexists(out),'backup-exclusive-output')
     need(all(not out.is_relative_to(r) and not r.is_relative_to(out) for r in roots),'backup-output-overlap')
     out_parent=five(os.lstat(out.parent));need(out_parent[2]&0o7777==0o700 and out_parent[3]==os.geteuid(),'backup-private-parent')
-    need(type(reflink_restore) is bool,'backup-copy-mode')
+    need(type(reflink_restore) is bool and type(restic_appdata) is bool and
+         not (reflink_restore and restic_appdata),'backup-copy-mode')
     local_deadline=time.monotonic()+BACKUP_SECONDS
     if deadline is not None:
         need(type(deadline) in (int,float) and math.isfinite(deadline),'backup-deadline-type')
@@ -333,58 +353,111 @@ def copy_and_verify(scopes,out,primitives_path,primitives_sha,*,deadline=None,re
     need(time.monotonic()<deadline,'backup-original-deadline')
     primitive=Path(primitives_path);primitive_frame=(((str(primitive),nine(os.lstat(primitive))),),tuple((str(q),five(os.lstat(q))) for q in primitive.parents),())
     original,total=snapshot(roots,source_links=True,deadline=deadline)  # Before module/hash/database callbacks.
-    need(2*total<=MAX_BYTES,'backup-two-copy-byte-bound')
-    space=os.statvfs(out.parent)
-    need(space.f_bavail*space.f_frsize>=required_space(total,original,reflink_restore=reflink_restore),
-         'backup-data-and-scratch-capacity')
-    scratch=os.statvfs(tempfile.gettempdir())
-    need(scratch.f_bavail*scratch.f_frsize>=scratch_space(original),'backup-SQL-scratch-capacity')
+    if not restic_appdata:
+        need(2*total<=MAX_BYTES,'backup-two-copy-byte-bound')
+        space=os.statvfs(out.parent)
+        need(space.f_bavail*space.f_frsize>=required_space(total,original,reflink_restore=reflink_restore),
+             'backup-data-and-scratch-capacity')
+        scratch=os.statvfs(tempfile.gettempdir())
+        need(scratch.f_bavail*scratch.f_frsize>=scratch_space(original),'backup-SQL-scratch-capacity')
     raw(primitive_frame)
     m,code=source_module(primitives_path,primitives_sha,primitive_frame);primitive_original=_primitive_original(m);logical={}
+    need(not hasattr(m,'APPDATA_ONLY') or restic_appdata and m.APPDATA_ONLY is True,'backup-app-only-profile-required')
     original_files=dict(original[0])
     for s,p in zip(scopes,roots):
         rows,_=_primitive_call(m,primitive_original,'inventory',p,'tree',deadline=deadline);logical[s['role']]=_primitive_call(m,primitive_original,'logical',rows)
         for row in rows:need(tuple(row['stamp'])==original_files[str(p if row['path']=='.' else p/row['path'])],'backup-inventory-original')
         initial_scopes.append(dict(name=s['role'],path=str(p),kind='tree',records=rows))
     database_files={scope['name']+':'+row['path'] for scope in initial_scopes for row in scope['records'] if row['kind']=='file'}
-    databases=_primitive_call(m,primitive_original,'database_rows',initial_scopes,required,deadline=deadline)
+    app_index=None;restic_binding=None;app_restic=None
+    if restic_appdata:
+        app_index=_primitive_call(m,primitive_original,'appdata_make_index',[
+            dict(role=scope['name'],root=scope['path'],records=scope['records']) for scope in initial_scopes],deadline=deadline)
+        app_selection=_primitive_call(m,primitive_original,'appdata_policy_frozen',app_index)
+        app_values=_primitive_call(m,primitive_original,'appdata_policy_value',app_index)
+        restic_binding=_primitive_call(m,primitive_original,'appdata_restic_profile',deadline=deadline)
+        scratch_root=Path(restic_binding['mounts']['/cache'])
+        largest=max((row['stamp'][2] for scope in app_values['scopes'] for row in scope['records']
+                     if row['kind']=='file' and not row['media']),default=0)
+        space=os.statvfs(scratch_root)
+        need(space.f_bavail*space.f_frsize>=4*largest+1024**2,'backup-app-SQL-scratch-capacity')
+    else:scratch_root=None
+    prior_scratch=tempfile.tempdir
+    try:
+        if scratch_root is not None:tempfile.tempdir=str(scratch_root)
+        databases=_primitive_call(m,primitive_original,'database_rows',initial_scopes,required,deadline=deadline)
+    finally:tempfile.tempdir=prior_scratch
     need(type(databases) is dict and set(required)<=set(databases)<=database_files,'backup-discovered-database-census')
     raw(original);raw(code)
     need(five(os.lstat(out.parent))==out_parent and not os.path.lexists(out),'backup-output-parent-original')
-    out.mkdir(mode=0o700);out_node=five(os.lstat(out));(out/'backup').mkdir(mode=0o700);backup_node=five(os.lstat(out/'backup'));(out/'restore').mkdir(mode=0o700);restore_node=five(os.lstat(out/'restore'))
-    anchors=(((str(out/'backup'),backup_node),(str(out/'restore'),restore_node),(str(out),out_node)))
-    for s in initial_scopes:
-        for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
-        need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
-        need(time.monotonic()<deadline,'backup-deadline');raw(original);raw(code)
-        for path,stamp in anchors:
-            if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
-        _primitive_call(m,primitive_original,'copy_scope',Path(s['path']),out/'backup'/s['name'],s['records'],deadline=deadline);raw(original)
-        for path,stamp in anchors:
-            if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
-        _primitive_call(m,primitive_original,'copy_scope',out/'backup'/s['name'],out/'restore'/s['name'],s['records'],deadline=deadline,reflink=reflink_restore);raw(original)
-    for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
-    need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
-    need(five(os.lstat(out))==out_node,'backup-created-output-identity')
-    copied,_=snapshot([out/'backup',out/'restore'],source_nodes=len(original[0]),deadline=deadline)
-    copied=(copied[0],copied[1],copied[2]+((str(out),('backup','restore')),))
-    # Verify each detached copy and its independent SQLite restoration exactly
-    # once. No observation exists until all callbacks close against these same
-    # original physical frames, so a caller cannot pre-seed a verified flag.
-    copy_attributes=[]
-    for key in ('backup','restore'):
-        measured=[]
-        for scope in scopes:
-            root=out/key/scope['role']
+    if restic_appdata:
+        app_restic=_primitive_call(m,primitive_original,'appdata_restic_backup',app_index,out,deadline=deadline)
+        need(app_restic['binding']==restic_binding,'backup-original-Restic-owner')
+        need(app_restic['selection']==app_selection==_primitive_call(m,primitive_original,'appdata_policy_frozen',app_index),'backup-original-app-selection')
+        _primitive_call(m,primitive_original,'appdata_close_restore',app_restic['restore_custody'])
+        measured=[];copy_attributes=[]
+        for scope,selection in zip(scopes,app_values['scopes']):
+            root=out/'restore'/scope['role']
             rows,_=_primitive_call(m,primitive_original,'inventory',root,'tree',detached=True,deadline=deadline)
-            need(_primitive_call(m,primitive_original,'copied_records_match',rows,logical[scope['role']]),'backup-copy-content')
+            expected=[{key:value for key,value in row.items() if key not in ('stamp','media')}
+                      for row in selection['records'] if not row['media']]
+            need(_primitive_call(m,primitive_original,'copied_records_match',rows,expected),'backup-restic-app-content')
             measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
             copy_attributes.extend((str(root if row['path']=='.' else root/row['path']),row['attributes']) for row in rows)
-        need(_primitive_call(m,primitive_original,'database_rows',measured,required,deadline=deadline)==databases,'backup-detached-database')
+        prior_scratch=tempfile.tempdir
+        try:
+            tempfile.tempdir=restic_binding['mounts']['/cache']
+            need(_primitive_call(m,primitive_original,'database_rows',measured,required,deadline=deadline)==databases,
+                 'backup-restic-detached-database')
+        finally:tempfile.tempdir=prior_scratch
+        _primitive_call(m,primitive_original,'appdata_close_restore',app_restic['restore_custody'])
+        born=app_restic['restore_custody']
+        copied=(tuple((path,tuple(frame)) for path,_,frame,_ in born),
+                tuple((path,tuple(frame)) for path,_,frame in app_restic['output_ancestors']),
+                tuple((path,tuple(names)) for path,_,_,names in born if names is not None))
+        snapshot_path=Path(app_restic['snapshot_path']);snapshot_nodes=tuple((str(q),five(os.lstat(q))) for q in snapshot_path.parents)
+        _primitive_call(m,primitive_original,'appdata_close_ancestors',app_restic['output_ancestors'])
+        _primitive_call(m,primitive_original,'appdata_close_ancestors',app_restic['mount_custody'])
+        copied=(copied[0]+((str(snapshot_path),tuple(app_restic['snapshot_signature9'])),),
+                tuple(sorted(dict((*copied[1],*snapshot_nodes,(str(out),five(os.lstat(out))))).items())),
+                copied[2])
+        copy_attributes.append((str(snapshot_path),app_restic['snapshot_attributes']))
         raw(original);raw(copied);raw(code);_primitive_original(m,primitive_original)
-    digest=hashlib.sha256(encode(dict(scopes=scopes,logical=logical,databases=databases,source=original,copies=copied))).hexdigest()
+    else:
+        out.mkdir(mode=0o700);out_node=five(os.lstat(out));(out/'backup').mkdir(mode=0o700);backup_node=five(os.lstat(out/'backup'));(out/'restore').mkdir(mode=0o700);restore_node=five(os.lstat(out/'restore'))
+        anchors=(((str(out/'backup'),backup_node),(str(out/'restore'),restore_node),(str(out),out_node)))
+        for s in initial_scopes:
+            for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
+            need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
+            need(time.monotonic()<deadline,'backup-deadline');raw(original);raw(code)
+            for path,stamp in anchors:
+                if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
+            _primitive_call(m,primitive_original,'copy_scope',Path(s['path']),out/'backup'/s['name'],s['records'],deadline=deadline);raw(original)
+            for path,stamp in anchors:
+                if five(os.lstat(path))!=stamp:raise ValueError('backup-created-anchor')
+            _primitive_call(m,primitive_original,'copy_scope',out/'backup'/s['name'],out/'restore'/s['name'],s['records'],deadline=deadline,reflink=reflink_restore);raw(original)
+        for path,stamp in anchors:need(five(os.lstat(path))==stamp,'backup-created-anchor')
+        need(tuple(sorted(os.listdir(out)))==('backup','restore'),'backup-output-namespace')
+        need(five(os.lstat(out))==out_node,'backup-created-output-identity')
+        copied,_=snapshot([out/'backup',out/'restore'],source_nodes=len(original[0]),deadline=deadline)
+        copied=(copied[0],copied[1],copied[2]+((str(out),('backup','restore')),))
+        # Verify each detached copy and its independent SQLite restoration exactly
+        # once. No observation exists until all callbacks close against these same
+        # original physical frames, so a caller cannot pre-seed a verified flag.
+        copy_attributes=[]
+        for key in ('backup','restore'):
+            measured=[]
+            for scope in scopes:
+                root=out/key/scope['role']
+                rows,_=_primitive_call(m,primitive_original,'inventory',root,'tree',detached=True,deadline=deadline)
+                need(_primitive_call(m,primitive_original,'copied_records_match',rows,logical[scope['role']]),'backup-copy-content')
+                measured.append(dict(name=scope['role'],path=str(root),kind='tree',records=rows))
+                copy_attributes.extend((str(root if row['path']=='.' else root/row['path']),row['attributes']) for row in rows)
+            need(_primitive_call(m,primitive_original,'database_rows',measured,required,deadline=deadline)==databases,'backup-detached-database')
+            raw(original);raw(copied);raw(code);_primitive_original(m,primitive_original)
+    digest=hashlib.sha256(encode(dict(scopes=scopes,logical=logical,databases=databases,source=original,copies=copied,restic=app_restic))).hexdigest()
     source_attributes=tuple((str(Path(scope['path']) if row['path']=='.' else Path(scope['path'])/row['path']),row['attributes']) for scope in initial_scopes for row in scope['records'])
-    value=object.__new__(BackupObservation);_OBS[value]=dict(scopes=scopes,out=out,source=original,copies=copied,source_code=code,module=m,logical=logical,databases=databases,required=required,source_scopes=initial_scopes,source_attributes=source_attributes,copy_attributes=tuple(copy_attributes),pid=os.getpid(),thread=threading.get_ident(),deadline=deadline,bytes=total,digest=digest)
+    value=object.__new__(BackupObservation);_OBS[value]=dict(scopes=scopes,out=out,source=original,copies=copied,source_code=code,module=m,logical=logical,databases=databases,required=required,source_scopes=initial_scopes,source_attributes=source_attributes,copy_attributes=tuple(copy_attributes),pid=os.getpid(),thread=threading.get_ident(),deadline=deadline,bytes=total if app_restic is None else app_restic['app_bytes'],digest=digest,restic=app_restic)
     c=_OBS[value];table=_OBS;seals=_SEALS;project=_projection;project_code=project.__code__;projection=project(c)
     original_frames=(c['source'],c['copies'],c['source_code']);owner=(c['pid'],c['thread']);original_deadline=c['deadline']
     dto=_json_value(dict({k:v for k,v in c.items() if k not in ('module','out')},out=str(c['out'])))
