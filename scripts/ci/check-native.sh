@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 022
 mode=${1:-}
-case "$mode" in repository|policy|komga|dotnet|site|links) ;; *) echo 'unknown native check' >&2; exit 2 ;; esac
+case "$mode" in repository|policy|komga|dotnet|pystemon|site|links) ;; *) echo 'unknown native check' >&2; exit 2 ;; esac
 source_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 # Nested clones cannot inherit hook/index routing or maintainer Git configuration.
 while IFS= read -r variable; do
@@ -105,6 +105,9 @@ case "$mode" in
         export DOTNET_CLI_USE_MSBUILD_SERVER=0 MSBUILDDISABLENODEREUSE=1 UseSharedCompilation=false
         export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
         python3 scripts/ci/check-dotnet-controls.py
+        ;;
+    pystemon)
+        make ail-pystemon-check PYSTEMON_CHECK_ARGS=--require-jammy
         ;;
     site)
         npm_tools

@@ -1,0 +1,48 @@
+{
+  "pythonVersion": "3.13.18",
+  "release": "20261026",
+  "python": {
+    "aarch64": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "578d9da1983463ffb0c8c98ab0da2f18177f44069328eb0af847860c1eb05c3e"
+    },
+    "x86_64": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "df15fe60d3ff55bf9dcf25824b5572756bb8816ff93865a273d3301d7066a8b7"
+    }
+  },
+  "pystemon": {
+    "commit": "7e3665674f60250c198b23ad4b87d4393e8e65bb",
+    "url": "https://codeload.github.com/cvandeplas/pystemon/tar.gz/7e3665674f60250c198b23ad4b87d4393e8e65bb",
+    "sha256": "ea49142a81c818d55f1476fdfadd5d40e54496033cea565f6fa0cabf3a6d43da",
+    "pythonFiles": {
+      "pystemon.py": "965f88363b38597a655f608bd8c5fcf4f8ece9a96902bd964f902381e29a2907",
+      "pystemon/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pystemon/config.py": "3c6fe805b23f00daf43bea4b9e14436d6b592ebed7b526779a9298701a461e4f",
+      "pystemon/exception.py": "22f9d32de8117fe248bc42ffeb400db9170baa9ca0f51fe21223402758751fae",
+      "pystemon/pastie/__init__.py": "0903af0ceb8612ee00fe229b29b002742fcaf81da6d43bdc33d8ea58688d36c5",
+      "pystemon/pastie/pastieberylia.py": "6a2b20a34a38e4fd4881a2c20639c99941974787ffba65f5b889fa20484a36b7",
+      "pystemon/pastie/pastiecdvlt.py": "6c05264793046670be67571e30db9be31c238094e345070a8107b40787e6850b",
+      "pystemon/pastie/pastiepasteorgru.py": "05303a74afa066f9a87b06f136675685c0875779deac90e06c13ebbff6b88dd7",
+      "pystemon/pastie/pastiepastesitecom.py": "a2ad2f9f1da8789a33dce221f1f3f4251b992e3b147354cfe8f967492bdade12",
+      "pystemon/pastie/pastieslexyorg.py": "6f80756f52be055d7a2852bc29647219843f9999e69f665a0ebe20abae6c472c",
+      "pystemon/pastie/pastiesniptnet.py": "577e81e0ea2b85842553edf36f473886fbd87ea8b6a01052981309d5d25e41dd",
+      "pystemon/pastiesearch.py": "b17c0fc9f46a5f22d5a031f32a781ddb3884f0a931ef4d06912ae4ba88f92d27",
+      "pystemon/pastiesite.py": "e53fa12d502347b06a2dcc77fea437a3b7a8739d57d8e32af7788c0e45f2831f",
+      "pystemon/proxy.py": "d2a9801fe1279953c2cacf120b479da7e57fdaa027dea526c2d9eb0c7fc9a83f",
+      "pystemon/sendmail.py": "8f7029c3283d17b50b5e5b15441608ea55f736761cce760f954fa60328a6557a",
+      "pystemon/storage/__init__.py": "46f9a83ee800f07188f00cd4d3911a2f6d6cd4d4f1c0e740e7957b3959cb8bc0",
+      "pystemon/storage/filestorage.py": "f6efaba96634703cc5b8db86d1f2c0e9168bd2fbc91065ba1a7d88112300b244",
+      "pystemon/storage/mongostorage.py": "3a4dee5616c9df2e3827495a9a1fe139ac33009ca0b24f1c5eeaf0d3a490333a",
+      "pystemon/storage/redisstorage.py": "6a9bbd0bcdad5de83fc66c21de8a5b81efbc6ed6284e27f1ab979a4b3fa55acd",
+      "pystemon/storage/sqlite3storage.py": "6c70c56f31930059768c4a843aab70f59d0b0835c73fd588fda542290375c3c3",
+      "pystemon/storage/telegramstorage.py": "736cab2b62e0c16df15f0cf60eaaed87dbbd2f15d3336c553e0ffcd08e221128",
+      "pystemon/throttler.py": "33042b0f8f7c077a0c5b0a85cf01d592e0f05d323570389cae6d2b51d8b61518",
+      "pystemon/ua.py": "862c9672483cb9dd100e6183947c085fadd8ca2684f449e21db2ce6d6da55b39"
+    }
+  },
+  "launcher": {
+    "url": "https://raw.githubusercontent.com/ail-project/ail-framework/416cff17724ce1787c9b5b19a9c771651fdcdeb5/bin/LAUNCH.sh",
+    "sha256": "3d91940e6023d37daa3a85ec501ffe0d2675439075f0fb1a7aca93fba2b5be40"
+  }
+}

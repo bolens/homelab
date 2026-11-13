@@ -34,7 +34,7 @@ Config is stored in the `nzbhydra2_config` named volume so it survives container
 
 ## Upgrading from NZBHydra 8
 
-The pinned image runs NZBHydra 9.2.0. Its first startup migrates H2 from
+The pinned image runs NZBHydra 9.3.1. Its first startup migrates H2 from
 2.1 to 2.4, which can take several minutes. Stop NZBHydra before backing up
 the complete `nzbhydra2_config` volume and Compose/environment configuration.
 Verify an isolated restore and retain the previous image reference before
@@ -99,3 +99,11 @@ refreshes CA trust and removes compromised or expired roots. Check each indexer
 for TLS failures and verify its server supplies a valid certificate chain;
 repair the server chain rather than disabling certificate verification. Keep custom clients
 on the supported external API and retain the reverse proxy access policy.
+
+## Selected 9.3.1 release
+
+The [9.3.1 release](https://github.com/theotherp/nzbhydra2/releases/tag/v9.3.1)
+fixes TorBox queue handling, default downloader categories and concurrent paginated
+API searches. Retain the migration, backup and supported external API requirements
+above when updating an older installation. Verify those downloader and API paths
+against the restored configuration before deployment.

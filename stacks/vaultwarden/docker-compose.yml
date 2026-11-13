@@ -9,7 +9,7 @@ services:
     labels:
       logging: "true"
     container_name: vaultwarden
-    image: docker.io/vaultwarden/server:latest@sha256:efb3cde962015fcc036b2ea625242248611943b27212ebf4392841fb30fad055
+    image: docker.io/vaultwarden/server:latest@sha256:4fe17f415f90087377d37c755e0ea3cf189dcc6794e49cdd2a9adbb4937d9e1f
     env_file:
       - stack.env
       - path: ../../shared.env

@@ -337,7 +337,7 @@ For network cartoons, use exact title/year rules for reviewed series tie-ins
 alongside the episode rule. Keep animation, documentary and quarantine guards
 so live-action adaptations and making-of films do not enter that movie branch.
 
-With the pinned v26.11.3 scanner, Plex tag edits can leave the integration ETag
+With the previously inspected v26.11.3 scanner, Plex tag edits can leave the integration ETag
 unchanged, and existing movie years and release dates are not refreshed by an
 ordinary scan. Verify the imported fields after source corrections. A bounded
 reconciliation requires a verified application backup and must preserve all
@@ -493,6 +493,16 @@ forced flags should be reviewed against the actual track in Plex metadata.
   used. A public 502 means Caddy cannot reach the application or its network.
 - No media-specific GPU is passed through by default. Start with CPU settings
   and measure actual stream resource use before enabling acceleration.
+
+## Selected 26.12 release
+
+[26.12.0](https://github.com/ErsatzTV/legacy/releases/tag/v26.12.0) moves existing
+legacy-engine channels to Next at startup. `MPEG-TS (Legacy)` becomes `MPEG-TS`,
+and `HLS Direct` becomes `HLS Segmenter`; old playlist URLs redirect. Review those
+channel modes on a verified restore and compare channel identities, schedules,
+playlist URLs and actual playback before deployment. The bundled FFmpeg update
+also fixes QSV and changing source-colour-tag failures. Keep its bundled engine
+and FFmpeg matched rather than replacing either independently.
 
 ## Backup, update and recovery
 

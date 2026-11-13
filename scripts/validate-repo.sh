@@ -85,6 +85,7 @@ python3 scripts/audit-repo-hygiene.py
 
 echo "Checking portable native CI contracts..."
 python3 -B -m unittest discover -s scripts/tests -p test_native_ci.py
+python3 -B -m unittest discover -s scripts/tests -p test_ail_pystemon_runtime.py
 
 echo "Validating dependency update configuration..."
 python3 scripts/validate-dependency-config.py
