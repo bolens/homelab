@@ -11,7 +11,7 @@ if command -v docker >/dev/null 2>&1 &&
   exec docker run --rm \
     --volume "$repo_root:/repo:ro" \
     --workdir /repo \
-    ghcr.io/zizmorcore/zizmor:1.29.0 \
+    ghcr.io/zizmorcore/zizmor:1.32.0@sha256:3014cc8f68f663935f69b3c3e0e41f5ce102b268d97db13db0f62208747f860d \
     --min-severity medium \
     --min-confidence medium \
     --offline .github .pre-commit-config.yaml
