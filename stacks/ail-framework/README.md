@@ -70,6 +70,22 @@ refreshes the selected Ubuntu release digest; release changes require that
 reviewed migration. The custom
 image CI builds Lacus and Tor; it does not build the AIL application image. Installed Python package test directories are retained because QReader imports NumPy testing helpers during normal startup.
 
+Pystemon alone uses a private CPython 3.13.18 runtime under
+`/opt/pystemon-runtime`. Its SoupSieve 4.0.1 lock requires Python 3.11.5 or newer;
+AIL's main environment and `PystemonImporter.py` remain on the existing Python
+3.10 ABI. The build verifies every Python file in the pinned Pystemon source and
+the complete upstream launcher before changing only the collector command.
+`pystemon-runtime.json` owns the immutable Python archives and source hashes.
+Review this manifest manually when updating the standalone interpreter or either
+upstream source; Dependabot continues to monitor the package lock and Ubuntu image.
+
+Run `make ail-pystemon-check` for the same installer, repeat-install integrity,
+compiled dependency imports, guarded launcher arguments and non-starting
+entrypoint controls used by the `ail-pystemon-controls` Woodpecker step. That
+step executes on the pinned Ubuntu 22.04 image on amd64. The arm64 supplier has a
+verified upstream checksum but no executed qualification lane. These focused
+checks do not qualify the full CPU/GPU image build or application startup.
+
 1. **Build both variants.** Native compilation is shared by BuildKit; build the
    CPU image first so the primary image does not wait for CUDA downloads:
    ```bash

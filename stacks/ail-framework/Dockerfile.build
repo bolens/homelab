@@ -67,12 +67,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     AIL_TORCH_VARIANT=${AIL_TORCH_VARIANT} \
     ./installing_deps.sh
 
-COPY requirements-pystemon.txt /tmp/requirements-pystemon.txt
+COPY requirements-pystemon.txt pystemon-runtime.json install-pystemon-runtime.py /tmp/
 COPY requirements-opencv.txt /tmp/requirements-opencv.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
     ./other_installers/docker/pystemon/install.sh \
-    && pip3 install --require-hashes -r /tmp/requirements-pystemon.txt \
-    && rm /tmp/requirements-pystemon.txt \
+    && python3 /tmp/install-pystemon-runtime.py \
+        --manifest /tmp/pystemon-runtime.json --requirements /tmp/requirements-pystemon.txt \
+        --source /opt/pystemon --launcher /opt/AIL/bin/LAUNCH.sh \
+    && rm /tmp/requirements-pystemon.txt /tmp/pystemon-runtime.json /tmp/install-pystemon-runtime.py \
     # qreader pulls both GUI and headless OpenCV wheels. Keep one cv2 runtime.
     && /opt/AIL/AILENV/bin/pip uninstall -y opencv-python coverage nose2 \
     && /opt/AIL/AILENV/bin/pip install --force-reinstall --no-deps \
