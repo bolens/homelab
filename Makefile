@@ -51,6 +51,8 @@ validate-changed:
 	bash scripts/validate-repo.sh --strict --changed-base "$(BASE)"
 
 ci-local:
+	@$(MYLAR_PYTHON) -c 'from PIL import Image' >/dev/null 2>&1 || { echo "FAIL: MYLAR_PYTHON needs Pillow for the Komga worker controls; install Pillow in that interpreter's environment." >&2; exit 1; }
+	@command -v pdfinfo >/dev/null 2>&1 && command -v pdftoppm >/dev/null 2>&1 || { echo "FAIL: Poppler pdfinfo and pdftoppm are required for the Komga worker controls." >&2; exit 1; }
 	@node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1 || { echo "FAIL: locked Markdown tools are unavailable; run npm ci with the repository Node toolchain." >&2; exit 1; }
 	$(MAKE) nodepad-source-check
 	$(MAKE) openai-oauth-source-check

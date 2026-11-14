@@ -60,7 +60,16 @@ Numbered CD-maxi folders such as `CDM-1` and `CDM-2` keep their boundaries.
 Disc labels such as `CD 1 - Original Mixes` and `Disc 2 (Remixes)` are also
 retained in full. Tracks with identical numbers and filenames stay in their
 separate disc folders, preserving different mixes without renaming the tracks.
-Filename collisions within the same disc still fail rather than overwrite a file.
+When cleanup and extension repairs are enabled, an audio file whose repaired
+name already exists in the same folder is removed only if both files have the
+same detected audio format, nonzero size and full SHA-256 hash. The existing
+correctly suffixed file is retained unchanged. Cue and recognized playlist references to the
+removed copy are rewritten to that survivor. Unrecognized retained playlists
+disable deduplication, preserving their original targets. Preview reports each duplicate
+separately from sidecars. Validation and transactional publication finish before
+original copies are removed, and ordinary publication failures restore both.
+Files with different bytes, different track names or separate disc paths are
+never merged by this rule. Other filename collisions still fail.
 Nested numbered disc folders retain their hierarchy.
 Music jobs carrying a valid `drone` identifier from Lidarr require at least one
 audio candidate before cleanup can succeed. Audio filenames and signatures use
@@ -281,6 +290,9 @@ with the same filename stem. Missing same-folder `.wav` and `.flac` references
 declared as `WAVE` also support replacing each ASCII space with a dot when the
 result identifies one confirmed FLAC. Exact filename stems take precedence, and
 ambiguous aliases or references containing directories are not inferred.
+Same-folder aliases also recognize posting filenames that encode a literal
+ampersand as `&amp;`, `&#38;` or `&#x26;`. Only these ampersand entities are
+decoded for matching. Multiple matches fail, and exact filenames keep precedence.
 Otherwise, missing local `.wav` and `.flac` references declared as `WAVE`
 can use numbered filenames to match exact
 performer, title and track tags within one fully tagged FLAC album/disc. A
@@ -288,7 +300,8 @@ present global cue album title must also match, allowing a trailing `(single)`
 format annotation. For guest tracks, an explicit matching album artist can
 identify the performer when the cue also supplies a matching global album title.
 Conflicting album-artist aliases prevent that fallback. Numbered filenames may
-include the track artist or the matched cue performer; guest artist tags are preserved.
+include the track artist or matched cue performer before or after the title;
+guest artist tags are preserved.
 Ambiguous aliases, mismatched versions, missing identity tags and references
 containing directory paths keep failing without publication. Existing WAV and FLAC
 references take precedence. Quoted

@@ -72,7 +72,7 @@ proof and a coordinated required-check migration; follow the
 [acceptance and recovery sequence](documents/DEVELOPMENT-WORKFLOW.md#hosted-retirement-and-recovery).
 Actual Docker builds/publication and GitHub-managed security and Pages deployment
 remain hosted. This repository has no native publisher credential requirement.
-Use the [shared local reproduction instructions](https://github.com/bolens/.github/blob/8469a503a054c6a167567e0f88b63bf853c811f7/docs/source-lint.md)
+Use the [shared local reproduction instructions](https://github.com/bolens/.github/blob/f64dc0480a91b43bbc5ebd8dbaadf29bc6cd6ced/docs/source-lint.md)
 with the same tooling revision pinned in
 [the workflow](.github/workflows/source-lint.yml). Review exclusions when adding
 source files; generated and imported files retain their native validation.
