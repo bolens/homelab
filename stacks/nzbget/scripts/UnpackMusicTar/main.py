@@ -890,6 +890,12 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
         dotted = expected.replace(" ", ".")
         aliases = [p for p in candidates if dotted in {p.name.casefold(), extension_target(p).name.casefold()}]
     if not aliases:
+        def ampersand_name(value: str) -> str:
+            return re.sub(r"&(?:amp|#0*38|#x0*26);", "&", value.casefold())
+        spellings = {ampersand_name(expected), ampersand_name(expected.replace(" ", "."))}
+        aliases = [p for p in candidates if spellings & {
+            ampersand_name(p.name), ampersand_name(extension_target(p).name)}]
+    if not aliases:
         cue_name = extension_target(cue).stem
         cue_disc = re.search(r"(?:^|[ ._-])(?:cd|disc|disk)[ ._-]*([1-9])$", cue_name, re.IGNORECASE)
         numbered = re.fullmatch(r"([0-9]{1,2})[ ._-]+(.+)", entry.stem)
@@ -978,7 +984,9 @@ def cue_flac_reference(name: str, cue: Path, text: str, files: list[Path]) -> Pa
                              or bool(expected_albums) and album_performers == {performer})
         if (int(track) == int(numbered[1]) and performer_matches
                 and identity(numbered[2]) in {identity(tags["TITLE"]), identity(tags["ARTIST"] + " " + tags["TITLE"]),
-                                             performer + identity(tags["TITLE"])}):
+                                             performer + identity(tags["TITLE"]),
+                                             identity(tags["TITLE"] + " " + tags["ARTIST"]),
+                                             identity(tags["TITLE"]) + performer}):
             matches.append(path)
     return matches[0] if len(albums) == 1 and len(matches) == 1 else None
 

@@ -290,6 +290,9 @@ with the same filename stem. Missing same-folder `.wav` and `.flac` references
 declared as `WAVE` also support replacing each ASCII space with a dot when the
 result identifies one confirmed FLAC. Exact filename stems take precedence, and
 ambiguous aliases or references containing directories are not inferred.
+Same-folder aliases also recognize posting filenames that encode a literal
+ampersand as `&amp;`, `&#38;` or `&#x26;`. Only these ampersand entities are
+decoded for matching. Multiple matches fail, and exact filenames keep precedence.
 Otherwise, missing local `.wav` and `.flac` references declared as `WAVE`
 can use numbered filenames to match exact
 performer, title and track tags within one fully tagged FLAC album/disc. A
@@ -297,7 +300,8 @@ present global cue album title must also match, allowing a trailing `(single)`
 format annotation. For guest tracks, an explicit matching album artist can
 identify the performer when the cue also supplies a matching global album title.
 Conflicting album-artist aliases prevent that fallback. Numbered filenames may
-include the track artist or the matched cue performer; guest artist tags are preserved.
+include the track artist or matched cue performer before or after the title;
+guest artist tags are preserved.
 Ambiguous aliases, mismatched versions, missing identity tags and references
 containing directory paths keep failing without publication. Existing WAV and FLAC
 references take precedence. Quoted

@@ -1466,6 +1466,65 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.snapshot(root), before)
             self.assertFalse(list(root.glob(".unpack-music-*")))
 
+    def test_cue_title_then_artist_export_names_keep_audio_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            audio = {}
+            lines = ['PERFORMER "Artist"', 'TITLE "Album"']
+            for number, title in ((1, "First Song"), (2, "Second Song")):
+                name = f"{number:02}. Artist - {title}.flac"
+                audio[name] = self.tagged_flac({"ALBUM": "Album", "ARTIST": "Artist", "TITLE": title,
+                    "TRACKNUMBER": str(number), "TRACKTOTAL": "2"})
+                (root / name).write_bytes(audio[name])
+                lines += [f'FILE "{number:02}. {title} - Artist.wav" WAVE', f'  TRACK {number:02} AUDIO']
+            (root / "album.cue").write_bytes(('\r\n'.join(lines) + '\r\n').encode())
+            main.process_release(root)
+            for name, data in audio.items():
+                self.assertEqual((root / name).read_bytes(), data)
+                self.assertIn(f'FILE "{name}" WAVE', (root / "album.cue").read_text())
+            before = self.snapshot(root)
+            main.process_release(root)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_cue_ampersand_posting_aliases_preserve_exact_name_precedence(self) -> None:
+        for entity in ("&#38;", "&#038;", "&#x26;", "&amp;"):
+            with self.subTest(entity=entity), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                name = f"01..Song.{entity}.Dance.flac"
+                data = self.tagged_flac({"ALBUM": "Album", "ARTIST": "Artist", "TITLE": "Song & Dance",
+                                         "TRACKNUMBER": "1", "TRACKTOTAL": "1"})
+                (root / name).write_bytes(data)
+                (root / "album.cue").write_text('FILE "01. Song & Dance.wav" WAVE\n  TRACK 01 AUDIO\n')
+                main.process_release(root)
+                self.assertEqual((root / name).read_bytes(), data)
+                self.assertIn(f'FILE "{name}" WAVE', (root / "album.cue").read_text())
+                # An exact local spelling remains authoritative, even beside an alias.
+                exact = "01. Song & Dance.flac"
+                (root / exact).write_bytes(data + b"different")
+                (root / "album.cue").write_text('FILE "01. Song & Dance.wav" WAVE\n  TRACK 01 AUDIO\n')
+                matched = main.cue_flac_reference('01. Song & Dance.wav', root / "album.cue",
+                                                  (root / "album.cue").read_text(), main.tree_files(root))
+                self.assertEqual(matched, root / exact)
+
+    def test_cue_posting_aliases_keep_ambiguity_and_foreign_metadata_guards(self) -> None:
+        for problem in ("ambiguous ampersand", "other entity", "foreign performer", "foreign album"):
+            with self.subTest(problem=problem), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {"ALBUM": "Album", "ARTIST": "Artist", "TITLE": "Song & Dance", "TRACKNUMBER": "1"}
+                names = ["01..Song.&#38;.Dance.flac", "01..Song.&amp;.Dance.flac"] if problem == "ambiguous ampersand" else ["01..Song.&sol;.Dance.flac"]
+                if problem.startswith("foreign"):
+                    names = ["01. Artist - Song & Dance.flac"]
+                for name in names:
+                    (root / name).write_bytes(self.tagged_flac(tags))
+                header = 'PERFORMER "Other"\nTITLE "Album"\n' if problem == "foreign performer" else 'PERFORMER "Artist"\nTITLE "Other"\n'
+                text = ('FILE "01. Song & Dance.wav" WAVE\n' if problem in {"ambiguous ampersand", "other entity"}
+                        else header + 'FILE "01. Song & Dance - Artist.wav" WAVE\n')
+                (root / "album.cue").write_text(text + '  TRACK 01 AUDIO\n')
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+                    main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
     @classmethod
     def id3_flac(cls, tags: dict[str, str], *, version: int = 3, footer: bool = False) -> bytes:
         flac = bytearray(cls.tagged_flac(tags))
