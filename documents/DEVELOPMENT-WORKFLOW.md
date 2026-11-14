@@ -103,7 +103,12 @@ fixture backend: `host` on the supported Arch host, or `target` in the Ubuntu
 verification image.
 They use disposable local files and SQLite, require no Docker access, and preserve
 tracked source files. `MYLAR_PYTHON` selects the interpreter (default `python3`);
-use Python 3.10 to match the native runtime. These source checks do not replace
+use Python 3.10 to match the native runtime. That interpreter also needs Pillow
+for Komga's PDF controls, and `PATH` must include Poppler's `pdfinfo` and
+`pdftoppm`. The devcontainer installs both packages. For a separate Python
+virtual environment, install Pillow in that environment. `ci-local` checks these
+prerequisites before starting the longer source suites.
+These source checks do not replace
 the installed-image gate or protected NFS/reader integration acceptance.
 
 Install the hooks once:
@@ -120,18 +125,31 @@ all-files and Git-history suite on demand. Prepare a separate checkout of
 `bolens/.github` at the exact `tooling-ref` in
 `.github/workflows/source-lint.yml`, install its locked tools with
 `npm ci --ignore-scripts --prefix /path/to/shared/tools/source-lint`, and provide
-Ruff 0.17.4. This shared toolchain separately requires Node
+Ruff 0.17.5. This shared toolchain separately requires Node
 `^22.22.2 || ^24.15.0 || >=26.0.0`. For Homelab source lint and full local CI,
 use the intersection with this repository's Node range: Node 24.15.0 or newer
 within 24.x, or Node 26.x. These are supported prerequisites. The local
 source-lint wrapper does not check the Node version. Node 24.0 through 24.14
 satisfies Homelab's package range but does not support this shared toolchain.
-The shared source lint runs first, using the hosted configuration and rules.
+The shared source lint runs before the Mylar and Komga controls, using the
+hosted configuration and rules.
 Missing tools, a different checkout revision or changed tooling stop the gate;
 validation does not clone or install tools automatically.
 
+The full gate also needs Nodepad's pinned public source and its installed npm
+dependencies. Prepare a new checkout with `stacks/nodepad/clone-repo.sh` and run
+`npm ci --ignore-scripts --prefix stacks/nodepad/repo`. For a linked worktree,
+set `NODEPAD_UPSTREAM_ROOT` to an existing prepared Nodepad checkout. The source
+check reconstructs the current patches in temporary storage, verifies the
+lockfile, and reuses its Git objects and matching dependencies without changing
+that checkout.
+
 ```bash
-make ci-local JAVA_HOME_21=/path/to/jdk-21 SOURCE_LINT_TOOLING=/path/to/shared
+NODEPAD_UPSTREAM_ROOT=/path/to/prepared/nodepad \
+make ci-local JAVA_HOME_21=/path/to/jdk-21 \
+  SOURCE_LINT_TOOLING=/path/to/shared \
+  ARCHIVING_UTILS_ROOT=/path/to/checked/archive-sdk \
+  MYLAR_PYTHON=/path/to/python-3.10-venv/bin/python
 ```
 
 After the Mylar controls, `ci-local` runs the Komga source/compile gate through

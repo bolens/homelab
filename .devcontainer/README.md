@@ -7,8 +7,8 @@ packages. Setup installs dependencies from this checkout's lockfiles and runs
 `smoke.sh`. Rebuild the container after Dockerfile changes. Rerun
 `bash .devcontainer/post-create.sh` after changing dependency lockfiles.
 
-Includes Docker CLI/Compose, YAML validation, Python and the locked
-Markdown/site tools. `npm run lint:markdown -- FILE ...` checks literal file
+Includes Docker CLI/Compose, YAML validation, Python with Pillow, Poppler, and
+the locked Markdown/site tools. `npm run lint:markdown -- FILE ...` checks literal file
 paths with the lockfile-pinned Markdownlint library and `.markdownlint.json`.
 `scripts/validate-repo.sh` selects tracked Markdown files; glob patterns are not
 expanded by the local lint command. `post-create.sh` installs the root lockfile;
