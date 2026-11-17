@@ -9,7 +9,7 @@ services:
         max-size: 10m
         max-file: '3'
     pids_limit: 512
-    image: epheterson/zimi:1.15.2@sha256:8b5048023ab00cd0d94415a9384521044facc8b5a15c2f3a124a3d7dfcacb588
+    image: epheterson/zimi:1.15.4@sha256:5f60803d0d7e5d66136cc7279de7c40c4406a5ac4d3d6a1fdd96f845d84f14bc
     container_name: zimi
     init: true
     env_file:
@@ -38,7 +38,7 @@ services:
     cpus: '2.00'
     user: 1000:1000
   initialize-storage:
-    image: epheterson/zimi:1.15.2@sha256:8b5048023ab00cd0d94415a9384521044facc8b5a15c2f3a124a3d7dfcacb588
+    image: epheterson/zimi:1.15.4@sha256:5f60803d0d7e5d66136cc7279de7c40c4406a5ac4d3d6a1fdd96f845d84f14bc
     profiles:
     - storage-init
     entrypoint:

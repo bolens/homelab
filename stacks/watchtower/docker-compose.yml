@@ -4,7 +4,7 @@ services:
   watchtower:
     labels:
       logging: "true"
-    image: nickfedor/watchtower:latest@sha256:62fb91130ddb493f869cad7e198fa260dd16c5da293ed092cbd5d8781566f7a6
+    image: nickfedor/watchtower:latest@sha256:e96976bcbeaf0a9adeddc9016a539c27a2245ef6bb7d3ca97ed106783350d387
     container_name: watchtower
     restart: unless-stopped
     cpus: 1.0

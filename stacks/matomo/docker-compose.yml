@@ -34,7 +34,7 @@ services:
   matomo:
     labels:
       logging: "true"
-    image: matomo:latest@sha256:1e00192627025a9eb9108858a0d2fcedb495958adf8ee12cd2b2e4ec306efae4
+    image: matomo:latest@sha256:db40a508196ba5327a53dcae07d12835e50c7764bdaae3ea7822c35d432e64dc
     container_name: matomo
     restart: unless-stopped
     cpus: 2.0

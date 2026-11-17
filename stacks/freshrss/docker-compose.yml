@@ -6,7 +6,7 @@ services:
     labels:
       logging: "true"
     container_name: freshrss
-    image: lscr.io/linuxserver/freshrss:latest@sha256:33bc296f96a82e40b05b174a550c6f77587029286f3343911106341a1a275f94
+    image: lscr.io/linuxserver/freshrss:latest@sha256:2a7656d689b115cf5ade58b9dac1de5692df8e89fe92d77cc7f32b3d11622950
     env_file:
       - stack.env
     environment:
