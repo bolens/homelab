@@ -1,6 +1,6 @@
 {
   "integration": "speckit",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "installed_at": "2026-08-15T18:32:44.408473+00:00",
   "files": {
     ".specify/scripts/bash/create-new-feature.sh": "1e422acb000ab106b63ba1f9f9258bbcdc5b5c93f4e9f88588c0e671ad61b872",
