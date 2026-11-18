@@ -730,9 +730,9 @@ propcache==0.5.4 \
     # via
     #   aiohttp
     #   yarl
-pyee==14.0.0 \
-    --hash=sha256:3ac2d3229a9677f7de2c33d7f52fe25b638a46b19c413fea2edc8c6d0a644e4d \
-    --hash=sha256:76dd0f4314ecd27f02dc73589dea7fd3853f9b6176d8ef9b122860657e3602de
+pyee==15.0.0 \
+    --hash=sha256:48be57d58b2db456a779590c88f7e50b2a33c88e59a6bfdc9a8ab25b13a5576b \
+    --hash=sha256:ea2264fe4b47e0b2edc5badcd5d1bffcef68b70f9c0224ffb08f76992491da9b
     # via playwright
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
