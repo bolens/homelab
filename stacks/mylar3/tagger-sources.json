@@ -1,10 +1,10 @@
 [
   {
     "name": "comicfn2dict",
-    "version": "1.0.2",
-    "filename": "comicfn2dict-1.0.2.tar.gz",
-    "url": "https://files.pythonhosted.org/packages/95/df/ccc9199723ce101b6b13de2d140ed273db0deef34db82bf9c2c48238a476/comicfn2dict-1.0.2.tar.gz",
-    "sha256": "f6e66a5d3956ea8206dd58b59e5adf5fe324189d5ab2bd3ad3e1a5908b178aa3"
+    "version": "1.1.1",
+    "filename": "comicfn2dict-1.1.1.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/d8/43/ae305040f9796c7151a2e99cfa25dade3bd8e4a16904dc3de7ce45c60349/comicfn2dict-1.1.1.tar.gz",
+    "sha256": "13d495d9578e48fdd8e9cd9d7d2873caa52a92cefe63d48428a78cb090733f53"
   },
   {
     "name": "chardet",
