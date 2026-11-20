@@ -1,4 +1,4 @@
-FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS build
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS build
 
 ARG UNBOUND_VERSION=1.26.2
 ARG UNBOUND_SHA256=d8ee7aa6bbb3ff1be7d9e57637d0d0ec2f18273a8efff1a0afe2c665858b96f7
@@ -18,7 +18,7 @@ RUN apk add --no-cache build-base ca-certificates curl expat-dev libevent-dev op
     && make -j2 \
     && make install DESTDIR=/out
 
-FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 RUN apk add --no-cache bind-tools ca-certificates dnssec-root expat libevent libgcc openssl \
     && addgroup -S -g 1000 _unbound \
