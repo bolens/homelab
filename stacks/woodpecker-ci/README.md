@@ -64,7 +64,10 @@
 - In Woodpecker:
   - Access the UI at `https://ci.yourdomain.com`, sign in via Gitea, and enable repositories for builds.
 
-The `woodpecker-agent` runs builds on the same Docker host, using the Docker socket (`/var/run/docker.sock`) to launch build containers.
+The default `woodpecker-agent` runs builds on the same Docker host, using
+`/var/run/docker.sock` to launch build containers. Use the
+[VM agent example](agent-vm/README.md) to move execution and its workflow
+networks to a guest-owned Docker engine.
 
 ## Agent identity and backups
 
