@@ -17,6 +17,16 @@ outside the guest. QEMU user-mode networking can run without allocating a host
 Docker network. With its `restrict=on` option, packages and the forge require
 explicit forwarding or a controlled egress service.
 
+A dedicated libvirt NAT bridge is another option. Use an unused subnet outside
+the host Docker address pools. Install interface-specific host input and
+forward rules before bringing up the guest. Only permit the chosen public DNS
+resolvers, needed public ports, and the existing CI control-plane endpoint.
+When the endpoint is published through Docker, check the original destination
+and port in conntrack after DNAT. Permit established replies on the runner
+bridge, and verify that a direct connection to the container address is denied.
+Restrict the control-plane port in the guest Docker forwarding policy as well,
+so the agent can reach it while regular build containers cannot.
+
 ## Prepare the guest
 
 1. Give the guest its own virtual disk and install Docker Engine and the Compose
