@@ -90,8 +90,15 @@ volume.
   cleanup, and aggregate limits on the actual hypervisor. Keep any platform or
   privileged lanes with their current provider until an isolated replacement
   runs the full workload.
-- Disable scheduling on the old agent and wait for its active work to finish.
-  Preserve the old agent image and identity volume. Give the replacement its
-  own identity, move the scheduling labels only after qualification, and verify
-  an exact PR and a genuine main push. For rollback, drain the replacement and
-  restore the old scheduler entry from its original state.
+- Disable scheduling on the old agent and let its active jobs finish before
+  stopping it. Keep the original agent image and state for rollback. If the
+  guest will take over an existing agent ID, transfer only that agent's state
+  and token. Keep the host process stopped and its automatic restart disabled.
+  Confirm the same ID and labels reconnect before enabling scheduling, then
+  verify an exact PR and a main push.
+- Enable autostart for the libvirt network and VM. In the guest, start the
+  agent after Docker and the guest forwarding policy are active. After a
+  guest reboot, check that the interface filter is attached and the agent
+  reconnects with the original ID.
+- For rollback, disable scheduling, let active jobs finish, and stop the
+  guest agent before restoring the host process.
