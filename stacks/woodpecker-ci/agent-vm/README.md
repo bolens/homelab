@@ -27,6 +27,25 @@ bridge, and verify that a direct connection to the container address is denied.
 Restrict the control-plane port in the guest Docker forwarding policy as well,
 so the agent can reach it while regular build containers cannot.
 
+On libvirt hosts, also bind the [egress filter](egress-nwfilter.xml) to the
+runner's virtual NIC. Validate the XML with `virt-xml-validate` and define it
+with `virsh nwfilter-define --validate egress-nwfilter.xml`. The NIC supplies
+the static guest IPv4 address as `IP` and the existing Woodpecker endpoint as
+`AGENT_ADDRESS` and `AGENT_PORT`. Libvirt applies the filter when it attaches
+the NIC.
+
+```xml
+<filterref filter="woodpecker-ci-egress">
+  <parameter name="IP" value="192.0.2.2"/>
+  <parameter name="AGENT_ADDRESS" value="192.0.2.9"/>
+  <parameter name="AGENT_PORT" value="9000"/>
+</filterref>
+```
+
+The example permits public TCP 80 and 443 and DNS to two public resolvers.
+Match those rules to the guest resolver settings and qualify the complete
+network path before changing the old agent's scheduling.
+
 ## Prepare the guest
 
 1. Give the guest its own virtual disk and install Docker Engine and the Compose
