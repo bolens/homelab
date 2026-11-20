@@ -271,6 +271,18 @@ covering the three state trees and any separately scoped Worker configuration.
 It releases its Native pause before sending the signed backup frame. A backup
 failure still reaches that one owned unpause; it grants no reader resume.
 
+The host media observer opens path-only directory descriptors along the exact
+selected media paths before creating its UID1000 reader. If root-squashed NFS
+refuses Root, the reader completes the remaining path under its own permissions.
+That reader opens selected directories and files under its own permissions.
+It reads ancestor identities through the original descriptors without listing
+those directories or granting access to sibling paths. Root rechecks each held
+descriptor and its original namespace after the child exits. Private Docker
+volume ancestry therefore needs no permission or group change. Unreadable
+selected roots, unreadable descendants and symlink ancestry still refuse.
+The bounded owner-pipe wait uses `poll()` so the original restore descriptors
+can stay open when the pipe descriptor exceeds the `select()` limit.
+
 From signed stage 2 through validated stage 5, runtime closure uses original
 local process, pipe, source and namespace descriptors without Docker or HTTP.
 The independent terminal observer checks actual all-table SQL against the
