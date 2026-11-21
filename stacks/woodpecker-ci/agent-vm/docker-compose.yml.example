@@ -1,0 +1,39 @@
+services:
+  agent:
+    image: ${WOODPECKER_GUEST_AGENT_IMAGE:?set the reviewed guest agent image}
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 256
+    cpu_shares: 128
+    # Run this project inside the VM. This is the guest's network and socket.
+    network_mode: host
+    environment:
+      WOODPECKER_SERVER: ${WOODPECKER_SERVER:?set the existing agent endpoint}
+      WOODPECKER_AGENT_SECRET_FILE: /run/secrets/agent_token
+      WOODPECKER_GRPC_SECURE: ${WOODPECKER_GRPC_SECURE:-true}
+      WOODPECKER_GRPC_SKIP_VERIFY: "false"
+      WOODPECKER_HEALTHCHECK_ADDR: "127.0.0.1:3000"
+      WOODPECKER_HOSTNAME: ${WOODPECKER_HOSTNAME:?set the guest agent display name}
+      WOODPECKER_BACKEND: docker
+      WOODPECKER_AGENT_CONFIG_FILE: /etc/woodpecker/agent.conf
+      WOODPECKER_AGENT_LABELS: ${WOODPECKER_AGENT_LABELS:?set the guest scheduling label}
+      WOODPECKER_MAX_WORKFLOWS: "${WOODPECKER_MAX_WORKFLOWS:-1}"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_QUOTA: "200000"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_SHARES: "128"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_MEM: "6442450944"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_MEM_SWAP: "6442450944"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_SHM_SIZE: "67108864"
+    secrets:
+      - agent_token
+    volumes:
+      - agent_state:/etc/woodpecker
+      - /var/run/docker.sock:/var/run/docker.sock
+
+secrets:
+  agent_token:
+    file: ${WOODPECKER_AGENT_SECRET_PATH:?set the guest agent credential file path}
+
+volumes:
+  agent_state:
