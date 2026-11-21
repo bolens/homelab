@@ -5,7 +5,7 @@ services:
   slink:
     labels:
       logging: "true"
-    image: anirdev/slink:latest@sha256:fff70ce3cee309377424466565810d500ae4df0d1b918ee47b5126807621841d
+    image: anirdev/slink:latest@sha256:7f7cab180971caeb83ce8818a676be04a7923dff6bf6e201ae0a9ce4f64be593
     container_name: slink
     restart: unless-stopped
     env_file:

@@ -2,7 +2,7 @@ services:
   resilio:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/resilio-sync:latest@sha256:2e8e4b1dc34336e67effe28600e61888b1332b5241b8185958342b7e6df62d65
+    image: lscr.io/linuxserver/resilio-sync:latest@sha256:8236adf0751e33670923e679fa96b61a53f1fafbb1c799a66dee1247c41d6a50
     container_name: resilio
     restart: unless-stopped
     cpus: 2.0
