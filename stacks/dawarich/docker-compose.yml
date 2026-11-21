@@ -1,6 +1,6 @@
 services:
   dawarich:
-    image: freikin/dawarich:1.21.0@sha256:aae6cabd95c1dd5e5d4e2c920692a1b11524feec143d295a9bcc914df7ffdcdf
+    image: freikin/dawarich:1.22.0@sha256:b8ee8d9fdff92a9d6ca570f98e0e875624f4bfb24b61363f8246bba124d5849d
     container_name: dawarich
     restart: unless-stopped
     env_file:
@@ -84,7 +84,7 @@ services:
       retries: 3
       start_period: 30s
   dawarich-redis:
-    image: redis:8-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    image: redis:8-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
     container_name: dawarich-redis
     restart: unless-stopped
     command:
