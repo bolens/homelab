@@ -1,0 +1,70 @@
+<filter name="woodpecker-ci-egress" chain="root">
+  <filterref filter="no-mac-spoofing" />
+  <filterref filter="no-arp-spoofing" />
+  <rule action="accept" direction="inout" priority="100">
+    <arp />
+  </rule>
+  <rule action="drop" direction="out" priority="110">
+    <ipv6 />
+  </rule>
+  <rule action="drop" direction="in" priority="110">
+    <ipv6 />
+  </rule>
+  <rule action="accept" direction="out" priority="120">
+    <tcp srcipaddr="$IP" dstipaddr="$AGENT_ADDRESS" dstportstart="$AGENT_PORT" />
+  </rule>
+  <rule action="drop" direction="out" priority="130">
+    <all dstipaddr="0.0.0.0" dstipmask="8" />
+  </rule>
+  <rule action="drop" direction="out" priority="131">
+    <all dstipaddr="10.0.0.0" dstipmask="8" />
+  </rule>
+  <rule action="drop" direction="out" priority="132">
+    <all dstipaddr="100.64.0.0" dstipmask="10" />
+  </rule>
+  <rule action="drop" direction="out" priority="133">
+    <all dstipaddr="127.0.0.0" dstipmask="8" />
+  </rule>
+  <rule action="drop" direction="out" priority="134">
+    <all dstipaddr="169.254.0.0" dstipmask="16" />
+  </rule>
+  <rule action="drop" direction="out" priority="135">
+    <all dstipaddr="172.16.0.0" dstipmask="12" />
+  </rule>
+  <rule action="drop" direction="out" priority="136">
+    <all dstipaddr="192.168.0.0" dstipmask="16" />
+  </rule>
+  <rule action="drop" direction="out" priority="137">
+    <all dstipaddr="198.18.0.0" dstipmask="15" />
+  </rule>
+  <rule action="drop" direction="out" priority="138">
+    <all dstipaddr="224.0.0.0" dstipmask="4" />
+  </rule>
+  <rule action="drop" direction="out" priority="139">
+    <all dstipaddr="240.0.0.0" dstipmask="4" />
+  </rule>
+  <rule action="accept" direction="out" priority="150">
+    <udp srcipaddr="$IP" dstipaddr="1.1.1.1" dstportstart="53" />
+  </rule>
+  <rule action="accept" direction="out" priority="150">
+    <tcp srcipaddr="$IP" dstipaddr="1.1.1.1" dstportstart="53" />
+  </rule>
+  <rule action="accept" direction="out" priority="151">
+    <udp srcipaddr="$IP" dstipaddr="9.9.9.9" dstportstart="53" />
+  </rule>
+  <rule action="accept" direction="out" priority="151">
+    <tcp srcipaddr="$IP" dstipaddr="9.9.9.9" dstportstart="53" />
+  </rule>
+  <rule action="accept" direction="out" priority="160">
+    <tcp srcipaddr="$IP" dstportstart="80" />
+  </rule>
+  <rule action="accept" direction="out" priority="161">
+    <tcp srcipaddr="$IP" dstportstart="443" />
+  </rule>
+  <rule action="drop" direction="out" priority="500">
+    <all />
+  </rule>
+  <rule action="drop" direction="in" priority="500">
+    <all />
+  </rule>
+</filter>

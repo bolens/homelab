@@ -55,6 +55,7 @@ services:
       - ingress-admin
 
   agent:
+    profiles: [legacy-host-agent]
     labels:
       logging: "true"
     image: woodpeckerci/woodpecker-agent:v3

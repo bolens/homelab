@@ -64,7 +64,11 @@
 - In Woodpecker:
   - Access the UI at `https://ci.yourdomain.com`, sign in via Gitea, and enable repositories for builds.
 
-The `woodpecker-agent` runs builds on the same Docker host, using the Docker socket (`/var/run/docker.sock`) to launch build containers.
+The server stack starts without a local agent. Use the
+[VM agent example](agent-vm/README.md) to run the agents and their workflow
+networks inside their guests. The `legacy-host-agent` profile is available for
+an explicit rollback after draining and stopping the guest agent. It runs
+builds through the server host's Docker socket.
 
 ## Agent identity and backups
 
