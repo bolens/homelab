@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.27.3-alpine3.24@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS build
+FROM golang:1.27.4-alpine3.24@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
 
 ARG ONIONSCAN_REPOSITORY=https://github.com/abhinav7903/onionscan.git
 # renovate: datasource=git-refs packageName=https://github.com/abhinav7903/onionscan.git currentValue=master
@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -ldflags="-s -w -X main.sourceCommit=${ONIONSCAN_COMMIT}" \
       -o /out/onionscan .
 
-FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 # renovate: datasource=git-refs packageName=https://github.com/abhinav7903/onionscan.git currentValue=master
 ARG ONIONSCAN_COMMIT=cb3ce86e96954f22789b4b76f432a299577abcc5

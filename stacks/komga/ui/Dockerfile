@@ -1,4 +1,4 @@
-FROM gotson/komga:1.30.0@sha256:3ae42f88511211e0ec2637d88f3df1b709d07cfb093427e58444ae200a62608e AS upstream
+FROM gotson/komga:1.30.1@sha256:d43bb3b57aeeafd274ea805214f5da71ff9306accf012fb14cc13dedc3307212 AS upstream
 FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS source
 ADD --checksum=sha256:3116139680f120b5c40ea5dee6f8a30069a0c041c84eed339ce35753bfdd45c6 https://codeload.github.com/gotson/komga/tar.gz/ff800c21253793d4d3fd855651b82d4924915950 /tmp/source.tar.gz
 WORKDIR /source
