@@ -5,7 +5,7 @@ services:
   meilisearch:
     labels:
       logging: "true"
-    image: getmeili/meilisearch:v1.56.1@sha256:b7ba431bf6f9b26cc86132798f3640964147a699cf23f026b74c6c05dbb1d60d
+    image: getmeili/meilisearch:v1.57.0@sha256:91bf09897482c17205c8faeca8daa8d57999fb9de20d862763cdfa92ba4ec790
     container_name: meilisearch
     restart: unless-stopped
     cpus: 2.0

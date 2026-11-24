@@ -5,7 +5,7 @@ services:
   lanraragi:
     labels:
       logging: "true"
-    image: difegue/lanraragi:latest@sha256:6376a3de75c8a4045aadeb252eee9661ee9baf27965cec7a405a2b246d2937b3
+    image: difegue/lanraragi:latest@sha256:168916c6b34afc743db2311ee4254c00910e2e5f7f741a1813c81a90c2019fa2
     container_name: lanraragi
     restart: unless-stopped
     cpus: 2.0
