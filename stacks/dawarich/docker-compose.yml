@@ -1,6 +1,6 @@
 services:
   dawarich:
-    image: freikin/dawarich:1.21.0@sha256:aae6cabd95c1dd5e5d4e2c920692a1b11524feec143d295a9bcc914df7ffdcdf
+    image: freikin/dawarich:1.23.0@sha256:c9c6a9c04fa2ad11c438fc0b0ea3b7d95fc7e6d8c7a3cfa98bf1fc5aef2dbfd4
     container_name: dawarich
     restart: unless-stopped
     env_file:

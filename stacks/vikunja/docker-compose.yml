@@ -5,7 +5,7 @@ services:
   vikunja:
     labels:
       logging: "true"
-    image: vikunja/vikunja:latest@sha256:f7dc8428d10aef17f3075886d3c1c022f566ec456f88985f02c137f4fc534576
+    image: vikunja/vikunja:latest@sha256:35d937baf3b5d5803bed6b9e11d007448b7b536df9e4346dc35551e1072636c3
     container_name: vikunja
     restart: unless-stopped
     env_file:
